@@ -1,0 +1,98 @@
+Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+
+== Spike F-04 Testlauf, Godot 4.4.1-stable (official) ==
+    [OK] Enum-Konstanten Diagnose = Sim
+S1 Gegenverkehr eingleisig
+    [OK] genau ein Deadlock-Ereignis (1)
+    Zyklus gebildet Tick 101, erkannt Tick 105, Ticks bis Erkennung: 4, Mitglieder [1, 2]
+    [OK] Erkennung in <= 50 Ticks (4)
+    V1: FAHRZEUG#1@(400000,0) -> SIGNAL#5@(400000,0) -> BLOCK#3@(500000,0) -> FAHRZEUG#2@(400000,0) -> SIGNAL#4@(400000,0) -> BLOCK#2@(300000,0) -> URSACHE#2@(400000,0) | Ursache=EINGLEISIG_GEGENVERKEHR @(400000,0) params={"bloecke":[2,3],"gleiszahl":1,"kanten":[2,3],"n_fahrzeuge":2,"strecke_felder":40,"strecke_mm":400000} Vorschlag=AUSWEICHGLEIS_BAUEN wartet=5 Ticks
+    V2: FAHRZEUG#2@(400000,0) -> SIGNAL#4@(400000,0) -> BLOCK#2@(300000,0) -> FAHRZEUG#1@(400000,0) -> SIGNAL#5@(400000,0) -> BLOCK#3@(500000,0) -> URSACHE#2@(400000,0) | Ursache=EINGLEISIG_GEGENVERKEHR @(400000,0) params={"bloecke":[2,3],"gleiszahl":1,"kanten":[2,3],"n_fahrzeuge":2,"strecke_felder":40,"strecke_mm":400000} Vorschlag=AUSWEICHGLEIS_BAUEN wartet=55 Ticks
+    [OK] Zug 1 Ursache EINGLEISIG_GEGENVERKEHR (EINGLEISIG_GEGENVERKEHR)
+    [OK] Zug 2 Ursache EINGLEISIG_GEGENVERKEHR (EINGLEISIG_GEGENVERKEHR)
+    [OK] Zug 1 root_pos = (400000,0) ((400000, 0))
+    [OK] Zug 2 root_pos gleich Zug 1 (kanonisch, Daniel B1)
+    [OK] beide Züge nennen dasselbe Ursache-Objekt { "kind": "BLOCK", "id": 2 }
+    [OK] Validator S1 Zug 1: gültig
+    [OK] S1 Zug 1: root_pos == letztes Kettenglied (D9)
+    [OK] Validator S1 Zug 2: gültig
+    [OK] S1 Zug 2: root_pos == letztes Kettenglied (D9)
+    [OK] params Streckenlänge 400000 mm = 40 Felder, Gleiszahl 1, 2 Fahrzeuge ({"bloecke":[2,3],"gleiszahl":1,"kanten":[2,3],"n_fahrzeuge":2,"strecke_felder":40,"strecke_mm":400000})
+    [OK] wait_since_tick Zug 1 = 101, Zug 2 = 51 (101, 51)
+    [OK] Zyklus mit 2 Fahrzeugen, Zug 1 darin
+    [OK] Kette Zug 1 hat 7 Glieder, letztes URSACHE (7)
+    [OK] Vorschlag-ID AUSWEICHGLEIS_BAUEN
+    [OK] zweiter Lauf identisch (deterministisch)
+S2 Deadlock-Kreis
+    [OK] genau ein Deadlock-Ereignis (1)
+    Zyklus gebildet Tick 51, erkannt Tick 55, Ticks bis Erkennung: 4, Mitglieder [0, 1, 2, 3]
+    [OK] Erkennung in <= 50 Ticks (4)
+    V0: FAHRZEUG#0@(200000,0) -> SIGNAL#3@(200000,0) -> BLOCK#2@(200000,100000) -> FAHRZEUG#1@(200000,200000) -> SIGNAL#5@(200000,200000) -> BLOCK#3@(100000,200000) -> FAHRZEUG#2@(0,200000) -> SIGNAL#7@(0,200000) -> BLOCK#4@(0,100000) -> FAHRZEUG#3@(0,0) -> SIGNAL#1@(0,0) -> BLOCK#1@(100000,0) -> URSACHE#1@(100000,100000) | Ursache=DEADLOCK @(100000,100000) params={"bloecke":[1,2,3,4],"gleiszahl":1,"kanten":[1,2,3,4],"n_fahrzeuge":4,"strecke_felder":80,"strecke_mm":800000} Vorschlag=SIGNALE_UMBAUEN_KREIS_AUFLOESEN wartet=5 Ticks
+    [OK] Ursache DEADLOCK (DEADLOCK)
+    [OK] Zyklus mit 4 Fahrzeugen (4)
+    [OK] root_pos = Ringmitte (100000,100000) ((100000, 100000))
+    [OK] Validator S2 Zug 0: gültig
+    [OK] S2 Zug 0: root_pos == letztes Kettenglied (D9)
+    [OK] Validator S2 Zug 1: gültig
+    [OK] S2 Zug 1: root_pos == letztes Kettenglied (D9)
+    [OK] Validator S2 Zug 2: gültig
+    [OK] S2 Zug 2: root_pos == letztes Kettenglied (D9)
+    [OK] Validator S2 Zug 3: gültig
+    [OK] S2 Zug 3: root_pos == letztes Kettenglied (D9)
+    [OK] alle 4 Mitglieder liefern denselben root_pos und root_obj
+    [OK] params n_fahrzeuge 4, Blöcke 1–4 ({"bloecke":[1,2,3,4],"gleiszahl":1,"kanten":[1,2,3,4],"n_fahrzeuge":4,"strecke_felder":80,"strecke_mm":800000})
+    [OK] Kette hat 13 Glieder (13)
+    [OK] zweiter Lauf identisch (deterministisch)
+S3 Warten auf Ladung (Lager unterversorgt, 1 Lkw liefert)
+    [OK] kein Deadlock gemeldet (es ist keiner)
+    V2: FAHRZEUG#2@(0,0) -> SIGNAL#1@(0,0) -> BLOCK#1@(100000,0) -> FAHRZEUG#1@(200000,0) -> LAGER#1@(200000,0) -> INDUSTRIE#1@(200000,0) -> URSACHE#1@(200000,0) | Ursache=WARTEN_AUF_LADUNG @(200000,0) params={"fuell_ist":2,"fuell_soll":40,"lager_id":1,"lkw_ids":[3],"n_lkw":1,"produce_amount":1,"produce_every":0} Vorschlag=ZULIEFERUNG_ERHOEHEN wartet=291 Ticks
+    V1: FAHRZEUG#1@(200000,0) -> LAGER#1@(200000,0) -> INDUSTRIE#1@(200000,0) -> URSACHE#1@(200000,0) | Ursache=WARTEN_AUF_LADUNG @(200000,0) params={"fuell_ist":2,"fuell_soll":40,"lager_id":1,"lkw_ids":[3],"n_lkw":1,"produce_amount":1,"produce_every":0} Vorschlag=ZULIEFERUNG_ERHOEHEN wartet=250 Ticks
+    [OK] Zug 10 (hinten) Ursache WARTEN_AUF_LADUNG (WARTEN_AUF_LADUNG)
+    [OK] Zug 7 (am Lager) Ursache WARTEN_AUF_LADUNG (WARTEN_AUF_LADUNG)
+    [OK] root_pos = Lagerknoten (200000,0)
+    [OK] Validator S3 Zug 7: gültig
+    [OK] S3 Zug 7: root_pos == letztes Kettenglied (D9)
+    [OK] Validator S3 Zug 10: gültig
+    [OK] S3 Zug 10: root_pos == letztes Kettenglied (D9)
+    [OK] Kette Zug 10: Fahrzeug, Signal, Block, Halter, Lager, Industrie, Ursache
+    params Zug 10: {"fuell_ist":2,"fuell_soll":40,"lager_id":1,"lkw_ids":[3],"n_lkw":1,"produce_amount":1,"produce_every":0}
+    [OK] n_lkw = 1 (Zulieferer Lkw 3)
+    [OK] fuell_ist/fuell_soll = 2/40: Lager bekommt Ware, aber zu wenig
+    [OK] gelieferte Menge == fuell_ist (nur der Lkw liefert)
+    [OK] is_deadlock = false
+    [OK] Fehler 3 besteht nach 1300 Ticks noch (wartet 1250 Ticks, fuell_ist 12)
+    Positivkontrolle A (Produktion 4/10 Ticks): Zug 7 geladen in Tick 100, Zug 10 Zustand 4
+    [OK] mit Nachschub wird geladen, keine Meldung
+    [OK] nach dem Laden keine Ursache WARTEN_AUF_LADUNG mehr
+    Positivkontrolle B (8 Lkw): fuell_ist 10, n_lkw 8, Zug 7 geladen Tick -1
+    [OK] n_lkw zählt alle Zulieferer
+    [OK] 8 Lkw liefern in 300 Ticks mindestens 8 Einheiten (10)
+S1b Gegenverkehr mit Auffahrer (D3, Daniel E)
+    [OK] ein Ereignis, Mitglieder [1, 2] ([{ "members": [1, 2], "root_cause": "EINGLEISIG_GEGENVERKEHR", "tick_formed": 101, "tick_detected": 105, "ticks_to_detect": 4 }])
+    V3: FAHRZEUG#3@(200000,0) -> SIGNAL#3@(200000,0) -> BLOCK#2@(300000,0) -> FAHRZEUG#1@(400000,0) -> SIGNAL#5@(400000,0) -> BLOCK#3@(500000,0) -> FAHRZEUG#2@(400000,0) -> SIGNAL#4@(400000,0) -> BLOCK#2@(300000,0) -> URSACHE#2@(400000,0) | Ursache=EINGLEISIG_GEGENVERKEHR @(400000,0) params={"bloecke":[2,3],"gleiszahl":1,"kanten":[2,3],"n_fahrzeuge":2,"strecke_felder":40,"strecke_mm":400000} Vorschlag=AUSWEICHGLEIS_BAUEN wartet=65 Ticks
+    [OK] Zug 3 steht (aufgefahren)
+    [OK] Zug 3: is_deadlock, nicht im Kreis, Ursache EINGLEISIG_GEGENVERKEHR
+    [OK] Zug 3 bekommt denselben kanonischen Ort wie Zug 1 ((400000, 0))
+    [OK] Validator S1b Zug 3: gültig
+    [OK] S1b Zug 3: root_pos == letztes Kettenglied (D9)
+S2b Ring mit 6 Zügen (D3, Daniel B2)
+    [OK] ein Ereignis mit 6 Mitgliedern
+    V0: FAHRZEUG#0@(300000,373205) -> SIGNAL#3@(300000,373205) -> BLOCK#2@(200000,373205) -> FAHRZEUG#1@(100000,373205) -> SIGNAL#5@(100000,373205) -> BLOCK#3@(50000,286602) -> FAHRZEUG#2@(0,200000) -> SIGNAL#7@(0,200000) -> BLOCK#4@(50000,113397) -> FAHRZEUG#3@(100000,26795) -> SIGNAL#9@(100000,26795) -> BLOCK#5@(200000,26795) -> FAHRZEUG#4@(300000,26795) -> SIGNAL#11@(300000,26795) -> BLOCK#6@(350000,113397) -> FAHRZEUG#5@(400000,200000) -> SIGNAL#1@(400000,200000) -> BLOCK#1@(350000,286602) -> URSACHE#1@(200000,199999) | Ursache=DEADLOCK @(200000,199999) params={"bloecke":[1,2,3,4,5,6],"gleiszahl":1,"kanten":[1,2,3,4,5,6],"n_fahrzeuge":6,"strecke_felder":120,"strecke_mm":1200000} Vorschlag=SIGNALE_UMBAUEN_KREIS_AUFLOESEN wartet=5 Ticks
+    [OK] Ursache DEADLOCK, n_fahrzeuge 6
+    [OK] alle 6 Mitglieder: gleicher root_pos (200000, 199999), Validator gültig
+    [OK] root_pos ist die Ringmitte (±1 m)
+K1 Kontrolle: Ausweichgleis, 10 min Normalbetrieb (6000 Ticks), kein Fehlalarm
+    Ereignisse: 0, Läufe Zug 1: 39, Zug 2: 40, Warte-Ticks gesamt (Fahrzeug-Ticks): 1140
+    [OK] 0 Deadlock-Meldungen in 6000 Ticks
+    [OK] beide Züge fahren weiter (je >= 10 Läufe)
+    [OK] Kontrolle enthält echte Wartezeiten (nicht trivial)
+K2 A* gegen AStar2D (Kosten) und Determinismus
+    [OK] eigenes A* hat gleiche Pfadkosten wie AStar2D bei 20 Knotenpaaren, wiederholbar
+K3 Prüfsumme (Daniel S5): gleicher Aufbau = gleiche Summe, anderer Zustand = andere Summe
+    Prüfsumme nach 500 Ticks: -8969300774167711505
+    [OK] zwei Läufe, gleiche Prüfsumme
+    [OK] ein Tick weiter, andere Prüfsumme
+    [OK] andere Geschwindigkeit, andere Prüfsumme
+    Zustandsverteilung Tick 500: {"ENDE":0,"GEPLANT":0,"UNTERWEGS":1,"WARTET_BLOCK":1,"WARTET_LADUNG":0}
+== Dauer 117 ms ==
+ERGEBNIS: ALLE TESTS GRUEN (Exit 0)

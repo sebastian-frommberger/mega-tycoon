@@ -1,0 +1,6 @@
+Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+
+== F-05 Benchmark, Godot 4.4.1-stable (official), Build editor-headless, CPU Intel(R) Xeon(R) Processor @ 2.80GHz (2 Kerne), Ticks 3000 (+300 Warm-up), 3 Runden ==
+Konfigurationen: Fahrzeuge [1000, 5000, 10000], Tempo [1, 8]
+1k/1x Lauf 1: N=3000 Median 10.543 ms, p95 17.120 ms, Max 38.290 ms, >4ms 100.0 %, Frame(1 Ticks) Median 10.543 ms p95 17.120 ms | Fahrzeuge 6.402, Deadlock-Prüfung 4.129 (Mediane) | unterwegs/wartend T100 868/132, T2000 95/905 | Ereignisse 66 | Wanduhr 36 s
+1k/8x Lauf 1: N=3000 Median 10.187 ms, p95 16.363 ms, Max 30.649 ms, >4ms 100.0 %, Frame(8 Ticks) Median 84.004 ms p95 124.861 ms | Fahrzeuge 6.141, Deadlock-Prüfung 4.000 (Mediane) | unterwegs/wartend T100 868/132, T2000 95/905 | Ereignisse 66 | Wanduhr 34 s

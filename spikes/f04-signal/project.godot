@@ -1,0 +1,7 @@
+; Spike F-04 (Wegwerf): Netz-, Signal- und Diagnose-Spike. Reine Daten, kein Rendering.
+config_version=5
+
+[application]
+
+config/name="Spike F-04 Netz Signal Diagnose"
+config/features=PackedStringArray("4.4")

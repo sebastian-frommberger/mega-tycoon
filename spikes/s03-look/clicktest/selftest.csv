@@ -1,0 +1,8 @@
+# FUNKTIONSTEST mit simulierten Klicks, KEINE Messdaten von Personen
+pid,ziel,hoehe_m,zeit_ms,treffer,klick_x,klick_y,unter_10s,hinweis
+2,Stadt,1000,1500,0,3,3,0,
+2,Stadt,1000,4000,1,630,440,1,
+2,Strecke,1000,1500,0,3,3,0,
+2,Strecke,1000,4000,1,630,413,1,
+2,Industrie,1000,1500,0,3,3,0,
+2,Industrie,1000,4000,1,118,209,1,

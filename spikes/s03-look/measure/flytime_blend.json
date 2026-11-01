@@ -1,0 +1,45 @@
+{
+  "adapter": "llvmpipe (LLVM 20.1.2, 256 bits)",
+  "durchlaeufe": [
+    {
+      "cpu_skriptzeit_max_ms": 1.957,
+      "cpu_skriptzeit_median_ms": 1.01,
+      "frames": 17,
+      "frames_ueber_33_3ms": 17,
+      "kalt": true,
+      "max_ms": 377.23,
+      "mean_ms": 298.21,
+      "median_ms": 299.91,
+      "p95_ms": 377.23,
+      "pass": 1
+    },
+    {
+      "cpu_skriptzeit_max_ms": 1.67,
+      "cpu_skriptzeit_median_ms": 1.019,
+      "frames": 18,
+      "frames_ueber_33_3ms": 18,
+      "kalt": false,
+      "max_ms": 329.51,
+      "mean_ms": 284.9,
+      "median_ms": 284.43,
+      "p95_ms": 329.51,
+      "pass": 2
+    },
+    {
+      "cpu_skriptzeit_max_ms": 1.62,
+      "cpu_skriptzeit_median_ms": 1.031,
+      "frames": 18,
+      "frames_ueber_33_3ms": 18,
+      "kalt": false,
+      "max_ms": 322.2,
+      "mean_ms": 287.1,
+      "median_ms": 294.57,
+      "p95_ms": 322.2,
+      "pass": 3
+    }
+  ],
+  "hard_switch": false,
+  "renderer_driver": "opengl3",
+  "renderer_method": "gl_compatibility",
+  "viewport": "(1280.0, 720.0)"
+}

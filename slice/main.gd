@@ -14,6 +14,9 @@ const Building := preload("res://building.gd")
 const Vehicle := preload("res://vehicle.gd")
 const Economy := preload("res://economy.gd")
 const EcoShim := preload("res://eco_shim.gd")
+const SimWorld := preload("res://core/sim_world.gd")    # F-18: SoA-Kern mit Linienbetrieb
+const FleetSoa := preload("res://fleet_soa.gd")
+const Credit := preload("res://credit.gd")             # F-19
 const Bench := preload("res://bench.gd")
 const ThemeBuilder := preload("res://ui/theme/theme_builder.gd")
 const Kit := preload("res://ui/ui_kit.gd")
@@ -29,11 +32,9 @@ const VEHICLES_PATH := "res://data/vehicles.json"
 const GOODS_PATH := "res://data/goods.json"
 const PALETTE_PATH := "res://data/palette_s08.json"
 
-## Prototyp-Werte, die (noch) nicht im JSON stehen (ANNAHME, Genre-Standard OpenTTD; T-12 prüft):
-const WATER_FACTOR := 6            # Brücke kostet das Sechsfache
-const MOUNTAIN_FACTOR := 3         # Hang/Tunnel kostet das Dreifache
+## T-12: Gleis-, Brücken-, Berg-Kosten und Gratis-Startlkw stehen jetzt im JSON (economy_slice.json, Abschnitt bau_kosten).
+## Prototyp-Werte, die (noch) nicht im JSON stehen (ANNAHME, Genre-Standard OpenTTD):
 const BRIDGE_MAX := 8              # Brücke nur gerade, Land an beiden Enden, max. 8 Felder
-const RAIL_CENT_PER_FIELD := 4000  # Gleis 40 $/Feld wie Prototyp (Baupreis Gleis fehlt im JSON)
 const TRAIN_WAGONS := 4            # Zug = Lok + 4 Waggons (40 Einheiten wie Prototyp)
 const TRUCK_MAX_WAIT_TICKS := 50   # Prototyp: 5 s warten auf volle Ladung
 const TRAIN_MAX_WAIT_TICKS := 120  # Prototyp: 12 s
@@ -61,8 +62,17 @@ const ARCH := {
 }
 
 # ---------------------------------------------------------------- Daten
+## F-18 Schalter Fahrzeug-Kern: "alt" = Prototyp-Fahrzeuge (vehicle.gd + eco_shim.gd), "soa" = SoA-Kern
+## (core/sim_world.gd über fleet_soa.gd). Default "soa" seit F-18 (Parität exakt, siehe felix.md); "alt" bleibt Rückfall.
+## Umschalten: Kommandozeile --fahrzeuge=soa (bzw. =alt) oder vor dem Laden Main.core_override = "soa".
+const VEHICLE_CORE_DEFAULT := "soa"
+static var core_override := ""
+var vehicle_core := VEHICLE_CORE_DEFAULT
+var fleet = null                    # F-18: FleetSoa (nur bei vehicle_core == "soa")
+var credit = Credit.new()           # F-19: Kredit (Werte aus economy_slice.json „kredit“)
+var credit_buttons: Array = []      # [+ aufnehmen, − tilgen] im HUD-Kassenfeld
 var eco = null
-var shim = null
+var shim = null                     # alt: EcoShim, soa: SimWorld (beide mit der Schnittstelle, die economy.gd liest)
 var map_data: Dictionary = {}
 var vdefs: Dictionary = {}          # vehicles.json id -> Dictionary
 var good_names: Dictionary = {}
@@ -73,6 +83,10 @@ var tick_ms := 100
 var periode_ticks := 600
 var month_ticks := 600
 var road_cent := 1000
+var rail_cent := 4000                # bau_kosten.gleis_cent_pro_feld
+var water_factor_pm := 6000          # bau_kosten.bruecke_faktor_promille
+var mountain_factor_pm := 3000       # bau_kosten.berg_faktor_promille
+var start_trucks_free := true        # bau_kosten.startpaket_lkw_gratis_flag
 var warehouse_cent := 0
 var warehouse_upkeep := 0
 var rail_upkeep_per_field := 0
@@ -243,8 +257,18 @@ func _json(path: String) -> Variant:
 	return JSON.parse_string(f.get_as_text())
 
 
+func _pick_vehicle_core() -> String:
+	if core_override != "":
+		return core_override
+	for a in OS.get_cmdline_user_args() + OS.get_cmdline_args():
+		if a.begins_with("--fahrzeuge="):
+			return "soa" if a.substr(12) == "soa" else "alt"
+	return VEHICLE_CORE_DEFAULT
+
+
 func _load_data() -> void:
-	shim = EcoShim.new()
+	vehicle_core = _pick_vehicle_core()
+	shim = SimWorld.new() if vehicle_core == "soa" else EcoShim.new()
 	eco = Economy.new()
 	if not eco.load_from(SLICE_PATH, CONSTS_PATH):
 		for e in eco.errors:
@@ -262,11 +286,19 @@ func _load_data() -> void:
 	periode_ticks = eco.periode_ticks
 	month_ticks = int(eco.slice["zeit"]["spielmonat_ticks"])
 	road_cent = int(eco.slice["fahrzeug_ref"]["strasse_cent_pro_feld"])
+	var bk: Dictionary = eco.slice["bau_kosten"]
+	rail_cent = int(bk["gleis_cent_pro_feld"])
+	water_factor_pm = int(bk["bruecke_faktor_promille"])
+	mountain_factor_pm = int(bk["berg_faktor_promille"])
+	start_trucks_free = bool(bk["startpaket_lkw_gratis_flag"])
 	load_ticks = int(eco.slice["fahrzeug_ref"]["load_ticks"])
 	warehouse_cent = int(eco.slice["lager"]["warehouse_cost_cent"])
 	warehouse_upkeep = int(eco.slice["lager"]["warehouse_upkeep_cent_pro_periode"])
 	refund_promille = int(eco.slice["genre_standard"]["demolition_refund_promille"])
 	rail_upkeep_per_field = int(vdefs["lok_e1"].get("gleis_cent_pro_feld_pro_periode", 0))
+	if vehicle_core == "soa":
+		fleet = FleetSoa.new(shim, feld_mm)
+	credit.setup(eco)
 	if int(map_data["karte"]["feld_mm"]) != feld_mm:
 		map_missing_ids.append("karte.feld_mm %s != constants raum.feld_mm %d" % [str(map_data["karte"]["feld_mm"]), feld_mm])
 
@@ -859,12 +891,14 @@ func _setup_hud() -> void:
 	var sep := VSeparator.new()
 	sep.add_theme_stylebox_override("separator", _vline())
 	h.add_child(sep)
-	for e in [["kasse", "geld", "Kasse", "Dein Geld. Unter 0 $ bist du bankrott (noch kein Kredit)."],
+	for e in [["kasse", "geld", "Kasse", "Dein Geld. Unter 0 $ bist du bankrott – vorher hilft ein Kredit (rechts daneben)."],
 			["einnahmen", "einnahmen", "Einnahmen", "Summe aller Erträge beim Abnehmer"],
 			["kosten", "kosten", "Kosten", "Laufender Unterhalt je Spielminute (Fahrzeuge, Lager, Gleise)"],
 			["fahrzeuge", "lkw", "Fahrzeuge", "Fahrzeuge im Einsatz"],
 			["zeit", "uhr", "Spielzeit", "Spielzeit (1 Monat = 1 Spielminute)"]]:
 		h.add_child(_hud_chip(e[0], e[1], e[2], e[3]))
+		if e[0] == "kasse" and credit.active:
+			h.add_child(_credit_chip())
 	h.add_child(Kit.spacer())
 	var tl := Kit.label("TEMPO", "LabelHudSmall")
 	h.add_child(tl)
@@ -905,6 +939,49 @@ func _vline() -> StyleBoxLine:
 	l.grow_begin = -8
 	l.grow_end = -8
 	return l
+
+
+## F-19: Kredit-Eintrag am Kassenfeld: offener Betrag / Rahmen, [+] aufnehmen, [−] tilgen (je 500 $).
+func _credit_chip() -> Control:
+	var tip := "Kredit: fester Zins %s %% je Spielminute auf den offenen Betrag, Rahmen %s.\n+ nimmt %s auf, - tilgt %s (Geld muss in der Kasse sein)." % [
+		String.num(credit.interest_pm / 10.0, 1).replace(".", ","), money_str(credit.limit_cent), money_str(Credit.STEP_CENT), money_str(Credit.STEP_CENT)]
+	var p := _hud_chip("kredit", "geld", "Kredit", tip)
+	var h: HBoxContainer = p.get_child(0)
+	hud_vals["kredit"].custom_minimum_size = Vector2(118, 0)
+	var plus := Kit.button("+", "ButtonTempo", "", ui_credit_borrow)
+	var minus := Kit.button("-", "ButtonTempo", "", ui_credit_repay)
+	plus.tooltip_text = "Kredit aufnehmen: +%s" % money_str(Credit.STEP_CENT)
+	minus.tooltip_text = "Kredit tilgen: -%s" % money_str(Credit.STEP_CENT)
+	for b in [plus, minus]:
+		b.custom_minimum_size = Vector2(30, 30)
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(Kit.hbox(4, [plus, minus]))
+	credit_buttons = [plus, minus]
+	return p
+
+
+func ui_credit_borrow() -> int:
+	if not company_started or bankrupt:
+		return 0
+	var a: int = credit.borrow(eco, shim.tick_count)
+	if a > 0:
+		_toast("Kredit aufgenommen: +%s. Offen %s, Zins %s je Spielminute." % [money_str(a), money_str(credit.loan_cent), money_str(credit.interest_per_period())], 3.0)
+	else:
+		_toast("Kreditrahmen ausgeschöpft (%s)." % money_str(credit.limit_cent))
+	_update_hud(running_cost_per_period)
+	return a
+
+
+func ui_credit_repay() -> int:
+	if not company_started or bankrupt:
+		return 0
+	var a: int = credit.repay(eco)
+	if a > 0:
+		_toast("Kredit getilgt: -%s. Offen %s." % [money_str(a), money_str(credit.loan_cent)], 3.0)
+	elif credit.loan_cent > 0:
+		_toast("Zum Tilgen fehlen %s in der Kasse." % money_str(mini(Credit.STEP_CENT, credit.loan_cent)))
+	_update_hud(running_cost_per_period)
+	return a
 
 
 func _hud_chip(key: String, icon_name: String, caption: String, tip: String) -> Control:
@@ -1089,7 +1166,7 @@ func _setup_toolbar() -> void:
 	var h := Kit.hbox(8)
 	bar.add_child(h)
 	for e in [[Tool.ROAD, "strasse", "Straße", "1", "Straße bauen: %s/Feld (Brücke ×6, Hang ×3)" % money_str(road_cent)],
-			[Tool.RAIL, "gleis", "Gleis", "2", "Gleis bauen: %s/Feld" % money_str(RAIL_CENT_PER_FIELD)],
+			[Tool.RAIL, "gleis", "Gleis", "2", "Gleis bauen: %s/Feld" % money_str(rail_cent)],
 			[Tool.WAREHOUSE, "lager", "Lager", "3", "Lager setzen: %s, sammelt und verteilt" % money_str(warehouse_cent)],
 			[Tool.TRUCK_LINE, "lkw", "Lkw", "4", "Lkw-Linie: %s je Lkw" % money_str(_vehicle_price("truck"))],
 			[Tool.TRAIN_LINE, "zug", "Zug", "5", "Zug-Linie: %s je Zug" % money_str(_vehicle_price("train"))],
@@ -1299,7 +1376,7 @@ func start_game(a: String) -> bool:
 		return false
 	archetyp = a
 	company_started = true
-	free_trucks_left = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_%s_anzahl" % ("agrar" if a == "agrar" else "mining")])
+	free_trucks_left = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_%s_anzahl" % ("agrar" if a == "agrar" else "mining")]) if start_trucks_free else 0
 	start_panel.visible = false
 	ms_panel.visible = true
 	if ms_panel.is_inside_tree():
@@ -1875,19 +1952,20 @@ func _drag_path(a: Vector2i, b: Vector2i) -> Array:
 	return out
 
 
+## Geländefaktor in Promille (1000 = Flachland), Werte aus bau_kosten.
 func _terrain_factor(c: Vector2i) -> int:
 	match terrain_at(c):
 		Terrain.WATER:
-			return WATER_FACTOR
+			return water_factor_pm
 		Terrain.MOUNTAIN:
-			return MOUNTAIN_FACTOR
-	return 1
+			return mountain_factor_pm
+	return 1000
 
 
 ## Preis eines neuen Feldes in Cent: JSON-Straßenpreis × Gelände-Faktor (kein Außerhalb-Aufschlag: steht
 ## nicht im JSON; der Einfluss wirkt im Slice über den Lizenzpreis).
 func field_cost(c: Vector2i, rail: bool) -> int:
-	return (RAIL_CENT_PER_FIELD if rail else road_cent) * _terrain_factor(c)
+	return ((rail_cent if rail else road_cent) * _terrain_factor(c)) / 1000
 
 
 func _in_grid(c: Vector2i) -> bool:
@@ -1907,6 +1985,10 @@ func plan_track(a: Vector2i, b: Vector2i, rail: bool) -> Dictionary:
 		if not _in_grid(c):
 			it["state"] = "bad"
 			it["reason"] = "Außerhalb der Karte"
+		elif rail and city_streets.has(c) and not net.has(c):
+			# B-02: Gleis auf Stadtstraße ist nicht erlaubt (vorher: 0 $ angezeigt, aber nicht gebaut). Grund im Ghost.
+			it["state"] = "bad"
+			it["reason"] = "Gleis auf Stadtstraße nicht erlaubt: Gleis um die Stadt herum führen"
 		elif net.has(c) or city_streets.has(c):
 			it["state"] = "exist"
 		elif cell_to_building.has(c):
@@ -2252,11 +2334,15 @@ func buy_vehicle(type: String):
 	if free:
 		free_trucks_left -= 1
 	charge(price)
-	var v := Vehicle.new()
+	var v
+	if fleet != null:
+		v = fleet.new_vehicle(next_vid)          # F-18: Slot im Kern erst mit Linie (assign)
+	else:
+		v = Vehicle.new()
+		v.slot = shim.add_vehicle_slot(next_vid)
+		v.vid = next_vid
 	v.paid_cent = price
-	v.vid = next_vid
 	next_vid += 1
-	v.slot = shim.add_vehicle_slot(v.vid)
 	v.type = type
 	v.load_ticks = load_ticks
 	v.periode_ticks = periode_ticks
@@ -2266,6 +2352,8 @@ func buy_vehicle(type: String):
 		v.kind_name = "Zug"
 		v.cap = TRAIN_WAGONS * int(wag["kapazitaet_einheiten"])
 		v.speed = float(lok["tempo_mm_pro_tick"]) / feld_mm
+		if fleet != null:
+			v.speed_mm = int(lok["tempo_mm_pro_tick"])
 		v.fix_cent = int(lok["fix_cent_pro_periode"]) + TRAIN_WAGONS * int(wag["fix_cent_pro_periode"])
 		v.var_cent_per_field = int(lok["variabel_cent_pro_feld"]) + TRAIN_WAGONS * int(wag["variabel_cent_pro_feld"])
 		v.max_wait_ticks = TRAIN_MAX_WAIT_TICKS
@@ -2274,6 +2362,8 @@ func buy_vehicle(type: String):
 		v.kind_name = "Lkw"
 		v.cap = int(d["kapazitaet_einheiten"])
 		v.speed = float(d["tempo_mm_pro_tick"]) / feld_mm
+		if fleet != null:
+			v.speed_mm = int(d["tempo_mm_pro_tick"])
 		v.fix_cent = int(d["fix_cent_pro_periode"])
 		v.var_cent_per_field = int(d["variabel_cent_pro_feld"])
 		v.max_wait_ticks = TRUCK_MAX_WAIT_TICKS
@@ -2416,10 +2506,14 @@ func _recompute_running_cost() -> void:
 func sim_tick() -> void:
 	if not company_started or bankrupt:
 		return
-	shim.tick_count += 1
-	eco.on_tick(shim)
-	for v in vehicles:
-		v.tick(self)
+	if fleet != null:
+		shim.step()                 # F-18: Tick, Öko-Tick (economy.on_tick) und alle Fahrzeuge im SoA-Kern
+		fleet.after_step(self)      # Fahrkosten abbuchen, Lieferungen verbuchen
+	else:
+		shim.tick_count += 1
+		eco.on_tick(shim)
+		for v in vehicles:
+			v.tick(self)
 	if cost_dirty:
 		_recompute_running_cost()
 	cost_acc += running_cost_per_period
@@ -2427,6 +2521,10 @@ func sim_tick() -> void:
 	if c > 0:
 		cost_acc -= c * periode_ticks
 		charge(c)
+	var zi: int = credit.interest_due(shim.tick_count)     # F-19: Festzins am Periodenende
+	if zi > 0:
+		charge(zi)
+		credit.interest_paid += zi
 	if eco.cash_cent < 0:
 		_go_bankrupt()
 	elif shim.tick_count % 10 == 0:
@@ -2448,21 +2546,21 @@ func _go_bankrupt() -> void:
 	bankrupt_panel.visible = true
 	if bankrupt_panel.is_inside_tree():
 		UiFx.slide_in(bankrupt_panel, Vector2(0, -20))
-	bankrupt_label.text = Kit.txt("Kasse %s nach %s Spielzeit. Ohne Kredit ist ein Konto unter 0 $ das Ende.\nEinnahmen %s · Ausgaben %s · Fahrzeuge %d (Unterhalt %s/min)." % [
+	bankrupt_label.text = Kit.txt("Kasse %s nach %s Spielzeit. Ein Konto unter 0 $ ist das Ende (Kredit vorher aufnehmen).\nEinnahmen %s · Ausgaben %s · Fahrzeuge %d (Unterhalt %s/min)." % [
 		money_str(eco.cash_cent), time_str(shim.tick_count), money_str(eco.revenue_total), money_str(expenses_total),
 		fleet_size(), money_str(running_cost_per_period)])
 	print("BANKROTT tick=%d kasse=%d" % [shim.tick_count, eco.cash_cent])
 
 
-func on_delivery(v, units: int, income: int, trip_cost: int) -> void:
+func on_delivery(v, units: int, income: int, trip_cost: int, gut := "") -> void:
 	deliveries.append({"tick": shim.tick_count, "units": units, "income": income, "trip_cost": trip_cost,
 		"src": v.src.map_id, "dst": v.dst.map_id})
 	if income > trip_cost:
 		deliveries_profit += 1
 	if income > 0:
 		_complete(4)
-		if not eco.ledger.is_empty():
-			var g: String = eco.ledger[-1]["gut"]
+		if gut != "" or not eco.ledger.is_empty():
+			var g: String = gut if gut != "" else eco.ledger[-1]["gut"]
 			if g == "mehl" or g == "stahl":
 				_complete(6)
 	if is_inside_tree() and v.path.size() > 0 and bench == null:
@@ -2601,6 +2699,10 @@ func _render_vehicles() -> void:
 	var bt: PackedFloat32Array = _cur["truck"]
 	var bz: PackedFloat32Array = _cur["train"]
 	var bc: PackedFloat32Array = _cur["cargo"]
+	if fleet != null:
+		var r: Array = fleet.fill_buffers(vehicles, bt, bz, bc, eco, GOOD_COLORS)   # F-18
+		_commit_buffers(r[0], r[1], r[2])
+		return
 	var cargo_arr: PackedInt32Array = shim.v_cargo
 	var gi := -1
 	for v in vehicles:
@@ -2662,6 +2764,10 @@ func _render_vehicles() -> void:
 		else:
 			for j in 12:
 				bc[kc + j] = 0.0
+	_commit_buffers(bt, bz, bc)
+
+
+func _commit_buffers(bt: PackedFloat32Array, bz: PackedFloat32Array, bc: PackedFloat32Array) -> void:
 	_cur["truck"] = bt
 	_cur["train"] = bz
 	_cur["cargo"] = bc
@@ -2733,6 +2839,10 @@ func _update_hud(cpm: int) -> void:
 	hud_vals["kosten"].text = money_str(cpm) + "/min"
 	hud_vals["fahrzeuge"].text = str(fleet_size())
 	hud_vals["zeit"].text = time_str(shim.tick_count)
+	if hud_vals.has("kredit"):
+		hud_vals["kredit"].text = "%s / %s" % [money_str(credit.loan_cent), money_str(credit.limit_cent)]
+		credit_buttons[0].disabled = not company_started or bankrupt or credit.borrow_amount(shim.tick_count) <= 0
+		credit_buttons[1].disabled = not company_started or bankrupt or credit.repay_amount(eco.cash_cent) <= 0
 
 
 func _update_hint() -> void:

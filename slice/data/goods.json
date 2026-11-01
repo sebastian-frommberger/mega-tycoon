@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "gueter": [
-    { "id": "getreide", "name": "Getreide", "kategorie": "rohstoff", "preis_cent_pro_einheit_feld": 40, "epoche": 1, "massengut": true },
+    { "id": "getreide", "name": "Getreide", "kategorie": "rohstoff", "preis_cent_pro_einheit_feld": 28, "epoche": 1, "massengut": true },
     { "id": "vieh", "name": "Vieh", "kategorie": "rohstoff", "preis_cent_pro_einheit_feld": 50, "epoche": 1, "massengut": false },
     { "id": "holz", "name": "Holz", "kategorie": "rohstoff", "preis_cent_pro_einheit_feld": 35, "epoche": 1, "massengut": true },
     { "id": "erz", "name": "Erz", "kategorie": "rohstoff", "preis_cent_pro_einheit_feld": 45, "epoche": 1, "massengut": true },
     { "id": "kohle", "name": "Kohle", "kategorie": "rohstoff", "preis_cent_pro_einheit_feld": 40, "epoche": 1, "massengut": true },
-    { "id": "mehl", "name": "Mehl", "kategorie": "nahrung", "preis_cent_pro_einheit_feld": 100, "epoche": 1, "massengut": false, "substitut_fuer": ["fleisch"] },
+    { "id": "mehl", "name": "Mehl", "kategorie": "nahrung", "preis_cent_pro_einheit_feld": 70, "epoche": 1, "massengut": false, "substitut_fuer": ["fleisch"] },
     { "id": "fleisch", "name": "Fleisch", "kategorie": "nahrung", "preis_cent_pro_einheit_feld": 130, "epoche": 1, "massengut": false, "frische_verfall_ticks": 3600, "frische_rest_promille": 400, "substitut_fuer": ["mehl"] },
     { "id": "bretter", "name": "Bretter", "kategorie": "bau", "preis_cent_pro_einheit_feld": 90, "epoche": 1, "massengut": false },
     { "id": "stahl", "name": "Stahl", "kategorie": "zwischenprodukt", "preis_cent_pro_einheit_feld": 100, "epoche": 1, "massengut": true },

@@ -19,3 +19,9 @@ Leitfrage: Erzeugen 2–3 Betriebsprofile je Industrie (z. B. Schnell / Ertrag /
 - Wie im Projektplan für Januar vorgesehen; übernimmt Kontextdialog (F-15), Lizenz-Kauf-Flow, Diagnose-Aktion (A-08), Bau-Tool-Bugs. Felix bleibt beim Sim-Kern/Technik.
 - Realistisches Onboarding: erster Sprint mit reduzierter Kapazität (ca. 50–60 %), Einarbeitung durch Felix (Code-Walkthrough, Pairing), erstes Ticket klein.
 - Leitlinie des Auftraggebers: Den Entwicklungsprozess wie im echten Leben abbilden – Rollen kommen gestaffelt dazu, wenn Phase und Budget es erlauben (nicht alle von Anfang an). Weitere Rollen (Tools-Programmierung, Technical Artist, Audio, später Lokalisierung/Marketing) erst bei Bedarf und mit Begründung im Refinement bzw. Release-Review.
+
+## D22 Konzeptänderung HQ-Start (Auftraggeber, 01.11.)
+- Spielstart wie Civ: direkt auf der Karte das HQ in frei wählbarer Stadt/Dorf platzieren; KEINE Archetyp-Auswahl/Ausprägung. Spezialisierung entsteht über erste Lizenzen und Skilltree.
+- Standort-Vorschau beim Hover: Einflussradius (Lizenzen im Radius günstiger), erreichbare Industrien/Ketten als Information, Stadtgröße (Nachfrage vs. teurere Lizenzen/KI-Konkurrenz; Dorf = Wachstumspotenzial), Gelände (Fluss/Küste für spätere Schiffe, Gebirge teurer). Keine festen HQ-Einnahmen.
+- Folgen: ein Startkapital-Wert (Tobias), L-08-Archetyp-Regeln → Regel "Standort-Vorschau" (Lena), Platzierungsscreen im Theme (Aylin), Bau (Mira/Felix).
+- Timing (vom Auftraggeber bestätigt): R1-Review 15.01. noch mit heutigem Startdialog; Lena schreibt das Konzept in S5 (kurzes Papier, 1 T); Bau als erstes Ticket in S6.

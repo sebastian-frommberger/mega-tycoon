@@ -3,6 +3,7 @@
   "meta": {
     "quelle_text": "L-08 Slice-Regeln (Lena Hoffmann, 03.12.2026), Entscheidungen D17-D20 (decisions_04-12.md), Konvention F-09 v0 (Cent, Ticks, Promille, Basispunkte)",
     "etikett_text": "Startwerte fuer T-06, nichts an Spielern gemessen",
+    "freeze_stand_text": "T-12 Balance-Freeze-Kandidat v1 fuer 08.01.2027: Preise Getreide 28 und Mehl 70, bau_kosten (Gleis, Bruecke, Berg, Gratis-Startlkw) aus dem Code ins JSON; Aenderung nach dem Freeze nur mit Ticket (Daniel)",
     "archetypen_im_slice_ids": ["agrar", "bergbau"]
   },
   "zeit": { "tick_ms": 100, "periode_ticks": 600, "spielmonat_ticks": 600 },
@@ -35,7 +36,7 @@
     "credit_allowed_minus_ids": ["strasse", "fahrzeuge", "lager", "lizenz_verlaengerung"],
     "credit_blocked_ids": ["firmenkauf", "firmenausbau", "hq_ausbau"],
     "credit_forced_sale_after_ticks": 6000, "credit_forced_sale_active_flag": false,
-    "credit_active_in_slice_flag": false, "credit_planned_sprint_anzahl": 5
+    "credit_active_in_slice_flag": true, "credit_planned_sprint_anzahl": 5
   },
   "ertrag": {
     "yield_formula_term_ids": ["m", "p_gut", "d_eff", "f_zeit", "f_saett", "b_skill"],
@@ -126,7 +127,7 @@
     "demand_basket_grows_with_stage_flag": true
   },
   "preise": {
-    "price_grain_cent_pro_einheit_feld": 40, "price_flour_cent_pro_einheit_feld": 100,
+    "price_grain_cent_pro_einheit_feld": 28, "price_flour_cent_pro_einheit_feld": 70,
     "price_coal_cent_pro_einheit_feld": 40, "price_ore_cent_pro_einheit_feld": 45,
     "price_steel_cent_pro_einheit_feld": 100, "price_tools_cent_pro_einheit_feld": 200
   },
@@ -163,5 +164,6 @@
     { "id": "kleinstadt_a", "stage_id": "kleinstadt", "einwohner_anzahl": 2500 },
     { "id": "kleinstadt_berg", "stage_id": "kleinstadt", "einwohner_anzahl": 2500 }
   ],
-  "fahrzeug_ref": { "lkw_id": "lkw_e1", "startpaket_lkw_agrar_anzahl": 2, "startpaket_lkw_mining_anzahl": 3, "strasse_cent_pro_feld": 1000, "load_ticks": 100 }
+  "fahrzeug_ref": { "lkw_id": "lkw_e1", "startpaket_lkw_agrar_anzahl": 2, "startpaket_lkw_mining_anzahl": 3, "strasse_cent_pro_feld": 1000, "load_ticks": 100 },
+  "bau_kosten": { "gleis_cent_pro_feld": 4000, "bruecke_faktor_promille": 6000, "berg_faktor_promille": 3000, "startpaket_lkw_gratis_flag": true }
 }

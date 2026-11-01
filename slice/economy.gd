@@ -743,7 +743,8 @@ func on_unload(sim, i: int, k: int) -> int:
 		var acc := 0
 		match s_kind[site]:
 			K_LAGER:
-				acc = mini(q, warehouse_cap - sim.st_stock[k])
+				# B-xx (S5): Bestand über Kapazität (z. B. seed_stock) machte acc negativ -> given < 0 und Lose wuchsen.
+				acc = clampi(warehouse_cap - sim.st_stock[k], 0, q)
 				if acc > 0:
 					if stamp_persists:
 						_push_lot(site, [g, lot[1], lot[2], acc])

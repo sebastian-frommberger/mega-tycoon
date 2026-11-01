@@ -13,6 +13,10 @@ var report: Array = []
 
 
 func _initialize() -> void:
+	# F-18: Fahrzeug-Kern wählbar (godot ... -s res://tests/slice_test.gd -- --fahrzeuge=soa); Default wie Spiel ("alt")
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--fahrzeuge="):
+			load("res://main.gd").core_override = a.substr(12)
 	_run.call_deferred()
 
 
@@ -80,12 +84,31 @@ func _run() -> void:
 	for n in m.map_notes:
 		print("     Notiz: ", n)
 	ok(not m.company_started and m.start_panel.visible, "Startdialog sichtbar, Spiel pausiert bis zur Wahl")
+	# T-12: Baukosten kommen aus dem JSON (bau_kosten), nicht aus dem Code
+	var bk: Dictionary = m.eco.slice["bau_kosten"]
+	var c_plain := Vector2i(-1, -1)
+	var c_water := Vector2i(-1, -1)
+	var c_mount := Vector2i(-1, -1)
+	for i in m.terrain.size():
+		var cc := Vector2i(i % m.GRID, i / m.GRID)
+		if m.terrain[i] == 0 and c_plain.x < 0:
+			c_plain = cc
+		elif m.terrain[i] == 1 and c_water.x < 0:
+			c_water = cc
+		elif m.terrain[i] == 2 and c_mount.x < 0:
+			c_mount = cc
+	var rc: int = int(m.eco.slice["fahrzeug_ref"]["strasse_cent_pro_feld"])
+	ok(m.field_cost(c_plain, true) == int(bk["gleis_cent_pro_feld"]) and m.field_cost(c_plain, false) == rc
+		and m.field_cost(c_water, false) == rc * int(bk["bruecke_faktor_promille"]) / 1000
+		and m.field_cost(c_mount, false) == rc * int(bk["berg_faktor_promille"]) / 1000,
+		"Baukosten aus JSON: Gleis %s, Brücke ×%d, Berg ×%d je Feld" % [m.money_str(m.field_cost(c_plain, true)), int(bk["bruecke_faktor_promille"]) / 1000, int(bk["berg_faktor_promille"]) / 1000])
 
 	# ------------------------------------------------------------------ 2) Durchlauf Agrar
 	print("== 2) Skript-Durchlauf Agrar: Lizenz Farm + Mühle, Straße, Lkw-Linie, 30 Spielminuten")
 	ok(m.start_game("agrar"), "Start Agrar (Knopf 1 von 2)")
 	var cap0: int = m.eco.cash_cent
 	ok(cap0 == 450000, "Startkapital 4.500 $ aus JSON (%s)" % m.money_str(cap0))
+	ok((m.free_trucks_left == int(m.eco.slice["fahrzeug_ref"]["startpaket_lkw_agrar_anzahl"])) == bool(bk["startpaket_lkw_gratis_flag"]), "Gratis-Startlkw aus JSON (Flag %s, %d Lkw)" % [str(bk["startpaket_lkw_gratis_flag"]), m.free_trucks_left])
 	var farm = m.by_id["farm_1"]
 	var mill = m.by_id["muehle_1"]
 	var haberau = m.by_id["haberau"]
@@ -149,6 +172,8 @@ func _run() -> void:
 	ok(l1 > 0, "Linie Farm→Mühle nach Unterhalt im Plus: Ertrag %s − Kosten %s = %s" % [m.money_str(v1.income_total), m.money_str(v1.cost_total()), m.money_str(l1)])
 	report.append("Linie Mühle→Haberau: Ertrag %s − Kosten %s = %s, %d Lieferungen (Sättigung Dorf 9 E/min)" % [m.money_str(v2.income_total), m.money_str(v2.cost_total()), m.money_str(l2), v2.deliveries])
 	ok(m.eco.cash_cent > cash_setup, "Kasse nach 30 min %s > nach Aufbau %s (Start %s)" % [m.money_str(m.eco.cash_cent), m.money_str(cash_setup), m.money_str(cap0)])
+	var ratio := float(m.eco.cash_cent) / cap0
+	ok(ratio >= 1.5 and ratio <= 2.0, "T-12: Agrar-Kasse nach 30 min ×%.2f des Starts (Ziel ×1,5–2,0, Skriptlauf, Kern %s)" % [ratio, m.vehicle_core])
 	var all_done := true
 	for i in m.milestones.size():
 		all_done = all_done and m.milestones[i]["done"]
@@ -297,6 +322,8 @@ func _run() -> void:
 	ok(sg.component_count >= 12 and sg.state_cells >= sg.component_count * 4, "U-01: Styleguide %d Komponenten × 4 Zustände (%d Zellen)" % [sg.component_count, sg.state_cells])
 	sg.free()
 
+	_section7()
+
 	m.free()
 	m = null
 	print("")
@@ -304,6 +331,117 @@ func _run() -> void:
 		print("  · ", r)
 	print("\n%d/%d Prüfungen OK, Laufzeit %.1f s (Sandbox)" % [checks - fails, checks, (Time.get_ticks_usec() - T0) / 1e6])
 	quit(1 if fails > 0 else 0)
+
+
+## Sprint 5 Felix: B-xx Lagerbug, B-02 Gleis auf Stadtstraße, F-19 Kredit.
+func _section7() -> void:
+	print("== 7) B-xx Lager über Kapazität, B-02 Gleis auf Stadtstraße, F-19 Kredit (Kern %s)" % m.vehicle_core)
+	# --- B-xx: Ziel-Lager über Kapazität -> Annahme 0, keine Einheiten aus dem Nichts
+	_new_main()
+	m.start_game("agrar")
+	var cap: int = m.eco.warehouse_cap
+	var spot := _corridor(Vector2i(300, 300), 24)
+	var wa = m.build_warehouse(spot)
+	var wb = m.build_warehouse(spot + Vector2i(22, 0))
+	drag(m.Tool.ROAD, spot + Vector2i(1, 0), spot + Vector2i(22, 0))
+	m.eco.seed_stock(wa.site, "getreide", 100)
+	m.eco.seed_stock(wb.site, "getreide", cap + 50)     # über Kapazität (Testbestand)
+	var pv = line(m.Tool.TRUCK_LINE, wa, wb)
+	var total0: int = m.shim.st_stock[wa.station] + m.shim.st_stock[wb.station]
+	var max_cargo := 0
+	var min_given := 0
+	for i in 3000:
+		m.sim_tick()
+		max_cargo = maxi(max_cargo, pv.cargo(m))
+	var total1: int = m.shim.st_stock[wa.station] + m.shim.st_stock[wb.station] + pv.cargo(m)
+	ok(pv != null and m.shim.st_stock[wb.station] == cap + 50 and max_cargo <= pv.cap and total1 == total0 and m.eco.units_to_warehouse == 0,
+		"B-xx: Lager über Kapazität nimmt 0 an (Bestand %d bleibt, Ladung max %d ≤ %d, Einheiten %d → %d)" % [m.shim.st_stock[wb.station], max_cargo, pv.cap, total0, total1])
+	# --- B-xx: 20 Läufe Lager-Pingpong mit 1–4 Lkw je Richtung, Lager ≤ Kapazität in jedem Tick
+	var worst := 0
+	var runs_ok := 0
+	for r in 20:
+		_new_main()
+		m.start_game("agrar")
+		var sp := _corridor(Vector2i(300, 300), 24)
+		var a = m.build_warehouse(sp)
+		var b = m.build_warehouse(sp + Vector2i(22, 0))
+		drag_quiet(m.Tool.ROAD, sp + Vector2i(1, 0), sp + Vector2i(22, 0))
+		m.eco.seed_stock(a.site, "getreide", 110 + 5 * r)
+		m.eco.seed_stock(b.site, "getreide", 90 + 5 * r)
+		for k in 1 + r % 4:
+			line(m.Tool.TRUCK_LINE, a, b)
+			line(m.Tool.TRUCK_LINE, b, a)
+		var mx := 0
+		for i in 2400:
+			m.sim_tick()
+			mx = maxi(mx, maxi(m.shim.st_stock[a.station], m.shim.st_stock[b.station]))
+		worst = maxi(worst, mx)
+		if mx <= cap:
+			runs_ok += 1
+	ok(runs_ok == 20, "B-xx: Lager ≤ Kapazität in %d/20 Läufen (höchster Bestand %d, Kapazität %d)" % [runs_ok, worst, cap])
+	# --- B-02: Gleis auf Stadtstraße nicht erlaubt, Grund im Ghost; Straße darauf bleibt „vorhanden“
+	_new_main()
+	m.start_game("agrar")
+	var st := Vector2i(-1, -1)
+	for c in m.city_streets.keys():
+		st = c
+		break
+	var pr: Dictionary = m.plan_track(st, st, true)
+	m._set_tool(m.Tool.RAIL)
+	m.begin_drag(st)
+	m.drag_to(st)
+	m._update_cursor_label()          # läuft im Spiel je Frame (_process)
+	var ghost_reason: String = m.cursor_reason.text
+	var ghost_vis: bool = m.cursor_reason.visible
+	var built: bool = m.end_drag()
+	m._set_tool(m.Tool.NONE)
+	var prd: Dictionary = m.plan_track(st, st, false)
+	ok(not pr["ok"] and pr["items"][0]["state"] == "bad" and str(pr["reason"]).contains("Stadtstraße") and not built and not m.rails.has(st),
+		"B-02: Gleis auf Stadtstraße abgelehnt: \"%s\"" % pr["reason"])
+	ok(ghost_vis and ghost_reason.contains("Stadtstraße"), "B-02: Grund steht im Ghost am Cursor (\"%s\")" % ghost_reason)
+	ok(prd["ok"] and prd["new_count"] == 0, "B-02: Straße auf Stadtstraße weiterhin „vorhanden“ (0 neue Felder)")
+	# --- F-19 Kredit
+	_new_main()
+	m.start_game("agrar")
+	var k: Dictionary = m.eco.slice["kredit"]
+	var c0: int = m.eco.cash_cent
+	var got := 0
+	var n_ok := 0
+	for i in 6:
+		var g: int = m.ui_credit_borrow()
+		got += g
+		if g > 0:
+			n_ok += 1
+	ok(m.credit.active and m.credit.loan_cent == int(k["credit_limit_cent"]) and got == m.credit.loan_cent and m.eco.cash_cent == c0 + got,
+		"F-19: Kredit in %d Schritten bis zur Obergrenze %s aus JSON, Kasse %s → %s" % [n_ok, m.money_str(int(k["credit_limit_cent"])), m.money_str(c0), m.money_str(m.eco.cash_cent)])
+	m._update_hud(0)
+	ok(m.credit_buttons[0].disabled and not m.credit_buttons[1].disabled, "F-19: [+] gesperrt am Rahmen, [-] aktiv; HUD zeigt \"%s\"" % m.hud_vals["kredit"].text)
+	var c1: int = m.eco.cash_cent
+	var want: int = Economy_rdiv(m.credit.loan_cent * int(k["credit_interest_promille_pro_periode"]), 1000)
+	m.run_ticks(m.periode_ticks)
+	ok(m.credit.interest_paid == want and c1 - m.eco.cash_cent == want + m.running_cost_per_period * 0,
+		"F-19: Festzins %d ‰ je Periode: %s nach 1 Spielminute (erwartet %s, Kasse −%s)" % [int(k["credit_interest_promille_pro_periode"]), m.money_str(m.credit.interest_paid), m.money_str(want), m.money_str(c1 - m.eco.cash_cent)])
+	var back := 0
+	for i in 5:
+		back += m.ui_credit_repay()
+	ok(m.credit.loan_cent == 0 and back == got, "F-19: vollständig getilgt (%s), Kasse %s" % [m.money_str(back), m.money_str(m.eco.cash_cent)])
+	m.ui_credit_borrow()
+	m.eco.cash_cent = 100
+	ok(m.ui_credit_repay() == 0 and m.credit.loan_cent > 0, "F-19: Tilgen ohne Geld in der Kasse abgelehnt")
+	var modal := []
+	_find_modals(m.ui_root, modal)
+	ok(modal.is_empty() and m.hud_vals.has("kredit"), "F-19: Kredit im HUD-Kassenfeld, kein Modal")
+
+
+func Economy_rdiv(z: int, n: int) -> int:
+	return (z + n / 2) / n
+
+
+func drag_quiet(tool: int, a: Vector2i, b: Vector2i) -> bool:
+	m._set_tool(tool)
+	m.begin_drag(a)
+	m.drag_to(b)
+	return m.end_drag()
 
 
 ## Sucht ab start eine freie gerade Strecke (2 Zeilen hoch) der Länge len für Lager + Straße.

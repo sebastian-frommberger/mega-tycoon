@@ -107,8 +107,15 @@ func _build_traffic() -> void:
 		m.register_line(v)
 		v.leave_empty = true
 		v.max_wait_ticks = 5
-		v.prog = rng.randf_range(0.0, float(v.path.size() - 1))
-		v.state = v.State.TO_DST if rng.randf() < 0.5 else v.State.TO_SRC
+		var pr_f := rng.randf_range(0.0, float(v.path.size() - 1))
+		var to_dst := rng.randf() < 0.5
+		if m.fleet != null:          # F-18: SoA-Kern, gleiche Zufallsfolge wie "alt"
+			m.shim.set_line_flags(v.vid, true, 5)
+			var mm := int(pr_f * m.feld_mm)
+			m.shim.line_place(v.vid, 0 if to_dst else 1, mm if to_dst else (v.path.size() - 1) * m.feld_mm - mm)
+		else:
+			v.prog = pr_f
+			v.state = v.State.TO_DST if to_dst else v.State.TO_SRC
 
 
 ## Frame-Zeit aus der Wanduhr (delta ist in Godot bei langsamen Frames auf 8 Physik-Schritte gedeckelt).

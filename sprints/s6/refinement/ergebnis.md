@@ -73,3 +73,8 @@ Der Plan liegt bewusst unter 6,5 von 8: Bastis Feedback ist die größte Unbekan
 1. **Firmenkauf in R2: ja oder nein?** Empfehlung: ja, als Kern von "Firmenaufbau", Bau frühestens S7 und erst, wenn die Bankrottquote im Band 10–30 % steht. Betriebsprofile (SP-01) raus aus R2: Der Skilltree trägt die Spezialisierung nach D22, Profile wären doppelt.
 2. **Wann startest du die Bench-.exe auf dem Zielrechner?** Empfehlung: bis Tag 4 (22.01.). Ohne Messlauf bleiben S-13 und die R2-Freigabe "mit Auflage", und Wasser/10k-Vorbereitung lassen sich nicht seriös planen.
 3. **Wie hart darf der Start sein: Bankrott in 10–30 % der Läufe oder lieber ≤ 10 %?** Empfehlung: 10–30 % bleiben. Das ist Genre-Standard (D15), und der Kredit macht Fehler spürbar. Wenn dir ein Bankrott in Minute 20 beim Spielen den Spaß nimmt, sag es nach dem Durchlauf, dann rechnet Tobias neu.
+
+## Bastis Antworten (01.11.)
+1. Firmenkauf in R2: ja wie empfohlen, Betriebsprofile (SP-01/02) raus aus R2, Spezialisierung über den Skilltree.
+2. Bench-.exe: Basti exportiert und startet sie selbst (Preset "Windows Desktop Bench").
+3. Bankrottband 10–30 % bleibt.

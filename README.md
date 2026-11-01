@@ -10,6 +10,7 @@ Das Team (Jonas, Lena, Tobias, Aylin, Felix, Sophie, Daniel, Katrin) ist simulie
 | --- | --- |
 | `prototype/` | Prototyp v3: 192×192-Karte, 5 Städte, 5 Ketten, Lkw/Zug, Lager, Meilensteine |
 | `spikes/f04-signal/` | Netz-, Signal- und Diagnose-Spike (Felix), headless testbar |
+| `spikes/sim-core/` | Sim-Kern auf SoA mit ereignisgesteuerter Deadlock-Prüfung (Sprint 3, F-10/F-11) |
 | `spikes/s03-look/` | Look-Test Diorama vs. Karte (Sophie) |
 | `design/economy/` | Startkapital, Lizenz/Kauf-Leiter, Stadtwachstum (Tobias, Python) |
 | `design/ux/` | Diagnose-Datenvertrag, Textvorlagen, Testskript (Aylin) |
@@ -22,6 +23,7 @@ Das Team (Jonas, Lena, Tobias, Aylin, Felix, Sophie, Daniel, Katrin) ist simulie
 | `plan/` | Projektplan je Person |
 | `refinement/` | Refinement Sprint 2 (Positionen und Ergebnis) |
 | `sprints/s2/` | Briefings, PO-Entscheidungen, Daily-Übersichten je Tag-Block |
+| `tools/bench-zielrechner/` | Benchmark-Szenen für Messläufe auf dem Zielrechner (Godot-MCP) |
 | `assets/kenney/` | Kenney-Probemodelle (CC0) |
 
 ## Starten

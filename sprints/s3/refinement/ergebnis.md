@@ -56,3 +56,6 @@ Bis 11.12. läuft der Windows-Export am Zielrechner mit SoA-Kern, Deadlock-Prüf
 - L-06 (6 Tester) und L-05 (3 Runden) selbst durchführen; Termine bis 30.11. mit Katrin.
 - Build und Bogen 01.12. abholen; Ergebnis bis 02.12. 12 Uhr an Lena.
 - Zielrechner für 30-min-Dauerlauf freihalten; F-08-Record gegenzeichnen.
+
+## Nachtrag 01.11. – Entscheidung D16 des Auftraggebers
+Keine Tester-Rekrutierung, keine Testtermine. Basti testet selbst und gibt direkt Feedback. Gate 02.12. hängt nicht mehr an L-06/L-05 mit externen Testern; G1/G5 = Auftraggeber-Feedback (qualitativ). L-07 erledigt (Leitfaden für Bastis Sessions), L-09 entfällt → Lena +2 T, Aylin +1 T frei (Vorschlag: Lena L-08 früher, Aylin A-08 Bau-Vorbereitung). Vor Bastis Session: Zeitangaben im F-06-Build angleichen, Orte/Abschnitte auf der Karte beschriften (Felix, klein).

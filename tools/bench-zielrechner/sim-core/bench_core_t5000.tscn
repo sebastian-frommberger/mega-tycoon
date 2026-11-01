@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://_bench/bench_core.gd" id="1"]
+
+[node name="Bench" type="Node"]
+script = ExtResource("1")
+ticks = 5000
+out_name = "bench_core_t5000"

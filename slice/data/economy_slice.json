@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "quelle_text": "L-08 Slice-Regeln (Lena Hoffmann, 03.12.2026), Entscheidungen D17-D20 (decisions_04-12.md), Konvention F-09 v0 (Cent, Ticks, Promille, Basispunkte)",
+    "etikett_text": "Startwerte fuer T-06, nichts an Spielern gemessen",
+    "archetypen_im_slice_ids": ["agrar", "bergbau"]
+  },
+  "zeit": { "tick_ms": 100, "periode_ticks": 600, "spielmonat_ticks": 600 },
+  "hq": {
+    "hq_found_cost_cent": 0,
+    "hq_radius_village_felder": 55, "hq_radius_town_felder": 50, "hq_radius_city_felder": 45, "hq_radius_metro_felder": 40,
+    "start_capital_agrar_cent": 450000, "start_capital_mining_cent": 700000, "start_capital_port_cent": 450000, "start_capital_trade_cent": 500000,
+    "start_capital_floor_mining_cent": 600000,
+    "free_licence_count_anzahl": 1, "start_skillpoints_punkte": 1,
+    "hq_guarantee_build_source_flag": true,
+    "archetyp_agrar_im_slice_flag": true, "archetyp_mining_im_slice_flag": true, "archetyp_port_im_slice_flag": false, "archetyp_trade_im_slice_flag": false
+  },
+  "lizenz": {
+    "licence_cost_share_promille": 100, "licence_auto_renew_flag": true, "licence_duration_ticks": 18000,
+    "licence_discount_in_radius_promille": 300, "licence_surcharge_per_field_promille": 30,
+    "licence_shared_max_anzahl": 2, "licence_shared_output_share_promille": 500, "licence_exclusive_mult_promille": 2500,
+    "licence_required_to_load_flag": true
+  },
+  "kauf": {
+    "buy_price_base_min_cent": 100000, "buy_price_base_max_cent": 400000, "buy_price_stufe_mult_flag": true,
+    "buy_surcharge_per_field_promille": 30,
+    "buy_licence_credit_share_promille": 500,
+    "buy_discount_first_promille": 200, "buy_discount_first_once_flag": true,
+    "buy_unlock_milestone_id": "ms_5b", "buy_only_from_balance_flag": true,
+    "works_margin_promille": 150, "company_upkeep_per_level_cent_pro_periode": 2000
+  },
+  "kredit": {
+    "credit_limit_cent": 200000, "credit_available_from_ticks": 0, "credit_interest_promille_pro_periode": 10,
+    "credit_blocks_company_buy_flag": true,
+    "credit_allowed_minus_ids": ["strasse", "fahrzeuge", "lager", "lizenz_verlaengerung"],
+    "credit_blocked_ids": ["firmenkauf", "firmenausbau", "hq_ausbau"],
+    "credit_forced_sale_after_ticks": 6000, "credit_forced_sale_active_flag": false,
+    "credit_active_in_slice_flag": false, "credit_planned_sprint_anzahl": 5
+  },
+  "ertrag": {
+    "yield_formula_term_ids": ["m", "p_gut", "d_eff", "f_zeit", "f_saett", "b_skill"],
+    "yield_only_at_end_customer_flag": true,
+    "yield_end_customer_ids": ["verarbeiter_eingangsgut", "stadt"],
+    "yield_none_for_ids": ["lager", "umladen", "umweg"],
+    "dist_basis_modus": "luftlinie_herkunft_zu_endabnehmer",
+    "dist_knee_felder": 60, "dist_slope_beyond_promille": 500, "dist_min_felder": 6,
+    "origin_stamp": { "enabled_flag": true, "stamp_ids": ["ursprungsfirma", "abfahrtszeit"], "persists_in_warehouse_flag": true },
+    "skill_bonus_cap_promille": 400,
+    "rundung_modus": "halb_auf"
+  },
+  "zeitfaktor": {
+    "fresh_grace_ticks": 600, "fresh_decay_ticks": 1200,
+    "bulk_grace_ticks": 3000, "bulk_decay_ticks": 6000,
+    "f_time_min_promille": 300,
+    "f_time_semantik_modus": "linear_von_frist_bis_min_nach_verfall_annahme",
+    "transfer_counts_in_f_time_flag": true
+  },
+  "saettigung": {
+    "demand_per_100_inhabitants_einheiten_pro_periode": 1,
+    "sat_full_until_promille": 1000, "sat_knee_promille": 1500, "sat_floor_at_150_promille": 400, "sat_over_150_promille": 100,
+    "sat_scope_modus": "je_stadt_und_kategorie",
+    "basket_by_stage": [
+      { "stage_id": "dorf", "kategorien_ids": ["nahrung"] },
+      { "stage_id": "kleinstadt", "kategorien_ids": ["nahrung"] },
+      { "stage_id": "stadt", "kategorien_ids": ["nahrung", "stahl"] }
+    ]
+  },
+  "wachstum": {
+    "growth_variant_id": "variante_b", "growth_etikett_modus": "ungetestet",
+    "growth_base_rate_bp_pro_monat": 180,
+    "growth_band_hi_promille": 800, "growth_band_mid_promille": 500, "growth_band_low_promille": 300,
+    "growth_hi_factor_promille": 1000, "growth_mid_factor_promille": 250, "growth_low_factor_promille": 0, "growth_neg_factor_promille_signed": -250,
+    "growth_bonus_weight_persons_promille": 625, "growth_bonus_weight_jobs_promille": 375,
+    "growth_bonus_cap_promille": 250, "growth_bonus_only_positive_band_flag": true,
+    "gate_halt_share_promille": 950, "gate_min_supply_promille": 250, "gate_from_stage_id": "kleinstadt",
+    "slice_build_category_active_flag": false, "gate_unlock_good_id": "stahl", "gate_good_in_growth_supply_flag": false,
+    "growth_factory_rule_flag": false,
+    "stage_threshold_kleinstadt_anzahl": 1000, "stage_threshold_stadt_anzahl": 5000, "stage_threshold_metropole_anzahl": 20000,
+    "ziel_dorf_kleinstadt_min_ticks": 6600, "ziel_dorf_kleinstadt_max_ticks": 7800,
+    "ziel_kleinstadt_stadt_min_ticks": 43200, "ziel_kleinstadt_stadt_max_ticks": 54000
+  },
+  "fabrik": {
+    "factory_throughput_l1_einheiten_pro_periode": 20, "factory_throughput_l2_einheiten_pro_periode": 40,
+    "factory_throughput_l3_einheiten_pro_periode": 70, "factory_throughput_l4_einheiten_pro_periode": 110,
+    "factory_upgrade_cost_l2_cent": 200000, "factory_upgrade_cost_l3_cent": 600000, "factory_upgrade_cost_l4_cent": 1500000,
+    "factory_max_level_slice_stufe": 2,
+    "labour_base_promille": 800, "labour_full_promille": 1100, "labour_throttles_never_stops_flag": true,
+    "production_mult_cap_promille": 1600
+  },
+  "lager": {
+    "warehouse_cost_cent": 80000, "warehouse_upkeep_cent_pro_periode": 3000,
+    "warehouse_capacity_einheiten": 200, "warehouse_ramps_anzahl": 2, "warehouse_ramp_rate_x100": 20,
+    "warehouse_yield_cent": 0,
+    "truck_collects_below_felder": 25, "truck_zug_cross_felder": 25, "truck_zug_cross_einheiten_pro_periode": 20,
+    "ms5_sources_min_anzahl": 2
+  },
+  "energie": {
+    "power_base_promille": 1000, "power_radius_felder": 25, "power_bonus_max_promille": 250,
+    "power_bonus_scaled_by_supply_flag": true, "power_overlap_mode_modus": "max",
+    "power_bonus_affects_ids": ["menge"], "power_bonus_never_price_flag": true
+  },
+  "meilensteine": {
+    "ms_1a": { "bedingung_id": "hq_gegruendet", "belohnung_id": "einflussradius" },
+    "ms_1b_skillpoints_punkte": 1,
+    "ms_1b": { "bedingung_id": "erste_lizenz_im_einfluss", "belohnung_id": "skillpunkt" },
+    "ms_2_skillpoints_punkte": 1,
+    "ms_2": { "bedingung_id": "lkw_linie_zum_verarbeiter", "belohnung_id": "skillpunkt_strasse" },
+    "ms_3": { "bedingung_id": "endprodukt_an_abnehmer", "abnehmer_ids": ["stadt", "export", "naechste_stufe"], "belohnung_id": "stadt_panel" },
+    "ms_4": { "bedingung_id": "busline_in_einer_stadt", "belohnung_id": "ast_stadtverkehr" },
+    "ms_5": { "bedingung_id": "lager_mit_2_quellen", "belohnung_id": "zug_frei" },
+    "ms_5b": { "bedingung_id": "erste_firma_gekauft", "belohnung_id": "kaufrabatt_einmalig" },
+    "ms_6": { "bedingung_id": "zugstrecke_mit_signal", "belohnung_id": "doppelgleis_tool" },
+    "ms_7": { "bedingung_id": "hq_stufe_2", "belohnung_id": "hq_l2" },
+    "ms7_target_min_low_ticks": 21000, "ms7_target_min_high_ticks": 30000,
+    "hq_l2_cost_cent": 1200000, "hq_l2_radius_bonus_felder": 10,
+    "ms_8_im_slice_flag": false, "ki_spediteur_im_slice_flag": false
+  },
+  "genre_standard": {
+    "demolition_refund_promille": 500,
+    "stop_radius_bus_felder": 5, "stop_radius_station_felder": 10,
+    "build_snap_grad_anzahl": 45, "build_ghost_white_buildable_flag": true,
+    "vehicle_buy_from_balance_flag": true,
+    "signal_ids": ["block", "auto"], "path_signals_in_slice_flag": false,
+    "game_speed_stufen": [0, 1, 2, 4],
+    "line_chain_stops_flag": true, "context_dialog_on_click_flag": true,
+    "demand_basket_grows_with_stage_flag": true
+  },
+  "preise": {
+    "price_grain_cent_pro_einheit_feld": 40, "price_flour_cent_pro_einheit_feld": 100,
+    "price_coal_cent_pro_einheit_feld": 40, "price_ore_cent_pro_einheit_feld": 45,
+    "price_steel_cent_pro_einheit_feld": 100, "price_tools_cent_pro_einheit_feld": 200
+  },
+  "gueter": [
+    { "id": "getreide", "preis_ref_id": "price_grain", "kategorie_id": "rohstoff", "zeitklasse_modus": "massen" },
+    { "id": "mehl", "preis_ref_id": "price_flour", "kategorie_id": "nahrung", "zeitklasse_modus": "frisch" },
+    { "id": "kohle", "preis_ref_id": "price_coal", "kategorie_id": "rohstoff", "zeitklasse_modus": "massen" },
+    { "id": "erz", "preis_ref_id": "price_ore", "kategorie_id": "rohstoff", "zeitklasse_modus": "massen" },
+    { "id": "stahl", "preis_ref_id": "price_steel", "kategorie_id": "zwischenprodukt", "zeitklasse_modus": "massen" },
+    { "id": "werkzeug", "preis_ref_id": "price_tools", "kategorie_id": "werkzeug", "zeitklasse_modus": "massen" }
+  ],
+  "industrien": [
+    { "id": "getreidefarm", "rolle_modus": "rohstoff", "kaufpreis_stufe1_cent": 100000, "ausgang_gut_id": "getreide", "produktion_l1_einheiten_pro_periode": 20, "annahme_flag": false },
+    { "id": "muehle", "rolle_modus": "verarbeiter", "kaufpreis_stufe1_cent": 200000, "eingang_gut_ids": ["getreide"], "ausgang_gut_id": "mehl", "annahme_flag": false },
+    { "id": "kohlemine", "rolle_modus": "rohstoff", "kaufpreis_stufe1_cent": 120000, "ausgang_gut_id": "kohle", "produktion_l1_einheiten_pro_periode": 20, "annahme_flag": true },
+    { "id": "erzmine", "rolle_modus": "rohstoff", "kaufpreis_stufe1_cent": 180000, "ausgang_gut_id": "erz", "produktion_l1_einheiten_pro_periode": 20, "annahme_flag": false },
+    { "id": "kraftwerk", "rolle_modus": "verarbeiter", "kaufpreis_stufe1_cent": 250000, "eingang_gut_ids": ["kohle"], "abnahme_max_einheiten_pro_periode": 30, "annahme_flag": true },
+    { "id": "stahlwerk", "rolle_modus": "verarbeiter", "kaufpreis_stufe1_cent": 400000, "eingang_gut_ids": ["erz", "kohle"], "ausgang_gut_id": "stahl", "annahme_flag": false },
+    { "id": "werkzeugfabrik", "rolle_modus": "abnehmer", "kaufpreis_stufe1_cent": 300000, "eingang_gut_ids": ["stahl"], "abnahme_max_einheiten_pro_periode": 40, "annahme_flag": true }
+  ],
+  "ketten": [
+    { "id": "k1", "name_text": "Getreide, Muehle, Mehl, Stadt",
+      "kanten": [ { "von_id": "getreidefarm", "nach_id": "muehle", "gut_id": "getreide", "strecke_felder": 18 },
+                  { "von_id": "muehle", "nach_id": "kleinstadt_a", "gut_id": "mehl", "strecke_felder": 45 } ] },
+    { "id": "k2", "name_text": "Kohle, Kraftwerk",
+      "kanten": [ { "von_id": "kohlemine", "nach_id": "kraftwerk", "gut_id": "kohle", "strecke_felder": 20 } ] },
+    { "id": "k3", "name_text": "Erz und Kohle, Stahlwerk, Stahl, Werkzeugfabrik",
+      "kanten": [ { "von_id": "erzmine", "nach_id": "stahlwerk", "gut_id": "erz", "strecke_felder": 20 },
+                  { "von_id": "kohlemine", "nach_id": "stahlwerk", "gut_id": "kohle", "strecke_felder": 15 },
+                  { "von_id": "stahlwerk", "nach_id": "werkzeugfabrik", "gut_id": "stahl", "strecke_felder": 40 } ] }
+  ],
+  "staedte": [
+    { "id": "dorf_agrar", "stage_id": "dorf", "einwohner_anzahl": 900 },
+    { "id": "kleinstadt_a", "stage_id": "kleinstadt", "einwohner_anzahl": 2500 },
+    { "id": "kleinstadt_berg", "stage_id": "kleinstadt", "einwohner_anzahl": 2500 }
+  ],
+  "fahrzeug_ref": { "lkw_id": "lkw_e1", "startpaket_lkw_agrar_anzahl": 2, "startpaket_lkw_mining_anzahl": 3, "strasse_cent_pro_feld": 1000, "load_ticks": 100 }
+}

@@ -1,0 +1,962 @@
+{
+ "stand": "S-08",
+ "regel": "Marker/Ghost bestanden, wenn max(Fuellung, Saum) >= 3:1 gegen den Hintergrund UND Fuellung >= 3:1 gegen Saum (Kontur immer erkennbar). Verhaeltnis (L1+0.05)/(L2+0.05), WCAG 2.x.",
+ "saum": {
+  "hex": "#0F1720",
+  "rgb": [
+   15,
+   23,
+   32
+  ],
+  "godot": [
+   0.059,
+   0.09,
+   0.125
+  ],
+  "alpha": 1.0,
+  "breite_min_px": 2
+ },
+ "tokens": {
+  "marker": {
+   "hex": "#FFC21A",
+   "rgb": [
+    255,
+    194,
+    26
+   ],
+   "godot": [
+    1.0,
+    0.761,
+    0.102
+   ],
+   "alpha": 1.0
+  },
+  "status_ok": {
+   "hex": "#48E08A",
+   "rgb": [
+    72,
+    224,
+    138
+   ],
+   "godot": [
+    0.282,
+    0.878,
+    0.541
+   ],
+   "alpha": 0.9
+  },
+  "status_warn": {
+   "hex": "#FFA640",
+   "rgb": [
+    255,
+    166,
+    64
+   ],
+   "godot": [
+    1.0,
+    0.651,
+    0.251
+   ],
+   "alpha": 0.9
+  },
+  "status_bad": {
+   "hex": "#FF988A",
+   "rgb": [
+    255,
+    152,
+    138
+   ],
+   "godot": [
+    1.0,
+    0.596,
+    0.541
+   ],
+   "alpha": 0.92
+  },
+  "ghost": {
+   "hex": "#FFFFFF",
+   "rgb": [
+    255,
+    255,
+    255
+   ],
+   "godot": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "alpha": 0.75
+  }
+ },
+ "drei_farbtokens": {
+  "marker": [
+   "marker"
+  ],
+  "status": [
+   "status_ok",
+   "status_warn",
+   "status_bad"
+  ],
+  "ghost": [
+   "ghost"
+  ]
+ },
+ "ghost": {
+  "fuellung": "weiss",
+  "saum": "dunkel (saum)",
+  "begruendung": "B-04: weiss allein auf Gras zu schwach; Saum liefert die Kontur"
+ },
+ "redundanz": "Status zusaetzlich ueber Form/Schraffur (bad und warn schraffiert wie im Prototyp), nicht nur Farbe",
+ "hintergruende": {
+  "gras": {
+   "rgb": [
+    115,
+    148,
+    92
+   ],
+   "gruppe": "gras",
+   "pflicht": true
+  },
+  "wasser": {
+   "rgb": [
+    64,
+    128,
+    204
+   ],
+   "gruppe": "wasser",
+   "pflicht": true
+  },
+  "wasser_hell": {
+   "rgb": [
+    75,
+    135,
+    207
+   ],
+   "gruppe": "wasser",
+   "pflicht": true
+  },
+  "stadt_strasse": {
+   "rgb": [
+    76,
+    76,
+    82
+   ],
+   "gruppe": "stadt",
+   "pflicht": true
+  },
+  "stadt_haus_hell": {
+   "rgb": [
+    209,
+    199,
+    178
+   ],
+   "gruppe": "stadt",
+   "pflicht": true
+  },
+  "stadt_haus_ziegel": {
+   "rgb": [
+    178,
+    115,
+    97
+   ],
+   "gruppe": "stadt",
+   "pflicht": true
+  },
+  "stadt_hochhaus": {
+   "rgb": [
+    153,
+    168,
+    191
+   ],
+   "gruppe": "stadt",
+   "pflicht": true
+  },
+  "wald_baum": {
+   "rgb": [
+    33,
+    97,
+    41
+   ],
+   "gruppe": "zusatz",
+   "pflicht": false
+  },
+  "berg_stein": {
+   "rgb": [
+    128,
+    115,
+    97
+   ],
+   "gruppe": "zusatz",
+   "pflicht": false
+  },
+  "berg_schnee": {
+   "rgb": [
+    242,
+    242,
+    247
+   ],
+   "gruppe": "zusatz",
+   "pflicht": false
+  }
+ },
+ "ergebnis": {
+  "kombinationen_pflicht": 35,
+  "bestanden_pflicht": 35,
+  "kombinationen_gesamt": 50,
+  "bestanden_gesamt": 50,
+  "min_wirksam_pflicht": 3.73,
+  "min_wirksam_gesamt": 3.26
+ },
+ "zeilen": [
+  {
+   "token": "marker",
+   "hintergrund": "gras",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 2.12,
+   "saum_vs_bg": 5.26,
+   "fill_vs_saum": 11.16,
+   "wirksam": 5.26,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "wasser",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 2.51,
+   "saum_vs_bg": 4.45,
+   "fill_vs_saum": 11.16,
+   "wirksam": 4.45,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "wasser_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 2.29,
+   "saum_vs_bg": 4.87,
+   "fill_vs_saum": 11.16,
+   "wirksam": 4.87,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "stadt_strasse",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 5.27,
+   "saum_vs_bg": 2.12,
+   "fill_vs_saum": 11.16,
+   "wirksam": 5.27,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "stadt_haus_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 1.04,
+   "saum_vs_bg": 10.76,
+   "fill_vs_saum": 11.16,
+   "wirksam": 10.76,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "stadt_haus_ziegel",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 2.35,
+   "saum_vs_bg": 4.74,
+   "fill_vs_saum": 11.16,
+   "wirksam": 4.74,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "stadt_hochhaus",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 1.49,
+   "saum_vs_bg": 7.48,
+   "fill_vs_saum": 11.16,
+   "wirksam": 7.48,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "wald_baum",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 4.63,
+   "saum_vs_bg": 2.41,
+   "fill_vs_saum": 11.16,
+   "wirksam": 4.63,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "berg_stein",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 2.86,
+   "saum_vs_bg": 3.9,
+   "fill_vs_saum": 11.16,
+   "wirksam": 3.9,
+   "bestanden": true
+  },
+  {
+   "token": "marker",
+   "hintergrund": "berg_schnee",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    255,
+    194,
+    26
+   ],
+   "fill_vs_bg": 1.45,
+   "saum_vs_bg": 16.17,
+   "fill_vs_saum": 11.16,
+   "wirksam": 16.17,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "gras",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    76,
+    216,
+    133
+   ],
+   "fill_vs_bg": 1.87,
+   "saum_vs_bg": 5.26,
+   "fill_vs_saum": 9.85,
+   "wirksam": 5.26,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "wasser",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    71,
+    214,
+    145
+   ],
+   "fill_vs_bg": 2.18,
+   "saum_vs_bg": 4.45,
+   "fill_vs_saum": 9.71,
+   "wirksam": 4.45,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "wasser_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    72,
+    215,
+    145
+   ],
+   "fill_vs_bg": 2.01,
+   "saum_vs_bg": 4.87,
+   "fill_vs_saum": 9.8,
+   "wirksam": 4.87,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "stadt_strasse",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    72,
+    209,
+    132
+   ],
+   "fill_vs_bg": 4.36,
+   "saum_vs_bg": 2.12,
+   "fill_vs_saum": 9.22,
+   "wirksam": 4.36,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "stadt_haus_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    86,
+    222,
+    142
+   ],
+   "fill_vs_bg": 1.02,
+   "saum_vs_bg": 10.76,
+   "fill_vs_saum": 10.51,
+   "wirksam": 10.76,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "stadt_haus_ziegel",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    83,
+    213,
+    134
+   ],
+   "fill_vs_bg": 2.04,
+   "saum_vs_bg": 4.74,
+   "fill_vs_saum": 9.65,
+   "wirksam": 4.74,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "stadt_hochhaus",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    80,
+    218,
+    143
+   ],
+   "fill_vs_bg": 1.35,
+   "saum_vs_bg": 7.48,
+   "fill_vs_saum": 10.11,
+   "wirksam": 7.48,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "wald_baum",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    68,
+    211,
+    128
+   ],
+   "fill_vs_bg": 3.87,
+   "saum_vs_bg": 2.41,
+   "fill_vs_saum": 9.35,
+   "wirksam": 3.87,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "berg_stein",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    78,
+    213,
+    134
+   ],
+   "fill_vs_bg": 2.46,
+   "saum_vs_bg": 3.9,
+   "fill_vs_saum": 9.61,
+   "wirksam": 3.9,
+   "bestanden": true
+  },
+  {
+   "token": "status_ok",
+   "hintergrund": "berg_schnee",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    89,
+    226,
+    149
+   ],
+   "fill_vs_bg": 1.48,
+   "saum_vs_bg": 16.17,
+   "fill_vs_saum": 10.95,
+   "wirksam": 16.17,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "gras",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    241,
+    164,
+    67
+   ],
+   "fill_vs_bg": 1.66,
+   "saum_vs_bg": 5.26,
+   "fill_vs_saum": 8.71,
+   "wirksam": 5.26,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "wasser",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    236,
+    162,
+    78
+   ],
+   "fill_vs_bg": 1.9,
+   "saum_vs_bg": 4.45,
+   "fill_vs_saum": 8.46,
+   "wirksam": 4.45,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "wasser_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    237,
+    163,
+    78
+   ],
+   "fill_vs_bg": 1.76,
+   "saum_vs_bg": 4.87,
+   "fill_vs_saum": 8.55,
+   "wirksam": 4.87,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "stadt_strasse",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    237,
+    157,
+    66
+   ],
+   "fill_vs_bg": 3.86,
+   "saum_vs_bg": 2.12,
+   "fill_vs_saum": 8.17,
+   "wirksam": 3.86,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "stadt_haus_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    250,
+    169,
+    75
+   ],
+   "fill_vs_bg": 1.16,
+   "saum_vs_bg": 10.76,
+   "fill_vs_saum": 9.32,
+   "wirksam": 10.76,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "stadt_haus_ziegel",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    247,
+    161,
+    67
+   ],
+   "fill_vs_bg": 1.84,
+   "saum_vs_bg": 4.74,
+   "fill_vs_saum": 8.71,
+   "wirksam": 4.74,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "stadt_hochhaus",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    245,
+    166,
+    77
+   ],
+   "fill_vs_bg": 1.2,
+   "saum_vs_bg": 7.48,
+   "fill_vs_saum": 8.97,
+   "wirksam": 7.48,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "wald_baum",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    233,
+    159,
+    62
+   ],
+   "fill_vs_bg": 3.38,
+   "saum_vs_bg": 2.41,
+   "fill_vs_saum": 8.16,
+   "wirksam": 3.38,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "berg_stein",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    242,
+    161,
+    67
+   ],
+   "fill_vs_bg": 2.19,
+   "saum_vs_bg": 3.9,
+   "fill_vs_saum": 8.55,
+   "wirksam": 3.9,
+   "bestanden": true
+  },
+  {
+   "token": "status_warn",
+   "hintergrund": "berg_schnee",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    254,
+    174,
+    82
+   ],
+   "fill_vs_bg": 1.65,
+   "saum_vs_bg": 16.17,
+   "fill_vs_saum": 9.79,
+   "wirksam": 16.17,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "gras",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    244,
+    152,
+    134
+   ],
+   "fill_vs_bg": 1.58,
+   "saum_vs_bg": 5.26,
+   "fill_vs_saum": 8.32,
+   "wirksam": 5.26,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "wasser",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    240,
+    150,
+    143
+   ],
+   "fill_vs_bg": 1.83,
+   "saum_vs_bg": 4.45,
+   "fill_vs_saum": 8.13,
+   "wirksam": 4.45,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "wasser_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    241,
+    151,
+    144
+   ],
+   "fill_vs_bg": 1.69,
+   "saum_vs_bg": 4.87,
+   "fill_vs_saum": 8.22,
+   "wirksam": 4.87,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "stadt_strasse",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    241,
+    146,
+    134
+   ],
+   "fill_vs_bg": 3.73,
+   "saum_vs_bg": 2.12,
+   "fill_vs_saum": 7.9,
+   "wirksam": 3.73,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "stadt_haus_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    251,
+    156,
+    141
+   ],
+   "fill_vs_bg": 1.22,
+   "saum_vs_bg": 10.76,
+   "fill_vs_saum": 8.8,
+   "wirksam": 10.76,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "stadt_haus_ziegel",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    249,
+    149,
+    135
+   ],
+   "fill_vs_bg": 1.75,
+   "saum_vs_bg": 4.74,
+   "fill_vs_saum": 8.32,
+   "wirksam": 4.74,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "stadt_hochhaus",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    247,
+    153,
+    142
+   ],
+   "fill_vs_bg": 1.14,
+   "saum_vs_bg": 7.48,
+   "fill_vs_saum": 8.51,
+   "wirksam": 7.48,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "wald_baum",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    237,
+    148,
+    130
+   ],
+   "fill_vs_bg": 3.26,
+   "saum_vs_bg": 2.41,
+   "fill_vs_saum": 7.87,
+   "wirksam": 3.26,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "berg_stein",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    245,
+    149,
+    135
+   ],
+   "fill_vs_bg": 2.1,
+   "saum_vs_bg": 3.9,
+   "fill_vs_saum": 8.19,
+   "wirksam": 3.9,
+   "bestanden": true
+  },
+  {
+   "token": "status_bad",
+   "hintergrund": "berg_schnee",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    254,
+    159,
+    147
+   ],
+   "fill_vs_bg": 1.78,
+   "saum_vs_bg": 16.17,
+   "fill_vs_saum": 9.1,
+   "wirksam": 16.17,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "gras",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    220,
+    228,
+    214
+   ],
+   "fill_vs_bg": 2.63,
+   "saum_vs_bg": 5.26,
+   "fill_vs_saum": 13.84,
+   "wirksam": 5.26,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "wasser",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    207,
+    223,
+    242
+   ],
+   "fill_vs_bg": 2.99,
+   "saum_vs_bg": 4.45,
+   "fill_vs_saum": 13.31,
+   "wirksam": 4.45,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "wasser_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    210,
+    225,
+    243
+   ],
+   "fill_vs_bg": 2.79,
+   "saum_vs_bg": 4.87,
+   "fill_vs_saum": 13.58,
+   "wirksam": 4.87,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "stadt_strasse",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    210,
+    210,
+    212
+   ],
+   "fill_vs_bg": 5.65,
+   "saum_vs_bg": 2.12,
+   "fill_vs_saum": 11.95,
+   "wirksam": 5.65,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "stadt_haus_hell",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    244,
+    241,
+    236
+   ],
+   "fill_vs_bg": 1.49,
+   "saum_vs_bg": 10.76,
+   "fill_vs_saum": 16.02,
+   "wirksam": 10.76,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "stadt_haus_ziegel",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    236,
+    220,
+    216
+   ],
+   "fill_vs_bg": 2.86,
+   "saum_vs_bg": 4.74,
+   "fill_vs_saum": 13.57,
+   "wirksam": 4.74,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "stadt_hochhaus",
+   "pflicht": true,
+   "fill_gemischt_rgb": [
+    230,
+    233,
+    239
+   ],
+   "fill_vs_bg": 1.98,
+   "saum_vs_bg": 7.48,
+   "fill_vs_saum": 14.84,
+   "wirksam": 7.48,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "wald_baum",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    200,
+    216,
+    202
+   ],
+   "fill_vs_bg": 5.04,
+   "saum_vs_bg": 2.41,
+   "fill_vs_saum": 12.14,
+   "wirksam": 5.04,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "berg_stein",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    223,
+    220,
+    216
+   ],
+   "fill_vs_bg": 3.38,
+   "saum_vs_bg": 3.9,
+   "fill_vs_saum": 13.2,
+   "wirksam": 3.9,
+   "bestanden": true
+  },
+  {
+   "token": "ghost",
+   "hintergrund": "berg_schnee",
+   "pflicht": false,
+   "fill_gemischt_rgb": [
+    252,
+    252,
+    253
+   ],
+   "fill_vs_bg": 1.09,
+   "saum_vs_bg": 16.17,
+   "fill_vs_saum": 17.6,
+   "wirksam": 16.17,
+   "bestanden": true
+  }
+ ]
+}

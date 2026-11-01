@@ -8,6 +8,7 @@ Das Team (Jonas, Lena, Tobias, Aylin, Felix, Sophie, Daniel, Katrin) ist simulie
 
 | Ordner | Inhalt |
 | --- | --- |
+| `slice/` | Vertical Slice (Grey-Box, R1): 512²-Karte aus JSON, Ökonomie aus JSON, Startdialog, Lizenz-Knopf, Windows-Export-Presets |
 | `prototype/` | Prototyp v3: 192×192-Karte, 5 Städte, 5 Ketten, Lkw/Zug, Lager, Meilensteine |
 | `spikes/f04-signal/` | Netz-, Signal- und Diagnose-Spike (Felix), headless testbar |
 | `spikes/sim-core/` | Sim-Kern auf SoA mit ereignisgesteuerter Deadlock-Prüfung (Sprint 3, F-10/F-11) |

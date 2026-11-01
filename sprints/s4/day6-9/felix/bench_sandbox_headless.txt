@@ -1,0 +1,14 @@
+Mega Tycoon – F-12 Bench (Grey-Box-Slice)
+Datum: 2026-11-01 16:06:34
+Godot: 4.7.2-stable (official)
+OS: Linux · CPU: Intel(R) Xeon(R) Processor @ 2.80GHz (2 Threads)
+GPU:  /  · Treiber: []
+Renderer: gl_compatibility · Fenster: (0, 0) · VSync: aus
+Karte: 512² Felder, Ladezeit 174 ms (Ziel ≤ 3000 ms), fehlende IDs: 0
+Fahrzeuge: 5000 Lkw auf 51 Korridoren, Setup 430 ms, Tempo 1× (100 ms/Tick)
+Läufe: 3 × 6 s nach 3 s Aufwärmen
+  Lauf 1: Median 117.6 FPS · Mittel 115.1 FPS · Frame Median 6.91 ms · p95 34.78 ms · Performance.TIME_PROCESS Median 16.32 ms (roh) · 692 Frames · in Fahrt 2957
+  Lauf 2: Median 110.3 FPS · Mittel 108.6 FPS · Frame Median 6.90 ms · p95 43.14 ms · Performance.TIME_PROCESS Median 18.51 ms (roh) · 652 Frames · in Fahrt 4112
+  Lauf 3: Median 107.4 FPS · Mittel 106.0 FPS · Frame Median 6.90 ms · p95 47.60 ms · Performance.TIME_PROCESS Median 15.07 ms (roh) · 636 Frames · in Fahrt 4815
+Median der Läufe: 110.3 FPS · Streuung (max−min)/Median: 9.2 %
+Ziel F-12: 3/3 Läufe ≥ 60 FPS → ERFÜLLT · Streuung ≤ 10 % → ERFÜLLT · Absturz: nein (Datei geschrieben)

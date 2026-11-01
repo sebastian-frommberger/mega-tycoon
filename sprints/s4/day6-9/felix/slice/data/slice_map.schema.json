@@ -1,0 +1,424 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "mega-tycoon/slice_map.schema.json",
+ "title": "Slice-Karte (S-09)",
+ "description": "Entwurf Sophie, an F-09-Konvention von Tobias angelehnt (Festkomma, keine Floats, additionalProperties false). Kein Teil von Tobias' F-09-Schemas; Abzeichnung durch Tobias offen.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "schema_version",
+  "karte",
+  "staedte",
+  "industrien",
+  "gelaende",
+  "fluesse",
+  "ketten",
+  "nischen",
+  "hq_optionen"
+ ],
+ "properties": {
+  "schema_version": {
+   "const": 1
+  },
+  "karte": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "breite_felder",
+    "hoehe_felder",
+    "feld_mm",
+    "ursprung",
+    "x_achse",
+    "y_achse",
+    "hinweis"
+   ],
+   "properties": {
+    "breite_felder": {
+     "const": 512
+    },
+    "hoehe_felder": {
+     "const": 512
+    },
+    "feld_mm": {
+     "$ref": "common.schema.json#/$defs/mm"
+    },
+    "ursprung": {
+     "const": "oben_links"
+    },
+    "x_achse": {
+     "const": "ost"
+    },
+    "y_achse": {
+     "const": "sued"
+    },
+    "hinweis": {
+     "type": "string"
+    }
+   }
+  },
+  "staedte": {
+   "type": "array",
+   "minItems": 4,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "name",
+     "stufe",
+     "einwohner_anzahl",
+     "x_felder",
+     "y_felder"
+    ],
+    "properties": {
+     "id": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1
+     },
+     "stufe": {
+      "enum": [
+       "dorf",
+       "kleinstadt",
+       "stadt",
+       "metropole"
+      ]
+     },
+     "einwohner_anzahl": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000000
+     },
+     "x_felder": {
+      "$ref": "common.schema.json#/$defs/felder"
+     },
+     "y_felder": {
+      "$ref": "common.schema.json#/$defs/felder"
+     }
+    }
+   }
+  },
+  "industrien": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "typ",
+     "x_felder",
+     "y_felder",
+     "stufe",
+     "rolle",
+     "im_slice",
+     "eingang_gueter",
+     "ausgang_gueter"
+    ],
+    "properties": {
+     "id": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "typ": {
+      "enum": [
+       "getreidefarm",
+       "muehle",
+       "kohlemine",
+       "erzmine",
+       "kraftwerk",
+       "stahlwerk",
+       "werkzeugfabrik",
+       "holzfaeller",
+       "saegewerk"
+      ]
+     },
+     "x_felder": {
+      "$ref": "common.schema.json#/$defs/felder"
+     },
+     "y_felder": {
+      "$ref": "common.schema.json#/$defs/felder"
+     },
+     "stufe": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+     },
+     "rolle": {
+      "enum": [
+       "rohstoff",
+       "verarbeiter",
+       "abnehmer",
+       "bau_quelle"
+      ]
+     },
+     "im_slice": {
+      "type": "boolean"
+     },
+     "eingang_gueter": {
+      "type": "array",
+      "items": {
+       "$ref": "common.schema.json#/$defs/id"
+      }
+     },
+     "ausgang_gueter": {
+      "type": "array",
+      "items": {
+       "$ref": "common.schema.json#/$defs/id"
+      }
+     },
+     "ausgang_art": {
+      "const": "energie"
+     },
+     "kette": {
+      "$ref": "common.schema.json#/$defs/id"
+     }
+    }
+   }
+  },
+  "gelaende": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "typ",
+     "polygon"
+    ],
+    "properties": {
+     "id": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "typ": {
+      "enum": [
+       "meer",
+       "gebirge",
+       "wald"
+      ]
+     },
+     "polygon": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+       "type": "array",
+       "minItems": 2,
+       "maxItems": 2,
+       "items": {
+        "$ref": "common.schema.json#/$defs/felder"
+       }
+      }
+     }
+    }
+   }
+  },
+  "fluesse": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "name",
+     "breite_felder",
+     "linie"
+    ],
+    "properties": {
+     "id": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "name": {
+      "type": "string"
+     },
+     "breite_felder": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+     },
+     "linie": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+       "type": "array",
+       "minItems": 2,
+       "maxItems": 2,
+       "items": {
+        "$ref": "common.schema.json#/$defs/felder"
+       }
+      }
+     }
+    }
+   }
+  },
+  "ketten": {
+   "type": "array",
+   "minItems": 3,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "name",
+     "im_slice",
+     "gueter",
+     "strecken"
+    ],
+    "properties": {
+     "id": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "name": {
+      "type": "string"
+     },
+     "im_slice": {
+      "type": "boolean"
+     },
+     "gueter": {
+      "type": "array",
+      "items": {
+       "$ref": "common.schema.json#/$defs/id"
+      }
+     },
+     "strecken": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "von",
+        "nach",
+        "luftlinie_felder"
+       ],
+       "properties": {
+        "von": {
+         "$ref": "common.schema.json#/$defs/id"
+        },
+        "nach": {
+         "$ref": "common.schema.json#/$defs/id"
+        },
+        "luftlinie_felder": {
+         "$ref": "common.schema.json#/$defs/felder"
+        },
+        "hinweis": {
+         "type": "string"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "nischen": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "von",
+     "nach",
+     "luftlinie_felder",
+     "soll_felder",
+     "hinweis"
+    ],
+    "properties": {
+     "von": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "nach": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "luftlinie_felder": {
+      "$ref": "common.schema.json#/$defs/felder"
+     },
+     "soll_felder": {
+      "$ref": "common.schema.json#/$defs/felder"
+     },
+     "hinweis": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "hq_optionen": {
+   "type": "array",
+   "minItems": 4,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "archetyp",
+     "stadt",
+     "im_slice",
+     "radius_felder",
+     "startkapital_cent",
+     "startkette",
+     "industrien_im_radius",
+     "bau_quelle"
+    ],
+    "properties": {
+     "archetyp": {
+      "enum": [
+       "agrar",
+       "hafen",
+       "bergbau",
+       "handelsknoten"
+      ]
+     },
+     "stadt": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "im_slice": {
+      "type": "boolean"
+     },
+     "radius_felder": {
+      "$ref": "common.schema.json#/$defs/felder"
+     },
+     "startkapital_cent": {
+      "$ref": "common.schema.json#/$defs/cent"
+     },
+     "startkette": {
+      "$ref": "common.schema.json#/$defs/id"
+     },
+     "industrien_im_radius": {
+      "type": "array",
+      "items": {
+       "$ref": "common.schema.json#/$defs/id"
+      }
+     },
+     "bau_quelle": {
+      "$ref": "common.schema.json#/$defs/id"
+     }
+    }
+   }
+  },
+  "status": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "stand",
+    "stichtag",
+    "version",
+    "hinweis"
+   ],
+   "properties": {
+    "stand": {
+     "enum": [
+      "entwurf",
+      "eingefroren"
+     ]
+    },
+    "stichtag": {
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    },
+    "hinweis": {
+     "type": "string"
+    }
+   }
+  }
+ }
+}

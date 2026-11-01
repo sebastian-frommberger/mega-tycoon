@@ -22,7 +22,7 @@ Alle Aufwände sind **meine Schätzungen in Personentagen (PT)**, keine Planning
 | Outsourcing Audio (nur Steuerung) | 2,0 | 0 | 0 | 2,0 |
 | **Gesamt** | **96,0** | 11,0 | 10,5 | **117,5** |
 
-Mit Kenney (Abschnitt 4, ungeprüfte Schätzung): Sophie 45,5 · Artist 34,0 / 8,0 / 5,0 = 47,0 · Gesamt 94,5.
+Mit Kenney (Abschnitt 4, 18 Proben gemessen, Rest geschätzt): Sophie 45,5 · Artist 36,0 / 8,0 / 5,0 = **49,0** · Gesamt 96,5. Details `kenney_messung.md`.
 
 Größte Posten: Terrain-Shader und Karten-Rendermodus (je 6 PT, Sophie), Review-Anteil Artist-Assets (9 PT, Sophie, 20 % der Artist-PT), Industrien KERN (7 Stück, 16 PT Artist), Stadt (C1–C8, 18 PT Artist inkl. ARCH).
 
@@ -42,29 +42,24 @@ Größte Posten: Terrain-Shader und Karten-Rendermodus (je 6 PT, Sophie), Review
 
 ## 4. Kenney Game Assets All-in-1 3.7.0 (neu, 23.11.)
 
-Grundlage: nur `sprint2/kenney_inventar.md` (Dateinamen). **Dateien liegen nicht in meiner Umgebung. Polygonzahlen, Maßstab zwischen Kits, Pivot-Punkte, Spurweite des Train Kit und ob ein Bahnhofsmodell existiert, sind ungeprüft.** Spalte `kenney_abdeckung` in der CSV: ja 10 Zeilen, teilweise 21, nein 20.
+Grundlage: `sprint2/kenney_inventar.md` (Dateinamen) und **18 gemessene Proben** (`kenney_messung.md`: Tris, Maße, Godot-Import, Screenshots). Alles, was nicht in den Proben ist (Signale, Bahnhof, Bus, Factory Kit, Road Pack, Stadtgebäude), bleibt ungeprüft. Spalte `kenney_abdeckung` in der CSV: ja 6 Zeilen, teilweise 25, nein 20.
 
 **Wofür Kenney im Slice taugt**
 1. **Platzhalter in Spikes und Grey-Box, sofort:** Industrial-Hallen und Schornsteine, Road Pack als Straßen-Tiles im 45°-Raster, Train-Kit-Gleise für den Bau-Spike (M1-Auflage aus D6), Prototype Kit für Grauboxen mit echter Silhouette. Das spart dem Spike nichts an Code, aber den Entwicklern das Raten („ist das ein Werk oder ein Haus?“).
-2. **Final denkbar, wenn Maßstab und Polygonzahl passen:** Fahrzeuge (Car Kit truck/truck-flat/tractor, Train Kit Dampflok a–c, Wagen Kohle/Erz/Holz/Bretter/Tank), Signale, Brücken, Bäume, Felsen, Watercraft. Begründung: Low-Poly mit flachen Farben ist genau unser Materialmodell (Farbatlas, Flat-Shading), und Fahrzeuge sind bei 10.000 Instanzen ohnehin klein im Bild. Ersparnis beim Artist ca. **20 PT** (67,5 → 47,0), davon 12 PT im KERN.
+2. **Final denkbar (gemessen):** Bäume (114/230 Tris), Felsen (80), Industrie-Anbauten (Hallen 1.552–2.046, Schornstein 212), Frachtschiff (1.060), vermutlich Brücken und Signale (ungemessen). Low-Poly mit flachen Farben ist unser Materialmodell, die Atlanten müssen aber auf Palette v1 umgelegt werden. **Fahrzeuge sind NICHT final:** Lkw 2.082–2.488 Tris (7–8× Budget 300), Lok 1.666 (2,8×), Wagen ca. 1.150 (4,6×), bei 10.000 Instanzen untragbar; Retopo kostet so viel wie Neubau. Ersparnis beim Artist ca. **18,5 PT** (67,5 → 49,0), davon 10 PT im KERN.
 3. **Audio-Platzhalter** (A1) und evtl. UI-Icons.
 
 **Wo es mit dem Ziel-Look oder der Maßstabsregel kollidiert**
 - **Silhouetten-Regel („eine Silhouette, ein Gut“, 64 px):** Mühle, Kraftwerk/Kühlturm, Bergwerk/Förderturm, Rundsilo, Portalkran, Hochofen fehlen laut Inventar. Die Industrie-Kerne bleiben eigene Modelle; Kenney liefert nur Anbauten (Hallen, Schornsteine, Förderbänder). Das ist der Teil, an dem die Fernlesbarkeit hängt, und der bleibt bei uns.
 - **Epochen-Look:** City Kit Suburban/Commercial ist US-Vorort und Gegenwart, nicht Ziegel/Holz Epoche 1. Für Grey-Box ja, als finales Stadtbild wahrscheinlich nein. Die Aufstockungsregel (Gebäude werden angebaut, nicht getauscht) ist mit Modular Buildings immerhin testbar.
-- **Maßstab 1 Feld = 10 m:** Kits sind untereinander wahrscheinlich nicht maßstäblich (Inventar sagt „unbekannt“). Jedes Kenney-Modell muss durch das Maßstabsband (G1) und bekommt einen Skalierungsfaktor je Kit. Ohne G1 keine Übernahme.
+- **Maßstab 1 Feld = 10 m:** Kits sind untereinander **nicht** maßstäblich (gemessen): Car Kit ×3,4, Train Kit ×3,7, Industrial ×10, Nature ×8, Watercraft ×10. Fahrzeuge sind damit 10 m lang, aber **5 m breit** (doppelte Realbreite, Spielzeug-Proportion). Gleiskacheln (1,0 × 4,0 Einheiten) treffen bei keinem Faktor Raster und Wagenbreite zugleich. Jedes Kenney-Modell braucht den Faktor im Import-Preset und den Abgleich im Maßstabsband (G1).
 - **Ladegut:** Kenney-Wagen tragen das Gut als eigenes Modell (Kohle-, Holz-, Tankwagen). Felix' Pfad ist Instanzfarbe (`use_colors`) auf einem Wagentyp. Entweder Ladegut vom Wagen abtrennen oder ein MultiMesh je Wagentyp. Abstimmung Felix, betrifft F-05.
 - **Spline-Netz:** Road Pack und Train-Kit-Gleise sind Kacheln. Unser Netz ist Spline-Mesh pro Chunk (N1/N2, KW-49-Termin). Als Platzhalter im Raster brauchbar, final nicht, es sei denn, das `spline-track`-Segment lässt sich als Profil ausschlachten (Prüfaufgabe).
 - **Stil-Einheit:** Mischung aus Kenney-Fahrzeugen und eigenen Industrien funktioniert nur, wenn alles durch denselben Farbatlas läuft (Texturen der Kits ersetzen, Umfärben auf Palette v1). Kostet ca. 0,25 PT je Kit, in den neuen Aufwänden enthalten.
 
 **Konsequenz für die Refinement-Regel „Keine Platzhalter-Meshes für die Spikes, Felix nutzt Würfel und Grauboxen“** (`refinement/ergebnis.md` Z. 44). Die Regel sollte schützen, dass ich keine Wegwerf-Meshes baue. Mit Kenney entfällt der Grund. **Vorschlag zur Änderung (Entscheidung Jonas):** „Spikes dürfen Kenney-Modelle als Platzhalter nutzen, ohne Abnahme durch Art. Bedingungen: (1) Skalierung je Kit aus dem Maßstabsband (G1, Sophie 2 PT, liegt vor dem Bau-Spike), (2) Polygonzahl der Fahrzeuge im Benchmark ≤ 300 Tris oder auf Quader reduziert, damit F-05 das Ziel-Budget misst und nicht Kenneys, (3) kein Kenney-Modell gilt als final, bevor es durch Maßstabsband und Farbatlas gelaufen ist.“ Für F-05 ändert sich nichts: Benchmark mit Quadern oder 300-Tris-Lkw, nicht mit ungeprüften Kit-Modellen.
 
-**Offene Prüfaufgaben (brauchen die Dateien, ca. 0,5 PT, auf dem Rechner des Auftraggebers oder nach Kopie):**
-1. Tris je Modell für truck, Dampflok, 3 Wagen, tree, Signal, Industrial building-a (gegen 300/600/250/100/120/2.500).
-2. Maßstab: Lkw-Länge, Gleis-Spurweite und Hausbreite je Kit in Metern, Faktor je Kit zu 1 Feld = 10 m.
-3. Gibt es Bahnhof, Bus, Scheune, Zaun, Sheddach im Kit (Inventar unklar)?
-4. GLB-Import in Godot 4.4.1: Pivot, Y-up, Materialien als ein Atlas oder viele.
-5. `spline-track`: Profil extrahierbar?
+**Offene Prüfaufgaben (Modelle nicht in den Proben, `glb_messung.py` liegt bereit, 5 min je Datei):** Signale, Bahnhof (existiert er?), Bus/Van, `spline-track` (Profil extrahierbar?), Factory-Kit-Förderband, Road-Pack-Kreuzung, City Kit Suburban/Commercial Haus, Modular Buildings Etage, Scheune/Zaun/Sheddach. Erledigt (siehe `kenney_messung.md`): Tris und Maße der 18 Proben, Faktor je Kit, Godot-Import (Pivot, Y-up, ein Atlas je Kit, vier verschiedene Atlanten).
 
 ## 5. Mit Katrin abzustimmen (offen, 24.11.)
 

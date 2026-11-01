@@ -33,19 +33,19 @@ Meldungsentstehung (Vertrag, Abschnitt 3a): Die UI pollt je Sekunde `deadlock_ev
 
 ## 3. Kettenzeilen: Text und Sprungziel
 
-Die Verdichtung von `links` zu Zeilen steht im Vertrag, Abschnitt 3b. Je Zeile hält die UI: `index` (1..n), `textschluessel`, ausgefüllten Text, `objekt_typ`, `objekt_id`, `pos` (Sprungziel). Zeile n hat `pos = root_pos` (D9).
+Die Verdichtung von `links` zu Zeilen steht im Vertrag, Abschnitt 3b. Je Zeile hält die UI: `index` (1..n), `textschluessel`, ausgefüllten Text, `objekt_typ`, `objekt_id`, `pos` (Sprungziel). Zeile n entsteht aus dem Glied `kind = URSACHE` und hat `pos = root_pos` (D9). Vor der Anzeige ruft die UI `Diagnostics.validate(chain)`; ein nicht leeres Ergebnis ist Zustand Z5.
 
 | Fehler | Zeilen | Sprungziele in Reihenfolge |
 |---|---|---|
-| F1 | 4 | Zug 4 · Signal 12 · Zug 2 · kanonischer Block der Strecke |
-| F2 | 6 | Zug 5 · Zug 5 · Zug 8 · Zug 6 · Zug 9 · kanonischer Block des Kreises |
+| F1 | 4 | Zug 4 · Signal 12 · Zug 2 · `root_pos` = Mitte der beiden umkämpften Abschnitte |
+| F2 | 6 | Zug 5 · Zug 5 · Zug 8 · Zug 6 · Zug 9 · `root_pos` = Mitte der Kreuzung Südfeld |
 | F3 | 5 | Zug 10 · Signal 21 · Zug 7 · Lager Hafen-Ost · Lager Hafen-Ost (Industrie) |
 
 In F2 zeigen Zeile 1 und 2 auf dasselbe Objekt; das ist gewollt (Zeile 1 = Symptom, Zeile 2 = erstes Kreisglied).
 
 ## 4. Sprung zum Ort
 
-- Kamerafahrt 0,6 s, weich (ease-in-out), Zielpunkt = `pos` in Weltkoordinaten (`Vector2i` mm → Welt: x = `pos.x / 1000`, z = `pos.y / 1000`, Annahme aus dem Vertrag). Zoom auf eine Stufe, in der ein 200-m-Abschnitt ganz im Bild ist (Annahme; Sophies Zoomstufen-Regel liegt mir nicht vor).
+- Kamerafahrt 0,6 s, weich (ease-in-out), Zielpunkt = `pos` in Weltkoordinaten (`Vector2i` mm → Welt: x = `pos.x / 1000`, z = `pos.y / 1000`; Felix' Kopfkommentar: "x und z der Karte"). Zoom auf eine Stufe, in der ein 200-m-Abschnitt ganz im Bild ist (Annahme; Sophies Zoomstufen-Regel liegt mir nicht vor).
 - Ein neuer Klick unterbricht die laufende Fahrt.
 - Kontur: weißes Outline 3 px auf dem Zielobjekt (Fahrzeug, Signal, Block-Mitte als Marker, Lager), pulsiert 2× (0,4 s), bleibt dann stehen, bis eine andere Zeile gewählt oder die Meldung geschlossen wird.
 - Markierungen (Soll): 24-px-Scheibe mit Zeilennummer an jedem Sprungziel, oberste Ebene, Mindestgröße zoomunabhängig; Symptom = Ring, Zwischenglied = graue Scheibe, Wurzel = Quadrat mit runden Ecken. Linie gestrichelt 2 px in Kettenreihenfolge, bei Kreis geschlossen.
@@ -82,7 +82,7 @@ unix_ms;ms_seit_start;tick;ereignis;meldung_id;vehicle_id;index;ziel
 
 ## 6. Testszene (Eingang von Lena, hier nur verwiesen)
 
-Drei getrennte Teilnetze, Stillstände ≥ 120 s alt beim Start, zwei Kontrollzüge auf dem K1-Layout ohne Meldung, Namen aus Lenas Tabelle, Zusatzfelder `n_lkw`, `streckenlaenge_mm`, `gleiszahl` (Vertrag, Abschnitt 2). Smoke-Test-Punkte (Daniel): 3/3 Meldungen da, jede Kette endet in der Soll-Wurzelzeile, Sprung funktioniert, Klick-Log schreibt `meldung_geoeffnet`, keine `vertragsfehler`-Zeile.
+Drei getrennte Teilnetze (Spike-Szenarien S1, S2, S3 mit Lenas Namen; S3 enthält den Lkw-Zulieferer schon), Stillstände ≥ 120 s alt beim Start, zwei Kontrollzüge auf dem K1-Layout ohne Meldung, Knotennamen "Mühlbach"/"Kornfeld" für den Streckennamen. Smoke-Test-Punkte (Daniel): 3/3 Meldungen da, `validate()` leer, jede Kette endet in der Soll-Wurzelzeile (F3: Zeile 5), Sprung funktioniert, Klick-Log schreibt `meldung_geoeffnet`, keine `vertragsfehler`-Zeile.
 
 ## 7. Streichreihenfolge, wenn 1 T nicht reicht (von unten nach oben streichen)
 

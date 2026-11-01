@@ -3,7 +3,7 @@ extends SceneTree
 ## Zustand WARTET_BLOCK auf einen Block wartet, dessen Halter im selben Tick freigegeben hat (holder = -1).
 ## Aufruf: godot --headless --path <kopie> --script res://daniel_b8_replay.gd
 ## Netz: Daniels Normalnetz Variante 1 (siehe daniel_d04_lauf.gd build_normal(1)), Tick 3451, Fahrzeug 1.
-const Lauf := preload("res://daniel_d04_lauf.gd")
+const Lauf := preload("res://daniel_d04_lauf_v2.gd")
 const SimWorld := preload("res://sim_world.gd")
 
 func _init() -> void:

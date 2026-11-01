@@ -2,7 +2,7 @@
 
 Autorin: Aylin Kaya · Stand 20.11.2026 · Owner Lena · Durchführung Daniel · Testtag 25.11. (Build 24.11., 10 Uhr) · ersetzt `day1-3/aylin/testskript_entwurf.md`.
 
-**Abgleich, ehrlich:** `day4-6/lena/` und `day4-6/daniel/` existierten beim Schreiben nicht. Abgeglichen ist dieses Skript mit `day1-3/lena/playtest_szenario.md` (Abschnitte 2, 3, 4, 7) und `day1-3/daniel/l06_protokollvorlage.md` (Abschnitte 1 bis 5, 8). Wo die beiden mir widersprachen, habe ich ihre Regel übernommen und es unten markiert. "Final" heißt: inhaltlich abgeschlossen; Lena und Daniel müssen gegenzeichnen (Abschnitt 11). **Kein Pilot, keine Tester, keine Messwerte.** Das Ticket wartet auf echte Durchführung.
+**Abgleich, ehrlich:** Abgeglichen mit `day4-6/lena/l06_fehler_final.md` (final aus Design-Sicht, 19.11.), `day1-3/lena/playtest_szenario.md` (Abschnitte 3 bis 7) und `day1-3/daniel/l06_protokollvorlage.md` (Abschnitte 1 bis 5, 8). Von Daniel gibt es für Tag 4–6 nur D-04- und Farbcheck-Dateien, keine neue Protokollvorlage und keine `daniel.md`. Wo die beiden mir widersprachen, habe ich ihre Regel übernommen und es unten markiert. "Final" heißt: inhaltlich abgeschlossen; Lena und Daniel müssen gegenzeichnen (Abschnitt 11). **Kein Pilot, keine Tester, keine Messwerte.** Das Ticket wartet auf echte Durchführung.
 
 ## 1. Messgröße (D2, wörtlich) und Pflicht-Nebenmessungen
 
@@ -15,10 +15,10 @@ Autorin: Aylin Kaya · Stand 20.11.2026 · Owner Lena · Durchführung Daniel ·
 | Nr | Nebenmessung | Definition | Quelle |
 |---|---|---|---|
 | N-A | **Zeilenklicks** | Anzahl `zeile_klick` zwischen `t_klick` und `t_nennung` | Klick-Log |
-| N-B | **Nur-letzte-Zeile-Leser** | Treffer, bei dem **beides** gilt: (1) kein `zeile_klick` auf eine Zeile 1 bis n−1 vor `t_nennung`, (2) der Tester hat im Think-aloud keine Zeile 1 bis n−1 vorgelesen oder sinngemäß wiedergegeben (Beobachterurteil, beide Beobachter unabhängig, Lena entscheidet am Video). Ausgewiesen als Anteil der Treffer. | Klick-Log + Video |
+| N-B | **Nur-letzte-Zeile-Leser** | Lenas Definition (Owner): Treffer mit `zeilenklicks ≤ 1` **und** Nennung = Wortlaut der letzten Zeile. Ich ergänze eine zweite Spalte `zeilen_vorgelesen` (j/n: Tester hat eine Zeile 1 bis n−1 laut gelesen oder wiedergegeben, Beobachterurteil), damit ein Tester, der alles liest, ohne zu klicken, und dann die letzte Zeile zitiert, nicht als Nur-letzte-Zeile-Leser zählt. Im Bericht stehen beide Zahlen. Ausgewiesen als Anteil der Treffer. | Klick-Log + Video |
 | N-C | **Median der Zeit** | Median von `dauer_s` über alle Treffer, dazu getrennt je Fehler und je Gruppe | Protokoll |
 | N-D | Zeit bis Klick | Aufgabenende → `t_klick`, Befund zur Auffindbarkeit, nicht zur Kette (Daniel) | Video + Log |
-| N-E | "Was würdest du bauen?" | Antwort wörtlich, nach jeder Aufgabe, **ungezählt** (D2, Pfeiler 5) | Protokoll |
+| N-E | "Was würdest du bauen?" | Antwort wörtlich, **ungezählt** (D2, Pfeiler 5). Lena legt sie ins Interview; ich stelle sie direkt nach jeder Nennung (ohne Zeit), weil die Antwort nach 20 Minuten nicht mehr fehlerbezogen ist. Lena entscheidet. | Protokoll |
 
 N-B ist ein Beobachtungs-Proxy, kein Blickmaß. Das steht so im Bericht.
 
@@ -87,10 +87,10 @@ Weitere Regeln (unverändert, Daniel/Lena): erste festgelegte Aussage zählt · 
 ## 7. Messprotokoll (CSV-Kopf, Single Source; Daniels Bogen ist die Papierform)
 
 ```
-tester;gruppe;variante;reihenfolge_pos;fehler;t_klick_ms;t_nennung_ms;dauer_s;zeit_bis_klick_s;aussage_woertlich;bewertung_b1;bewertung_b2;bewertung_final;treffer_unter_60s;zeilenklicks;zeilen_vor_nennung;nur_letzte_zeile;fehlklicks;hilfe_noetig;fehlerklasse;seq;sicherheit;bauen_woertlich;gueltig
+tester;gruppe;variante;reihenfolge_pos;fehler;t_klick_ms;t_nennung_ms;dauer_s;zeit_bis_klick_s;aussage_woertlich;bewertung_b1;bewertung_b2;bewertung_final;treffer_unter_60s;zeilenklicks;zeilen_vor_nennung;nur_letzte_zeile;zeilen_vorgelesen;fehlklicks;hilfe_noetig;fehlerklasse;seq;sicherheit;bauen_woertlich;gueltig
 ```
 
-Neu gegenüber v0.1: `variante` (Lena), `zeit_bis_klick_s` (Daniel), `bewertung_b1/b2/final` (zwei Beobachter, Schlichtung), `zeilen_vor_nennung` (Liste der geklickten Zeilenindizes vor `t_nennung`, z. B. `1,2,4`), `nur_letzte_zeile` (j/n, N-B), `bauen_woertlich` (N-E), `gueltig`. Entfernt: `naechster_schritt_woertlich` (durch `bauen_woertlich` ersetzt).
+Neu gegenüber v0.1: `variante` (Lena), `zeit_bis_klick_s` (Daniel), `bewertung_b1/b2/final` (zwei Beobachter, Schlichtung), `zeilen_vor_nennung` (Liste der geklickten Zeilenindizes vor `t_nennung`, z. B. `1,2,4`), `nur_letzte_zeile` (j/n, Lenas Regel), `zeilen_vorgelesen` (j/n, Beobachter), `bauen_woertlich` (N-E), `gueltig`. Entfernt: `naechster_schritt_woertlich` (durch `bauen_woertlich` ersetzt).
 
 | Feld | Quelle |
 |---|---|
@@ -121,14 +121,14 @@ Interview: O1 unklare Zeile oder Wort zeigen · O2 was fehlte, um sicher zu sein
 
 ## 10. Plan B (Entscheidung 20.11. im Daily)
 
-Steht F-04 nicht (Lenas Auslöser: Exit 0 **und** Übergabe an Daniel **und** Feldvertrag abgeglichen), läuft der Test mit Lenas drei Saves und statischem Feed nach `diagnose_datenvertrag_v1.md`. Skript, Zählregel, Protokoll und Fragebogen bleiben identisch, `variante = B`, Gelb-Deckel. Aylin baut den Fake-Feed aus dem Puffer. Stand 20.11. aus den Dateien: Exit 0 ja (`test_output.txt`); Übergabe und Feldvertrag-Bestätigung sind mir nicht belegt (keine `day4-6/felix.md`).
+Steht F-04 nicht (Lenas Auslöser: Exit 0 **und** Übergabe an Daniel **und** Feldvertrag abgeglichen), läuft der Test mit Lenas drei Saves und statischem Feed nach `diagnose_datenvertrag_v1.md`. Skript, Zählregel, Protokoll und Fragebogen bleiben identisch, `variante = B`, Gelb-Deckel. Aylin baut den Fake-Feed aus dem Puffer. Stand 20.11. aus den Dateien: Exit 0 ja (`day4-6/felix/spike/test_output.txt`, mit D9-Feldern und Validator); Übergabe an Daniel belegt durch `day4-6/daniel/build_md5.txt` und `d04_lauf_ausgabe.txt`; Feldvertrag von mir abgeglichen (Vertrag v1), von Felix nicht per Datei bestätigt. Nach Lenas Definition ist der Auslöser für Plan B damit **nicht** gegeben; ich würde Variante A fahren.
 
 ## 11. Gegenzeichnung und Offenes
 
 | Wer | Punkt | Stand |
 |---|---|---|
-| Lena | Zählregel Abschnitt 6, CSV-Kopf Abschnitt 7, N-B-Definition, F6 gestrichen | offen (keine Tag-4–6-Datei) |
+| Lena | CSV-Kopf Abschnitt 7, Spalte `zeilen_vorgelesen`, Zeitpunkt von N-E, Wortlaut `R_LADUNG` "(12 von 40)", kanonischer Ort nach Felix' Regel | offen; Zählregel, F2 mit 4 Zügen, F6 gestrichen sind durch ihre Datei bestätigt |
 | Daniel | Bogen gegen CSV-Kopf v1.0 abgleichen (neue Spalten), Fehlerklasse `ZU_SPAET`, Smoke-Test-Punkt "Klick-Log schreibt `meldung_geoeffnet`" | offen |
-| Felix | Klick-Log und Panel nach `f06_panel_spezifikation.md`; `n_lkw`, Streckenlänge | offen |
+| Felix | Klick-Log und Panel nach `f06_panel_spezifikation.md`; Streckennamen und Zugnamen in der F-06-Szene | offen; `n_lkw`, Streckenlänge, Gleiszahl, kanonischer Ort sind im Spike vom 19.11. da |
 | Katrin | 6 + 2 Tester bestätigt, Einwilligungstext, Raum, OBS, Zielrechner | offen, nicht belegt |
 | Jonas | Zählung Plan-B-Stufe B1 (Lena nimmt "synthetisch" an, D7 bestätigt das) | durch D7 erledigt |

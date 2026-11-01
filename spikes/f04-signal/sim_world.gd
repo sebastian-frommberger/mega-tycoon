@@ -267,7 +267,10 @@ func vehicle_pos(v: Dictionary) -> Vector2i:
 		var pa: Vector2i = graph.nodes[graph.step_from_node(step)]["pos"]
 		var pb: Vector2i = graph.nodes[graph.step_to_node(step)]["pos"]
 		var length: int = graph.edges[step["edge"]]["length"]
-		return pa + (pb - pa) * int(v["pos"]) / length
+		# int64 rechnen: Vector2i hat int32-Komponenten, (pb - pa) * pos läuft ab ~46 m Kantenlänge über
+		# (gefunden beim float32-Check 23.11.; Fassung 18.11. lieferte für fahrende Fahrzeuge falsche Orte)
+		var p: int = int(v["pos"])
+		return Vector2i(pa.x + (pb.x - pa.x) * p / length, pa.y + (pb.y - pa.y) * p / length)
 	if v["state"] == VState.WARTET_LADUNG or v["state"] == VState.ENDE:
 		return graph.nodes[graph.step_to_node(v["route"][v["idx"] - 1])]["pos"]
 	return graph.nodes[graph.step_from_node(step)]["pos"]

@@ -1,0 +1,13 @@
+Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+== F-05 Benchmark, Godot 4.4.1-stable (official), Build editor-headless, CPU Intel(R) Xeon(R) Processor @ 2.80GHz (2 Kerne), Ticks 3000 (+300 Warm-up), 3 Runden ==
+Konfigurationen: Fahrzeuge [1000, 5000, 10000], Tempo [1]
+1k/1x Lauf 1: N=3000 Median 4.609 ms, p95 7.004 ms, Max 16.480 ms, >4ms 75.0 %, Frame(1 Ticks) Median 4.609 ms p95 7.004 ms | Fahrzeuge 3.977, Deadlock-Prüfung 0.632 (Mediane) | unterwegs/wartend T100 959/41, T2000 936/64 | Ereignisse 0 | Wanduhr 16 s
+5k/1x Lauf 1: N=3000 Median 34.980 ms, p95 47.503 ms, Max 68.030 ms, >4ms 100.0 %, Frame(1 Ticks) Median 34.980 ms p95 47.503 ms | Fahrzeuge 28.124, Deadlock-Prüfung 6.676 (Mediane) | unterwegs/wartend T100 4723/277, T2000 4667/333 | Ereignisse 3 | Wanduhr 123 s
+10k/1x Lauf 1: N=3000 Median 69.805 ms, p95 97.903 ms, Max 130.344 ms, >4ms 100.0 %, Frame(1 Ticks) Median 69.805 ms p95 97.903 ms | Fahrzeuge 56.266, Deadlock-Prüfung 13.204 (Mediane) | unterwegs/wartend T100 9532/468, T2000 9260/740 | Ereignisse 11 | Wanduhr 247 s
+1k/1x Lauf 2: N=3000 Median 5.383 ms, p95 9.122 ms, Max 15.044 ms, >4ms 95.7 %, Frame(1 Ticks) Median 5.383 ms p95 9.122 ms | Fahrzeuge 4.593, Deadlock-Prüfung 0.784 (Mediane) | unterwegs/wartend T100 959/41, T2000 936/64 | Ereignisse 0 | Wanduhr 20 s
+5k/1x Lauf 2: N=3000 Median 33.916 ms, p95 44.501 ms, Max 65.368 ms, >4ms 100.0 %, Frame(1 Ticks) Median 33.916 ms p95 44.501 ms | Fahrzeuge 27.460, Deadlock-Prüfung 6.349 (Mediane) | unterwegs/wartend T100 4723/277, T2000 4667/333 | Ereignisse 3 | Wanduhr 113 s
+10k/1x Lauf 2: N=3000 Median 71.827 ms, p95 97.496 ms, Max 126.173 ms, >4ms 100.0 %, Frame(1 Ticks) Median 71.827 ms p95 97.496 ms | Fahrzeuge 57.462, Deadlock-Prüfung 14.002 (Mediane) | unterwegs/wartend T100 9532/468, T2000 9260/740 | Ereignisse 11 | Wanduhr 252 s
+1k/1x Lauf 3: N=3000 Median 5.878 ms, p95 9.296 ms, Max 25.591 ms, >4ms 98.2 %, Frame(1 Ticks) Median 5.878 ms p95 9.296 ms | Fahrzeuge 4.907, Deadlock-Prüfung 0.950 (Mediane) | unterwegs/wartend T100 959/41, T2000 936/64 | Ereignisse 0 | Wanduhr 21 s
+5k/1x Lauf 3: N=3000 Median 34.273 ms, p95 47.079 ms, Max 82.995 ms, >4ms 100.0 %, Frame(1 Ticks) Median 34.273 ms p95 47.079 ms | Fahrzeuge 27.595, Deadlock-Prüfung 6.595 (Mediane) | unterwegs/wartend T100 4723/277, T2000 4667/333 | Ereignisse 3 | Wanduhr 122 s
+10k/1x Lauf 3: N=3000 Median 75.441 ms, p95 101.154 ms, Max 119.407 ms, >4ms 100.0 %, Frame(1 Ticks) Median 75.441 ms p95 101.154 ms | Fahrzeuge 60.432, Deadlock-Prüfung 14.491 (Mediane) | unterwegs/wartend T100 9532/468, T2000 9260/740 | Ereignisse 11 | Wanduhr 262 s
+== fertig, Wanduhr gesamt 1180 s, Ergebnis res://daniel_bench_results.csv ==

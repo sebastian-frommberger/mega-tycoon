@@ -1,6 +1,6 @@
 # Mega Tycoon
 
-Transport-Tycoon-Spiel in Godot 4 (getestet mit 4.2.2 und 4.4.1). Fokus: logische Güterketten, lesbare Diagnose ("Ort + Ursache"), HQ-Start mit Lizenzen statt Firmenkauf.
+Transport-Tycoon-Spiel in Godot 4 (Zielversion 4.7.2 (Spikes zusätzlich mit 4.4.1 getestet)). Fokus: logische Güterketten, lesbare Diagnose ("Ort + Ursache"), HQ-Start mit Lizenzen statt Firmenkauf.
 
 Das Team (Jonas, Lena, Tobias, Aylin, Felix, Sophie, Daniel, Katrin) ist simuliert. Alle Ergebnisse ohne echte Tester oder Zielhardware sind als synthetisch, Rechnung oder Voraussetzung gekennzeichnet, nie als Messwert.
 

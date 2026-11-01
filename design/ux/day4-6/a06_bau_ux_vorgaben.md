@@ -6,15 +6,15 @@ Autorin: Aylin Kaya · Stand 23.11.2026 · **F-07 ist gestrichen (D6).** Dieses 
 
 | Zustand | Darstellung | Zusatz |
 |---|---|---|
-| **baubar** | Ghost **weiß** (`#F2F2F2`, 60 % Deckung), Kontur 2 px dunkel (`#1A1A1A`) | Kostenlabel weiß neben dem Cursor: "1.240 $" |
-| **nicht baubar** | Ghost rot (`#C8372D`) mit diagonaler Schraffur 45°, Kontur 2 px dunkel | Grund-String am Cursor (Abschnitt 2), Kostenlabel ausgegraut |
+| **baubar** | Ghost **weiß** `#FFFFFF` (`ghost_baubar_weiss`, Sophie `palette_v1_final.csv`), Füllung Alpha 0,35, Kontur 2 px weiß plus 1,5 px dunkler Saum `#14161A` darunter (Sophie) | Kostenlabel weiß neben dem Cursor: "1.240 $" |
+| **nicht baubar** | Ghost rot `#C8372D` (`ghost_nicht_baubar_rot`) mit diagonaler Schraffur 45°, gleiche Kontur und Saum | Grund-String am Cursor (Abschnitt 2), Kostenlabel ausgegraut |
 | **Hinweis** (baubar, aber teurer oder außerhalb Einfluss) | Ghost bleibt **weiß**, Hinweis-Symbol blau (`#3D8FE0`, S-05 "Hinweis") am Cursor | Kostenlabel mit Zuschlag: "1.420 $ (+180 $ außerhalb Einfluss)" |
 
 Regeln:
 1. **Weiß heißt baubar, immer.** Blau ist nie ein Ghost-Zustand, nur ein Hinweis (D10). Rot heißt nie "teuer", nur "nicht baubar".
 2. Gültigkeit ist auch ohne Farbe lesbar: Schraffur = nicht baubar, glatt = baubar (Daniel, Farbsehschwäche).
 3. Gültigkeit und Kosten sind getrennte Kanäle: Form/Farbe des Ghosts sagt baubar ja/nein, das Label sagt den Preis. Zu wenig Geld färbt das **Label** orange (`#E08A2E`), nicht den Ghost; bauen geht dann trotzdem nicht (Grund G8).
-4. Dunkle Kontur ist Pflicht, weil Weiß auf Stadtfläche (`#CBBFA8`) und auf Konsum-Weiß (`#F2F2F2`, S-05b) sonst verschwindet. Daniel prüft ΔE gegen Stadtfläche; bei ΔE < 10 bleibt die Kontur ohnehin (D10). Ich habe keinen ΔE-Wert gerechnet.
+4. Dunkler Saum ist Pflicht. Daniels Farbcheck (`day4-6/daniel/ghost_check_ausgabe.txt`, CIEDE2000, Grenze 10): Weiß `#FFFFFF` gegen Stadtfläche ΔE 17,4 (ok, auch in allen Simulationsmodi ≥ 14,1), gegen Gras, Wald, Feld, Wasser, Fels, Straße ≥ 19,7 (ok); **Kollision** gegen Konsum-Weiß `#F2F2F2` (2,6), `ok_ring` (4,9) und helle Outline (3,0). Die Stadtfläche braucht nach D10 also keinen Zusatz, der Saum ist wegen Konsum-Gut-Markern und Ok-Ringen trotzdem nötig; Sophie hat ihn in die Palette aufgenommen. Konsum-Marker dürfen während des Bauens nicht unter dem Ghost liegen (Overlay-Regel M1).
 5. Der Grund-String steht 8 px rechts unter dem Cursor, 14 px, weiß auf `#2B2B2B` mit 80 % Deckung, max. 2 Zeilen, verschwindet mit dem Ghost.
 6. Bei mehreren Gründen zeigt der Ghost nur den ersten nach Priorität der Tabelle (oben zuerst).
 
@@ -46,5 +46,5 @@ Undo, Abriss, Kurvenglättung, Steigungsfarben, Brückenvorschlag, Live-Erreichb
 | An | Punkt |
 |---|---|
 | Felix | Grenzwerte G1, G6; welche der Gründe G1–G7 der Spike wirklich prüft (Rest fällt im Spike weg, Strings bleiben für M1) |
-| Daniel | ΔE Weiß gegen Stadtfläche und Konsum-Weiß (D10, Termin 20.11. war vor diesem Dokument; mir liegt kein Ergebnis vor) |
-| Sophie | Hinweis-Blau `#3D8FE0` und Rot `#C8372D` aus `palette_v1.csv` übernommen; bestätigen, dass der Ghost dieselben Werte nutzt |
+| Daniel | ΔE liegt vor (siehe Regel 4). Offen: Rot-Schraffur gegen `kritisch_rot` der Statusmarker ist dieselbe Farbe; Unterscheidung nur über Form (Schraffur gegen Achteck) |
+| Sophie | Werte aus `palette_v1_final.csv` (20.11.) übernommen: `ghost_baubar_weiss #FFFFFF`, `ghost_nicht_baubar_rot #C8372D`, `hinweis_blau #3D8FE0`. Nur bestätigen, dass die Schraffur bei Rot als Form-Merkmal bleibt |

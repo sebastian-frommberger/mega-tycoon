@@ -94,5 +94,8 @@ K3 Prüfsumme (Daniel S5): gleicher Aufbau = gleiche Summe, anderer Zustand = an
     [OK] ein Tick weiter, andere Prüfsumme
     [OK] andere Geschwindigkeit, andere Prüfsumme
     Zustandsverteilung Tick 500: {"ENDE":0,"GEPLANT":0,"UNTERWEGS":1,"WARTET_BLOCK":1,"WARTET_LADUNG":0}
-== Dauer 117 ms ==
+K4 Position fahrender Fahrzeuge (int32-Überlauf, gefunden 23.11.)
+    Zug 1 Zustand 1, Kantenfortschritt 96000 mm, Position (96000, 0)
+    [OK] Position = Kantenfortschritt auf der x-Achse ((96000, 0))
+== Dauer 128 ms ==
 ERGEBNIS: ALLE TESTS GRUEN (Exit 0)

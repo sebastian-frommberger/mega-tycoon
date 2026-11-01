@@ -36,6 +36,7 @@ func _init() -> void:
 	test_k1_kontrolle_ausweichgleis()
 	test_k2_astar()
 	test_k3_pruefsumme()
+	test_k4_position_fahrend()
 	print("== Dauer %d ms ==" % (Time.get_ticks_msec() - t0))
 	if failures.is_empty():
 		print("ERGEBNIS: ALLE TESTS GRUEN (Exit 0)")
@@ -272,3 +273,14 @@ func test_k3_pruefsumme() -> void:
 	c.run_ticks(500)
 	check(ha != c.checksum(), "andere Geschwindigkeit, andere Prüfsumme")
 	print("    Zustandsverteilung Tick 500: %s" % JSON.stringify(a.state_counts()))
+
+
+func test_k4_position_fahrend() -> void:
+	print("K4 Position fahrender Fahrzeuge (int32-Überlauf, gefunden 23.11.)")
+	var sim = Scenarios.gegenverkehr_eingleisig()
+	sim.run_ticks(25)  # Zug 1 ist 24 Ticks à 4000 mm auf Kante A-B (200 m) unterwegs
+	var v1: Dictionary = sim.vehicles[1]
+	var p: Vector2i = sim.vehicle_pos(v1)
+	print("    Zug 1 Zustand %d, Kantenfortschritt %d mm, Position %s" % [v1["state"], v1["pos"], str(p)])
+	check(v1["state"] == SimWorld.VState.UNTERWEGS and p == Vector2i(int(v1["pos"]), 0), "Position = Kantenfortschritt auf der x-Achse (%s)" % str(p))
+

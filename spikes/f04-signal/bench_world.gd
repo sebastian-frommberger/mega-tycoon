@@ -1,7 +1,7 @@
 extends RefCounted
 ## F-05: Benchmark-Welt auf Basis des F-04-Spikes. Reine Sim, kein Rendering.
-## Gitternetz aus zweigleisigen Kanten (je Richtung ein Block), Fahrzeuge auf zufälligen, zyklischen
-## Pendelrouten. Eigener PRNG (xorshift64*), damit Seed -> identische Welt auf jedem Rechner.
+## Gitternetz aus zweigleisigen Kanten (je Richtung ein Block), Fahrzeuge auf zufälligen, geschlossenen
+## Rundkursen (Rechtecke im Gitter). Eigener PRNG (xorshift64*), damit Seed -> identische Welt auf jedem Rechner.
 ## Knotenzahl ≈ 2 × Fahrzeugzahl, damit die Last je Fahrzeug über 1k/5k/10k vergleichbar bleibt
 ## (ca. 8 Blöcke je Fahrzeug) und die meisten Fahrzeuge fahren statt zu warten. Das Netz ist synthetisch; es misst den Sim-Kern, nicht ein Spielnetz.
 

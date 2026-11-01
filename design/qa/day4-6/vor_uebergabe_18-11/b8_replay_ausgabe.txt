@@ -1,0 +1,7 @@
+Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+B8-Ticks in 6000 Ticks (irgendein Fahrzeug wartet auf schon freien Block): 80, erster Tick 704
+Tick 3451: Fahrzeug 1 Zustand 2, wait_block 3, Halter -1
+SCRIPT ERROR: Invalid access to property or key '-1' on a base object of type 'Dictionary'.
+          at: build_wait_chain (res://diagnostics.gd:54)
+get_wait_chain(1) Rueckgabe: {  }  (leer/abgebrochen = Absturz reproduziert)
+Tick 3452 (einen Tick spaeter): Zustand 1, held_block 3  (Fahrzeug ist eingefahren, Zustand war nur im Tick-Zwischenstand inkonsistent)

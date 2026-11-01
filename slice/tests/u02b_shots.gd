@@ -2,7 +2,7 @@ extends SceneTree
 ## U-02b (Felix, S6): Vorher/Nachher-Screenshots + Messwerte bei 1600×900.
 ##   xvfb-run -s "-screen 0 1600x900x24" godot --rendering-driver opengl3 --path slice -s res://tests/u02b_shots.gd -- <out_dir>
 ## Nutzt nur API, die in beiden Ständen existiert (has_method-Wächter für Neues).
-## Hinweis F-20: Einstieg noch über start_game("agrar"); nach Miras Merge auf den neuen Testeinstieg umstellen.
+## Einstieg seit F-20 über m.place_hq("haberau") (D-08, Daniel).
 
 var m: Node
 var out := "user://"
@@ -123,7 +123,7 @@ func _marker_check(tag: String) -> void:
 
 
 func _run() -> void:
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	_clear_toast()
 	if "--nur-kohlberg" in OS.get_cmdline_user_args():
 		# Vorher-Fund aus dem Scan als feste Ansicht: Zielpfeil über Kohlberg, Zoom 2,2 (Stahlwerk-Label lag darauf)

@@ -15,7 +15,7 @@ func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0]
 	var pre: String = args[1]
-	m.start_game("bergbau")
+	m.place_hq("kohlberg")
 	m.toast_time = 0.0
 	m.toast_label.text = ""
 	m.focus(Vector2(172, 238), 6.0)

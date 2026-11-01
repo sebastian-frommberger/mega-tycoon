@@ -9,7 +9,7 @@ func _frames(n: int) -> void:
 		await process_frame
 func _run() -> void:
 	var a := OS.get_cmdline_user_args()
-	m.start_game("bergbau")
+	m.place_hq("kohlberg")
 	m.toast_time = 0.0
 	m.toast_label.text = ""
 	var z := float(a[1]) if a.size() > 1 else 3.0

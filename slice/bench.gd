@@ -10,6 +10,7 @@ extends Node
 ## und Ertrag laufen über economy.gd wie im Spiel (Ledger aus).
 
 const RUNS := 3
+const KenneyLoader := preload("res://props/kenney_loader.gd")
 const WARMUP_SEC := 3.0
 const CORRIDOR_LEN := 70
 
@@ -55,6 +56,7 @@ func start(main) -> void:
 	m.focus(Vector2(m.GRID * 0.5, m.GRID * 0.55), 15.0)
 	m.set_speed(1)
 	print("BENCH setup: %d Fahrzeuge auf %d Korridoren, %.0f ms" % [m.vehicles.size(), corridors, setup_ms])
+	print("BENCH " + trees_line())
 
 
 func _free_run(y: int, x0: int) -> bool:
@@ -217,6 +219,7 @@ func _write() -> void:
 	lines.append("Renderer: %s · Fenster: %s · VSync: aus" % [ProjectSettings.get_setting("rendering/renderer/rendering_method"), str(DisplayServer.window_get_size())])
 	lines.append("Karte: %d² Felder, Ladezeit %.0f ms (Ziel ≤ 3000 ms), fehlende IDs: %d" % [m.GRID, m.load_ms, m.map_missing_ids.size()])
 	lines.append("Fahrzeuge: %d Lkw auf %d Korridoren, Setup %.0f ms, Tempo 1× (%d ms/Tick)" % [m.vehicles.size(), corridors, setup_ms, m.tick_ms])
+	lines.append(trees_line())          # B-2: zeigt, ob der Look S-11 im Export wirklich mitläuft
 	lines.append("Läufe: %d × %.0f s nach %.0f s Aufwärmen" % [RUNS, run_sec, WARMUP_SEC])
 	for i in results.size():
 		var r: Dictionary = results[i]
@@ -235,3 +238,13 @@ func _write() -> void:
 		f.close()
 	print(txt)
 	print("BENCH Ergebnis: ", ProjectSettings.globalize_path(out_path))
+
+
+## B-2: "Bäume: Kenney" nur, wenn beide Baum-Modelle geladen wurden (Quelle import = PackedScene aus dem PCK).
+func trees_line() -> String:
+	var src: Dictionary = KenneyLoader.last_source
+	var a: String = src.get(KenneyLoader.TREE_DEFAULT, "fehlt")
+	var b: String = src.get(KenneyLoader.TREE_PINE, "fehlt")
+	if a != "fehlt" and b != "fehlt":
+		return "Bäume: Kenney (%s/%s)" % [a, b]
+	return "Bäume: Quader (Kenney-GLB nicht geladen: %s/%s)" % [a, b]

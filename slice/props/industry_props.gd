@@ -8,6 +8,7 @@ extends RefCounted
 const KENNEY_DIR := "res://props/kenney/"
 const COLORMAP := "res://props/kenney/Textures/colormap.png"
 const DeclutterScript := preload("res://props/label_declutter.gd")
+const KenneyLoader := preload("res://props/kenney_loader.gd")
 
 static var _models := {}      # name -> ArrayMesh|null
 static var _mats := {}        # Color-Key -> StandardMaterial3D
@@ -215,17 +216,14 @@ static func _model(name: String) -> ArrayMesh:
 	if _models.has(name):
 		return _models[name]
 	var mesh: ArrayMesh = null
-	var gd := GLTFDocument.new()
-	var st := GLTFState.new()
-	if gd.append_from_file(ProjectSettings.globalize_path(KENNEY_DIR + name + ".glb"), st) == OK:
-		var root := gd.generate_scene(st)
-		if root != null:
-			var found := _first_mesh(root)
-			if found != null and found.mesh is ArrayMesh:
-				mesh = (found.mesh as ArrayMesh).duplicate()
-				for i in mesh.get_surface_count():
-					mesh.surface_set_material(i, _tex_material(mesh.surface_get_material(i)))
-			root.free()
+	var root: Node = KenneyLoader.load_root(KENNEY_DIR + name + ".glb")          # B-2: PCK-tauglich
+	if root != null:
+		var found := _first_mesh(root)
+		if found != null and found.mesh is ArrayMesh:
+			mesh = (found.mesh as ArrayMesh).duplicate()
+			for i in mesh.get_surface_count():
+				mesh.surface_set_material(i, _tex_material(mesh.surface_get_material(i)))
+		root.free()
 	_models[name] = mesh
 	return mesh
 

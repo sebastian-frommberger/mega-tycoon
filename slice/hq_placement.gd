@@ -18,6 +18,8 @@ const MOVE_WINDOW_MS := 120000  # 2 min Spielzeit (D22-2)
 const MAX_ROWS := 6
 const PICK_FELDER := 3          # Hover/Klick trifft eine Stadt bis 3 Felder außerhalb ihres Rands
 const RING_HIT_FELDER := 2.5    # Klick auf den HQ-Ring (±) startet das Umsetzen
+const OVERVIEW_CELL := Vector2(285, 335)   # Übersicht über alle Städte (Spielstart, Umsetzen)
+const OVERVIEW_ZOOM := 14.5
 const RADMAP := {"dorf": "village", "kleinstadt": "town", "stadt": "city", "metropole": "metro"}
 
 enum Mode { PLACING, FOUNDED, MOVING }
@@ -34,6 +36,7 @@ var fixed := false
 var reduced_motion := false
 var last_hover_ms := 0.0         # Messwert: Zeit vom Hover-Wechsel bis Panel gefüllt (ms)
 var _speed_before := 1
+var _cam_before: Array = []     # [Feld, Zoom] vor dem Umsetzen-Modus (B-10)
 var _move_toast := ""            # Text des Toasts, dessen Klick das Umsetzen startet
 
 var panel: PanelContainer
@@ -60,7 +63,7 @@ func setup(main: Node) -> void:
 	_build_world()
 	m.toast_panel.gui_input.connect(_on_toast_input)
 	# Spielstart auf der Karte: Übersicht über alle Städte, rechts Platz für das Panel
-	m.focus(Vector2(285, 335), 14.5)
+	m.focus(OVERVIEW_CELL, OVERVIEW_ZOOM)
 
 
 func _load_vorschau() -> void:
@@ -153,6 +156,8 @@ func cancel() -> bool:
 		selected = null
 		ghost.visible = false
 		_hide_preview()
+		if _cam_before.size() == 2:
+			m.focus(_cam_before[0], _cam_before[1])
 		m.set_speed(_speed_before)
 		_set_move_toast("Umsetzen abgebrochen. HQ bleibt in %s." % m.hq_city.display_name, 5.0, false)
 		return true
@@ -192,9 +197,7 @@ func _found(city) -> bool:
 	m._refresh_tool_buttons()
 	var t := start_targets(city.map_id)
 	m._init_milestones(t)
-	var src = m.by_id.get(t["src"], city)
-	var mid: Vector3 = (city.center() + src.center()) * 0.5
-	m.focus(Vector2(mid.x, mid.z), 3.2)
+	_focus_start(city, t)
 	m.set_speed(1)
 	_set_move_toast("HQ in %s gegründet. Umsetzen kostenlos bis zur ersten Lizenz, höchstens noch %s min." % [city.display_name, _mss(_left_ms())], 8.0, true)
 	return true
@@ -210,8 +213,10 @@ func _move(city) -> bool:
 	selected = null
 	_hide_preview()
 	_set_hq(city)
-	m._init_milestones(start_targets(city.map_id))
+	var t := start_targets(city.map_id)
+	m._init_milestones(t)
 	m._check_milestones()
+	_focus_start(city, t)
 	m.set_speed(_speed_before)
 	_set_move_toast("HQ nach %s umgesetzt. Noch %s Umsetzen frei." % [city.display_name, _mss(_left_ms())], 6.0, true)
 	return true
@@ -229,7 +234,18 @@ func start_move() -> bool:
 	selected = null
 	hovered = null
 	_show(null)
+	_cam_before = [Vector2(m.rig.position.x, m.rig.position.z), m.zoom]
+	m.focus(OVERVIEW_CELL, OVERVIEW_ZOOM)    # S6 B-10: alle Städte im Bild; Abbruch stellt die Ansicht wieder her
 	return true
+
+
+## Kamera nach Gründung/Umsetzen: Kette im Radius = Mitte HQ–Quelle; Wagnis (Quelle weit weg) = auf das HQ (S6 B-3).
+func _focus_start(city, t: Dictionary) -> void:
+	var c: Vector3 = city.center()
+	if not is_wagnis(city.map_id):
+		var src = m.by_id.get(t["src"], city)
+		c = (city.center() + src.center()) * 0.5
+	m.focus(Vector2(c.x, c.z), 3.2)
 
 
 func can_move() -> bool:
@@ -275,7 +291,7 @@ func _on_toast_input(ev: InputEvent) -> void:
 ## Ziele für die Meilensteinliste: Quelle = nächster Rohstoff einer Kette (bevorzugt im HQ-Radius laut hq_optionen,
 ## dort zuerst mit Endabnehmer als Ziel),
 ## Verarbeiter = Ziel dieser Strecke, M3 = erste Verarbeiter-Strecke der Startkette (hq_optionen.startkette, sonst die
-## Kette der Quelle). Gilt für alle 8 Städte, auch Wagnis-Standorte.
+## Kette der Quelle). Gilt für alle 8 Städte; Wagnis-Standorte (S6 B-3): nächster lizenzierbarer Rohstoff, ohne Endabnehmer-Vorrang.
 func start_targets(city_id: String) -> Dictionary:
 	var city = m.by_id[city_id]
 	var opt: Dictionary = {}
@@ -283,6 +299,7 @@ func start_targets(city_id: String) -> Dictionary:
 		if h["stadt"] == city_id:
 			opt = h
 	var in_radius: Array = opt.get("industrien_im_radius", [])
+	var wagnis := is_wagnis(city_id)    # S6 B-3: Wagnis = nächster lizenzierbarer Rohstoff, kein Endabnehmer-Vorrang
 	var best := {}
 	var best_score := INF
 	for ch in m.map_data["ketten"]:
@@ -290,6 +307,12 @@ func start_targets(city_id: String) -> Dictionary:
 			var a = m.by_id.get(s["von"], null)
 			var b = m.by_id.get(s["nach"], null)
 			if a == null or b == null or a.kind != Building.Kind.PRODUCER or not b.is_industry():
+				continue
+			if wagnis:
+				var dw: float = m.eco.luftlinie_felder(a.site, city.site) + m.eco.luftlinie_felder(a.site, b.site) * 0.001
+				if a.site >= 0 and m.eco.s_out_good[a.site] >= 0 and dw < best_score:
+					best_score = dw
+					best = {"src": s["von"], "proc": s["nach"], "kette": ch["id"]}
 				continue
 			var score: float = m.eco.luftlinie_felder(a.site, city.site) + m.eco.luftlinie_felder(a.site, b.site)
 			if not in_radius.has(s["von"]):
@@ -390,8 +413,11 @@ func preview_lines(city_id: String) -> Array:
 
 
 ## Wagnis = kein Rohstoff im Radius (Text aus L-12): Zustand „warn“ (Dreieck, kein Rot), sonst „ok“.
+## S6 B-9: Feld „wagnis“ aus hq_vorschau.json (Satz steht nur noch in der Statuszeile); Alttext als Rückfall.
 func is_wagnis(city_id: String) -> bool:
 	var e: Dictionary = vorschau.get(city_id, {})
+	if e.has("wagnis"):
+		return bool(e["wagnis"])
 	for k in e.get("ketten", []):
 		if str(k).begins_with("Kein Rohstoff"):
 			return true

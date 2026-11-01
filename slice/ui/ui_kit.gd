@@ -62,8 +62,9 @@ static func txt_kenney(s: String) -> String:
 	return txt(s)
 
 
+## S6 B-7: „HQ“ liest sich in Kenney Future wie „HO“, daher auch dort Poppins.
 static func glyph_font(c: Control, s: String) -> void:
-	if s.contains("×"):
+	if s.contains("×") or s.contains("HQ"):
 		c.add_theme_font_override("font", TB.font(TB.FONT_BODY))
 
 

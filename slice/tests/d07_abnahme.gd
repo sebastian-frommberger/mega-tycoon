@@ -903,6 +903,9 @@ func _hq() -> void:
 	await frames(2)
 	hq = m.hq
 	ok(m.place_hq("seehafen") and m.hq_city == m.by_id["seehafen"], "H28 Wagnis-Standort Seehafen gründbar (kein Sperren)")
+	# D-08 Flake-Fix H29: place_hq startet Tempo 1, _physics_process tickt dann parallel zu run_ticks. Jeder echte Tick während
+	# `await frames(1)` (ca. 25 % der Läufe, unter Last fast immer) verschiebt die 2-min-Grenze um 100 ms und macht „noch frei bei 1199“ rot.
+	m.set_speed(0)
 	var w_ticks: int = hq.MOVE_WINDOW_MS / m.tick_ms
 	m.run_ticks(w_ticks - 200)
 	hq.refresh_rule()

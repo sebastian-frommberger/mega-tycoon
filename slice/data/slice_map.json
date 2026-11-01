@@ -672,7 +672,7 @@
    "stadt": "mittelfurt",
    "im_slice": false,
    "radius_felder": 45,
-   "startkette": "k3",
+   "startkette": "k1",
    "industrien_im_radius": [
     "farm_3",
     "muehle_2"

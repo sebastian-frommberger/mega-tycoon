@@ -173,7 +173,7 @@ func _run() -> void:
 	var l1: int = v1.income_total - v1.cost_total()
 	var l2: int = v2.income_total - v2.cost_total()
 	ok(l1 > 0, "Linie Farm→Mühle nach Unterhalt im Plus: Ertrag %s − Kosten %s = %s" % [m.money_str(v1.income_total), m.money_str(v1.cost_total()), m.money_str(l1)])
-	report.append("Linie Mühle→Haberau: Ertrag %s − Kosten %s = %s, %d Lieferungen (Sättigung Dorf 9 E/min)" % [m.money_str(v2.income_total), m.money_str(v2.cost_total()), m.money_str(l2), v2.deliveries])
+	report.append("Linie Mühle→Haberau: Ertrag %s − Kosten %s = %s, %d Lieferungen (Sättigung Dorf 18 E/min)" % [m.money_str(v2.income_total), m.money_str(v2.cost_total()), m.money_str(l2), v2.deliveries])
 	ok(m.eco.cash_cent > cash_setup, "Kasse nach 30 min %s > nach Aufbau %s (Start %s)" % [m.money_str(m.eco.cash_cent), m.money_str(cash_setup), m.money_str(cap0)])
 	var ratio := float(m.eco.cash_cent) / cap0
 	ok(ratio >= 1.5 and ratio <= 2.5, "T-12/D23: Agrar-Kasse nach 30 min ×%.2f des Starts (Ziel ×1,5–2,5 nach Dorf ×2; Maßstab ist T-14 Bankrott 10–30 %%, Skriptlauf, Kern %s)" % [ratio, m.vehicle_core])

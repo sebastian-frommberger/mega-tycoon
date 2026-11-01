@@ -51,3 +51,6 @@ func _process(_dt: float) -> void:
 		if shift > 0.0:
 			l.offset = Vector2(l.offset.x, l.offset.y - shift / k)
 		taken.append(Rect2(pc.x - w * 0.5, pc.y - l.offset.y * k, w, h))
+	# B-6: Zielpfeil hat Vorrang – nach dem Verschieben noch einmal gegen die Pfeil-Rechtecke prüfen.
+	if m.has_method("hide_labels_under_goal_markers"):
+		m.hide_labels_under_goal_markers()

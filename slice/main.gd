@@ -800,7 +800,7 @@ func _scatter_trees() -> void:
 	for v in 2:
 		var tm: MultiMeshInstance3D
 		if use_kenney:
-			tm = _multimesh_mesh(meshes[v], tt[v], tc[v], true)
+			tm = _multimesh_mesh(meshes[v], tt[v], tc[v], false)          # B-5: Bäume ohne Schatten (S-13)
 		else:
 			tm = _multimesh(Vector3(1, 1, 1), tt[v], tc[v], false)
 		for i in tcells[v].size():
@@ -1057,6 +1057,9 @@ func _update_label_lod(force := false) -> void:
 ## D-07 BUG-4: Label sitzt unter dem Gebäude (oberer Textrand knapp unter der untersten Fußabdruck-Ecke, Bildschirm-px),
 ## damit weder Gebäude noch gelber Zielpfeil verdeckt werden; Labels, die ein HUD-Panel (oder die Hinweisleiste) berühren,
 ## werden ausgeblendet statt unter dem HUD durchzuscheinen/abgeschnitten zu werden.
+var _goal_mark_rects: Array[Rect2] = []          # B-6: Zielpfeil-Rechtecke des letzten Label-Durchlaufs
+
+
 func _place_map_labels() -> void:
 	if cam == null or ui_root == null:
 		return
@@ -1129,8 +1132,31 @@ func _place_map_labels() -> void:
 			if r.intersects(h.grow(4.0)):
 				l.visible = false
 				break
-		for mr in marks:
-			if l.visible and r.intersects(mr):
+	_goal_mark_rects = marks
+	hide_labels_under_goal_markers()
+
+
+## B-6: Zielpfeil hat Vorrang. Läuft am Ende von _place_map_labels und noch einmal nach props/label_declutter.gd
+## (process_priority 100), weil der Declutter Labels nach unten verschiebt und sie sonst wieder unter den Pfeil geraten.
+## Rechteck aus dem aktuellen Label-Offset (oberer Textrand = pc.y - offset.y * k, wie im Declutter).
+func hide_labels_under_goal_markers() -> void:
+	if cam == null or _goal_mark_rects.is_empty():
+		return
+	var kscale := get_viewport().get_visible_rect().size.y / 900.0 * 560.0
+	for b in buildings:
+		var l: Label3D = b.label
+		if not l.visible or cam.is_position_behind(b.position):
+			continue
+		var k := l.pixel_size * kscale
+		var pc := cam.unproject_position(b.position)
+		var fpx := l.font_size * k
+		var lines := l.text.split("\n")
+		var wmax := 0
+		for ln in lines:
+			wmax = maxi(wmax, ln.length())
+		var r := Rect2(pc.x - wmax * fpx * 0.29, pc.y - l.offset.y * k, wmax * fpx * 0.58, lines.size() * fpx * 1.4)
+		for mr in _goal_mark_rects:
+			if r.intersects(mr):
 				l.visible = false
 				break
 

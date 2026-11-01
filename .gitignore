@@ -10,3 +10,5 @@ Thumbs.db
 *.exe
 slice/mega_tycoon_bench.txt
 slice/build/
+slice/tests/d08_logs_*
+slice/tests/*.translation

@@ -9,7 +9,7 @@ func _frames(n: int) -> void:
 		await process_frame
 func _run() -> void:
 	var out: String = OS.get_cmdline_user_args()[0]
-	m.start_game("bergbau")
+	m.place_hq("kohlberg")
 	m.toast_time = 0.0
 	m.toast_label.text = ""
 	for z in [9.0, 7.0, 5.0]:

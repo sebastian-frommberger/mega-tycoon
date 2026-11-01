@@ -1,8 +1,11 @@
 """T-14b (Sprint 6, Tobias): erzeugt data/hq_vorschau.json aus der eingefrorenen slice_map.json und economy_slice.json.
 Aufruf: python3 -I tools/hq_vorschau_gen.py [slice_dir]    (Modellrechnung; nur lesend auf Karte und Oekonomie)
 Regeln: Distanz = Luftlinie Stadtmitte -> Objekt (Felder), kaufmaennisch gerundet. Holzfaeller zaehlen nicht als Lizenzindustrie.
-Lizenzfaktor = Groessenfaktor x (im Radius 1 - 0,30, sonst 1 + 0,03 x Felder ueber Radius), fuer die naechste Industrie.
-Groessenfaktoren (Dorf 0,90 / Kleinstadt 1,00 / Stadt 1,20) sind Lenas Annahme (L-12), nicht im JSON."""
+S6 Tag 10 (Mira, D-08 B-1, PO-Entscheid Jonas): Lizenzfaktor = genau der Faktor aus economy._licence_cost, ohne Groessenfaktor:
+  im Radius 1 - licence_discount_in_radius_promille, sonst 1 + licence_surcharge_per_field_promille x (Felder - Radius).
+  Felder wie im Spiel: rdiv(isqrt(dx_mm^2 + dy_mm^2), feld_mm) (economy._felder), Radius inklusive.
+  Lizenzierbar = Industrie mit ausgang_gut_id in economy_slice.json (wie economy.licence_quote: s_out_good >= 0);
+  Faktorzeile und "Naechste ..."-Liste nennen nur lizenzierbare Industrien. Groessenfaktor ist R2-Kandidat."""
 import hashlib, json, math, os, sys
 
 BASE = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +16,6 @@ E = json.load(open(os.path.join(DATA, "economy_slice.json"), encoding="utf-8"))
 MD5 = hashlib.md5(raw).hexdigest()
 
 RADIUS = {"dorf": E["hq"]["hq_radius_village_felder"], "kleinstadt": E["hq"]["hq_radius_town_felder"], "stadt": E["hq"]["hq_radius_city_felder"]}
-GROESSE = {"dorf": 0.90, "kleinstadt": 1.00, "stadt": 1.20}          # Lena L-12 Annahme
 STUFE = {"dorf": "Dorf", "kleinstadt": "Kleinstadt", "stadt": "Stadt"}
 RABATT = E["lizenz"]["licence_discount_in_radius_promille"] / 1000    # 0,30 -> Faktor 0,70
 AUFSCHLAG = E["lizenz"]["licence_surcharge_per_field_promille"] / 1000
@@ -26,6 +28,9 @@ KURZ = dict(NAME, erzmine="Erz", stahlwerk="Stahl")                 # Kettenzeil
 RICHTUNG = ["östlich", "südöstlich", "südlich", "südwestlich", "westlich", "nordwestlich", "nördlich", "nordöstlich"]   # y zeigt nach Sueden
 
 IND = {i["id"]: i for i in M["industrien"] if i["typ"] != "holzfaeller"}
+LIZ_TYP = {i["id"] for i in E["industrien"] if i.get("ausgang_gut_id")}   # lizenzierbar laut economy_slice.json
+LIZ = {k for k, v in IND.items() if v["typ"] in LIZ_TYP}
+FELD_MM = M["karte"]["feld_mm"]
 CITY = {s["id"]: s for s in M["staedte"]}
 FLUSS = M["fluesse"][0]["linie"]
 
@@ -40,6 +45,17 @@ def de(n):
 
 def zahl(x, nd=2):
     return f"{x:.{nd}f}".replace(".", ",")
+
+
+def rdiv(z, n):            # economy.rdiv (kaufmaennisch, ganzzahlig)
+    q, r = divmod(abs(z), n)
+    q += 1 if 2 * r >= n else 0
+    return q if z >= 0 else -q
+
+
+def felder_spiel(c, i):    # economy._felder auf den Knotenpositionen (Feld x feld_mm, Anker = x_felder/y_felder)
+    dx, dy = (int(i["x_felder"]) - int(c["x_felder"])) * FELD_MM, (int(i["y_felder"]) - int(c["y_felder"])) * FELD_MM
+    return rdiv(math.isqrt(dx * dx + dy * dy), FELD_MM)
 
 
 def dist(c, i):
@@ -122,13 +138,15 @@ def bauen(sid):
     nah = min(d, key=d.get)
     # Nachfrage: Einwohner / 100 x demand_per_100 x Stufenmultiplikator
     nachfrage = c["einwohner_anzahl"] / 100 * E["saettigung"]["demand_per_100_inhabitants_einheiten_pro_periode"] * E["saettigung"]["demand_mult_promille_je_stufe"][stufe] / 1000
-    # Lizenzfaktor
-    if d[nah] <= r:
-        faktor = GROESSE[stufe] * (1 - RABATT)
-        liz = f"Lizenzfaktor x{zahl(faktor)} ({NAME[IND[nah]['typ']]}, im Radius" + (f"; Stadtfaktor {zahl(GROESSE[stufe])}" if stufe == "stadt" else "") + ")"
+    # Lizenzfaktor wie economy._licence_cost, fuer die naechste lizenzierbare Industrie (Spieldistanz)
+    dl = {i: felder_spiel(c, IND[i]) for i in LIZ}
+    nl = min(dl, key=lambda i: (dl[i], i))
+    if dl[nl] <= r:
+        faktor = 1 - RABATT
+        liz = f"Lizenzfaktor x{zahl(faktor)} ({NAME[IND[nl]['typ']]}, im Radius)"
     else:
-        faktor = GROESSE[stufe] * (1 + AUFSCHLAG * (d[nah] - r))
-        liz = f"Lizenzfaktor x{zahl(faktor, 1)} ({NAME[IND[nah]['typ']]}, {r0(d[nah])} Felder)"
+        faktor = 1 + AUFSCHLAG * (dl[nl] - r)
+        liz = f"Lizenzfaktor x{zahl(faktor)} ({NAME[IND[nl]['typ']]}, {dl[nl]} Felder)"
     # Ketten
     ketten = []
     k1 = {"farm_1", "farm_2", "farm_3", "muehle_1", "muehle_2"} & im_r
@@ -149,12 +167,14 @@ def bauen(sid):
         wf = r0(dist(c, IND["werkzeug_1"]))
         ketten.append(f"Kette 3: Werkzeugfabrik außerhalb des Radius ({wf} Felder)")
     hinweis = ""
-    if not im_r:
+    wagnis = not im_r
+    if wagnis:
         ids = {}
-        for i in sorted(d, key=d.get):                             # nächste je Typ, die 3 nächsten Typen
+        for i in sorted(LIZ, key=d.get):                           # nächste je lizenzierbarem Typ, die 3 nächsten Typen
             ids.setdefault(IND[i]["typ"], i)
         top = sorted(ids.values(), key=d.get)[:3]
-        ketten.append("Kein Rohstoff im Radius. Nächste " + ", ".join(f"{NAME[IND[i]['typ']]} {r0(d[i])}" for i in top) + " Felder.")
+        # B-9: "Kein Rohstoff im Radius" steht schon in der Statuszeile (wagnis=true), hier nur die Ziele
+        ketten.append("Nächste Lizenzen: " + ", ".join(f"{NAME[IND[i]['typ']]} {r0(d[i])}" for i in top) + " Felder.")
         hinweis = "Im Slice nicht balanciert." if stufe == "kleinstadt" else "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
     # Gelaende
     anteil, ang = gelaende_anteile(c, r)
@@ -178,13 +198,13 @@ def bauen(sid):
         if fehlt and len(fehlt) == 2:
             teile.append("kein Fluss und kein Gebirge im Radius")
     gel = "; ".join(teile)
-    return {"radius": f"Radius {r} Felder", "ketten": ketten,
+    return {"radius": f"Radius {r} Felder", "wagnis": wagnis, "ketten": ketten,
             "groesse": f"{STUFE[stufe]}, {de(c['einwohner_anzahl'])} Einwohner, Nachfrage {r0(nachfrage)} E/min" + (" (größter Absatz)" if c["einwohner_anzahl"] == max(x["einwohner_anzahl"] for x in M["staedte"]) else ""),
             "lizenzfaktor": liz, "gelaende": gel, "hinweis": hinweis}
 
 
 ORDER = ["haberau", "kohlberg", "mittelfurt", "steinbach", "eichwald", "lindach", "weidenau", "seehafen"]
-out = {"quelle": f"T-14b Tobias (Modellrechnung), erzeugt aus slice_map.json md5 {MD5} und economy_slice.json durch tools/hq_vorschau_gen.py", "staedte": {s: bauen(s) for s in ORDER}}
+out = {"quelle": f"T-14b Tobias (Modellrechnung, Lizenzfaktor wie Spiel S6 B-1), erzeugt aus slice_map.json md5 {MD5} und economy_slice.json durch tools/hq_vorschau_gen.py", "staedte": {s: bauen(s) for s in ORDER}}
 for s, v in out["staedte"].items():
     n = 4 + len(v["ketten"]) - 1 + (1 if v["hinweis"] else 0)
     assert n <= 6, (s, n)

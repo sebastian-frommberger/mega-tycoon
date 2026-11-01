@@ -4,3 +4,6 @@
 - p95-Fix (RENDER_SPLIT) bleibt an; Fahrzeuge erscheinen 100 ms verzögert. Neuer Bench-Lauf auf dem Zielrechner, sobald Basti Zeit hat (keine Pflicht für diesen Sprint).
 - Lenas Annahmen bestätigt: Uhr und 2-min-Zähler stehen im Umsetzen-Modus, die Gratislizenz zählt als erste Lizenz, Radius inklusive.
 - D24 (Block B): Freeze-Ausnahme für werkzeug_1 → (133,216): Stahl→Werkzeug 34 F., Kohlberg 33 F.; Kohlberg-M7 im Modell 36–38 min (vorher 24). md5 slice_map.json: 718e062cd554b6a3c80460b33f088c8a. Schema: startkapital_cent aus hq_optionen entfernt.
+- B-1 (Tag 10): Die Vorschau zeigt den Lizenzfaktor, den das Spiel rechnet (im Radius 0,70, außerhalb 1 + 0,03 je Feld), und nennt nur lizenzierbare Industrien. Größenfaktor im Lizenzpreis = R2-Kandidat (Tobias' Modell rechnet ihn schon; Neumessung nötig).
+- B-4: Mittelfurt-Startkette k1. md5 slice_map.json jetzt 48278cd3a0c2adb8be81634ee17c29f4.
+- Mittelfurt-Vorschau behält die Zeile „Kette 3: Werkzeugfabrik außerhalb des Radius“ als Information.

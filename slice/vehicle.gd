@@ -42,6 +42,8 @@ var deliveries_profit := 0
 var distance := 0              # Pfadlänge in Feldern
 var path_end := 0.0
 var group_key := ""            # Linienliste: Typ|Quelle|Ziel
+var paid_cent := 0             # Kaufpreis (0 = Startpaket), Basis für die Erstattung beim Auflösen (B-01)
+var sold := false              # B-01: verkauft; bleibt als IDLE im Array, damit MultiMesh-Indizes stabil bleiben
 
 
 func assign(p_src, p_dst, cells: Array) -> void:

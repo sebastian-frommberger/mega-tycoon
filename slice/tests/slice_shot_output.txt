@@ -15,7 +15,7 @@ ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
 WARNING: All audio drivers failed, falling back to the dummy driver.
      at: initialize (servers/audio/audio_server.cpp:258)
 
-MAP_LOAD_MS 176.4 READY_MS 216.4 MISSING_IDS 0
+MAP_LOAD_MS 300.6 READY_MS 376.6 MISSING_IDS 0
 saved /home/claude/mega-tycoon/shots/shot_start.png (1600, 900)
 saved /home/claude/mega-tycoon/shots/shot_start_agrar.png (1600, 900)
 saved /home/claude/mega-tycoon/shots/shot_ghost.png (1600, 900)

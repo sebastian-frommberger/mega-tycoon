@@ -224,6 +224,79 @@ func _run() -> void:
 	ok(vk != null and vk.deliveries_profit >= 3 and m.eco.cash_cent > cash_b, "Bergbau: %d Lieferungen mit Gewinn, Kasse %s → %s" % [
 		vk.deliveries_profit if vk else -1, m.money_str(cash_b), m.money_str(m.eco.cash_cent)])
 
+	# ------------------------------------------------------------------ 6) U-01 / F-15 / B-01 (Sprint 5, UI-Team)
+	print("== 6) F-15 Kontextpanel + Lizenzkauf, U-01 Theme, B-01 Linie auflösen")
+	_new_main()
+	m.start_game("agrar")
+	var farm6 = m.by_id["farm_1"]
+	var mill6 = m.by_id["muehle_1"]
+	var clicks := 0
+	m.click(farm6.anchor())
+	clicks += 1
+	var pmin: Vector2 = m.panel.get_combined_minimum_size()
+	var vw: float = m.get_viewport().get_visible_rect().size.x
+	ok(m.panel.visible and m.panel.anchor_left == 1.0 and m.panel.anchor_right == 1.0 and pmin.x <= vw * 0.25,
+		"F-15: Klick öffnet rechts angedocktes Panel, Breite %.0f px ≤ 25 %% von %.0f" % [pmin.x, vw])
+	var t6: String = m.panel_button.text
+	ok(m.panel_button.visible and t6.contains("Lizenz kaufen") and t6.contains("$/Monat"), "F-15: Primärknopf mit Preis und Ertrag: \"%s\"" % t6.replace("\n", " / "))
+	m.panel_button.pressed.emit()
+	clicks += 1
+	ok(m.eco.licence_valid(farm6.site) and clicks <= 3, "F-15: Lizenz gekauft in %d Klicks (≤ 3)" % clicks)
+	var lt: String = m.panel_lic_text.text
+	var rx := RegEx.create_from_string("Lizenz aktiv . noch \\d+:\\d\\d")
+	ok(m.panel_lic.visible and m.panel_lic_bar.visible and rx.search(lt) != null and m.panel_lic_bar.value > 0,
+		"F-15: Zustand mit Fortschrittsbalken: \"%s\" (%.0f / %.0f)" % [lt, m.panel_lic_bar.value, m.panel_lic_bar.max_value])
+	var modal := []
+	_find_modals(m.ui_root, modal)
+	ok(modal.is_empty(), "F-15: keine zentrierten Modale/Popups sichtbar nach Spielstart (%s)" % str(modal))
+	var empty := Vector2i(farm6.anchor().x + 40, farm6.anchor().y + 40)
+	m.click(empty)
+	ok(m.selected == null, "A-07: Klick daneben schließt das Panel")
+	m.open_panel(mill6)
+	m._cancel()
+	ok(m.selected == null, "A-07: Esc schließt das Panel")
+	var btns := []
+	_collect_buttons(m.ui_root, btns)
+	var wired := 0
+	for b in btns:
+		if b.has_meta("ui_fx"):
+			wired += 1
+	ok(btns.size() > 0 and wired == btns.size(), "U-01: alle %d Knöpfe mit Klick-Sound + Hover verdrahtet (%d)" % [btns.size(), wired])
+	ok(m.UiFx.SLIDE_SEC <= 0.15 and m.UiFx.HOVER_SEC <= 0.15, "U-01: Übergänge ≤ 150 ms (Slide %.0f ms, Hover %.0f ms)" % [m.UiFx.SLIDE_SEC * 1000, m.UiFx.HOVER_SEC * 1000])
+	var fonts := {}
+	for t in m.ui_theme.get_font_type_list():
+		for n in m.ui_theme.get_font_list(t):
+			fonts[m.ui_theme.get_font(n, t).get_instance_id()] = true
+	ok(fonts.size() <= 2, "U-01: höchstens 2 Schriften im Theme (%d)" % fonts.size())
+	var TB = m.ThemeBuilder
+	var cmin := 99.0
+	for pair in [["ink", "paper"], ["muted", "paper"], ["ink", "amber"], ["cream", "wood"], ["cream_muted", "wood"], ["muted", "paper2"]]:
+		cmin = minf(cmin, _contrast(TB.C[pair[0]], TB.C[pair[1]]))
+	ok(cmin >= 4.5, "U-01: Textkontrast der Token ≥ 4,5:1 (min %.2f)" % cmin)
+	# B-01: Abriss unter einer Linie → klare Meldung, Linie auflösen, danach abreißbar
+	ok(drag(m.Tool.ROAD, farm6.anchor(), mill6.anchor()), "B-01: Straße Farm → Mühle")
+	var v6 = line(m.Tool.TRUCK_LINE, farm6, mill6)
+	ok(v6 != null, "B-01: Lkw-Linie gesetzt")
+	var a6: Vector2i = farm6.anchor()
+	var b6: Vector2i = mill6.anchor()
+	var pl: Dictionary = m.plan_demolish(a6, b6)
+	ok(pl["count"] == 0 and str(pl["reason"]).contains("auflösen"), "B-01: Abriss gesperrt mit Hinweis: \"%s\"" % pl["reason"])
+	var fleet0: int = m.fleet_size()
+	var cash6: int = m.eco.cash_cent
+	var refund: int = m.remove_line(v6.group_key)
+	ok(m.line_groups.is_empty() and m.fleet_size() == fleet0 - 1 and m.eco.cash_cent == cash6 + refund and v6.sold,
+		"B-01: Linie aufgelöst, Lkw verkauft (+%s, Startpaket-Lkw = 0 $)" % m.money_str(refund))
+	var pl2: Dictionary = m.plan_demolish(a6, b6)
+	var got: int = m.demolish(a6, b6)
+	ok(pl2["count"] > 0 and got > 0 and not str(pl2["reason"]).contains("Linie"), "B-01: danach abreißbar: %d Felder, +%s" % [pl2["count"], m.money_str(got)])
+	m.run_ticks(600)
+	ok(not m.bankrupt and m.running_cost_per_period == 0, "B-01: verkaufter Lkw kostet keinen Unterhalt mehr")
+	# Styleguide
+	var sg = load("res://ui/styleguide.tscn").instantiate()
+	root.add_child(sg)
+	ok(sg.component_count >= 12 and sg.state_cells >= sg.component_count * 4, "U-01: Styleguide %d Komponenten × 4 Zustände (%d Zellen)" % [sg.component_count, sg.state_cells])
+	sg.free()
+
 	m.free()
 	m = null
 	print("")
@@ -247,3 +320,30 @@ func _corridor(start: Vector2i, len: int) -> Vector2i:
 			if free:
 				return c
 	return Vector2i(-1, -1)
+
+
+func _find_modals(n: Node, out: Array) -> void:
+	if n is Window or n is Popup:
+		out.append(n.name)
+	var c := n as Control
+	if c and c.is_visible_in_tree() and c is PanelContainer and is_equal_approx(c.anchor_left, 0.5) and is_equal_approx(c.anchor_top, 0.5):
+		out.append(c.name)
+	for ch in n.get_children():
+		_find_modals(ch, out)
+
+
+func _collect_buttons(n: Node, out: Array) -> void:
+	if n is BaseButton:
+		out.append(n)
+	for ch in n.get_children():
+		_collect_buttons(ch, out)
+
+
+func _lin(c: float) -> float:
+	return c / 12.92 if c <= 0.03928 else pow((c + 0.055) / 1.055, 2.4)
+
+
+func _contrast(a: Color, b: Color) -> float:
+	var la := 0.2126 * _lin(a.r) + 0.7152 * _lin(a.g) + 0.0722 * _lin(a.b)
+	var lb := 0.2126 * _lin(b.r) + 0.7152 * _lin(b.g) + 0.0722 * _lin(b.b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)

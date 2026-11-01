@@ -1,0 +1,40 @@
+{
+ "stand": "U-01b v1 (Sprint 5, Sophie Martin)",
+ "regel": "Weisse Silhouette 100x100, im Spiel per modulate eingefaerbt (Tinte auf Papier, Creme auf Holz, Bernstein fuer Aktion). Quelle k_ = Kenney Game Icons (CC0, unveraendert), c_ = eigene Ergaenzung im Kenney-Stil (ui/tools/make_icons.py), weil das Pack kein Geld, Lkw, Zug, Fabrik, Lizenz usw. enthaelt.",
+ "pfad": "res://ui/assets/icons/",
+ "icons": {
+  "geld":        {"datei": "c_geld.png",        "quelle": "eigen",  "verwendung": "Kasse, Preise"},
+  "einnahmen":   {"datei": "k_arrowUp.png",     "quelle": "kenney", "verwendung": "HUD Einnahmen"},
+  "kosten":      {"datei": "k_arrowDown.png",   "quelle": "kenney", "verwendung": "HUD Kosten/min"},
+  "lkw":         {"datei": "c_lkw.png",         "quelle": "eigen",  "verwendung": "Lkw-Linie, Fahrzeuge"},
+  "zug":         {"datei": "c_zug.png",         "quelle": "eigen",  "verwendung": "Zug-Linie"},
+  "lizenz":      {"datei": "c_lizenz.png",      "quelle": "eigen",  "verwendung": "Lizenzblock, Lizenzknopf"},
+  "fabrik":      {"datei": "c_fabrik.png",      "quelle": "eigen",  "verwendung": "Verarbeiter, Abnehmer"},
+  "farm":        {"datei": "c_weizen.png",      "quelle": "eigen",  "verwendung": "Getreidefarm, Archetyp Agrar"},
+  "mine":        {"datei": "c_spitzhacke.png",  "quelle": "eigen",  "verwendung": "Minen, Archetyp Bergbau"},
+  "stadt":       {"datei": "c_stadt.png",       "quelle": "eigen",  "verwendung": "Stadtpanel, HQ"},
+  "hq":          {"datei": "k_home.png",        "quelle": "kenney", "verwendung": "HQ-Stadt"},
+  "lager":       {"datei": "c_lager.png",       "quelle": "eigen",  "verwendung": "Werkzeug Lager"},
+  "strasse":     {"datei": "c_strasse.png",     "quelle": "eigen",  "verwendung": "Werkzeug Strasse"},
+  "gleis":       {"datei": "c_gleis.png",       "quelle": "eigen",  "verwendung": "Werkzeug Gleis"},
+  "abriss":      {"datei": "k_trashcan.png",    "quelle": "kenney", "verwendung": "Werkzeug Abriss, Linie aufloesen"},
+  "warnung":     {"datei": "k_warning.png",     "quelle": "kenney", "verwendung": "Warum?, Sperrgrund"},
+  "info":        {"datei": "k_information.png", "quelle": "kenney", "verwendung": "Hinweis, Tooltip"},
+  "ziele":       {"datei": "k_trophy.png",      "quelle": "kenney", "verwendung": "Ziele-Liste"},
+  "ziel":        {"datei": "k_target.png",      "quelle": "kenney", "verwendung": "Naechster Schritt"},
+  "tempo":       {"datei": "k_fastForward.png", "quelle": "kenney", "verwendung": "Tempo-Knoepfe"},
+  "pause":       {"datei": "k_pause.png",       "quelle": "kenney", "verwendung": "Tempo Pause"},
+  "play":        {"datei": "k_right.png",       "quelle": "kenney", "verwendung": "Tempo 1x"},
+  "uhr":         {"datei": "c_uhr.png",         "quelle": "eigen",  "verwendung": "Spielzeit, Lizenz-Restzeit"},
+  "schliessen":  {"datei": "k_cross.png",       "quelle": "kenney", "verwendung": "Panel schliessen"},
+  "ok":          {"datei": "k_checkmark.png",   "quelle": "kenney", "verwendung": "Ziel erledigt, Lizenz aktiv"},
+  "gesperrt":    {"datei": "k_locked.png",      "quelle": "kenney", "verwendung": "Gesperrte Aktion"},
+  "einstellungen": {"datei": "k_gear.png",      "quelle": "kenney", "verwendung": "reserviert (Optionen)"}
+ },
+ "statusformen": {
+  "ok":   {"form": "kreis",    "farbe": "status_ok",   "text": "laeuft"},
+  "warn": {"form": "dreieck",  "farbe": "status_warn", "text": "Achtung"},
+  "bad":  {"form": "quadrat",  "farbe": "status_bad",  "text": "steht"},
+  "saum": "#0F1720, 2 px (S-08)"
+ }
+}

@@ -15,6 +15,12 @@ const Vehicle := preload("res://vehicle.gd")
 const Economy := preload("res://economy.gd")
 const EcoShim := preload("res://eco_shim.gd")
 const Bench := preload("res://bench.gd")
+const ThemeBuilder := preload("res://ui/theme/theme_builder.gd")
+const Kit := preload("res://ui/ui_kit.gd")
+const UiFx := preload("res://ui/ui_fx.gd")
+const HUD_H := 62          # Höhe HUD-Leiste oben
+const PANEL_W := 380       # Kontextpanel rechts: 380 / 1600 = 23,75 % (F-15: ≤ 25 %)
+const LEFT_W := 340        # Ziele/Linien links
 
 const MAP_PATH := "res://data/slice_map.json"
 const SLICE_PATH := "res://data/economy_slice.json"
@@ -140,23 +146,46 @@ var hover_marker: MeshInstance3D
 var influence_mesh: MeshInstance3D
 var goal_markers: Array = []
 var ui: CanvasLayer
-var info_label: Label
+var ui_root: Control
+var ui_theme: Theme
+var fx: Node
+var hud_vals := {}
 var hint_label: Label
+var hint_panel: PanelContainer
 var toast_label: Label
+var toast_panel: PanelContainer
 var toast_time := 0.0
-var milestone_labels: Array = []
+var milestone_rows: Array = []
 var ms_panel: PanelContainer
+var ms_count_label: Label
 var next_step_label: Label
+var lines_card: PanelContainer
+var lines_box: VBoxContainer
 var lines_label: Label
+var line_rows := {}             # group_key -> {row, title, sub, val}
 var speed_buttons: Array = []
+var tool_buttons: Array = []
 var panel: PanelContainer
+var panel_icon: TextureRect
 var panel_title: Label
-var panel_text: Label
+var panel_sub: Label
+var panel_status_shape: Control
+var panel_status_text: Label
+var panel_fields: VBoxContainer
+var panel_field_rows: Array = []
+var panel_lic: PanelContainer
+var panel_lic_head: Label
+var panel_lic_text: Label
+var panel_lic_bar: ProgressBar
+var panel_why: PanelContainer
+var panel_why_text: Label
 var panel_button: Button
-var start_panel: PanelContainer
+var panel_reason: Label
+var panel_line_button: Button
+var start_panel: Control
 var bankrupt_panel: PanelContainer
 var bankrupt_label: Label
-var cursor_box: VBoxContainer
+var cursor_box: PanelContainer
 var cursor_cost: Label
 var cursor_reason: Label
 
@@ -771,157 +800,425 @@ func _vehicle_mm(size: Vector3, color: Color, colors: bool) -> MultiMeshInstance
 func _setup_ui() -> void:
 	ui = CanvasLayer.new()
 	add_child(ui)
-	var top := VBoxContainer.new()
-	top.position = Vector2(12, 10)
-	ui.add_child(top)
-	info_label = _label(20)
-	top.add_child(info_label)
-	var bar := HBoxContainer.new()
-	top.add_child(bar)
-	bar.add_child(_button("[1] Straße (%s/Feld)" % money_str(road_cent), func(): _set_tool(Tool.ROAD)))
-	bar.add_child(_button("[2] Gleis (%s/Feld)" % money_str(RAIL_CENT_PER_FIELD), func(): _set_tool(Tool.RAIL)))
-	bar.add_child(_button("[3] Lager (%s)" % money_str(warehouse_cent), func(): _set_tool(Tool.WAREHOUSE)))
-	bar.add_child(_button("[4] Lkw-Linie (%s)" % money_str(_vehicle_price("truck")), func(): _set_tool(Tool.TRUCK_LINE)))
-	bar.add_child(_button("[5] Zug-Linie (%s)" % money_str(_vehicle_price("train")), func(): _set_tool(Tool.TRAIN_LINE)))
-	bar.add_child(_button("[X] Abriss (50 %)", func(): _set_tool(Tool.DEMOLISH)))
-	bar.add_child(_button("[Esc]", func(): _cancel()))
-	var sbar := HBoxContainer.new()
-	top.add_child(sbar)
-	sbar.add_child(_label(16, "Tempo:"))
-	for s in [0, 1, 2, 4, 8]:
-		var b := _button("Pause" if s == 0 else "%d×" % s, func(): set_speed(s))
-		b.toggle_mode = true
-		sbar.add_child(b)
-		speed_buttons.append([s, b])
-	lines_label = _label(15)
-	top.add_child(lines_label)
+	ui_theme = ThemeBuilder.build()
+	fx = UiFx.new()
+	fx.name = "UiFx"
+	add_child(fx)
+	ui_root = Control.new()
+	ui_root.name = "UiRoot"
+	ui_root.theme = ui_theme
+	ui_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(ui_root)
+	_setup_hud()
+	_setup_left_column()
+	_setup_dock_panel()
+	_setup_toolbar()
 
-	ms_panel = PanelContainer.new()
-	ms_panel.visible = false
-	ms_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	ms_panel.offset_left = -430
-	ms_panel.offset_right = -12
-	ms_panel.offset_top = 12
-	ms_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	ui.add_child(ms_panel)
-	var ms_box := VBoxContainer.new()
-	ms_panel.add_child(ms_box)
-	ms_box.add_child(_label(19, "Ziele"))
-	for i in 7:
-		var l := _label(16)
-		ms_box.add_child(l)
-		milestone_labels.append(l)
-	next_step_label = _label(16)
-	next_step_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	next_step_label.custom_minimum_size = Vector2(400, 0)
-	next_step_label.modulate = _pal("marker", 1.0)
-	ms_box.add_child(next_step_label)
-
-	# Klick-Panel (Kontextdialog, Genre-Standard Cities: Skylines)
-	panel = PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	panel.offset_left = -430
-	panel.offset_right = -12
-	panel.offset_top = -40
-	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	panel.visible = false
-	ui.add_child(panel)
-	var pb := VBoxContainer.new()
-	panel.add_child(pb)
-	panel_title = _label(20)
-	pb.add_child(panel_title)
-	panel_text = _label(16)
-	panel_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	panel_text.custom_minimum_size = Vector2(400, 0)
-	pb.add_child(panel_text)
-	panel_button = _button("Lizenz kaufen", func(): _on_panel_button())
-	panel_button.add_theme_font_size_override("font_size", 18)
-	pb.add_child(panel_button)
-	pb.add_child(_button("Schließen", func(): close_panel()))
-
-	hint_label = _label(18)
-	hint_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	hint_label.offset_left = 12
-	hint_label.offset_top = -70
-	hint_label.offset_right = 1300
-	hint_label.offset_bottom = -12
-	ui.add_child(hint_label)
-
-	toast_label = _label(24)
-	toast_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	toast_label.offset_left = -480
-	toast_label.offset_right = 480
-	toast_label.offset_top = 150
-	toast_label.offset_bottom = 220
+	toast_panel = Kit.panel("PanelToast")
+	toast_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toast_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	toast_panel.offset_top = HUD_H + 14
+	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast_panel.visible = false
+	ui_root.add_child(toast_panel)
+	toast_label = Kit.label("", "LabelToast")
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ui.add_child(toast_label)
+	toast_panel.add_child(Kit.hbox(10, [Kit.icon("info", 20, ThemeBuilder.C["amber"]), toast_label]))
 
-	cursor_box = VBoxContainer.new()
+	cursor_box = Kit.panel("PanelHint")
 	cursor_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cursor_box.visible = false
-	ui.add_child(cursor_box)
-	cursor_cost = _label(20)
-	cursor_box.add_child(cursor_cost)
-	cursor_reason = _label(18)
-	cursor_reason.modulate = _pal("status_bad", 1.0)
-	cursor_box.add_child(cursor_reason)
+	ui_root.add_child(cursor_box)
+	var cb := Kit.vbox(2)
+	cursor_box.add_child(cb)
+	cursor_cost = Kit.label("", "LabelHud")
+	cb.add_child(cursor_cost)
+	cursor_reason = Kit.label("", "LabelHudSmall")
+	cursor_reason.add_theme_color_override("font_color", ThemeBuilder.C["status_bad"])
+	cb.add_child(cursor_reason)
 
+	_style_map_labels()
 	_setup_start_dialog()
 	_setup_bankrupt_panel()
 	_refresh_speed_buttons()
+	_refresh_tool_buttons()
 
 
-func _center_panel(w: float, h: float) -> PanelContainer:
-	var p := PanelContainer.new()
-	p.set_anchors_preset(Control.PRESET_CENTER)
-	p.offset_left = -w * 0.5
-	p.offset_right = w * 0.5
-	p.offset_top = -h * 0.5
-	p.offset_bottom = h * 0.5
-	ui.add_child(p)
+## HUD oben (Genre: Anno-Ressourcenleiste): Kasse, Einnahmen, Kosten, Fahrzeuge, Zeit | Tempo.
+func _setup_hud() -> void:
+	var bar := Kit.panel("PanelHud")
+	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	bar.offset_bottom = HUD_H
+	ui_root.add_child(bar)
+	var h := Kit.hbox(10)
+	bar.add_child(h)
+	var logo := Kit.label("MEGA TYCOON", "LabelAmber")
+	logo.add_theme_font_size_override("font_size", ThemeBuilder.SIZE_VALUE)
+	h.add_child(logo)
+	var sep := VSeparator.new()
+	sep.add_theme_stylebox_override("separator", _vline())
+	h.add_child(sep)
+	for e in [["kasse", "geld", "Kasse", "Dein Geld. Unter 0 $ bist du bankrott (noch kein Kredit)."],
+			["einnahmen", "einnahmen", "Einnahmen", "Summe aller Erträge beim Abnehmer"],
+			["kosten", "kosten", "Kosten", "Laufender Unterhalt je Spielminute (Fahrzeuge, Lager, Gleise)"],
+			["fahrzeuge", "lkw", "Fahrzeuge", "Fahrzeuge im Einsatz"],
+			["zeit", "uhr", "Spielzeit", "Spielzeit (1 Monat = 1 Spielminute)"]]:
+		h.add_child(_hud_chip(e[0], e[1], e[2], e[3]))
+	h.add_child(Kit.spacer())
+	var tl := Kit.label("TEMPO", "LabelHudSmall")
+	h.add_child(tl)
+	var seg := Kit.hbox(4)
+	h.add_child(seg)
+	for s in [0, 1, 2, 4, 8]:
+		var b: Button
+		if s == 0:
+			b = Kit.button("", "ButtonTempo", "pause", func(): set_speed(s))
+			b.tooltip_text = "Pause (Leertaste)"
+		else:
+			b = Kit.button("%d×" % s, "ButtonTempo", "play" if s == 1 else "tempo", func(): set_speed(s))
+			b.tooltip_text = "Tempo %d×" % s
+		b.toggle_mode = true
+		b.custom_minimum_size = Vector2(44 if s == 0 else 60, 34)
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		seg.add_child(b)
+		speed_buttons.append([s, b])
+
+
+## Karten-Beschriftung im Theme: Poppins, cremefarben mit dunklem Holz-Saum statt Schwarz.
+func _style_map_labels() -> void:
+	var f := ThemeBuilder.font(ThemeBuilder.FONT_BODY)
+	for b in buildings:
+		var l: Label3D = b.label
+		l.font = f
+		l.modulate = ThemeBuilder.C["cream"]
+		l.outline_modulate = Color(ThemeBuilder.C["ink"], 0.9)
+		l.outline_size = 14
+		l.line_spacing = -6.0
+
+
+func _vline() -> StyleBoxLine:
+	var l := StyleBoxLine.new()
+	l.vertical = true
+	l.color = Color(ThemeBuilder.C["cream"], 0.18)
+	l.thickness = 2
+	l.grow_begin = -8
+	l.grow_end = -8
+	return l
+
+
+func _hud_chip(key: String, icon_name: String, caption: String, tip: String) -> Control:
+	var p := Kit.panel("PanelChip")
+	p.tooltip_text = tip
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	var h := Kit.hbox(8)
+	p.add_child(h)
+	h.add_child(Kit.icon(icon_name, 22, ThemeBuilder.C["amber"]))
+	var v := Kit.vbox(-2)
+	h.add_child(v)
+	v.add_child(Kit.label(caption, "LabelHudSmall"))
+	var val := Kit.label("–", "LabelHud")
+	val.custom_minimum_size = Vector2(96 if key == "kasse" else 74, 0)
+	v.add_child(val)
+	hud_vals[key] = val
 	return p
 
 
-func _setup_start_dialog() -> void:
-	start_panel = _center_panel(760, 330)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 12)
-	start_panel.add_child(v)
-	v.add_child(_label(30, "Mega Tycoon – Grey-Box-Slice"))
-	var t := _label(18, "Gründe deine Firma. Das Startkapital ist deine Firma, Kredit gibt es noch nicht: fällt die Kasse unter 0 $, bist du bankrott.\nLaden darfst du nur an Industrien mit Lizenz. Geld gibt es erst, wenn die Ware beim Abnehmer ankommt.")
-	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	t.custom_minimum_size = Vector2(720, 0)
-	v.add_child(t)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 20)
-	v.add_child(h)
-	for a in ["agrar", "bergbau"]:
-		var hq := _hq_option(a)
-		var key: String = "agrar" if a == "agrar" else "mining"
-		var cap: int = int(eco.slice["hq"]["start_capital_%s_cent" % key])
-		var city: String = by_id[hq["stadt"]].display_name if by_id.has(hq["stadt"]) else hq["stadt"]
-		var txt := "%s\nHQ in %s · Startkapital %s\n%s" % [ARCH[a]["title"], city, money_str(cap),
-			"Getreide → Mühle → Mehl → Stadt" if a == "agrar" else "Kohle → Kraftwerk · Erz + Kohle → Stahl"]
-		var b := _button(txt, func(): start_game(a))
-		b.custom_minimum_size = Vector2(350, 120)
-		b.add_theme_font_size_override("font_size", 18)
+## Links: Ziele-Karte mit „Nächster Schritt“ und Linien-Karte (inkl. Auflösen, B-01).
+func _setup_left_column() -> void:
+	var col := Kit.vbox(12)
+	col.position = Vector2(14, HUD_H + 14)
+	col.custom_minimum_size = Vector2(LEFT_W, 0)
+	ui_root.add_child(col)
+	ms_panel = Kit.panel("PanelCard")
+	ms_panel.visible = false
+	col.add_child(ms_panel)
+	var v := Kit.vbox(6)
+	ms_panel.add_child(v)
+	var head := Kit.hbox(8, [Kit.icon("ziele", 22, ThemeBuilder.C["amber_edge"]), Kit.label("Ziele", "LabelValue"), Kit.spacer()])
+	ms_count_label = Kit.label("", "LabelMuted")
+	head.add_child(ms_count_label)
+	v.add_child(head)
+	for i in 7:
+		var ok := Kit.icon("ok", 16, ThemeBuilder.C["ok_text"])
+		var open := Kit.status("none", 14)
+		var holder := CenterContainer.new()
+		holder.custom_minimum_size = Vector2(18, 18)
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var nxt := Kit.icon("ziel", 16, ThemeBuilder.C["amber_edge"])
+		holder.add_child(ok)
+		holder.add_child(open)
+		holder.add_child(nxt)
+		var l := Kit.label("", "", true)
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var row := Kit.hbox(8, [holder, l])
+		v.add_child(row)
+		milestone_rows.append({"row": row, "ok": ok, "open": open, "next": nxt, "label": l})
+	var cal := Kit.panel("PanelCallout")
+	cal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	next_step_label = Kit.label("", "", true)
+	next_step_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var cv := Kit.vbox(2, [Kit.hbox(6, [Kit.icon("ziel", 16, ThemeBuilder.C["amber_edge"]), Kit.label("NÄCHSTER SCHRITT", "LabelCaps")]), next_step_label])
+	cal.add_child(cv)
+	v.add_child(Kit.margin(0, 4, 0, 0))
+	v.add_child(cal)
+
+	lines_card = Kit.panel("PanelCard")
+	lines_card.visible = false
+	col.add_child(lines_card)
+	var lv := Kit.vbox(4)
+	lines_card.add_child(lv)
+	lv.add_child(Kit.hbox(8, [Kit.icon("lkw", 22, ThemeBuilder.C["amber_edge"]), Kit.label("Linien", "LabelValue"), Kit.spacer(),
+		Kit.label("Gewinn/min", "LabelMuted")]))
+	lines_box = Kit.vbox(2)
+	lv.add_child(lines_box)
+	lines_label = Kit.label("", "LabelMuted", true)
+	lv.add_child(lines_label)
+
+
+## Rechts angedocktes Kontextpanel (A-07): Kopf aus Holz, Infos oben, eine primäre Aktion unten.
+func _setup_dock_panel() -> void:
+	panel = Kit.panel("PanelDock")
+	panel.custom_minimum_size = Vector2(PANEL_W, 0)
+	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	panel.offset_left = -PANEL_W - 14
+	panel.offset_right = -14
+	panel.offset_top = HUD_H + 14
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	panel.visible = false
+	ui_root.add_child(panel)
+	var v := Kit.vbox(0)
+	panel.add_child(v)
+	var head := Kit.panel("PanelHeader")
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(head)
+	var hh := Kit.hbox(12)
+	head.add_child(hh)
+	var disc := Kit.panel("PanelIconDisc")
+	disc.add_theme_stylebox_override("panel", ThemeBuilder.sb(ThemeBuilder.C["amber"], 22, 2, ThemeBuilder.C["amber_edge"], Vector4(7, 7, 7, 7)))
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	disc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	panel_icon = Kit.icon("fabrik", 26, ThemeBuilder.C["ink"])
+	disc.add_child(panel_icon)
+	hh.add_child(disc)
+	var tv := Kit.vbox(0)
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel_title = Kit.label("", "LabelWoodTitle")
+	panel_title.clip_text = true
+	panel_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	panel_sub = Kit.label("", "LabelHudSmall")
+	tv.add_child(panel_title)
+	tv.add_child(panel_sub)
+	hh.add_child(tv)
+	var close := Kit.button("", "ButtonClose", "schliessen", func(): close_panel())
+	close.tooltip_text = "Schließen (Esc)"
+	close.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	hh.add_child(close)
+
+	var body := Kit.margin(18, 14, 18, 18)
+	v.add_child(body)
+	var bv := Kit.vbox(10)
+	body.add_child(bv)
+	panel_status_shape = Kit.status("ok", 16)
+	panel_status_text = Kit.label("", "LabelBody")
+	bv.add_child(Kit.hbox(10, [panel_status_shape, panel_status_text]))
+	bv.add_child(HSeparator.new())
+	panel_fields = Kit.vbox(8)
+	bv.add_child(panel_fields)
+	for i in 6:
+		var ic := Kit.icon("geld", 18, ThemeBuilder.C["muted"])
+		var k := Kit.label("", "LabelMuted")
+		k.custom_minimum_size = Vector2(108, 0)
+		var val := Kit.label("", "", true)
+		val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var row := Kit.hbox(10, [ic, k, val])
+		panel_fields.add_child(row)
+		panel_field_rows.append({"row": row, "icon": ic, "key": k, "val": val})
+
+	panel_lic = Kit.panel("PanelLicence")
+	panel_lic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bv.add_child(panel_lic)
+	var lv := Kit.vbox(6)
+	panel_lic.add_child(lv)
+	panel_lic_head = Kit.label("LIZENZ", "LabelCaps")
+	lv.add_child(Kit.hbox(8, [Kit.icon("lizenz", 18, ThemeBuilder.C["amber_edge"]), panel_lic_head]))
+	panel_lic_text = Kit.label("", "", true)
+	lv.add_child(panel_lic_text)
+	panel_lic_bar = ProgressBar.new()
+	panel_lic_bar.show_percentage = false
+	panel_lic_bar.custom_minimum_size = Vector2(0, 12)
+	panel_lic_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lv.add_child(panel_lic_bar)
+
+	panel_why = Kit.panel("PanelCallout")
+	panel_why.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel_why_text = Kit.label("", "", true)
+	panel_why.add_child(Kit.vbox(2, [Kit.hbox(6, [Kit.icon("warnung", 16, ThemeBuilder.C["warn_text"]), Kit.label("WARUM?", "LabelCaps")]), panel_why_text]))
+	bv.add_child(panel_why)
+
+	bv.add_child(Kit.margin(0, 2, 0, 0))
+	panel_button = Kit.price_button("lizenz", "Lizenz kaufen", "", func(): _on_panel_button())
+	bv.add_child(panel_button)
+	panel_reason = Kit.label("", "LabelBad", true)
+	bv.add_child(panel_reason)
+	panel_line_button = Kit.button("Linie ab hier anlegen", "ButtonSecondary", "lkw", func(): _panel_start_line())
+	panel_line_button.custom_minimum_size = Vector2(0, 40)
+	bv.add_child(panel_line_button)
+
+
+## Werkzeugleiste unten (Genre: Cities: Skylines/TF2): Icon + Name, Hotkey-Plakette, Preis im Tooltip.
+func _setup_toolbar() -> void:
+	var dock := Kit.vbox(8)
+	dock.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	dock.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	dock.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	dock.offset_bottom = -14
+	dock.alignment = BoxContainer.ALIGNMENT_END
+	ui_root.add_child(dock)
+	hint_panel = Kit.panel("PanelHint")
+	hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	hint_label = Kit.label("", "LabelHudSmall")
+	hint_label.add_theme_color_override("font_color", ThemeBuilder.C["cream"])
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_panel.add_child(hint_label)
+	dock.add_child(hint_panel)
+	var bar := Kit.panel("PanelToolbar")
+	bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	dock.add_child(bar)
+	var h := Kit.hbox(8)
+	bar.add_child(h)
+	for e in [[Tool.ROAD, "strasse", "Straße", "1", "Straße bauen: %s/Feld (Brücke ×6, Hang ×3)" % money_str(road_cent)],
+			[Tool.RAIL, "gleis", "Gleis", "2", "Gleis bauen: %s/Feld" % money_str(RAIL_CENT_PER_FIELD)],
+			[Tool.WAREHOUSE, "lager", "Lager", "3", "Lager setzen: %s, sammelt und verteilt" % money_str(warehouse_cent)],
+			[Tool.TRUCK_LINE, "lkw", "Lkw", "4", "Lkw-Linie: %s je Lkw" % money_str(_vehicle_price("truck"))],
+			[Tool.TRAIN_LINE, "zug", "Zug", "5", "Zug-Linie: %s je Zug" % money_str(_vehicle_price("train"))],
+			[Tool.DEMOLISH, "abriss", "Abriss", "X", "Abriss eigener Straßen/Gleise (50 % zurück)"]]:
+		var t: int = e[0]
+		var b := Kit.button(e[2], "ButtonTool", e[1], func(): _set_tool(Tool.NONE if tool == t else t))
+		b.toggle_mode = true
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		b.custom_minimum_size = Vector2(78, 70)
+		b.tooltip_text = "[%s] %s" % [e[3], e[4]]
+		var bd := Kit.badge(e[3])
+		bd.position = Vector2(5, 4)
+		b.add_child(bd)
 		h.add_child(b)
+		tool_buttons.append([t, b])
 
 
+func _setup_start_dialog() -> void:
+	start_panel = Control.new()
+	start_panel.name = "StartDialog"
+	start_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui_root.add_child(start_panel)
+	var dim := ColorRect.new()
+	dim.color = Color(0.08, 0.06, 0.04, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	start_panel.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	start_panel.add_child(center)
+	var card := Kit.panel("PanelDock")
+	var cbox: StyleBoxFlat = ui_theme.get_stylebox("panel", "PanelDock").duplicate()
+	cbox.bg_color = ThemeBuilder.C["paper"]
+	cbox.shadow_size = 28
+	cbox.shadow_color = Color(0, 0, 0, 0.45)
+	card.add_theme_stylebox_override("panel", cbox)
+	card.custom_minimum_size = Vector2(880, 0)
+	center.add_child(card)
+	var v := Kit.vbox(0)
+	card.add_child(v)
+	var head := Kit.panel("PanelHeader")
+	head.add_theme_stylebox_override("panel", _start_head_box())
+	v.add_child(head)
+	var hv := Kit.vbox(2)
+	head.add_child(hv)
+	hv.add_child(Kit.label("MEGA TYCOON", "LabelHeroWood"))
+	hv.add_child(Kit.label("Gründe deine Transportfirma", "LabelHudSmall"))
+	var body := Kit.margin(28, 22, 28, 24)
+	v.add_child(body)
+	var bv := Kit.vbox(14)
+	body.add_child(bv)
+	bv.add_child(Kit.label("Wo startest du?", "LabelTitle"))
+	bv.add_child(Kit.label("Das HQ kostet nichts. Kapital und Kette hängen an der Stadt.", "LabelMuted"))
+	var tiles := Kit.hbox(20)
+	bv.add_child(tiles)
+	for a in ["agrar", "bergbau"]:
+		tiles.add_child(_archetype_tile(a))
+	var foot := Kit.hbox(8, [Kit.icon("info", 18, ThemeBuilder.C["muted"]),
+		Kit.label("Noch kein Kredit: fällt die Kasse unter 0 $, ist die Firma bankrott. Laden nur an Industrien mit Lizenz, Geld erst beim Abnehmer.", "LabelMuted", true)])
+	foot.get_child(1).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bv.add_child(foot)
+
+
+func _start_head_box() -> StyleBoxFlat:
+	var s := ThemeBuilder.sb(ThemeBuilder.C["wood"], 12, 0, Color.TRANSPARENT, Vector4(28, 18, 28, 16))
+	s.corner_radius_bottom_left = 0
+	s.corner_radius_bottom_right = 0
+	s.border_width_bottom = 4
+	s.border_color = ThemeBuilder.C["amber"]
+	return s
+
+
+func _archetype_tile(a: String) -> Button:
+	var hq := _hq_option(a)
+	var key: String = "agrar" if a == "agrar" else "mining"
+	var cap: int = int(eco.slice["hq"]["start_capital_%s_cent" % key])
+	var lkw: int = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_%s_anzahl" % key])
+	var city = by_id.get(hq.get("stadt", ""), null)
+	var b := Kit.button("", "ButtonTile", "", func(): start_game(a))
+	b.custom_minimum_size = Vector2(402, 256)
+	b.name = "Tile_" + a
+	var m := Kit.margin(20, 18, 20, 18)
+	m.set_anchors_preset(Control.PRESET_FULL_RECT)
+	b.add_child(m)
+	var v := Kit.vbox(10)
+	m.add_child(v)
+	var disc := Kit.panel("PanelIconDisc")
+	disc.add_theme_stylebox_override("panel", ThemeBuilder.sb(ThemeBuilder.C["amber"], 30, 3, ThemeBuilder.C["amber_edge"], Vector4(10, 10, 10, 10)))
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	disc.add_child(Kit.icon("farm" if a == "agrar" else "mine", 36, ThemeBuilder.C["ink"]))
+	var tv := Kit.vbox(0, [Kit.label(ARCH[a]["title"], "LabelTitle"),
+		Kit.label("HQ in %s · %s" % [city.display_name if city else "?", STAGE_NAMES.get(city.city_stage, "") if city else ""], "LabelMuted")])
+	tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	v.add_child(Kit.hbox(14, [disc, tv]))
+	var chain := "Getreide › Mühle › Mehl › Stadt" if a == "agrar" else "Erz + Kohle › Stahlwerk › Stahl › Werkzeugfabrik"
+	var note := "Kurze Kette, schneller erster Gewinn." if a == "agrar" else "Längere Kette, weite Strecke: ein Zug lohnt sich."
+	var cl := Kit.label(chain, "LabelBody", true)
+	cl.custom_minimum_size = Vector2(0, 54)
+	cl.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	v.add_child(cl)
+	v.add_child(Kit.label(note, "LabelMuted", true))
+	var sp := Control.new()
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(sp)
+	var cap_l := Kit.label(money_str(cap), "LabelTitle")
+	v.add_child(Kit.hbox(10, [Kit.icon("geld", 26, ThemeBuilder.C["amber_edge"]), Kit.vbox(-2, [Kit.label("STARTKAPITAL", "LabelCaps"), cap_l]),
+		Kit.spacer(), Kit.icon("lkw", 22, ThemeBuilder.C["muted"]), Kit.label("%d Lkw gratis" % lkw, "LabelMuted")]))
+	return b
+
+
+## Bankrott: kein zentriertes Modal, sondern Banner unter dem HUD (Karte bleibt sichtbar).
 func _setup_bankrupt_panel() -> void:
-	bankrupt_panel = _center_panel(600, 240)
+	bankrupt_panel = Kit.panel("PanelBanner")
+	bankrupt_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	bankrupt_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	bankrupt_panel.offset_top = HUD_H + 70
+	bankrupt_panel.custom_minimum_size = Vector2(620, 0)
 	bankrupt_panel.visible = false
-	var v := VBoxContainer.new()
+	ui_root.add_child(bankrupt_panel)
+	var v := Kit.vbox(10)
 	bankrupt_panel.add_child(v)
-	var l := _label(34, "Bankrott")
-	l.modulate = _pal("status_bad", 1.0)
-	v.add_child(l)
-	bankrupt_label = _label(18)
-	bankrupt_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	bankrupt_label.custom_minimum_size = Vector2(560, 0)
+	v.add_child(Kit.hbox(10, [Kit.status("bad", 18), Kit.label("Bankrott", "LabelTitle")]))
+	bankrupt_label = Kit.label("", "", true)
+	bankrupt_label.custom_minimum_size = Vector2(580, 0)
 	v.add_child(bankrupt_label)
-	v.add_child(_button("Neu starten", func(): get_tree().reload_current_scene()))
+	var b := Kit.button("Neu starten", "ButtonPrimary", "", func(): get_tree().reload_current_scene())
+	b.size_flags_horizontal = Control.SIZE_SHRINK_END
+	v.add_child(b)
 
 
 func _hq_option(a: String) -> Dictionary:
@@ -931,22 +1228,10 @@ func _hq_option(a: String) -> Dictionary:
 	return {}
 
 
-func _label(size: int, text := "") -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_outline_color", Color.BLACK)
-	l.add_theme_constant_override("outline_size", 6)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-
-func _button(text: String, cb: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.pressed.connect(cb)
-	return b
+func _refresh_tool_buttons() -> void:
+	for e in tool_buttons:
+		e[1].set_pressed_no_signal(e[0] == tool)
+		e[1].disabled = not company_started or bankrupt
 
 
 static func money_str(cent: int) -> String:
@@ -966,14 +1251,28 @@ func time_str(ticks: int) -> String:
 
 
 func _toast(text: String, seconds := 4.0) -> void:
-	toast_label.text = text
+	toast_label.text = Kit.txt(text)
+	# lange Meldungen umbrechen, kurze einzeilig (Breite nach Schrift gemessen)
+	var f: Font = toast_label.get_theme_font("font")
+	var w := f.get_string_size(toast_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast_label.get_theme_font_size("font_size")).x if f else 0.0
+	if w > 720.0:
+		toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		toast_label.custom_minimum_size = Vector2(720, 0)
+	else:
+		toast_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		toast_label.custom_minimum_size = Vector2.ZERO
+	var tsz := toast_panel.get_combined_minimum_size()
+	UiFx.set_rest(toast_panel, -tsz.x * 0.5, HUD_H + 14, tsz.x * 0.5, HUD_H + 14 + tsz.y)
 	toast_time = seconds
+	if toast_panel and toast_panel.is_inside_tree() and not toast_panel.visible:
+		toast_panel.visible = true
+		UiFx.slide_in(toast_panel, Vector2(0, -16))
 
 
 func set_speed(s: int) -> void:
 	if not company_started or bankrupt:
 		s = 0
-	if s == 8 and not eco.speed_steps(vehicles.size()).has(8):
+	if s == 8 and not eco.speed_steps(fleet_size()).has(8):
 		_toast("8× nur bis %d Fahrzeuge." % eco.MAX_VEHICLES_AT_8X)
 		s = 4
 	speed = s
@@ -1003,6 +1302,9 @@ func start_game(a: String) -> bool:
 	free_trucks_left = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_%s_anzahl" % ("agrar" if a == "agrar" else "mining")])
 	start_panel.visible = false
 	ms_panel.visible = true
+	if ms_panel.is_inside_tree():
+		UiFx.slide_in(ms_panel, Vector2(-40, 0))
+	_refresh_tool_buttons()
 	_show_influence()
 	_init_milestones()
 	var src = by_id[ARCH[a]["src"]]
@@ -1057,19 +1359,42 @@ func ui_buy_licence(b) -> bool:
 
 
 func open_panel(b) -> void:
+	var was_open: bool = panel.visible and selected != null
 	selected = b
 	panel.visible = true
 	_refresh_panel()
+	if not was_open:
+		UiFx.slide_in(panel, Vector2(PANEL_W * 0.5, 0))
 
 
 func close_panel() -> void:
 	selected = null
-	panel.visible = false
+	if panel.visible:
+		if panel.is_inside_tree() and is_inside_tree():
+			UiFx.slide_out(panel, Vector2(PANEL_W * 0.5, 0))
+		else:
+			panel.visible = false
 
 
+## Primärknopf: ohne Lizenz = Lizenz kaufen; mit Lizenz = Linie ab hier anlegen (eine Primäraktion je Panel).
 func _on_panel_button() -> void:
-	if selected != null:
+	if selected == null:
+		return
+	var q := licence_quote(selected)
+	if q.get("ok", false) and not q["aktiv"]:
 		ui_buy_licence(selected)
+	else:
+		_panel_start_line()
+
+
+func _panel_start_line() -> void:
+	if selected == null or not selected.provides():
+		return
+	var b = selected
+	close_panel()
+	_set_tool(Tool.TRUCK_LINE)
+	if b.kind == Building.Kind.WAREHOUSE or eco.licence_valid(b.site):
+		line_src = b
 
 
 func _goods_txt(arr: Array) -> String:
@@ -1079,60 +1404,186 @@ func _goods_txt(arr: Array) -> String:
 	return ", ".join(out)
 
 
+## Linien, die an b starten (out) bzw. enden (in): [[key, Array[Vehicle]], ...]
+func _lines_at(b, outgoing: bool) -> Array:
+	var out := []
+	for key in line_order:
+		var list: Array = line_groups[key]
+		var v = list[0]
+		if (v.src == b) if outgoing else (v.dst == b):
+			out.append([key, list])
+	return out
+
+
+func _line_profit(list: Array) -> float:
+	var p := 0.0
+	for w in list:
+		p += w.profit_per_minute(month_ticks)
+	return p
+
+
+## Ertragsziel aus economy (Industrie- oder Stadt-ID) als Anzeigename.
+func _target_name(id: String) -> String:
+	if by_id.has(id):
+		return by_id[id].display_name
+	if IND_NAMES.has(id):
+		return IND_NAMES[id]
+	return id.capitalize()
+
+
+func _set_fields(rows: Array) -> void:
+	for i in panel_field_rows.size():
+		var r: Dictionary = panel_field_rows[i]
+		r["row"].visible = i < rows.size()
+		if i >= rows.size():
+			continue
+		var e: Array = rows[i]
+		r["icon"].texture = Kit.icon_tex(e[0])
+		r["key"].text = Kit.txt(e[1])
+		r["val"].text = Kit.txt(e[2])
+		r["val"].add_theme_color_override("font_color", e[3] if e.size() > 3 else ThemeBuilder.C["ink"])
+
+
+func _set_primary(icon_name: String, l1: String, l2: String, disabled: bool) -> void:
+	panel_button.visible = true
+	Kit.set_price_button(panel_button, icon_name, l1, l2, disabled)
+
+
+func _set_status(kind: String, text: String) -> void:
+	panel_status_shape.kind = kind
+	panel_status_text.text = Kit.txt(text)
+
+
+## A-07 Feldliste (max. 8): 1 Name/Stufe (Kopf), 2 Status, 3 Produktion, 4 Bedarf/Zufluss, 5 Lieferziele,
+## 6 Lizenz (Block mit Restzeit-Balken), 7 Ertrag/min, 8 Warum? (nur bei ▲/■). Kein Firmenkauf (R2).
 func _refresh_panel() -> void:
 	if selected == null or not panel.visible:
 		return
 	var b = selected
-	panel_title.text = b.display_name
+	panel_title.text = Kit.txt(b.display_name).to_upper()
+	var tf: Font = panel_title.get_theme_font("font")
+	var big := tf == null or tf.get_string_size(panel_title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ThemeBuilder.SIZE_TITLE).x <= PANEL_W - 130
+	panel_title.add_theme_font_size_override("font_size", ThemeBuilder.SIZE_TITLE if big else ThemeBuilder.SIZE_VALUE)
 	panel_button.visible = false
-	var lines: Array = []
+	panel_reason.visible = false
+	panel_line_button.visible = false
+	panel_lic.visible = false
+	panel_why.visible = false
+	var fields: Array = []
+	var why := ""
+	var C: Dictionary = ThemeBuilder.C
 	match b.kind:
 		Building.Kind.CITY:
+			panel_icon.texture = Kit.icon_tex("stadt")
+			var hq: bool = b == hq_city
+			panel_sub.text = Kit.txt("%s · %d Einwohner%s" % [STAGE_NAMES.get(b.city_stage, b.city_stage), b.city_pop, " · dein HQ" if hq else ""])
 			var basket: Array = eco.basket.get(b.city_stage, [])
-			lines.append("%s · %d Einwohner · Kunde (nicht kaufbar)" % [STAGE_NAMES.get(b.city_stage, b.city_stage), b.city_pop])
-			lines.append("Warenkorb: %s" % ", ".join(basket))
 			var dem: int = eco.city_demand(b.site)
 			var sat: Dictionary = eco.s_sat[b.site] if eco.s_sat_period[b.site] == shim.tick_count / periode_ticks else {}
+			var got := 0
 			for cat in basket:
-				lines.append("  %s diese Minute: %d / %d (ab 100 %% sinkt der Preis)" % [cat, int(sat.get(cat, 0)), dem])
+				got += int(sat.get(cat, 0))
+			if got == 0:
+				_set_status("warn", "Diese Minute noch nicht beliefert")
+			else:
+				_set_status("ok", "Wird beliefert")
+			fields.append(["stadt", "Rolle", "Kunde: bezahlt Lieferungen, nicht kaufbar"])
+			for cat in basket.slice(0, 3):
+				var n := int(sat.get(cat, 0))
+				fields.append(["fabrik", str(cat).capitalize(), "%d / %d E diese Minute%s" % [n, dem, " (Preis sinkt)" if n >= dem and dem > 0 else ""]])
+			var ins := _lines_at(b, false)
+			fields.append(["lkw", "Lieferanten", "keine" if ins.is_empty() else ", ".join(ins.map(func(e): return e[1][0].src.display_name))])
 		Building.Kind.WAREHOUSE:
-			lines.append("Eigenes Lager: nimmt alles an, gibt alles ab. Lager zahlt 0 $ – Geld gibt es erst beim Endabnehmer.")
-			lines.append("Bestand: %d / %d · Unterhalt %s/min" % [shim.st_stock[b.station], eco.warehouse_cap, money_str(warehouse_upkeep)])
+			panel_icon.texture = Kit.icon_tex("lager")
+			panel_sub.text = "Eigenes Lager"
+			_set_status("ok" if shim.st_stock[b.station] < eco.warehouse_cap else "warn", "Bestand %d / %d" % [shim.st_stock[b.station], eco.warehouse_cap])
+			fields.append(["lager", "Funktion", "nimmt alles an, gibt alles ab"])
+			fields.append(["geld", "Ertrag", "0 $ – Geld gibt es erst beim Endabnehmer"])
+			fields.append(["kosten", "Unterhalt", "%s/min" % money_str(warehouse_upkeep)])
+			panel_line_button.visible = true
 		Building.Kind.INERT:
-			lines.append("Bau-Quelle (Holz). Im Slice kein Handel (L-10), nur Kulisse.")
+			panel_icon.texture = Kit.icon_tex("fabrik")
+			panel_sub.text = "Kulisse"
+			_set_status("none", "Im Slice kein Handel (L-10)")
 		_:
 			if eco.s_raw[b.site] == 1:
 				eco._sync_raw(shim, b.site)
+			var lic: bool = eco.licence_valid(b.site)
+			var outs := _lines_at(b, true)
+			var rate: int = eco.s_rate[b.site] * month_ticks / periode_ticks
 			if b.kind == Building.Kind.PRODUCER:
-				lines.append("Rohstoff: %s · Bestand %d" % [good_names.get(b.out_good, b.out_good), shim.st_stock[b.station]])
+				panel_icon.texture = Kit.icon_tex("farm" if b.out_good == "getreide" else "mine")
+				panel_sub.text = "Rohstoff · Stufe 1"
+				fields.append(["fabrik", "Produktion", "%d E/min %s" % [rate, good_names.get(b.out_good, b.out_good)]])
+				fields.append(["lager", "Lager", "%d E bereit" % shim.st_stock[b.station]])
 			elif b.kind == Building.Kind.PROCESSOR:
+				panel_icon.texture = Kit.icon_tex("fabrik")
+				panel_sub.text = "Verarbeiter · Stufe 1"
 				var buf: Dictionary = eco.s_inbuf[b.site]
 				var ins := []
+				var n_in := 0
 				for gi in buf:
 					ins.append("%s %d" % [good_names.get(eco.g_ids[gi], ""), buf[gi]])
-				lines.append("Verarbeiter: %s → %s" % [", ".join(ins), good_names.get(b.out_good, b.out_good)])
-				lines.append("Ausgang: %d · Lieferung von %s wird hier bezahlt" % [shim.st_stock[b.station], _goods_txt(b.in_goods)])
+					n_in += buf[gi]
+				fields.append(["fabrik", "Produktion", "%s · Ausgang %d" % [good_names.get(b.out_good, b.out_good), shim.st_stock[b.station]]])
+				fields.append(["kosten", "Bedarf", "%s · Eingang %d" % [_goods_txt(b.in_goods), n_in]])
+				if lic and n_in == 0 and shim.st_stock[b.station] == 0 and _lines_at(b, false).is_empty():
+					why = "Kein %s im Eingang. Lege eine Linie von einer Quelle hierher." % _goods_txt(b.in_goods)
 			else:
-				lines.append("Abnehmer: nimmt %s an und bezahlt die Lieferung. Keine Lizenz nötig." % _goods_txt(b.in_goods))
+				panel_icon.texture = Kit.icon_tex("fabrik")
+				panel_sub.text = "Abnehmer"
+				fields.append(["kosten", "Nimmt an", "%s, bezahlt die Lieferung" % _goods_txt(b.in_goods)])
 			var q := licence_quote(b)
-			if q.get("ok", false):
-				panel_button.visible = true
-				var d := absi(int(Vector2(b.anchor()).distance_to(Vector2(eco.hq_x / feld_mm, eco.hq_y / feld_mm))))
-				lines.append("Lizenz: 10 %% des Kaufpreises, %s Spielzeit, verlängert sich automatisch. %s" % [
-					time_str(q["laufzeit_ticks"]), "Im Einflussradius (−30 %)." if d <= eco.hq_radius_felder else "Außerhalb des Einflusses: teurer."])
-				lines.append("Ertrag-Schätzung: %s Felder Luftlinie bis %s, volle Frische, ohne Sättigung." % [
-					str(q["ertrag_distanz_felder"]), by_id[q["ertrag_ziel_id"]].display_name if by_id.has(q["ertrag_ziel_id"]) else q["ertrag_ziel_id"]])
+			if not q.get("ok", false):
+				_set_status("ok", "Nimmt Ware an · keine Lizenz nötig")
+			else:
+				fields.append(["lkw", "Lieferziele", "noch keine Linie" if outs.is_empty() else ", ".join(outs.map(func(e): return "%s (%d F.)" % [e[1][0].dst.display_name, e[1][0].distance]))])
+				var prof := 0.0
+				for e in outs:
+					prof += _line_profit(e[1])
+				fields.append(["geld", "Ertrag/min", "–" if outs.is_empty() else "%+d $/min" % int(prof), C["ok_text"] if prof > 0 else (C["bad_text"] if prof < 0 else C["ink"])])
+				panel_lic.visible = true
 				if q["aktiv"]:
-					panel_button.text = "Lizenz aktiv – noch %s" % time_str(eco.s_lic_until[b.site] - shim.tick_count)
-					panel_button.disabled = true
+					var rest: int = eco.s_lic_until[b.site] - shim.tick_count
+					panel_lic_head.text = "LIZENZ AKTIV"
+					panel_lic_text.text = Kit.txt("Lizenz aktiv – noch %s · verlängert sich automatisch" % time_str(rest))
+					panel_lic_bar.visible = true
+					panel_lic_bar.max_value = float(q["laufzeit_ticks"])
+					panel_lic_bar.value = float(rest)
+					panel_lic_bar.theme_type_variation = "ProgressWarn" if rest < q["laufzeit_ticks"] / 6 else ""
+					if outs.is_empty():
+						_set_status("warn", "Lizenz aktiv · noch keine Linie")
+						why = "Hier lädt noch niemand. Lege eine Lkw-Linie zu einem Abnehmer an."
+					elif why != "":
+						_set_status("warn", "Lizenz aktiv · Eingang leer")
+					else:
+						_set_status("ok", "Läuft · %d Linie%s" % [outs.size(), "" if outs.size() == 1 else "n"])
+					_set_primary("lkw", "Linie ab hier anlegen", "Lkw %s" % (money_str(_vehicle_price("truck")) if free_trucks_left == 0 else "gratis (Startpaket)"), false)
+					panel_button.tooltip_text = "Startet das Lkw-Werkzeug mit %s als Quelle" % b.display_name
 				else:
-					var price := "gratis (1. Lizenz, sonst %s)" % money_str(q["kosten_cent"]) if q["gratis"] else money_str(q["kosten_cent"])
-					panel_button.text = "Lizenz kaufen: %s · Ertrag ≈ %s/Monat" % [price, money_str(q["ertrag_pro_monat_cent"])]
-					panel_button.disabled = not q["kaufbar"]
+					var d := absi(int(Vector2(b.anchor()).distance_to(Vector2(eco.hq_x / feld_mm, eco.hq_y / feld_mm))))
+					var near: bool = d <= eco.hq_radius_felder
+					panel_lic_head.text = "LIZENZ"
+					panel_lic_text.text = Kit.txt("Leihen für %s Spielzeit, verlängert sich automatisch. %s" % [
+						time_str(q["laufzeit_ticks"]), "Im HQ-Radius −30 %." if near else "Außerhalb des HQ-Radius: teurer."])
+					panel_lic_bar.visible = false
+					_set_status("bad", "Ohne Lizenz · Laden gesperrt")
+					var price := "gratis" if q["gratis"] else money_str(q["kosten_cent"])
+					_set_primary("lizenz", "Lizenz kaufen · %s" % price, "Ertrag ca. %s/Monat" % money_str(q["ertrag_pro_monat_cent"]), not q["kaufbar"])
+					panel_button.tooltip_text = Kit.txt("Ertrag geschätzt bis %s, %s Felder Luftlinie, volle Frische, ohne Sättigung.%s" % [
+						_target_name(str(q["ertrag_ziel_id"])), str(q["ertrag_distanz_felder"]),
+						"\n1. Lizenz gratis (sonst %s)." % money_str(q["kosten_cent"]) if q["gratis"] else ""])
 					if not q["kaufbar"]:
-						panel_button.text = "Zu wenig Geld: Lizenz %s" % money_str(q["zu_zahlen_cent"])
-			lines.append("Firmenkauf: ab Sprint 5.")
-	panel_text.text = "\n".join(lines)
+						var miss: int = q["zu_zahlen_cent"] - eco.cash_cent
+						panel_reason.visible = true
+						panel_reason.text = "Dir fehlen %s. Kredit gibt es noch nicht." % money_str(miss)
+						panel_button.tooltip_text = panel_reason.text
+	_set_fields(fields)
+	panel_why.visible = why != ""
+	panel_why_text.text = Kit.txt(why)
+	var tw: Tween = panel.get_meta("slide_tw") if panel.has_meta("slide_tw") else null
+	if tw == null or not tw.is_running():
+		panel.reset_size()
 
 
 # ---------------------------------------------------------------- Ziele / Meilensteine
@@ -1198,18 +1649,31 @@ func _check_milestones() -> void:
 
 func _refresh_milestones() -> void:
 	var next := -1
-	for i in milestone_labels.size():
-		var l: Label = milestone_labels[i]
+	var done := 0
+	for i in milestone_rows.size():
+		var r: Dictionary = milestone_rows[i]
+		r["row"].visible = i < milestones.size()
 		if i >= milestones.size():
-			l.text = ""
 			continue
 		var m: Dictionary = milestones[i]
-		l.text = ("✔ " if m["done"] else "○ ") + m["text"]
-		l.modulate = _pal("status_ok", 1.0) if m["done"] else Color(1, 1, 1)
-		if not m["done"] and next < 0:
+		var l: Label = r["label"]
+		l.text = Kit.txt(m["text"])
+		r["ok"].visible = m["done"]
+		r["open"].visible = not m["done"]
+		r["next"].visible = false
+		if m["done"]:
+			done += 1
+			l.theme_type_variation = "LabelMuted"
+		elif next < 0:
 			next = i
+			l.theme_type_variation = "LabelNext"
+			r["open"].visible = false
+			r["next"].visible = true
+		else:
+			l.theme_type_variation = ""
+	ms_count_label.text = "%d / %d" % [done, milestones.size()]
 	if next >= 0:
-		next_step_label.text = "Nächster Schritt: " + milestones[next]["hint"]
+		next_step_label.text = Kit.txt(milestones[next]["hint"])
 		milestone_targets = milestones[next]["t"]
 	else:
 		next_step_label.text = "Alle Ziele erreicht. Weiter: zweite Kette oder Mittelfurt beliefern."
@@ -1257,6 +1721,8 @@ func _set_tool(t: int) -> void:
 	plan = {}
 	line_src = null
 	_clear_preview()
+	if tool_buttons.size() > 0:
+		_refresh_tool_buttons()
 
 
 func _cancel() -> void:
@@ -1355,6 +1821,8 @@ func click(cell: Vector2i) -> void:
 		_:
 			if b != null:
 				open_panel(b)
+			elif panel.visible:
+				close_panel()      # A-07: Klick daneben schließt
 
 
 func _accepts_good(b, g: String) -> bool:
@@ -1560,14 +2028,65 @@ func build_track(a: Vector2i, b: Vector2i, rail: bool) -> bool:
 	return true
 
 
+## Felder, die eine Linie befährt: Feld -> group_key der (ersten) Linie.
 func _used_cells(rail: bool) -> Dictionary:
 	var out := {}
 	for v in vehicles:
 		if v.state == Vehicle.State.IDLE or (v.type == "train") != rail:
 			continue
 		for pos in v.path:
-			out[Vector2i(int(floor(pos.x)), int(floor(pos.y)))] = true
+			var c := Vector2i(int(floor(pos.x)), int(floor(pos.y)))
+			if not out.has(c):
+				out[c] = v.group_key
 	return out
+
+
+## Anzahl Fahrzeuge im Besitz (verkaufte zählen nicht).
+func fleet_size() -> int:
+	var n := 0
+	for v in vehicles:
+		if not v.sold:
+			n += 1
+	return n
+
+
+func line_title(key: String) -> String:
+	if not line_groups.has(key):
+		return key
+	var v = line_groups[key][0]
+	return "%s-Linie %s › %s" % [v.kind_name, v.src.display_name, v.dst.display_name]
+
+
+## B-01: Linie auflösen. Fahrzeuge werden verkauft (Erstattung refund_promille des Kaufpreises, wie Abriss
+## 50 %), Ladung verfällt. Danach sind die befahrenen Felder wieder abreißbar. Gibt die Erstattung (Cent) zurück.
+func remove_line(key: String) -> int:
+	if not line_groups.has(key):
+		return 0
+	var title := line_title(key)
+	var refund := 0
+	var list: Array = line_groups[key]
+	for v in list:
+		refund += v.paid_cent * refund_promille / 1000
+		eco.v_lots.erase(v.vid)
+		shim.v_cargo[v.slot] = 0
+		v.state = Vehicle.State.IDLE
+		v.path = PackedVector2Array()
+		v.fix_cent = 0
+		v.var_cent_per_field = 0
+		v.sold = true
+		n_assigned -= 1
+	line_groups.erase(key)
+	line_order.erase(key)
+	eco.cash_cent += refund
+	cost_dirty = true
+	lines_dirty = true
+	network_dirty = true
+	_toast("%s aufgelöst: %d Fahrzeug%s verkauft, +%s. Die Strecke ist jetzt abreißbar." % [
+		title, list.size(), "" if list.size() == 1 else "e", money_str(refund)], 5.0)
+	_refresh_lines()
+	if selected != null:
+		_refresh_panel()
+	return refund
 
 
 func plan_demolish(a: Vector2i, b: Vector2i) -> Dictionary:
@@ -1590,7 +2109,8 @@ func plan_demolish(a: Vector2i, b: Vector2i) -> Dictionary:
 					continue
 				var used: Dictionary = used_rail if rail else used_road
 				if used.has(c):
-					items.append({"cell": c, "rail": rail, "refund": 0, "state": "bad", "reason": "Von einer Linie befahren – erst Linie entfernen"})
+					items.append({"cell": c, "rail": rail, "refund": 0, "state": "bad", "line": used[c],
+						"reason": "%s fährt hier. Erst links unter „Linien“ auflösen (Papierkorb)." % line_title(used[c])})
 					if reason == "":
 						reason = items[-1]["reason"]
 				else:
@@ -1733,6 +2253,7 @@ func buy_vehicle(type: String):
 		free_trucks_left -= 1
 	charge(price)
 	var v := Vehicle.new()
+	v.paid_cent = price
 	v.vid = next_vid
 	next_vid += 1
 	v.slot = shim.add_vehicle_slot(v.vid)
@@ -1862,12 +2383,16 @@ func _update_cursor_label() -> void:
 	cursor_box.position = cam.unproject_position(world) + Vector2(22, 8)
 	if plan.get("demolish", false):
 		cursor_cost.text = "Abriss: %d Felder  +%s (50 %%)" % [plan["count"], money_str(plan["refund"])]
-		cursor_cost.modulate = _pal("status_warn", 1.0)
-		cursor_reason.text = plan["reason"]
+		cursor_cost.add_theme_color_override("font_color", ThemeBuilder.C["status_warn"])
+		cursor_reason.text = Kit.txt(plan["reason"])
+		cursor_reason.visible = plan["reason"] != ""
+		cursor_box.reset_size()
 		return
 	cursor_cost.text = "%s: %d Felder  %s" % ["Gleis" if plan["rail"] else "Straße", plan["new_count"], money_str(plan["total"])]
-	cursor_cost.modulate = Color(1, 1, 1) if plan["ok"] else _pal("status_bad", 1.0)
-	cursor_reason.text = "" if plan["ok"] else "✖ " + plan["reason"]
+	cursor_cost.add_theme_color_override("font_color", ThemeBuilder.C["cream"] if plan["ok"] else ThemeBuilder.C["status_bad"])
+	cursor_reason.text = "" if plan["ok"] else Kit.txt(plan["reason"])
+	cursor_reason.visible = not plan["ok"]
+	cursor_box.reset_size()
 
 
 # ---------------------------------------------------------------- Simulation
@@ -1921,9 +2446,11 @@ func _go_bankrupt() -> void:
 	_refresh_speed_buttons()
 	_set_tool(Tool.NONE)
 	bankrupt_panel.visible = true
-	bankrupt_label.text = "Kasse %s nach %s Spielzeit. Ohne Kredit (ab Sprint 5) ist ein Konto unter 0 $ das Ende.\nEinnahmen %s · Ausgaben %s · Fahrzeuge %d (Unterhalt %s/min)." % [
+	if bankrupt_panel.is_inside_tree():
+		UiFx.slide_in(bankrupt_panel, Vector2(0, -20))
+	bankrupt_label.text = Kit.txt("Kasse %s nach %s Spielzeit. Ohne Kredit ist ein Konto unter 0 $ das Ende.\nEinnahmen %s · Ausgaben %s · Fahrzeuge %d (Unterhalt %s/min)." % [
 		money_str(eco.cash_cent), time_str(shim.tick_count), money_str(eco.revenue_total), money_str(expenses_total),
-		vehicles.size(), money_str(running_cost_per_period)]
+		fleet_size(), money_str(running_cost_per_period)])
 	print("BANKROTT tick=%d kasse=%d" % [shim.tick_count, eco.cash_cent])
 
 
@@ -1953,7 +2480,9 @@ func _float_text(pos: Vector3, text: String) -> void:
 	l.font_size = 64
 	l.pixel_size = 0.02
 	l.modulate = _pal("status_ok", 1.0)
-	l.outline_size = 12
+	l.font = ThemeBuilder.font(ThemeBuilder.FONT_TITLE)
+	l.outline_modulate = Color(ThemeBuilder.C["saum"], 0.95)
+	l.outline_size = 14
 	l.position = pos + Vector3(0, 1.5, 0)
 	add_child(l)
 	var tw := create_tween()
@@ -1964,27 +2493,53 @@ func _float_text(pos: Vector3, text: String) -> void:
 # ---------------------------------------------------------------- Anzeige
 
 func _refresh_lines() -> void:
-	var rows := []
-	if not line_order.is_empty():
-		rows.append("Linien (Gewinn pro Minute nach Unterhalt):")
-	for i in mini(line_order.size(), 8):
-		var list: Array = line_groups[line_order[i]]
+	lines_card.visible = company_started and (not line_order.is_empty() or fleet_size() > 0)
+	for key in line_rows.keys():
+		if not line_groups.has(key):
+			line_rows[key]["row"].queue_free()
+			line_rows.erase(key)
+	for i in line_order.size():
+		var key: String = line_order[i]
+		var list: Array = line_groups[key]
 		var v = list[0]
-		var profit := 0.0
+		if not line_rows.has(key):
+			line_rows[key] = _make_line_row(key, v)
+		var r: Dictionary = line_rows[key]
+		r["row"].visible = i < 8
+		var profit := _line_profit(list)
 		var deliv := 0
 		var warn := false
 		for w in list:
-			profit += w.profit_per_minute(month_ticks)
 			deliv += w.deliveries
 			warn = warn or w.no_licence
-		rows.append("  %s ×%d  %s → %s  (%d Felder, %d Lieferungen)   %+d $/min%s" % [v.kind_name, list.size(), v.src.display_name,
-			v.dst.display_name, v.distance, deliv, int(profit), "  ⚠ keine Lizenz" if warn else ""])
+		r["sub"].text = Kit.txt("×%d · %d Felder · %d Lieferungen%s" % [list.size(), v.distance, deliv, " · keine Lizenz!" if warn else ""])
+		r["sub"].theme_type_variation = "LabelBad" if warn else "LabelMuted"
+		r["val"].text = "%+d $" % int(profit)
+		r["val"].add_theme_color_override("font_color", ThemeBuilder.C["ok_text"] if profit > 0 else (ThemeBuilder.C["bad_text"] if profit < 0 else ThemeBuilder.C["muted"]))
+	var rows := []
 	if line_order.size() > 8:
-		rows.append("  … %d weitere Linien" % (line_order.size() - 8))
-	var idle := vehicles.size() - n_assigned
+		rows.append("… %d weitere Linien" % (line_order.size() - 8))
+	var idle := fleet_size() - n_assigned
 	if idle > 0:
-		rows.append("  %d Fahrzeuge ohne Linie (Unterhalt läuft)" % idle)
-	lines_label.text = "\n".join(rows)
+		rows.append("%d Fahrzeuge ohne Linie (Unterhalt läuft)" % idle)
+	lines_label.text = Kit.txt("\n".join(rows))
+	lines_label.visible = not rows.is_empty()
+
+
+func _make_line_row(key: String, v) -> Dictionary:
+	var title := Kit.label("%s › %s" % [v.src.display_name, v.dst.display_name], "")
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	var sub := Kit.label("", "LabelMuted")
+	var tv := Kit.vbox(0, [title, sub])
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var val := Kit.label("", "LabelValue")
+	var del := Kit.button("", "ButtonGhost", "abriss", func(): remove_line(key))
+	del.tooltip_text = "Linie auflösen: Fahrzeuge verkaufen (+50 % Kaufpreis), Ladung geht verloren. Danach ist die Straße abreißbar."
+	del.add_theme_constant_override("icon_max_width", 16)
+	var row := Kit.hbox(8, [Kit.icon("zug" if v.type == "train" else "lkw", 20, ThemeBuilder.C["muted"]), tv, val, del])
+	lines_box.add_child(row)
+	return {"row": row, "title": title, "sub": sub, "val": val, "del": del}
 
 
 func _building_label(b) -> String:
@@ -1997,7 +2552,7 @@ func _building_label(b) -> String:
 			return "%s\n(Kulisse)" % b.display_name
 		Building.Kind.SINK:
 			return "%s\nnimmt %s" % [b.display_name, _goods_txt(b.in_goods)]
-	var lic := "✔ Lizenz" if eco.licence_valid(b.site) else "Klick: Lizenz"
+	var lic := "Lizenz aktiv" if eco.licence_valid(b.site) else "ohne Lizenz"
 	if b.kind == Building.Kind.PROCESSOR:
 		var buf: Dictionary = eco.s_inbuf[b.site]
 		var n_in := 0
@@ -2010,7 +2565,7 @@ func _building_label(b) -> String:
 func _refresh_labels() -> void:
 	eco.sync_all(shim)
 	for b in buildings:
-		b.label.text = _building_label(b)
+		b.label.text = Kit.txt(_building_label(b))
 		if b.site >= 0 and b.is_industry():
 			b.licence_marker.visible = eco.licence_valid(b.site)
 
@@ -2133,6 +2688,12 @@ func _process(delta: float) -> void:
 		toast_time -= delta
 		if toast_time <= 0.0:
 			toast_label.text = ""
+			if toast_panel.visible:
+				UiFx.slide_out(toast_panel, Vector2(0, -16))
+	if toast_label.text == "" and toast_panel.visible:
+		var tw: Tween = toast_panel.get_meta("slide_tw") if toast_panel.has_meta("slide_tw") else null
+		if tw == null or not tw.is_running():
+			toast_panel.visible = false
 	_move_camera(delta)
 	var ms := maxf(1.0, zoom / 1.4)          # Marker wächst beim Rauszoomen mit (S-08 marker)
 	for m in goal_markers:
@@ -2155,16 +2716,28 @@ func _process(delta: float) -> void:
 		hover_marker.position = Vector3(hover_cell.x + 0.5, 0.05, hover_cell.y + 0.5)
 
 	var cpm := running_cost_per_period * month_ticks / periode_ticks
-	info_label.text = "Kasse: %s    Einnahmen: %s    Kosten: %s/min    Fahrzeuge: %d    Spielzeit %s    Werkzeug: %s" % [
-		money_str(eco.cash_cent), money_str(eco.revenue_total), money_str(cpm), vehicles.size(), time_str(shim.tick_count), TOOL_NAMES[tool]]
-	info_label.modulate = _pal("status_bad", 1.0) if eco.cash_cent < cpm * 2 else Color(1, 1, 1)
+	if not company_started:
+		for k in hud_vals:
+			hud_vals[k].text = "–"
+	else:
+		_update_hud(cpm)
 	_update_hint()
+	hint_label.text = Kit.txt(hint_label.text)
 	_update_cursor_label()
+
+
+func _update_hud(cpm: int) -> void:
+	hud_vals["kasse"].text = money_str(eco.cash_cent)
+	hud_vals["kasse"].add_theme_color_override("font_color", ThemeBuilder.C["status_bad"] if eco.cash_cent < cpm * 2 else ThemeBuilder.C["cream"])
+	hud_vals["einnahmen"].text = money_str(eco.revenue_total)
+	hud_vals["kosten"].text = money_str(cpm) + "/min"
+	hud_vals["fahrzeuge"].text = str(fleet_size())
+	hud_vals["zeit"].text = time_str(shim.tick_count)
 
 
 func _update_hint() -> void:
 	if not company_started:
-		hint_label.text = "Wähle oben deinen Start: Agrar oder Bergbau."
+		hint_label.text = "Wähle deinen Start: Agrar oder Bergbau."
 		return
 	match tool:
 		Tool.ROAD, Tool.RAIL:
@@ -2190,7 +2763,7 @@ func _update_hint() -> void:
 			else:
 				hint_label.text = "%s-Linie ab %s: Ziel anklicken. Quelle und Ziel müssen per %s verbunden sein." % [vname, line_src.display_name, need]
 		_:
-			hint_label.text = "Klick auf Gebäude = Panel (Lizenz) · WASD bewegen · Q/E drehen · Mausrad zoomen · [1] Straße · [2] Gleis · [3] Lager · [4] Lkw · [5] Zug · [X] Abriss · Leertaste Pause"
+			hint_label.text = "Klick auf Gebäude: Infos und Lizenz  ·  WASD bewegen  ·  Q/E drehen  ·  Mausrad zoomen  ·  Leertaste Pause"
 
 
 func _move_camera(delta: float) -> void:

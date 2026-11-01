@@ -22,6 +22,8 @@ var prog := 0.0                # Position entlang path (in Feldern)
 var state := State.IDLE
 var cap := 10
 var speed := 0.6               # Felder je Tick (tempo_mm_pro_tick / feld_mm)
+var speed_mm := 600            # BUG-7: Fahrkosten-Zähler in ganzen mm wie der SoA-Kern (kein Float-Drift)
+var feld_mm := 1000
 var load_ticks := 100
 var max_wait_ticks := 50
 var fix_cent := 0              # je Periode
@@ -30,7 +32,7 @@ var wait := 0
 var timer := 0
 var no_licence := false        # wartet an einer Quelle ohne gültige Lizenz
 var leave_empty := false       # nur Bench: ohne Ladung weiterfahren statt warten
-var field_acc := 0.0
+var field_acc := 0             # mm seit dem letzten bezahlten Feld (BUG-7: int statt float)
 var age_ticks := 0
 var income_total := 0          # Cent
 var var_cost_total := 0        # Cent Fahrkosten (Unterhalt wird aus age_ticks gerechnet)
@@ -71,22 +73,22 @@ func tick(m) -> void:
 	# schneller Pfad: fahren (die meisten Fahrzeuge in den meisten Ticks)
 	if state == State.TO_DST:
 		prog += speed
-		field_acc += speed
-		if field_acc >= 1.0:
+		field_acc += speed_mm
+		if field_acc >= feld_mm:
 			_pay_fields(m)
 		if prog >= path_end:
-			field_acc -= prog - path_end
+			field_acc -= roundi((prog - path_end) * feld_mm)
 			prog = path_end
 			state = State.UNLOADING
 			timer = maxi(1, load_ticks * cargo(m) / cap)
 		return
 	if state == State.TO_SRC:
 		prog -= speed
-		field_acc += speed
-		if field_acc >= 1.0:
+		field_acc += speed_mm
+		if field_acc >= feld_mm:
 			_pay_fields(m)
 		if prog <= 0.0:
-			field_acc += prog
+			field_acc += roundi(prog * feld_mm)
 			prog = 0.0
 			state = State.LOADING
 			wait = 0
@@ -144,8 +146,8 @@ func tick(m) -> void:
 
 ## Fahrkosten je ganz gefahrenem Feld (vehicles.json variabel_cent_pro_feld).
 func _pay_fields(m) -> void:
-	var whole := int(field_acc)
-	field_acc -= whole
+	var whole := field_acc / feld_mm
+	field_acc -= whole * feld_mm
 	var c := whole * var_cent_per_field
 	m.charge(c)
 	var_cost_total += c

@@ -7,6 +7,9 @@ extends RefCounted
 ## ANNAHME (nicht im JSON, Schema ist additionalProperties:false -> Vorschlag an Tobias): Schrittweite
 ## STEP_CENT = 500 $ (Genre: feste Kreditschritte; 4 Schritte bis zum Rahmen von 2.000 $).
 ## Zins: am Ende jeder Periode rdiv(offen × Zins‰, 1000), Rundung halb auf wie economy.gd.
+## BUG-8 (S5): „offen“ ist zeitgewichtet, d. h. der Durchschnitt des offenen Betrags über die Ticks der
+## Periode: rdiv(Σ offen×Ticks × Zins‰, 1000 × periode_ticks). Integriert wird nur bei Aufnahme, Tilgung
+## und Periodenende (kein Aufwand je Tick). Volle Periode offen = unveränderter Festzins.
 ## Bankrott bleibt: Kasse < 0 $ (der Kredit muss vorher aufgenommen werden, Genre wie TTD).
 
 const STEP_CENT := 50000
@@ -19,6 +22,10 @@ var periode_ticks := 600
 var loan_cent := 0
 var interest_paid := 0
 var borrowed_total := 0
+var _acc := 0                  # BUG-8: Σ offen × Ticks (Cent·Ticks) seit Periodenbeginn
+var _acc_tick := 0             # bis zu diesem Tick integriert
+var _due_tick := -1            # letzte Fälligkeit (interest_due mehrfach im selben Tick = gleicher Wert)
+var _due_val := 0
 
 
 func setup(eco) -> void:
@@ -46,26 +53,40 @@ func borrow(eco, tick: int) -> int:
 	var a := borrow_amount(tick)
 	if a <= 0:
 		return 0
+	_accrue(tick)
 	loan_cent += a
 	borrowed_total += a
 	eco.cash_cent += a
 	return a
 
 
-func repay(eco) -> int:
+func repay(eco, tick: int) -> int:
 	var a := repay_amount(eco.cash_cent)
 	if a <= 0:
 		return 0
+	_accrue(tick)
 	loan_cent -= a
 	eco.cash_cent -= a
 	return a
 
 
-## Zins dieser Periode (am Periodenende fällig), 0 sonst.
+func _accrue(tick: int) -> void:
+	_acc += loan_cent * maxi(0, tick - _acc_tick)
+	_acc_tick = tick
+
+
+## Zins dieser Periode (am Periodenende fällig, zeitgewichtet), 0 sonst. Schließt die Periode ab.
 func interest_due(tick: int) -> int:
-	if loan_cent <= 0 or tick % periode_ticks != 0:
+	if tick % periode_ticks != 0:
 		return 0
-	return (loan_cent * interest_pm + 500) / 1000
+	if tick == _due_tick:
+		return _due_val
+	_accrue(tick)
+	var den := 1000 * periode_ticks
+	_due_val = (_acc * interest_pm + den / 2) / den
+	_due_tick = tick
+	_acc = 0
+	return _due_val
 
 
 func interest_per_period() -> int:

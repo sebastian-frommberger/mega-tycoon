@@ -54,9 +54,24 @@ static func txt(s: String) -> String:
 	return s.replace("→", "›").replace("–", "—").replace("−", "-").replace("≈", "ca.").replace("✔ ", "").replace("⚠ ", "")
 
 
+## D-07 BUG-3: Kenney Future hat kein × (zeigte „H“, auch ein „x“ sieht dort aus wie H). Steht ein × im Text eines Knopfes oder
+## Kenney-Labels, setzt dieses Control stattdessen Poppins (hat ×) als Schrift; sonst bleibt alles im Theme.
+const KENNEY_LABEL_TYPES := ["LabelHero", "LabelTitle", "LabelValue", "LabelCaps", "LabelWoodTitle", "LabelHud", "LabelBadge", "LabelHeroWood", "LabelAmber"]
+
+static func txt_kenney(s: String) -> String:
+	return txt(s)
+
+
+static func glyph_font(c: Control, s: String) -> void:
+	if s.contains("×"):
+		c.add_theme_font_override("font", TB.font(TB.FONT_BODY))
+
+
 static func label(text: String, type := "", wrap := false) -> Label:
 	var l := Label.new()
 	l.text = txt(text)
+	if type in KENNEY_LABEL_TYPES:
+		glyph_font(l, l.text)
 	if type != "":
 		l.theme_type_variation = type
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -68,6 +83,7 @@ static func label(text: String, type := "", wrap := false) -> Label:
 static func button(text: String, type := "ButtonSecondary", icon_name := "", cb := Callable()) -> Button:
 	var b := Button.new()
 	b.text = txt(text)
+	glyph_font(b, b.text)
 	b.theme_type_variation = type
 	b.focus_mode = Control.FOCUS_NONE
 	if icon_name != "":
@@ -76,6 +92,8 @@ static func button(text: String, type := "ButtonSecondary", icon_name := "", cb 
 	if cb.is_valid():
 		b.pressed.connect(cb)
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	if type == "ButtonClose":
+		b.custom_minimum_size = Vector2(32, 32)       # D-07 BUG-6: Schließen-X Klickziel >= 24 px (32 px)
 	return b
 
 
@@ -107,11 +125,16 @@ static func set_price_button(b: Button, icon_name: String, l1: String, l2: Strin
 	b.text = txt(l1 + "\n" + l2)
 	parts[0].texture = icon_tex(icon_name)
 	parts[1].text = txt(l1)
+	glyph_font(parts[1], parts[1].text)
 	parts[2].text = txt(l2)
-	var col: Color = TB.C["disabled_fg"] if disabled else TB.C["ink"]
+	var col: Color = TB.C["disabled_price"] if disabled else TB.C["ink"]
 	parts[0].modulate = col
 	parts[1].add_theme_color_override("font_color", col)
 	parts[2].add_theme_color_override("font_color", col)
+	# D-07 BUG-5: Knopf wächst mit dem Inhalt (Icon 28 + 12 + Ränder 30 + Luft), ragt nie aus der Fläche
+	var f := TB.font(TB.FONT_TITLE)
+	var need := 28.0 + 12.0 + 30.0 + 6.0 + maxf(f.get_string_size(parts[1].text, HORIZONTAL_ALIGNMENT_LEFT, -1, TB.SIZE_VALUE).x, TB.font(TB.FONT_BODY).get_string_size(parts[2].text, HORIZONTAL_ALIGNMENT_LEFT, -1, TB.SIZE_LABEL).x)
+	b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, need)
 
 
 static func status(kind: String, px := 14) -> Control:
@@ -187,7 +210,8 @@ static func force_state(b: Button, state: String, th: Theme) -> void:
 			b.add_theme_stylebox_override("pressed", sbx)
 			var col_key := "font_hover_color" if state == "hover" else "font_pressed_color"
 			var col: Color = th.get_color(col_key, type)
-			for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-				b.add_theme_color_override(k, col)
+			if not b.has_meta("pb"):          # D-07 BUG-5: Preisknopf zeichnet Text über eigene Labels; Button.text bleibt unsichtbar (sonst doppelt)
+				for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+					b.add_theme_color_override(k, col)
 			for k in ["icon_normal_color", "icon_hover_color", "icon_pressed_color"]:
 				b.add_theme_color_override(k, col)

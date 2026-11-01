@@ -990,7 +990,7 @@ func _setup_hud() -> void:
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	bar.offset_bottom = HUD_H
 	ui_root.add_child(bar)
-	var h := Kit.hbox(10)
+	var h := Kit.hbox(8)      # D-07: 8-px-Raster, Kopfleiste passt auch mit breiten Zahlen in 1600 px
 	bar.add_child(h)
 	var logo := Kit.label("MEGA TYCOON", "LabelAmber")
 	logo.add_theme_font_size_override("font_size", ThemeBuilder.SIZE_VALUE)
@@ -1020,7 +1020,7 @@ func _setup_hud() -> void:
 			b = Kit.button("%d×" % s, "ButtonTempo", "play" if s == 1 else "tempo", func(): set_speed(s))
 			b.tooltip_text = "Tempo %d×" % s
 		b.toggle_mode = true
-		b.custom_minimum_size = Vector2(44 if s == 0 else 60, 34)
+		b.custom_minimum_size = Vector2(44 if s == 0 else 56, 34)
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		seg.add_child(b)
 		speed_buttons.append([s, b])
@@ -1039,7 +1039,6 @@ func _style_map_labels() -> void:
 		l.outline_modulate = Color(ThemeBuilder.C["ink"], 0.92)
 		l.outline_size = 7
 		l.line_spacing = -4.0
-		l.offset = Vector2(0, 34 if b.kind == Building.Kind.CITY else 48)        # über das Gebäude heben, damit Text nicht auf der Dachfläche liegt
 	_update_label_lod(true)
 
 
@@ -1064,6 +1063,62 @@ func _update_label_lod(force := false) -> void:
 	if tier != label_tier or force:
 		label_tier = tier
 		_refresh_label_text()
+	_place_map_labels()          # nach dem Textwechsel, damit die HUD-Prüfung die echte Zeilenzahl sieht
+
+
+## D-07 BUG-4: Label sitzt unter dem Gebäude (oberer Textrand knapp unter der untersten Fußabdruck-Ecke, Bildschirm-px),
+## damit weder Gebäude noch gelber Zielpfeil verdeckt werden; Labels, die ein HUD-Panel (oder die Hinweisleiste) berühren,
+## werden ausgeblendet statt unter dem HUD durchzuscheinen/abgeschnitten zu werden.
+func _place_map_labels() -> void:
+	if cam == null or ui_root == null:
+		return
+	var vp := get_viewport().get_visible_rect().size
+	var kscale := vp.y / 900.0 * 560.0       # Bildschirm-px je Label-Einheit = pixel_size * kscale (gemessen bei 900 px Höhe)
+	var hud: Array[Rect2] = []
+	_collect_hud_rects(ui_root, 0, hud)
+	for b in buildings:
+		var l: Label3D = b.label
+		if not l.visible:
+			continue
+		var c: Vector3 = b.position
+		if cam.is_position_behind(c):
+			l.visible = false
+			continue
+		var pc := cam.unproject_position(c)
+		var bottom := pc.y
+		if b.custom_cells.is_empty():
+			for dx in [0.0, 1.0]:
+				for dz in [0.0, 1.0]:
+					var corner := Vector3(b.cell.x + b.footprint.x * dx, 0.0, b.cell.y + b.footprint.y * dz)
+					if not cam.is_position_behind(corner):
+						bottom = maxf(bottom, cam.unproject_position(corner).y)
+		else:          # Stadt: nur die bebauten Zellen zählen, nicht das ganze 9x9-Rechteck
+			for cc in b.custom_cells:
+				var corner := Vector3(cc.x + 0.5, 0.0, cc.y + 1.0)
+				if not cam.is_position_behind(corner):
+					bottom = maxf(bottom, cam.unproject_position(corner).y)
+		var k := l.pixel_size * kscale
+		var off := -(bottom - pc.y + 5.0) / k
+		if absf(l.offset.y - off) > 0.4:
+			l.offset = Vector2(0, off)
+		var fpx := l.font_size * k
+		var lines := l.text.split("\n")
+		var wmax := 0
+		for ln in lines:
+			wmax = maxi(wmax, ln.length())
+		var r := Rect2(pc.x - wmax * fpx * 0.29, bottom + 5.0, wmax * fpx * 0.58, lines.size() * fpx * 1.4)
+		for h in hud:
+			if r.intersects(h.grow(4.0)):
+				l.visible = false
+				break
+
+
+func _collect_hud_rects(n: Node, depth: int, out: Array[Rect2]) -> void:
+	for c in n.get_children():
+		if c is PanelContainer and c.visible and c.size.x > 8.0:
+			out.append(c.get_global_rect())
+		elif c is Control and c.visible and depth < 2:
+			_collect_hud_rects(c, depth + 1, out)
 
 
 func _label_lod_text(b) -> String:
@@ -1120,7 +1175,7 @@ func ui_credit_borrow() -> int:
 func ui_credit_repay() -> int:
 	if not company_started or bankrupt:
 		return 0
-	var a: int = credit.repay(eco)
+	var a: int = credit.repay(eco, shim.tick_count)
 	if a > 0:
 		_toast("Kredit getilgt: -%s. Offen %s." % [money_str(a), money_str(credit.loan_cent)], 3.0)
 	elif credit.loan_cent > 0:
@@ -2494,6 +2549,7 @@ func buy_vehicle(type: String):
 	else:
 		v = Vehicle.new()
 		v.slot = shim.add_vehicle_slot(next_vid)
+		v.feld_mm = feld_mm
 		v.vid = next_vid
 	v.paid_cent = price
 	next_vid += 1
@@ -2506,8 +2562,7 @@ func buy_vehicle(type: String):
 		v.kind_name = "Zug"
 		v.cap = TRAIN_WAGONS * int(wag["kapazitaet_einheiten"])
 		v.speed = float(lok["tempo_mm_pro_tick"]) / feld_mm
-		if fleet != null:
-			v.speed_mm = int(lok["tempo_mm_pro_tick"])
+		v.speed_mm = int(lok["tempo_mm_pro_tick"])
 		v.fix_cent = int(lok["fix_cent_pro_periode"]) + TRAIN_WAGONS * int(wag["fix_cent_pro_periode"])
 		v.var_cent_per_field = int(lok["variabel_cent_pro_feld"]) + TRAIN_WAGONS * int(wag["variabel_cent_pro_feld"])
 		v.max_wait_ticks = TRAIN_MAX_WAIT_TICKS
@@ -2516,8 +2571,7 @@ func buy_vehicle(type: String):
 		v.kind_name = "Lkw"
 		v.cap = int(d["kapazitaet_einheiten"])
 		v.speed = float(d["tempo_mm_pro_tick"]) / feld_mm
-		if fleet != null:
-			v.speed_mm = int(d["tempo_mm_pro_tick"])
+		v.speed_mm = int(d["tempo_mm_pro_tick"])
 		v.fix_cent = int(d["fix_cent_pro_periode"])
 		v.var_cent_per_field = int(d["variabel_cent_pro_feld"])
 		v.max_wait_ticks = TRUCK_MAX_WAIT_TICKS
@@ -2788,8 +2842,15 @@ func _make_line_row(key: String, v) -> Dictionary:
 	var val := Kit.label("", "LabelValue")
 	var del := Kit.button("", "ButtonGhost", "abriss", func(): remove_line(key))
 	del.tooltip_text = "Linie auflösen: Fahrzeuge verkaufen (+50 % Kaufpreis), Ladung geht verloren. Danach ist die Straße abreißbar."
-	del.add_theme_constant_override("icon_max_width", 16)
-	var row := Kit.hbox(8, [Kit.icon("zug" if v.type == "train" else "lkw", 20, ThemeBuilder.C["muted"]), tv, val, del])
+	del.add_theme_constant_override("icon_max_width", 18)
+	del.custom_minimum_size = Vector2(30, 30)          # D-07 BUG-6: Klickziel >= 24 px (vorher ca. 12 px)
+	del.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	val.custom_minimum_size.x = 56
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 0)             # Platzhalter: zwei Trenner (je 8 px) = 16 px Abstand Text-zu-Gewinn statt 8 px
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := Kit.hbox(8, [Kit.icon("zug" if v.type == "train" else "lkw", 20, ThemeBuilder.C["muted"]), tv, gap, val, del])
 	lines_box.add_child(row)
 	return {"row": row, "title": title, "sub": sub, "val": val, "del": del}
 

@@ -24,7 +24,7 @@ const C := {
 	"cream": Color("#F8EFD9"), "cream_muted": Color("#D9C7A6"),
 	"amber": Color("#FFC21A"), "amber_hover": Color("#FFD452"), "amber_press": Color("#E8A800"), "amber_edge": Color("#B98100"),
 	"danger": Color("#A8392A"), "danger_hover": Color("#BF4634"), "danger_press": Color("#8E2F22"), "danger_edge": Color("#6E2016"),
-	"disabled_bg": Color("#DDD2BA"), "disabled_fg": Color("#8A7A66"), "disabled_edge": Color("#C9BC9F"),
+	"disabled_bg": Color("#DDD2BA"), "disabled_fg": Color("#8A7A66"), "disabled_price": Color("#665443"), "disabled_edge": Color("#C9BC9F"),
 	"ok_text": Color("#24683F"), "warn_text": Color("#8F5300"), "bad_text": Color("#A8392A"),
 	"saum": Color("#0F1720"),
 	"status_ok": Color("#48E08A"), "status_warn": Color("#FFA640"), "status_bad": Color("#FF988A"),
@@ -184,6 +184,9 @@ static func build() -> Theme:
 		_depth(C["amber"], C["amber_edge"], r), _depth(C["amber_hover"], C["amber_edge"], r),
 		_depth(C["amber_press"], C["amber_edge"], r, true), _depth(C["disabled_bg"], C["disabled_edge"], r),
 		C["ink"], C["ink"], C["ink"])
+	# D-07 BUG-5: Primärknopf disabled mit Text >= 4,5:1 (#665443 auf #DDD2BA = 4,8:1, vorher 2,8:1)
+	t.set_color("font_disabled_color", "ButtonPrimary", C["disabled_price"])
+	t.set_color("icon_disabled_color", "ButtonPrimary", C["disabled_price"])
 	var sec_n := _depth(C["paper2"], C["line_dark"], r)
 	var sec_h := _depth(Color("#F3E7CB"), C["amber_edge"], r)
 	var sec_p := _depth(C["paper3"], C["line_dark"], r, true)
@@ -203,11 +206,12 @@ static func build() -> Theme:
 		sb(C["amber"], 10, 2, C["amber_edge"], tm), sb(Color(C["wood2"], 0.5), 10, 2, Color(C["wood3"], 0.5), tm),
 		C["cream"], C["cream"], C["ink"], SIZE_LABEL)
 	t.set_constant("icon_max_width", "ButtonTool", 34)
-	var sm := Vector4(10, 5, 10, 5)
+	var sm := Vector4(8, 5, 8, 5)
 	_button_type(t, "ButtonTempo", sb(C["wood2"], 6, 1, C["wood3"], sm), sb(Color("#6E4F3A"), 6, 1, C["amber"], sm),
 		sb(C["amber"], 6, 1, C["amber_edge"], sm), sb(Color(C["wood2"], 0.45), 6, 1, Color(C["wood3"], 0.4), sm),
 		C["cream"], C["cream"], C["ink"], SIZE_LABEL)
 	t.set_constant("icon_max_width", "ButtonTempo", 18)
+	t.set_constant("h_separation", "ButtonTempo", 5)
 	var cm := Vector4(6, 6, 6, 6)
 	_button_type(t, "ButtonClose", sb(Color(0, 0, 0, 0), 6, 0, Color.TRANSPARENT, cm), sb(Color(1, 1, 1, 0.16), 6, 0, Color.TRANSPARENT, cm),
 		sb(Color(0, 0, 0, 0.25), 6, 0, Color.TRANSPARENT, cm), sb(Color(0, 0, 0, 0), 6, 0, Color.TRANSPARENT, cm),

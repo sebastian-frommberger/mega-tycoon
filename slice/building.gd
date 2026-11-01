@@ -24,8 +24,9 @@ var owned := false             # Lager (eigener Bau)
 var licence_marker: MeshInstance3D
 
 const GREY := Color(0.62, 0.63, 0.66)
-const LABEL_PX_CITY := 0.00098
-const LABEL_PX_IND := 0.00070
+# D-07 BUG-4: ca. 25 % kleiner (Stadt ~14 px, Industrie ~11 px bei 900 px Höhe); k = Bildschirm-px je Label-Einheit ~ pixel_size * 560
+const LABEL_PX_CITY := 0.00080
+const LABEL_PX_IND := 0.00064
 
 
 func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_color: Color, p_height: float) -> void:
@@ -47,13 +48,16 @@ func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_
 	# Stil (Font, Farbe, Saum) setzt main._style_map_labels, Ausblendung nach Zoom main._update_label_lod.
 	label = Label3D.new()
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
+	label.no_depth_test = true       # Boden/Wege verdecken den Text sonst; HUD-Überdeckung löst main._place_map_labels (Ausblenden)
+	label.render_priority = -1       # Weltlabels hinter Zielpfeil und Fähnchen (Saum noch eine Stufe dahinter)
+	label.outline_render_priority = -2
+	label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	label.font_size = 40
 	label.fixed_size = true          # Bildschirmgröße unabhängig vom Zoom (Lesbarkeit bei 512²)
 	label.pixel_size = LABEL_PX_CITY if kind == Kind.CITY else LABEL_PX_IND
 	label.outline_size = 7
 	label.line_spacing = -4.0
-	label.position = Vector3(0, height + 1.2, 0)
+	label.position = Vector3(0, 0.05, 0)    # D-07 BUG-4: Text UNTER dem Gebäude (Versatz je Frame in main._place_map_labels), Pfeil/Fähnchen oben frei
 	add_child(label)
 
 	# Lizenz-Fähnchen (Palette S-08 status_ok mit Saum)

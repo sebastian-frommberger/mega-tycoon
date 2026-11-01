@@ -1,0 +1,47 @@
+## To-dos Sophie Martin (Art Director / Technical Artist)
+
+Grundlage: concept/sophie.md (Art Direction), city.md (Stadt-Signale), industry.md (Silhouetten, Welt-Icons), felix.md (MultiMesh, Strecken-Chunks, LOD).
+
+### M0 Pre-Production (02.–27.11.2026)
+
+- [ ] **Maßstabsband-Szene bauen** – Godot-Referenzszene `art/reference/massstabsband.tscn` mit Graubox-Proxies auf 1 Feld = 10 m: Baumgruppe, Wohnhaus 1×1/1×2, Straße, Doppelgleis, Lkw, Zug (8 und 20 Felder), Fabrik 8×8 und 15×15, Farmfeld 30×30, Kleinstadt 30×30, Metropole 100×100; Screenshots aus allen drei Zoomstufen im Wiki; Regel „kein Asset ohne Abgleich“ im Asset-Pipeline-Dokument · Aufwand 3 PT · bis 11.11. · braucht: Felix (Kartengröße 1.024×1.024 und Chunk-Raster bestätigt)
+- [ ] **Look-Test Diorama vs. Karte mit Zoom-Umschaltung** – Testszene mit 1 Stadt, 2 Industrien, Strecke und 200 MultiMesh-Quadern; Kamera schaltet bei < 150 m / 150–800 m / > 800 m zwischen Diorama, Betrieb und Karte (Shader-Parameter `map_blend`, Entsättigung, Netz-Verbreiterung, Silhouetten-Icons); weicher Übergang ohne Popping; 2-Minuten-Video für das Gate · Aufwand 5 PT · bis 20.11. · braucht: Felix (MultiMesh-Spike-Szene, LOD/visibility_range), Aylin (Overlay-Ebene ab „Mittel“)
+- [ ] **Kamera, Nebel, Licht festlegen** – Kamera-Preset (FOV 40°, Neigung 30° nah → 70° Karte als Kurve über Höhe), Höhennebel + Luftperspektive (Ferne bläulich, entsättigt), Sonne schräg, weiche Schatten nur in Nah, SSAO an/aus-Vergleich mit FPS-Kosten; Werte als `.tres`-Environment im Repo · Aufwand 3 PT · bis 20.11. · braucht: Felix (Performance-Budget GPU in ms)
+- [ ] **Farbatlas und Güterpalette v1** – eine 256×256-Palette-Textur (Flat-Shading) mit Terrain ≤ 35 % Sättigung, Spielerfarbe Signalorange, 7 Güterfamilien-Farben, Endprodukte heller als Rohstoffe, KI-Netz gedeckt; Palette als Swatch-Datei für Figma/Aylin · Aufwand 2 PT · bis 18.11. · braucht: Tobias (Güterliste mit Familien für 10 Ketten)
+- [ ] **Farbsehschwäche-Prüfung der Palette** – alle Güter- und Statusfarben durch Simulator (Deuteranopie, Protanopie, Tritanopie); jedes Gut hat Piktogramm-Platzhalter und Kartenmuster (Streifen/Punkte/Raster), Status als Kreis/Dreieck/Achteck; Prüfprotokoll mit Paaren, die kollidieren, und Fix · Aufwand 2 PT · bis 25.11. · braucht: Daniel (Aufnahme in QA-Checkliste), Aylin (Statusformen in UI)
+- [ ] **Silhouetten-Sheet Industrien** – schwarze Schattenrisse auf 64 px für alle 11 Industrietypen (Rundsilo, Windmühle/Siloturm, Förderturm, Hochofen, Kühlturm, Portalkran …) plus Ausbaustufen 1–4 (Halle, Förderband, Schornstein); Blindtest mit 5 Teamkollegen, Ziel ≥ 90 % richtig erkannt · Aufwand 3 PT · bis 25.11. · braucht: Lena/Tobias (finale Industrieliste für Release)
+- [ ] **Asset-Liste Vertical Slice** – Tabelle aller VS-Assets (Konzept §7) mit Polygon-Budget, LOD-Stufen, Karten-Icon ja/nein, Verantwortlich (Sophie/3D-Artist/Outsourcing), PT-Schätzung und Reihenfolge; abgestimmt mit Katrin als Teil des Gate-Pakets · Aufwand 2 PT · bis 25.11. · braucht: Katrin (Budget, Starttermin 3D-Artist)
+- [ ] **Stellenprofil und Testaufgabe 3D-Artist** – Ausschreibung (Low-Poly, Flat-Shading, Godot-Import, Modularität), Testaufgabe „Mühle Stufe 1–2 nach Maßstabsband“, Bewertungsraster; Ausschreibung live, erste Gespräche terminiert · Aufwand 2 PT · bis 13.11. · braucht: Katrin (Freigabe Stelle, Budget)
+- [ ] **Audio-Konzept und Outsourcing-Anfrage** – 1-seitiges Audio-Briefing (Ambient-Schichten, UI-Cues, Warnton mit Richtung, epochengebundene Musik) und Angebotsanfrage an 2–3 Audio-Freelancer für VS-Umfang (1 Ambient, 10 Sounds, 1 Musikstück) · Aufwand 1 PT · bis 27.11. · braucht: Katrin (Audio-Budget)
+
+### M1 Vertical Slice (30.11.2026–26.03.2027)
+
+- [ ] **3D-Artist einstellen und onboarden** – Vertrag bis 18.12., Start spätestens 04.01.; Onboarding-Paket (Maßstabsband, Farbatlas, Asset-Liste, Import-Pipeline, Benennungskonvention) · Aufwand 3 PT · bis 08.01. · braucht: Katrin (Vertrag), Neueinstellung 3D-Artist
+- [ ] **Terrain-Shader** – Gras, Fels, Sand, Wasser per Splat/Höhe, Höhennebel integriert, Kartenmodus-Variante (flach, entsättigt) im selben Shader; läuft auf 1.024×1.024-Karte in Chunks ohne Nahtfehler · Aufwand 6 PT · bis 18.12. · braucht: Felix (Terrain-Chunk-System)
+- [ ] **Spline-Meshes Straße und Gleis (mit Felix)** – modulare Querschnittsprofile für Straße (2-spurig), Gleis (0,5 Feld), Brücke, Kreuzung, Weiche; UV-Konvention für Atlas, Endkappen, Kurvenglättung im 45°-Raster sauber; Felix baut sie per `SurfaceTool` pro Chunk zusammen; Kartenmodus: Netz als dicke Linie in Firmenfarbe · Aufwand 8 PT · bis 15.01. · braucht: Felix (Spline-Kanten-Datenmodell, Chunk-Builder, gemeinsamer Termin KW 49)
+- [ ] **Karten-Rendermodus produktiv** – Shader-Umschaltung nach Zoom für alle VS-Assets, Industrie-Silhouetten-Icons mit Füllring, Stufenpunkten und Besitzrand (Lizenz gestrichelt, Besitz voll), Güterfluss-Pfeilbänder mit Muster · Aufwand 6 PT · bis 15.01. · braucht: Felix (Fahrzeug-LOD zu Punkten), Aylin (Icon-Format Pin/Füllring)
+- [ ] **Ghost-Material für Bau-Tool** – Blau baubar, Gelb mit Schraffur teuer/außerhalb Einfluss, Rot mit Kreuz unmöglich; Shader-Parameter für Bau-Tool, farbsehschwäche-geprüft · Aufwand 2 PT · bis 18.12. · braucht: Felix/Neueinstellung Tools-Programmierung (Bau-Tool-Zustände)
+- [ ] **Industrien Vertical Slice** – Farm, Mühle, Mine, Stahlwerk, Kraftwerk, Lager/Umschlag, je Stufe 1–2, LOD0/LOD1, Lagergut-Halden in Güterfarbe mit Mengenstufen, Firmenschild für Lizenz, Familien-Akzent · Aufwand 8 PT (Review/Shader; Modelling 3D-Artist) · bis 05.03. · braucht: Neueinstellung 3D-Artist (Modelling), Tobias (Lagerbestands-Schwellen)
+- [ ] **Stadt-Assets und Stadt-Signale** – 6 Wohnmodule, 2 Gewerbe, 1 Bahnhof (Ausbau 3 Stufen), Aufstockungsteile Epoche 2; Signale: Markisen/Laternen/Kräne bei Versorgung, Graustufung per Shader bei Unterversorgung und Verschmutzung, Gerüst am Stadtrand beim Stufen-Tor · Aufwand 6 PT · bis 26.02. · braucht: Neueinstellung 3D-Artist (Modelling), Lena (Stadt-Zustände als Datenfelder)
+- [ ] **Bäume und Wald-Scatter** – 3 Arten × 2 LOD als MultiMesh, Scatter-Tool mit Gruppen/Wäldern (keine Einzelbäume im Raster), Freistellen unter Strecken und Gebäuden · Aufwand 4 PT · bis 29.01. · braucht: Felix (MultiMesh-Pool, Kollisionsabfrage Netz)
+- [ ] **Fahrzeuge und Ladegut** – 2 Lkw, 1 Lok, 3 Wagen (offen, Silo, Tank), 1 Bus, Ladegut über Instanzfarbe (`use_colors`), Patina-Parameter `age`; Polygonbudget so, dass 10.000 Instanzen im Benchmark halten · Aufwand 4 PT · bis 12.02. · braucht: Neueinstellung 3D-Artist (Modelling), Felix (Benchmark-Lauf)
+- [ ] **Signal-Asset und Statusformen** – Blocksignal mit 2 Zuständen, gut lesbar in Nah und Mittel; Statusformen Kreis/Dreieck/Achteck in Welt und Karte · Aufwand 2 PT · bis 15.01. · braucht: Felix (Signalzustand im Snapshot)
+- [ ] **Güter-Piktogramme und Musteratlas** – 12 Piktogramme (SVG + Atlas), Musteratlas für Kartenbänder, an Aylin übergeben · Aufwand 3 PT · bis 15.01. · braucht: Aylin (Icon-Größen im HUD)
+- [ ] **Audio-Platzhalter und Outsourcing VS** – sofort Platzhalter aus lizenzfreier Bibliothek für alle 10 UI-/Feedback-Cues im Build (bis 15.01.); Freelancer beauftragt, finale Lieferung Ambient-Loop mit Zoom-Überblendung, 10 Sounds, 1 Musikstück bis 12.03., integriert · Aufwand 3 PT · bis 12.03. · braucht: Katrin (Vertrag), Felix (Audio-Bus, Zoom-Parameter)
+- [ ] **Art-Pass und Performance-Check für externen Playtest** – alle VS-Assets gegen Maßstabsband geprüft, LOD-Übergänge im Nebel versteckt, FPS-Ziel auf Mindest-Hardware gehalten, Farbsehschwäche-Presets im Optionsmenü · Aufwand 4 PT · bis 19.03. · braucht: Daniel (Testlauf Mindest-Hardware + Simulator-Check), Felix (Profiler)
+
+### M2–M4 (grob)
+
+- [ ] **Epochen-Materialsets und Color Grading** – Materialsets Epoche 2–4 (Beton/Stahl → Glas), Aufstockungsmodule, Grading-Shift Sepia → neutral → kühl, Tageszeit-Zyklus mit Nachtlicht der Städte · Aufwand 20 PT · bis 25.06.2027 · braucht: 3D-Artist (Modelling)
+- [ ] **Release-Content Art** – restliche Industrien (11 Silhouetten, Stufe 1–4), Schiff/Straßenbahn/Flugzeug mit Häfen/Flughafen, Hochhäuser bis Metropole, Spline-Profile für freie Kurven · Aufwand 40 PT (Lead/Review) · bis 24.09.2027 · braucht: 3D-Artist, ggf. Outsourcing-Paket Fahrzeuge
+- [ ] **Audio Release** – epochengebundene Musik (4 Stücke), Industrie-/Stadt-Ambients pro Typ, Warnton mit Richtung finalisiert · Aufwand 6 PT (Steuerung) · bis 24.09.2027 · braucht: Audio-Freelancer, Katrin (Budget)
+- [ ] **Performance- und Lesbarkeits-Pass Beta** – LOD/Impostor-Optimierung für Metropolen, Farbsehschwäche-Audit aller Overlays, Fixes aus Early-Access-Feedback · Aufwand 15 PT · bis 29.02.2028 · braucht: Daniel (Feedback-Auswertung), Felix (Profiling)
+- [ ] **Store- und Modding-Art** – Steam-Capsules, Trailer-Shots, Asset-Vorlagen und Doku für Modder · Aufwand 8 PT · bis 31.05.2028 · braucht: Katrin (Marketingplan)
+
+### Was ich von anderen brauche
+
+- **Felix:** Kartengröße 1.024×1.024 und Chunk-Raster bestätigt bis 09.11.; MultiMesh-Spike-Szene für den Look-Test bis 16.11.; gemeinsamer Spline-Mesh-Termin in KW 49 (bis 04.12.).
+- **Katrin:** Freigabe Stelle 3D-Artist und Audio-Budget bis 13.11.; Vertragsabschluss 3D-Artist bis 18.12.
+- **Tobias:** Güterliste mit Familienzuordnung für alle 10 Ketten bis 16.11.
+- **Aylin:** Icon-Format (Pin, Füllring, Statusformen) und Overlay-Ebenen bis 18.11.
+- **Daniel:** Farbsehschwäche-Prüfung in QA-Checkliste aufgenommen bis 27.11.

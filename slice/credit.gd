@@ -4,8 +4,8 @@ extends RefCounted
 ## Zinsmodelle (Refinement S5). Werte aus economy_slice.json, Abschnitt "kredit":
 ##   credit_limit_cent (Obergrenze), credit_interest_promille_pro_periode (Festzins je Periode = 1 Spielminute),
 ##   credit_available_from_ticks, credit_active_in_slice_flag.
-## ANNAHME (nicht im JSON, Schema ist additionalProperties:false -> Vorschlag an Tobias): Schrittweite
-## STEP_CENT = 500 $ (Genre: feste Kreditschritte; 4 Schritte bis zum Rahmen von 2.000 $).
+## Schrittweite aus kredit.credit_step_cent (S6, wie S5-Freeze bei Tobias: 500 $, 4 Schritte bis 2.000 $);
+## fehlt der Key (z. B. Test-JSON), gilt STEP_CENT = 500 $ als Rückfall.
 ## Zins: am Ende jeder Periode rdiv(offen × Zins‰, 1000), Rundung halb auf wie economy.gd.
 ## BUG-8 (S5): „offen“ ist zeitgewichtet, d. h. der Durchschnitt des offenen Betrags über die Ticks der
 ## Periode: rdiv(Σ offen×Ticks × Zins‰, 1000 × periode_ticks). Integriert wird nur bei Aufnahme, Tilgung
@@ -14,6 +14,7 @@ extends RefCounted
 
 const STEP_CENT := 50000
 
+var step_cent := STEP_CENT     # S6: aus dem JSON
 var active := false
 var limit_cent := 0
 var interest_pm := 0
@@ -34,17 +35,18 @@ func setup(eco) -> void:
 	limit_cent = int(k.get("credit_limit_cent", 0))
 	interest_pm = int(k.get("credit_interest_promille_pro_periode", 0))
 	from_ticks = int(k.get("credit_available_from_ticks", 0))
+	step_cent = int(k.get("credit_step_cent", STEP_CENT))
 	periode_ticks = eco.periode_ticks
 
 
 func borrow_amount(tick: int) -> int:
 	if not active or tick < from_ticks:
 		return 0
-	return mini(STEP_CENT, limit_cent - loan_cent)
+	return mini(step_cent, limit_cent - loan_cent)
 
 
 func repay_amount(cash_cent: int) -> int:
-	var a := mini(STEP_CENT, loan_cent)
+	var a := mini(step_cent, loan_cent)
 	return a if a <= cash_cent else 0
 
 

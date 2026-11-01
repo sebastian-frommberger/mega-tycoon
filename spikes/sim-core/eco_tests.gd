@@ -19,6 +19,7 @@ func run(runner) -> void:
 	test_e6_lizenz_api()
 	test_e7_firma_tempo()
 	test_e8_determinismus()
+	test_e9_lager_kapazitaet()
 
 
 func check(c: bool, m: String) -> void:
@@ -351,3 +352,68 @@ func test_e8_determinismus() -> void:
 	tmp.sim.run_ticks(9000)
 	tmp.eco.cash_cent += 1
 	check(ok_check and tmp.sim.checksum() != cs[0], "Prüfsumme erfasst Ökonomie (1 Cent Unterschied -> andere Summe)")
+
+
+## F-21a (S6): Lager nimmt nie über Kapazität an, auch wenn der Bestand (seed_stock) schon darüber liegt.
+## Vorher machte mini(q, cap - stock) acc negativ -> on_unload gab < 0 zurück, Ladung und Lose wuchsen.
+## 20 Läufe: Zulieferer mit 10/40/70 E, mit/ohne Abholer, jeder 4. Lauf mit Bestand über Kapazität,
+## jeder 4. (versetzt) knapp darunter (Lieferung > Restplatz).
+func test_e9_lager_kapazitaet() -> void:
+	print("E9 Lager <= Kapazität in 20 Läufen (F-21a, economy.gd:746 clampi)")
+	var ok_runs := 0
+	var detail := []
+	for run in range(20):
+		var w = EcoWorld.new()
+		var e = w.eco
+		w.node(0, 0, 0, "Farm")
+		w.node(1, 12 + run % 5, 6, "Lager")
+		w.node(2, 40, 0, "Mühle")
+		var farm: int = e.add_industry_site(0, "getreidefarm")
+		var lager: int = e.add_warehouse_site(1)
+		e.add_industry_site(2, "muehle")
+		w.road(0, 1)
+		w.road(1, 2)
+		var n_in: int = [10, 40, 70][run % 3]   # Zulieferer-Kapazität (ein Pendler je Straße, sonst Hold-and-Wait)
+		w.truck([0, 1], [0], [1], run, n_in)
+		var pickup: bool = run % 2 == 0
+		if pickup:
+			w.truck([1, 2], [1], [2], 300 + run * 13)
+		e.start_company("agrar", 2, "kleinstadt")
+		e.buy_licence(farm)
+		var cap: int = e.warehouse_cap
+		var k: int = e.s_station[lager]
+		var seeded: bool = run % 4 == 3
+		var near: bool = run % 4 == 1   # Grenzlauf: Bestand knapp unter Kapazität, Lieferung größer als Restplatz
+		if seeded:
+			e.seed_stock(lager, "getreide", cap + 50 + run)
+		elif near:
+			e.seed_stock(lager, "getreide", cap - 5 - run % 7)
+		var sim = w.sim
+		var bad := ""
+		var max_stock := 0
+		var prev: int = sim.st_stock[k]
+		for tick in range(4000):
+			sim.step()
+			var s: int = sim.st_stock[k]
+			max_stock = maxi(max_stock, s)
+			if s > maxi(cap, prev):
+				bad = "Tick %d: Bestand %d > max(Kap %d, vorher %d)" % [sim.tick_count, s, cap, prev]
+			elif not seeded and s > cap:
+				bad = "Tick %d: Bestand %d > Kap %d" % [sim.tick_count, s, cap]
+			for i in range(sim.n):
+				if sim.v_cargo[i] < 0 or sim.v_cargo[i] > sim.v_cargo_cap[i]:
+					bad = "Tick %d: Lkw %d Ladung %d außerhalb 0..%d" % [sim.tick_count, sim.v_id[i], sim.v_cargo[i], sim.v_cargo_cap[i]]
+			prev = s
+			if bad != "":
+				break
+		var activity: bool = e.units_to_warehouse > 0 or seeded
+		if near and (max_stock != cap or e.units_to_warehouse == 0):
+			activity = false   # Grenzlauf muss das Lager genau bis zur Kapazität füllen
+		if bad == "" and activity:
+			ok_runs += 1
+		else:
+			detail.append("Lauf %d: %s" % [run, bad if bad != "" else "keine Lager-Aktivität"])
+		if run <= 3:
+			print("    Lauf %d: Zulieferer-Kap %d, Abholer %s, Seed %s, max Bestand %d (Kap %d), ins Lager %d E" % [
+				run, n_in, str(pickup), str(seeded), max_stock, cap, e.units_to_warehouse])
+	check(ok_runs == 20, "Lager <= Kapazität, Ladung 0..Kap in %d/20 Läufen %s" % [ok_runs, str(detail.slice(0, 3))])

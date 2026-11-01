@@ -3,8 +3,8 @@
  "status": {
   "stand": "eingefroren",
   "stichtag": "2026-12-15",
-  "version": "S-10+D22",
-  "hinweis": "Basis fuer F-14/T-12; Aenderungen nur ueber Sophie. D22-Vorarbeit (Sprint 5): farm_3 + muehle_2 im Radius von Mittelfurt (Farm 43,5 / Muehle 37,7 Felder, Fluss dazwischen)."
+  "version": "S-10+D22+S-12",
+  "hinweis": "Basis fuer F-14/T-12; Aenderungen nur ueber Sophie. D22-Vorarbeit (Sprint 5): farm_3 + muehle_2 im Radius von Mittelfurt (Farm 43,5 / Muehle 37,7 Felder, Fluss dazwischen). S-12 (Sprint 6): werkzeug_1 von (330,170) nach (193,258), 40,2 Felder von Kohlberg; muehle_2 von (360,235) nach (354,237), 43,9 Felder von Mittelfurt."
  },
  "karte": {
   "breite_felder": 512,
@@ -143,8 +143,8 @@
   {
    "id": "muehle_2",
    "typ": "muehle",
-   "x_felder": 360,
-   "y_felder": 235,
+   "x_felder": 354,
+   "y_felder": 237,
    "stufe": 1,
    "rolle": "verarbeiter",
    "im_slice": true,
@@ -219,8 +219,8 @@
   {
    "id": "werkzeug_1",
    "typ": "werkzeugfabrik",
-   "x_felder": 330,
-   "y_felder": 170,
+   "x_felder": 193,
+   "y_felder": 258,
    "stufe": 1,
    "rolle": "abnehmer",
    "im_slice": true,
@@ -556,12 +556,12 @@
     {
      "von": "farm_3",
      "nach": "muehle_2",
-     "luftlinie_felder": 72
+     "luftlinie_felder": 78
     },
     {
      "von": "muehle_2",
      "nach": "mittelfurt",
-     "luftlinie_felder": 38
+     "luftlinie_felder": 44
     }
    ]
   },
@@ -610,12 +610,12 @@
     {
      "von": "stahl_1",
      "nach": "werkzeug_1",
-     "luftlinie_felder": 169
+     "luftlinie_felder": 60
     },
     {
      "von": "werkzeug_1",
      "nach": "mittelfurt",
-     "luftlinie_felder": 77
+     "luftlinie_felder": 204
     }
    ]
   }
@@ -642,7 +642,6 @@
    "stadt": "haberau",
    "im_slice": true,
    "radius_felder": 55,
-   "startkapital_cent": 450000,
    "startkette": "k1",
    "industrien_im_radius": [
     "farm_1",
@@ -657,14 +656,14 @@
    "stadt": "kohlberg",
    "im_slice": true,
    "radius_felder": 50,
-   "startkapital_cent": 700000,
    "startkette": "k3",
    "industrien_im_radius": [
     "erz_1",
     "holz_berg",
     "kohle_1",
     "kraftwerk_1",
-    "stahl_1"
+    "stahl_1",
+    "werkzeug_1"
    ],
    "bau_quelle": "holz_berg"
   },
@@ -673,9 +672,11 @@
    "stadt": "mittelfurt",
    "im_slice": false,
    "radius_felder": 45,
-   "startkapital_cent": 500000,
    "startkette": "k3",
-   "industrien_im_radius": [],
+   "industrien_im_radius": [
+    "farm_3",
+    "muehle_2"
+   ],
    "bau_quelle": "keine"
   },
   {
@@ -683,7 +684,6 @@
    "stadt": "seehafen",
    "im_slice": false,
    "radius_felder": 50,
-   "startkapital_cent": 450000,
    "startkette": "keine",
    "industrien_im_radius": [],
    "bau_quelle": "keine"

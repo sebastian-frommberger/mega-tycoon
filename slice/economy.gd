@@ -128,6 +128,8 @@ var company_started := false
 var archetyp := ""
 var cash_cent := 0
 var start_capital_cent := 0
+var start_capital_json := 0                 # S6: hq.start_capital_cent
+var demand_mult: Dictionary = {}            # S6: saettigung.demand_mult_promille_je_stufe
 var hq_x := 0
 var hq_y := 0
 var hq_radius_felder := 0
@@ -224,6 +226,8 @@ func load_from(slice_path: String, consts_path: String) -> bool:
 	sat_floor = _need(slice, "saettigung.sat_floor_at_150_promille")
 	sat_over = _need(slice, "saettigung.sat_over_150_promille")
 	demand_per_100 = _need(slice, "saettigung.demand_per_100_inhabitants_einheiten_pro_periode")
+	demand_mult = _need(slice, "saettigung.demand_mult_promille_je_stufe")   # S6 S-12/T-14: Dorf ×2
+	start_capital_json = _need(slice, "hq.start_capital_cent")
 	lic_share = _need(slice, "lizenz.licence_cost_share_promille")
 	lic_duration = _need(slice, "lizenz.licence_duration_ticks")
 	lic_disc = _need(slice, "lizenz.licence_discount_in_radius_promille")
@@ -253,8 +257,8 @@ func load_from(slice_path: String, consts_path: String) -> bool:
 	_same("lizenz.licence_cost_share_promille", "lizenz.anteil_promille")
 	_same("lizenz.licence_duration_ticks", "lizenz.laufzeit_ticks")
 	_same("saettigung.sat_floor_at_150_promille", "saettigung.abfall_ziel_promille")
-	_same("hq.start_capital_agrar_cent", "startkapital_cent.agrar")
-	_same("hq.start_capital_mining_cent", "startkapital_cent.bergbau")
+	_same("hq.start_capital_cent", "startkapital_cent")          # S6 T-14/D22: ein Startkapital für alle Standorte
+	_same("kredit.credit_step_cent", "kredit.schritt_cent")      # S6: Kreditschritt aus dem JSON (credit.gd)
 	_same("zeit.periode_ticks", "zeit.periode_ticks")
 	if periode_ticks <= 0 or oeko_tick_ticks <= 0 or periode_ticks % oeko_tick_ticks != 0:
 		_err("periode_ticks muss Vielfaches von oeko_tick_ticks sein")
@@ -367,7 +371,8 @@ func _felder(dx: int, dy: int) -> int:
 
 
 func city_demand(site: int) -> int:
-	return rdiv(int(c_index[s_city_id[site]]["einwohner_anzahl"]) * demand_per_100, 100)
+	var mult: int = int(demand_mult.get(s_stage[site], PROMILLE))   # S6: Stufen-Multiplikator (fehlende Stufe = 1000 ‰)
+	return rdiv(int(c_index[s_city_id[site]]["einwohner_anzahl"]) * demand_per_100 * mult, 100 * PROMILLE)
 
 
 func city_accepts(site: int, g: int) -> bool:
@@ -475,16 +480,13 @@ func seed_stock(site: int, gut_id: String, units: int) -> void:
 
 # =====================================================================================  Firma, Lizenz
 
-## Spielstart: Firma mit Startkapital des Archetyps (L-08 §1, D1). Kein Kredit (S5).
-func start_company(archetyp_id: String, hq_node_id: int, hq_stage_id: String) -> bool:
-	var keymap := {"agrar": "agrar", "bergbau": "mining", "hafen": "port", "handelsknoten": "trade"}
+## Spielstart (S6, D22): Firma mit dem einen Startkapital hq.start_capital_cent, HQ an einem Stadtknoten.
+## Kein Archetyp, kein Kredit-Start. F-20 (hq_placement.gd) ruft diese Funktion direkt.
+func start_company_at(hq_node_id: int, hq_stage_id: String) -> bool:
 	var radmap := {"dorf": "village", "kleinstadt": "town", "stadt": "city", "metropole": "metro"}
-	if not keymap.has(archetyp_id) or not radmap.has(hq_stage_id):
+	if not radmap.has(hq_stage_id):
 		return false
-	if not slice["hq"].get("archetyp_%s_im_slice_flag" % keymap[archetyp_id], false):
-		return false
-	archetyp = archetyp_id
-	start_capital_cent = slice["hq"]["start_capital_%s_cent" % keymap[archetyp_id]]
+	start_capital_cent = start_capital_json
 	cash_cent = start_capital_cent - int(slice["hq"]["hq_found_cost_cent"])
 	hq_radius_felder = slice["hq"]["hq_radius_%s_felder" % radmap[hq_stage_id]]
 	var hp: Vector2i = _sim_get().graph.nodes[hq_node_id]["pos"]
@@ -492,6 +494,17 @@ func start_company(archetyp_id: String, hq_node_id: int, hq_stage_id: String) ->
 	hq_y = hp.y
 	free_licences_left = free_licences_start
 	company_started = true
+	return true
+
+
+## Übergang bis F-20 den Startdialog ersetzt: Archetyp nur noch als Etikett (Ziel-Hinweise in main.ARCH),
+## ohne Einfluss auf Kapital oder Radius. Entfällt mit F-20.
+func start_company(archetyp_id: String, hq_node_id: int, hq_stage_id: String) -> bool:
+	if not archetyp_id in ["agrar", "bergbau", "hafen", "handelsknoten"]:
+		return false
+	if not start_company_at(hq_node_id, hq_stage_id):
+		return false
+	archetyp = archetyp_id
 	return true
 
 

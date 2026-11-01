@@ -226,5 +226,11 @@ E8 Determinismus Slice-Welt K1–K3 mit Ökonomie, 3 Läufe à 9000 Ticks
     Erträge je Gut->Abnehmer (Cent): { "getreide->muehle": 208800, "kohle->kraftwerk": 232000, "erz->stahlwerk": 261000, "kohle->stahlwerk": 243600, "mehl->kleinstadt_a": 1305000, "stahl->werkzeugfabrik": 1160000 }; Lizenzen 204240; Start 450000 -> Kasse 3656160
     [OK] alle Kanten K1–K3 liefern bezahlt
     [OK] Prüfsumme erfasst Ökonomie (1 Cent Unterschied -> andere Summe)
-== Dauer 19782 ms ==
+E9 Lager <= Kapazität in 20 Läufen (F-21a, economy.gd:746 clampi)
+    Lauf 0: Zulieferer-Kap 10, Abholer true, Seed false, max Bestand 10 (Kap 200), ins Lager 130 E
+    Lauf 1: Zulieferer-Kap 40, Abholer false, Seed false, max Bestand 200 (Kap 200), ins Lager 6 E
+    Lauf 2: Zulieferer-Kap 70, Abholer true, Seed false, max Bestand 60 (Kap 200), ins Lager 70 E
+    Lauf 3: Zulieferer-Kap 10, Abholer false, Seed true, max Bestand 253 (Kap 200), ins Lager 0 E
+    [OK] Lager <= Kapazität, Ladung 0..Kap in 20/20 Läufen []
+== Dauer 21719 ms ==
 ERGEBNIS: ALLE TESTS GRUEN (Exit 0)

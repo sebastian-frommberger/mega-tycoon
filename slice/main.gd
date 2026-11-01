@@ -38,6 +38,7 @@ const PALETTE_PATH := "res://data/palette_s08.json"
 ## Prototyp-Werte, die (noch) nicht im JSON stehen (ANNAHME, Genre-Standard OpenTTD):
 const BRIDGE_MAX := 8              # Brücke nur gerade, Land an beiden Enden, max. 8 Felder
 const TRAIN_WAGONS := 4            # Zug = Lok + 4 Waggons (40 Einheiten wie Prototyp)
+const RENDER_SPLIT := true         # S6: Fahrzeug-Puffer (SoA) über die Frames zwischen Ticks verteilen (F-12 p95)
 const TRUCK_MAX_WAIT_TICKS := 50   # Prototyp: 5 s warten auf volle Ladung
 const TRAIN_MAX_WAIT_TICKS := 120  # Prototyp: 12 s
 
@@ -561,11 +562,10 @@ func _check_ids() -> void:
 		for i in h["industrien_im_radius"]:
 			if not ids.has(i):
 				map_missing_ids.append("HQ %s: Industrie %s fehlt" % [h["archetyp"], i])
-		var key: String = {"agrar": "agrar", "bergbau": "mining"}.get(h["archetyp"], "")
-		if key == "" or not eco.slice["hq"].get("archetyp_%s_im_slice_flag" % key, false):
-			map_missing_ids.append("HQ %s: im_slice, aber nicht in economy_slice.hq" % h["archetyp"])
-		elif int(h["startkapital_cent"]) != int(eco.slice["hq"]["start_capital_%s_cent" % key]):
-			map_missing_ids.append("HQ %s: Startkapital Karte %s != JSON" % [h["archetyp"], str(h["startkapital_cent"])])
+		# S6 (D22/T-14): Archetyp-Flags und Kapital je Archetyp entfallen; Kapital gilt nur aus hq.start_capital_cent,
+		# ein startkapital_cent in der Karte wird ignoriert. Bis F-20 braucht jede Slice-HQ-Option einen Ziel-Hinweis.
+		if not ARCH.has(h["archetyp"]):
+			map_missing_ids.append("HQ %s: im_slice, aber kein Ziel-Hinweis (main.ARCH)" % h["archetyp"])
 	for a in ARCH:
 		for k in ["src", "proc", "m3_from", "m3_to"]:
 			if not ids.has(ARCH[a][k]):
@@ -1144,14 +1144,14 @@ func _vline() -> StyleBoxLine:
 ## F-19: Kredit-Eintrag am Kassenfeld: offener Betrag / Rahmen, [+] aufnehmen, [−] tilgen (je 500 $).
 func _credit_chip() -> Control:
 	var tip := "Kredit: fester Zins %s %% je Spielminute auf den offenen Betrag, Rahmen %s.\n+ nimmt %s auf, - tilgt %s (Geld muss in der Kasse sein)." % [
-		String.num(credit.interest_pm / 10.0, 1).replace(".", ","), money_str(credit.limit_cent), money_str(Credit.STEP_CENT), money_str(Credit.STEP_CENT)]
+		String.num(credit.interest_pm / 10.0, 1).replace(".", ","), money_str(credit.limit_cent), money_str(credit.step_cent), money_str(credit.step_cent)]
 	var p := _hud_chip("kredit", "geld", "Kredit", tip)
 	var h: HBoxContainer = p.get_child(0)
 	hud_vals["kredit"].custom_minimum_size = Vector2(118, 0)
 	var plus := Kit.button("+", "ButtonTempo", "", ui_credit_borrow)
 	var minus := Kit.button("-", "ButtonTempo", "", ui_credit_repay)
-	plus.tooltip_text = "Kredit aufnehmen: +%s" % money_str(Credit.STEP_CENT)
-	minus.tooltip_text = "Kredit tilgen: -%s" % money_str(Credit.STEP_CENT)
+	plus.tooltip_text = "Kredit aufnehmen: +%s" % money_str(credit.step_cent)
+	minus.tooltip_text = "Kredit tilgen: -%s" % money_str(credit.step_cent)
 	for b in [plus, minus]:
 		b.custom_minimum_size = Vector2(30, 30)
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1179,7 +1179,7 @@ func ui_credit_repay() -> int:
 	if a > 0:
 		_toast("Kredit getilgt: -%s. Offen %s." % [money_str(a), money_str(credit.loan_cent)], 3.0)
 	elif credit.loan_cent > 0:
-		_toast("Zum Tilgen fehlen %s in der Kasse." % money_str(mini(Credit.STEP_CENT, credit.loan_cent)))
+		_toast("Zum Tilgen fehlen %s in der Kasse." % money_str(mini(credit.step_cent, credit.loan_cent)))
 	_update_hud(running_cost_per_period)
 	return a
 
@@ -1443,9 +1443,8 @@ func _start_head_box() -> StyleBoxFlat:
 
 func _archetype_tile(a: String) -> Button:
 	var hq := _hq_option(a)
-	var key: String = "agrar" if a == "agrar" else "mining"
-	var cap: int = int(eco.slice["hq"]["start_capital_%s_cent" % key])
-	var lkw: int = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_%s_anzahl" % key])
+	var cap: int = int(eco.slice["hq"]["start_capital_cent"])                 # S6: ein Kapital (D22)
+	var lkw: int = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_anzahl"])
 	var city = by_id.get(hq.get("stadt", ""), null)
 	var b := Kit.button("", "ButtonTile", "", func(): start_game(a))
 	b.custom_minimum_size = Vector2(402, 256)
@@ -1578,7 +1577,7 @@ func start_game(a: String) -> bool:
 		return false
 	archetyp = a
 	company_started = true
-	free_trucks_left = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_%s_anzahl" % ("agrar" if a == "agrar" else "mining")]) if start_trucks_free else 0
+	free_trucks_left = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_anzahl"]) if start_trucks_free else 0   # S6: 2 für alle
 	start_panel.visible = false
 	ms_panel.visible = true
 	if ms_panel.is_inside_tree():
@@ -2333,12 +2332,15 @@ func _used_cells(rail: bool) -> Dictionary:
 
 
 ## Anzahl Fahrzeuge im Besitz (verkaufte zählen nicht).
+var _fleet_n := -1   # S6: Cache für fleet_size() (HUD fragt je Frame; -1 = neu zählen bei Kauf/Verkauf)
+
 func fleet_size() -> int:
-	var n := 0
-	for v in vehicles:
-		if not v.sold:
-			n += 1
-	return n
+	if _fleet_n < 0:
+		_fleet_n = 0
+		for v in vehicles:
+			if not v.sold:
+				_fleet_n += 1
+	return _fleet_n
 
 
 func line_title(key: String) -> String:
@@ -2365,6 +2367,7 @@ func remove_line(key: String) -> int:
 		v.fix_cent = 0
 		v.var_cent_per_field = 0
 		v.sold = true
+		_fleet_n = -1
 		n_assigned -= 1
 	line_groups.erase(key)
 	line_order.erase(key)
@@ -2578,6 +2581,7 @@ func buy_vehicle(type: String):
 	v.rindex = n_type[type]
 	n_type[type] += 1
 	vehicles.append(v)
+	_fleet_n = -1
 	cost_dirty = true
 	return v
 
@@ -2812,6 +2816,8 @@ func _refresh_lines() -> void:
 			line_rows[key] = _make_line_row(key, v)
 		var r: Dictionary = line_rows[key]
 		r["row"].visible = i < 8
+		if i >= 8:
+			continue                # S6: unsichtbare Zeilen nicht durchrechnen (5.000 Lkw: ~90 % der Refresh-Zeit)
 		var profit := _line_profit(list)
 		var deliv := 0
 		var warn := false
@@ -2913,6 +2919,15 @@ func _ensure_buf(key: String, n: int, stride: int, mm: MultiMesh) -> void:
 
 
 func _render_vehicles() -> void:
+	if fleet != null and RENDER_SPLIT:
+		if fleet.render_pending():          # S6: Puffer des Vortick-Zustands (über Frames gefüllt) übergeben
+			var rp: Array = fleet.render_finish()
+			_commit_buffers(rp[0], rp[1], rp[2])
+		_ensure_buf("truck", n_type["truck"], 12, mm_truck.multimesh)
+		_ensure_buf("train", n_type["train"], 12, mm_train.multimesh)
+		_ensure_buf("cargo", vehicles.size(), 16, mm_cargo.multimesh)
+		fleet.render_begin(vehicles, _cur["truck"], _cur["train"], _cur["cargo"], eco, GOOD_COLORS)
+		return
 	_ensure_buf("truck", n_type["truck"], 12, mm_truck.multimesh)
 	_ensure_buf("train", n_type["train"], 12, mm_train.multimesh)
 	_ensure_buf("cargo", vehicles.size(), 16, mm_cargo.multimesh)
@@ -3024,6 +3039,8 @@ func _process(delta: float) -> void:
 	if not company_started and start_panel != null and start_panel.visible:
 		start_backdrop_t += delta
 		StartBackdrop.drift(self, start_backdrop_t)
+	if fleet != null:
+		fleet.render_step()          # S6: Portion des Fahrzeug-Puffers (siehe _render_vehicles)
 	_update_label_lod()
 	var ms := maxf(1.0, zoom / 1.4)          # Marker wächst beim Rauszoomen mit (S-08 marker)
 	for m in goal_markers:

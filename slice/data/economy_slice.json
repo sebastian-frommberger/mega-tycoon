@@ -3,18 +3,15 @@
   "meta": {
     "quelle_text": "L-08 Slice-Regeln (Lena Hoffmann, 03.12.2026), Entscheidungen D17-D20 (decisions_04-12.md), Konvention F-09 v0 (Cent, Ticks, Promille, Basispunkte)",
     "etikett_text": "Startwerte fuer T-06, nichts an Spielern gemessen",
-    "freeze_stand_text": "T-12 Balance-Freeze-Kandidat v1 fuer 08.01.2027: Preise Getreide 28 und Mehl 70, bau_kosten (Gleis, Bruecke, Berg, Gratis-Startlkw) aus dem Code ins JSON; Aenderung nach dem Freeze nur mit Ticket (Daniel)",
-    "archetypen_im_slice_ids": ["agrar", "bergbau"]
+    "freeze_stand_text": "T-12 Balance-Freeze-Kandidat v1 fuer 08.01.2027: Preise Getreide 28 und Mehl 70, bau_kosten (Gleis, Bruecke, Berg, Gratis-Startlkw) aus dem Code ins JSON; Aenderung nach dem Freeze nur mit Ticket (Daniel). S6 T-14 (Tobias, D22): ein Startkapital 6.000 $ fuer alle Standorte (hq.start_capital_cent), Archetyp-Kapital und -Flags entfallen, Gratis-Startlkw 2 fuer alle, Lok-Fix 90 $/min, Kreditschritt 500 $ ins JSON, Dorfnachfrage x2 (saettigung.demand_mult_promille_je_stufe)"
   },
   "zeit": { "tick_ms": 100, "periode_ticks": 600, "spielmonat_ticks": 600 },
   "hq": {
     "hq_found_cost_cent": 0,
     "hq_radius_village_felder": 55, "hq_radius_town_felder": 50, "hq_radius_city_felder": 45, "hq_radius_metro_felder": 40,
-    "start_capital_agrar_cent": 450000, "start_capital_mining_cent": 700000, "start_capital_port_cent": 450000, "start_capital_trade_cent": 500000,
-    "start_capital_floor_mining_cent": 600000,
+    "start_capital_cent": 600000,
     "free_licence_count_anzahl": 1, "start_skillpoints_punkte": 1,
-    "hq_guarantee_build_source_flag": true,
-    "archetyp_agrar_im_slice_flag": true, "archetyp_mining_im_slice_flag": true, "archetyp_port_im_slice_flag": false, "archetyp_trade_im_slice_flag": false
+    "hq_guarantee_build_source_flag": true
   },
   "lizenz": {
     "licence_cost_share_promille": 100, "licence_auto_renew_flag": true, "licence_duration_ticks": 18000,
@@ -31,7 +28,7 @@
     "works_margin_promille": 150, "company_upkeep_per_level_cent_pro_periode": 2000
   },
   "kredit": {
-    "credit_limit_cent": 200000, "credit_available_from_ticks": 0, "credit_interest_promille_pro_periode": 10,
+    "credit_limit_cent": 200000, "credit_step_cent": 50000, "credit_available_from_ticks": 0, "credit_interest_promille_pro_periode": 10,
     "credit_blocks_company_buy_flag": true,
     "credit_allowed_minus_ids": ["strasse", "fahrzeuge", "lager", "lizenz_verlaengerung"],
     "credit_blocked_ids": ["firmenkauf", "firmenausbau", "hq_ausbau"],
@@ -58,6 +55,7 @@
   },
   "saettigung": {
     "demand_per_100_inhabitants_einheiten_pro_periode": 1,
+    "demand_mult_promille_je_stufe": { "dorf": 2000, "kleinstadt": 1000, "stadt": 1000, "metropole": 1000 },
     "sat_full_until_promille": 1000, "sat_knee_promille": 1500, "sat_floor_at_150_promille": 400, "sat_over_150_promille": 100,
     "sat_scope_modus": "je_stadt_und_kategorie",
     "basket_by_stage": [
@@ -164,6 +162,6 @@
     { "id": "kleinstadt_a", "stage_id": "kleinstadt", "einwohner_anzahl": 2500 },
     { "id": "kleinstadt_berg", "stage_id": "kleinstadt", "einwohner_anzahl": 2500 }
   ],
-  "fahrzeug_ref": { "lkw_id": "lkw_e1", "startpaket_lkw_agrar_anzahl": 2, "startpaket_lkw_mining_anzahl": 3, "strasse_cent_pro_feld": 1000, "load_ticks": 100 },
+  "fahrzeug_ref": { "lkw_id": "lkw_e1", "startpaket_lkw_anzahl": 2, "strasse_cent_pro_feld": 1000, "load_ticks": 100 },
   "bau_kosten": { "gleis_cent_pro_feld": 4000, "bruecke_faktor_promille": 6000, "berg_faktor_promille": 3000, "startpaket_lkw_gratis_flag": true }
 }

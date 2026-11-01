@@ -3,7 +3,7 @@
   "fahrzeuge": [
     { "id": "lkw_e1", "name": "Lkw (Epoche 1)", "typ": "lkw", "kauf_cent": 40000, "fix_cent_pro_periode": 9000, "variabel_cent_pro_feld": 8,
       "kapazitaet_einheiten": 10, "tempo_mm_pro_tick": 600, "lebensdauer_ticks": 108000, "alterung_unterhalt_bp_pro_jahr": 500, "epoche": 1, "nur_massengut": false },
-    { "id": "lok_e1", "name": "Dampflok", "typ": "lok", "kauf_cent": 150000, "fix_cent_pro_periode": 30000, "variabel_cent_pro_feld": 15,
+    { "id": "lok_e1", "name": "Dampflok", "typ": "lok", "kauf_cent": 150000, "fix_cent_pro_periode": 9000, "variabel_cent_pro_feld": 15,
       "kapazitaet_einheiten": 0, "tempo_mm_pro_tick": 1000, "lebensdauer_ticks": 216000, "alterung_unterhalt_bp_pro_jahr": 500, "epoche": 1, "nur_massengut": false,
       "max_anhaenger": 8, "gleis_cent_pro_feld_pro_periode": 50 },
     { "id": "waggon_e1", "name": "Gueterwaggon", "typ": "waggon", "kauf_cent": 30000, "fix_cent_pro_periode": 0, "variabel_cent_pro_feld": 0,

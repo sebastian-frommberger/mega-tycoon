@@ -31,7 +31,7 @@ func _run() -> void:
 	var df: float = mf.distance_to(by["farm_3"])
 	var dm: float = mf.distance_to(by["muehle_2"])
 	ok(df >= 38.0 and df <= 44.0, "Farm 38-44 Felder von Mittelfurt (%.1f)" % df)
-	ok(dm >= 30.0 and dm <= 40.0, "Mühle 30-40 Felder von Mittelfurt (%.1f)" % dm)
+	ok(dm >= 43.0 and dm <= 45.0, "Mühle ~45 Felder von Mittelfurt, S-12 (%.1f)" % dm)
 	ok(df <= 45.0 and dm <= 45.0, "beide im Radius der Stadt (45)")
 	var pts: Array = map["fluesse"][0]["linie"]
 	var crosses := false
@@ -39,6 +39,8 @@ func _run() -> void:
 		if _seg_cross(by["farm_3"], by["muehle_2"], Vector2(pts[i][0], pts[i][1]), Vector2(pts[i + 1][0], pts[i + 1][1])):
 			crosses = true
 	ok(crosses, "Fluss liegt zwischen Farm und Mühle (Brücke nötig)")
+	var dw: float = by["kohlberg"].distance_to(by["werkzeug_1"])
+	ok(dw >= 38.0 and dw <= 42.0, "Werkzeugfabrik ~40 Felder von Kohlberg, S-12 (%.1f)" % dw)
 	var q := {"NW": 0, "NO": 0, "SW": 0, "SO": 0}
 	var n := 0
 	for id in by:

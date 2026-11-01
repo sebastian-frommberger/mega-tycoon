@@ -107,8 +107,11 @@ func _run() -> void:
 	print("== 2) Skript-Durchlauf Agrar: Lizenz Farm + Mühle, Straße, Lkw-Linie, 30 Spielminuten")
 	ok(m.start_game("agrar"), "Start Agrar (Knopf 1 von 2)")
 	var cap0: int = m.eco.cash_cent
-	ok(cap0 == 450000, "Startkapital 4.500 $ aus JSON (%s)" % m.money_str(cap0))
-	ok((m.free_trucks_left == int(m.eco.slice["fahrzeug_ref"]["startpaket_lkw_agrar_anzahl"])) == bool(bk["startpaket_lkw_gratis_flag"]), "Gratis-Startlkw aus JSON (Flag %s, %d Lkw)" % [str(bk["startpaket_lkw_gratis_flag"]), m.free_trucks_left])
+	# S6 (D22/T-14): ein Startkapital aus hq.start_capital_cent (Gegenprobe constants.startkapital_cent), Lkw-Paket für alle gleich
+	var cap_json: int = int(m.eco.slice["hq"]["start_capital_cent"])
+	ok(cap0 == cap_json and cap_json == int(m.eco.consts["startkapital_cent"]) and cap_json > 0 and not m.eco.slice["hq"].has("start_capital_agrar_cent"),
+		"Startkapital %s aus JSON (hq.start_capital_cent = constants, kein Archetyp-Kapital mehr)" % m.money_str(cap0))
+	ok((m.free_trucks_left == int(m.eco.slice["fahrzeug_ref"]["startpaket_lkw_anzahl"])) == bool(bk["startpaket_lkw_gratis_flag"]), "Gratis-Startlkw aus JSON (Flag %s, %d Lkw)" % [str(bk["startpaket_lkw_gratis_flag"]), m.free_trucks_left])
 	var farm = m.by_id["farm_1"]
 	var mill = m.by_id["muehle_1"]
 	var haberau = m.by_id["haberau"]
@@ -173,7 +176,7 @@ func _run() -> void:
 	report.append("Linie Mühle→Haberau: Ertrag %s − Kosten %s = %s, %d Lieferungen (Sättigung Dorf 9 E/min)" % [m.money_str(v2.income_total), m.money_str(v2.cost_total()), m.money_str(l2), v2.deliveries])
 	ok(m.eco.cash_cent > cash_setup, "Kasse nach 30 min %s > nach Aufbau %s (Start %s)" % [m.money_str(m.eco.cash_cent), m.money_str(cash_setup), m.money_str(cap0)])
 	var ratio := float(m.eco.cash_cent) / cap0
-	ok(ratio >= 1.5 and ratio <= 2.0, "T-12: Agrar-Kasse nach 30 min ×%.2f des Starts (Ziel ×1,5–2,0, Skriptlauf, Kern %s)" % [ratio, m.vehicle_core])
+	ok(ratio >= 1.5 and ratio <= 2.5, "T-12/D23: Agrar-Kasse nach 30 min ×%.2f des Starts (Ziel ×1,5–2,5 nach Dorf ×2; Maßstab ist T-14 Bankrott 10–30 %, Skriptlauf, Kern %s)" % [ratio, m.vehicle_core])
 	var all_done := true
 	for i in m.milestones.size():
 		all_done = all_done and m.milestones[i]["done"]
@@ -231,7 +234,28 @@ func _run() -> void:
 	# ------------------------------------------------------------------ 5) Bergbau-Start, Tempo
 	print("== 5) Bergbau-Start und Tempo")
 	_new_main()
-	ok(m.start_game("bergbau") and m.eco.cash_cent == 700000, "Start Bergbau (Knopf 2 von 2): %s" % m.money_str(m.eco.cash_cent))
+	ok(m.start_game("bergbau") and m.eco.cash_cent == int(m.eco.slice["hq"]["start_capital_cent"]) and m.eco.cash_cent == cap0
+		and m.free_trucks_left == int(m.eco.slice["fahrzeug_ref"]["startpaket_lkw_anzahl"]),
+		"Start Bergbau (Knopf 2 von 2): %s, gleiches Kapital und Lkw-Paket wie Agrar (D22)" % m.money_str(m.eco.cash_cent))
+	# S6: Kreditschritt aus kredit.credit_step_cent (vorher hartcodiert), Dorfnachfrage über Stufen-Multiplikator (S-12/T-14)
+	ok(m.credit.step_cent == int(m.eco.slice["kredit"]["credit_step_cent"]) and m.credit.step_cent == int(m.eco.consts["kredit"]["schritt_cent"]),
+		"Kreditschritt %s aus JSON" % m.money_str(m.credit.step_cent))
+	var dm: Dictionary = m.eco.slice["saettigung"]["demand_mult_promille_je_stufe"]
+	var dem_ok := true
+	var n_dorf := 0
+	for site in m.eco.s_kind.size():
+		if m.eco.s_kind[site] != m.eco.K_STADT:
+			continue
+		var ew: int = int(m.eco.c_index[m.eco.s_city_id[site]]["einwohner_anzahl"])
+		var mult: int = int(dm.get(m.eco.s_stage[site], 1000))
+		var want: int = (ew * int(m.eco.slice["saettigung"]["demand_per_100_inhabitants_einheiten_pro_periode"]) * mult + 50000) / 100000
+		dem_ok = dem_ok and m.eco.city_demand(site) == want
+		if m.eco.s_stage[site] == "dorf":
+			n_dorf += 1
+			dem_ok = dem_ok and mult == 2000
+		elif m.eco.s_stage[site] == "kleinstadt":
+			dem_ok = dem_ok and mult == 1000
+	ok(dem_ok and n_dorf > 0, "Nachfrage je Stadt = EW × Satz × Stufen-Multiplikator (Dorf ×2, Kleinstadt ×1), %d Dorf-Standort(e)" % n_dorf)
 	var q: Dictionary = m.licence_quote(m.by_id["kohle_1"])
 	ok(q.get("ok", false) and q["gratis"], "Lizenz-Angebot Kohlemine: %s, Ertrag %s/Monat bis %s" % [m.money_str(q["kosten_cent"]), m.money_str(q["ertrag_pro_monat_cent"]), q["ertrag_ziel_id"]])
 	m.set_speed(8)

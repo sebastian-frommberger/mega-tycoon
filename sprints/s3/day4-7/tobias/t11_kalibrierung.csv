@@ -1,0 +1,12 @@
+variante;bankrott_min30_prozent;median_gewinn_min30_usd
+Basis (JSON unveraendert);7;15850
+Lkw-Fixkosten x3;47;-1812
+Lkw-Fixkosten x6;87;-22194
+Ertragspreise x0,5;20;792
+Ertragspreise x0,25;52;-4371
+Strasse x5 (50 $/Feld);10;12540
+Startkapital x0,6;11;15074
+Preise x0,5 und Kapital x0,6;30;1228
+Lkw-Fixkosten x3 und Strasse x3;50;-2202
+Spielermix 50 % hastig (Basis 20 %);17;8072
+Spielermix nur sorgfaeltig;0;19302

@@ -1,0 +1,27 @@
+referenz {'agrar': 21636, 'bergbau': 16172}
+bankrott min30: 7 von 100
+x01_lager_pingpong agrar an 0.92 
+x01_lager_pingpong agrar AUS (Gegenprobe) 1.53 
+x02_umweg agrar an 0.94 
+x02_umweg agrar AUS (Gegenprobe) 1.67 
+x03_stempel_reset agrar an 0.21 
+x03_stempel_reset agrar AUS (Gegenprobe) 1.01 
+x04_lizenz_hopping agrar an 0.57 Vergleich bei Minute 60 (Lizenz laeuft bei 30 aus)
+x04_lizenz_hopping bergbau an 0.51 Vergleich bei Minute 60 (Lizenz laeuft bei 30 aus)
+x05_kauf_verkauf agrar an -0.05 je Zyklus netto -1119 $ (2. Kauf mit Rabatt -887 $)
+x05_kauf_verkauf bergbau an -0.14 je Zyklus netto -2239 $ (2. Kauf mit Rabatt -1775 $)
+x06_kredit_hebel agrar an 0.27 
+x06_kredit_hebel bergbau an -0.39 
+x07_kurzstrecken_spam agrar an 0.63 
+x08_zwei_staedte agrar an 0.91 
+{'variante': 'Basis (JSON unveraendert)', 'bankrott_min30_prozent': 7, 'median_gewinn_min30_usd': 15850}
+{'variante': 'Lkw-Fixkosten x3', 'bankrott_min30_prozent': 47, 'median_gewinn_min30_usd': -1812}
+{'variante': 'Lkw-Fixkosten x6', 'bankrott_min30_prozent': 87, 'median_gewinn_min30_usd': -22194}
+{'variante': 'Ertragspreise x0,5', 'bankrott_min30_prozent': 20, 'median_gewinn_min30_usd': 792}
+{'variante': 'Ertragspreise x0,25', 'bankrott_min30_prozent': 52, 'median_gewinn_min30_usd': -4371}
+{'variante': 'Strasse x5 (50 $/Feld)', 'bankrott_min30_prozent': 10, 'median_gewinn_min30_usd': 12540}
+{'variante': 'Startkapital x0,6', 'bankrott_min30_prozent': 11, 'median_gewinn_min30_usd': 15074}
+{'variante': 'Preise x0,5 und Kapital x0,6', 'bankrott_min30_prozent': 30, 'median_gewinn_min30_usd': 1228}
+{'variante': 'Lkw-Fixkosten x3 und Strasse x3', 'bankrott_min30_prozent': 50, 'median_gewinn_min30_usd': -2202}
+{'variante': 'Spielermix 50 % hastig (Basis 20 %)', 'bankrott_min30_prozent': 17, 'median_gewinn_min30_usd': 8072}
+{'variante': 'Spielermix nur sorgfaeltig', 'bankrott_min30_prozent': 0, 'median_gewinn_min30_usd': 19302}

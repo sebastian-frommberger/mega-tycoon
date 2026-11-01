@@ -54,7 +54,7 @@ func line(tool: int, a, b):
 ## Agrar-Skript wie slice_test Abschnitt 2. Ergebnis: Kasse, Lieferungen, Kurve je 5 min.
 func agrar(core: String) -> Dictionary:
 	_new_main(core)
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var farm = m.by_id["farm_1"]
 	var mill = m.by_id["muehle_1"]
 	var haberau = m.by_id["haberau"]
@@ -85,7 +85,7 @@ func agrar(core: String) -> Dictionary:
 
 func bergbau(core: String) -> Dictionary:
 	_new_main(core)
-	m.start_game("bergbau")
+	m.place_hq("kohlberg")
 	var kohle = m.by_id["kohle_1"]
 	var kw = m.by_id["kraftwerk_1"]
 	m.ui_buy_licence(kohle)
@@ -102,7 +102,7 @@ func bergbau(core: String) -> Dictionary:
 ## Zug-Linie (Gleis Kohlemine → Kraftwerk als L, Kredit aufgenommen für den Zugpreis) + Lkw daneben.
 func zug(core: String) -> Dictionary:
 	_new_main(core)
-	m.start_game("bergbau")
+	m.place_hq("kohlberg")
 	var kohle = m.by_id["kohle_1"]
 	var kw = m.by_id["kraftwerk_1"]
 	m.ui_buy_licence(kohle)
@@ -131,7 +131,7 @@ func bench_ticks(core: String, units: int, ticks: int) -> Dictionary:
 	var b = Bench.new()
 	b.m = m
 	b.units = units
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	m.eco.ledger_enabled = false
 	m.eco.cash_cent = 1000000000000
 	b._build_traffic()

@@ -3,8 +3,8 @@
  "status": {
   "stand": "eingefroren",
   "stichtag": "2026-12-15",
-  "version": "S-10+D22+S-12",
-  "hinweis": "Basis fuer F-14/T-12; Aenderungen nur ueber Sophie. D22-Vorarbeit (Sprint 5): farm_3 + muehle_2 im Radius von Mittelfurt (Farm 43,5 / Muehle 37,7 Felder, Fluss dazwischen). S-12 (Sprint 6): werkzeug_1 von (330,170) nach (193,258), 40,2 Felder von Kohlberg; muehle_2 von (360,235) nach (354,237), 43,9 Felder von Mittelfurt."
+  "version": "S-10+D22+S-12+D24",
+  "hinweis": "Basis fuer F-14/T-12; Aenderungen nur ueber Sophie. D22-Vorarbeit (Sprint 5): farm_3 + muehle_2 im Radius von Mittelfurt (Farm 43,5 / Muehle 37,7 Felder, Fluss dazwischen). S-12 (Sprint 6): werkzeug_1 von (330,170) nach (193,258); muehle_2 von (360,235) nach (354,237), 43,9 Felder von Mittelfurt. D24 (Sprint 6, PO-Freeze-Ausnahme Jonas): werkzeug_1 einmalig von (193,258) nach (133,216) verschoben, Stahlwerk 33,8 Felder, Kohlberg 33,0 Felder (HQ-Radius 50), Mittelfurt 259 Felder."
  },
  "karte": {
   "breite_felder": 512,
@@ -219,8 +219,8 @@
   {
    "id": "werkzeug_1",
    "typ": "werkzeugfabrik",
-   "x_felder": 193,
-   "y_felder": 258,
+   "x_felder": 133,
+   "y_felder": 216,
    "stufe": 1,
    "rolle": "abnehmer",
    "im_slice": true,
@@ -610,12 +610,12 @@
     {
      "von": "stahl_1",
      "nach": "werkzeug_1",
-     "luftlinie_felder": 60
+     "luftlinie_felder": 34
     },
     {
      "von": "werkzeug_1",
      "nach": "mittelfurt",
-     "luftlinie_felder": 204
+     "luftlinie_felder": 259
     }
    ]
   }

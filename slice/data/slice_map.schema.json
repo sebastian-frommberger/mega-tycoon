@@ -352,7 +352,6 @@
      "stadt",
      "im_slice",
      "radius_felder",
-     "startkapital_cent",
      "startkette",
      "industrien_im_radius",
      "bau_quelle"
@@ -374,9 +373,6 @@
      },
      "radius_felder": {
       "$ref": "common.schema.json#/$defs/felder"
-     },
-     "startkapital_cent": {
-      "$ref": "common.schema.json#/$defs/cent"
      },
      "startkette": {
       "$ref": "common.schema.json#/$defs/id"

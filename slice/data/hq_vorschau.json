@@ -1,0 +1,87 @@
+{
+  "quelle": "T-14b Tobias (Modellrechnung), erzeugt aus slice_map.json md5 718e062cd554b6a3c80460b33f088c8a und economy_slice.json durch tools/hq_vorschau_gen.py",
+  "staedte": {
+    "haberau": {
+      "radius": "Radius 55 Felder",
+      "ketten": [
+        "Kette 1 Getreide, Mehl: Farm 19 und 35, Mühle 25 Felder. Absatz Mittelfurt 150 Felder."
+      ],
+      "groesse": "Dorf, 900 Einwohner, Nachfrage 18 E/min",
+      "lizenzfaktor": "Lizenzfaktor x0,63 (Farm, im Radius)",
+      "gelaende": "Fluss 9 Felder entfernt, trennt Farmen und Mühle: Brücke nötig; Wald 8 %",
+      "hinweis": ""
+    },
+    "kohlberg": {
+      "radius": "Radius 50 Felder",
+      "ketten": [
+        "Kette 2 Kohle, Kraftwerk: Kohle 49, Kraftwerk 28 Felder",
+        "Kette 3 Erz, Kohle, Stahl, Werkzeug: Erz 45, Stahl 30, Werkzeugfabrik 33 Felder. Absatz Mittelfurt fern, 259 Felder."
+      ],
+      "groesse": "Kleinstadt, 2.500 Einwohner, Nachfrage 25 E/min",
+      "lizenzfaktor": "Lizenzfaktor x0,70 (Kraftwerk, im Radius)",
+      "gelaende": "Gebirge nördlich, 8 % des Radius: Gleis dort x3; Wald 9 %",
+      "hinweis": ""
+    },
+    "mittelfurt": {
+      "radius": "Radius 45 Felder",
+      "ketten": [
+        "Kette 1 Getreide, Mehl: Farm 43, Mühle 44 Felder (am Ringrand). Absatz: die Stadt selbst.",
+        "Kette 3: Werkzeugfabrik außerhalb des Radius (259 Felder)"
+      ],
+      "groesse": "Stadt, 12.000 Einwohner, Nachfrage 120 E/min (größter Absatz)",
+      "lizenzfaktor": "Lizenzfaktor x0,84 (Farm, im Radius; Stadtfaktor 1,20)",
+      "gelaende": "Fluss 6 Felder entfernt, liegt zwischen Farm und Mühle: Brücke nötig",
+      "hinweis": ""
+    },
+    "steinbach": {
+      "radius": "Radius 55 Felder",
+      "ketten": [
+        "Kein Rohstoff im Radius. Nächste Farm 81, Mühle 139, Kohle 284 Felder."
+      ],
+      "groesse": "Dorf, 550 Einwohner, Nachfrage 11 E/min",
+      "lizenzfaktor": "Lizenzfaktor x1,6 (Farm, 81 Felder)",
+      "gelaende": "Fluss 101 Felder entfernt; Gebirge nördlich, 3 % des Radius: Gleis dort x3",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
+    },
+    "eichwald": {
+      "radius": "Radius 55 Felder",
+      "ketten": [
+        "Kein Rohstoff im Radius. Nächste Mühle 170, Kohle 182, Farm 197 Felder."
+      ],
+      "groesse": "Dorf, 600 Einwohner, Nachfrage 12 E/min",
+      "lizenzfaktor": "Lizenzfaktor x4,0 (Mühle, 170 Felder)",
+      "gelaende": "Fluss 14 Felder entfernt; Wald 4 %",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
+    },
+    "lindach": {
+      "radius": "Radius 55 Felder",
+      "ketten": [
+        "Kein Rohstoff im Radius. Nächste Werkzeugfabrik 111, Erzmine 139, Stahlwerk 142 Felder."
+      ],
+      "groesse": "Dorf, 500 Einwohner, Nachfrage 10 E/min",
+      "lizenzfaktor": "Lizenzfaktor x2,4 (Werkzeugfabrik, 111 Felder)",
+      "gelaende": "Wald 9 %; kein Fluss und kein Gebirge im Radius",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
+    },
+    "weidenau": {
+      "radius": "Radius 55 Felder",
+      "ketten": [
+        "Kein Rohstoff im Radius. Nächste Werkzeugfabrik 176, Kraftwerk 197, Stahlwerk 199 Felder."
+      ],
+      "groesse": "Dorf, 700 Einwohner, Nachfrage 14 E/min",
+      "lizenzfaktor": "Lizenzfaktor x4,2 (Werkzeugfabrik, 176 Felder)",
+      "gelaende": "Wald 8 %; kein Fluss und kein Gebirge im Radius",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
+    },
+    "seehafen": {
+      "radius": "Radius 50 Felder",
+      "ketten": [
+        "Kein Rohstoff im Radius. Nächste Mühle 198, Farm 204, Kraftwerk 245 Felder."
+      ],
+      "groesse": "Kleinstadt, 3.200 Einwohner, Nachfrage 32 E/min",
+      "lizenzfaktor": "Lizenzfaktor x5,4 (Mühle, 198 Felder)",
+      "gelaende": "Küste: Meer 33 % des Radius, Hafen im Slice nicht verfügbar",
+      "hinweis": "Im Slice nicht balanciert."
+    }
+  }
+}

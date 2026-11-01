@@ -23,6 +23,7 @@ var city_pop := 0
 var owned := false             # Lager (eigener Bau)
 var licence_marker: MeshInstance3D
 
+const IndustryProps := preload("res://props/industry_props.gd")
 const GREY := Color(0.62, 0.63, 0.66)
 # D-07 BUG-4: ca. 25 % kleiner (Stadt ~14 px, Industrie ~11 px bei 900 px Höhe); k = Bildschirm-px je Label-Einheit ~ pixel_size * 560
 const LABEL_PX_CITY := 0.00080
@@ -39,6 +40,8 @@ func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_
 	if kind == Kind.WAREHOUSE:
 		_add_box(Vector3(footprint.x - 0.15, height * 0.7, footprint.y - 0.15), Vector3(0, height * 0.35, 0), GREY.darkened(0.15))
 		_add_box(Vector3(footprint.x - 0.05, height * 0.3, footprint.y * 0.4), Vector3(0, height * 0.85, 0), cap_color)
+	elif kind != Kind.CITY and IndustryProps.build(self, typ, cap_color):
+		pass     # S-13: Kenney-Props statt Grey-Box (typ vor setup() gesetzt, sonst Fallback unten)
 	elif kind != Kind.CITY:
 		var body := GREY if kind != Kind.INERT else GREY.darkened(0.35)
 		_add_box(Vector3(footprint.x - 0.15, height, footprint.y - 0.15), Vector3(0, height * 0.5, 0), body)
@@ -69,7 +72,7 @@ func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_
 	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	fm.albedo_color = Color(0.282, 0.878, 0.541)
 	licence_marker.material_override = fm
-	licence_marker.position = Vector3(0, height + 0.6, 0)
+	licence_marker.position = Vector3(0, (IndustryProps.top(typ, height) if kind != Kind.CITY and kind != Kind.WAREHOUSE else height) + 0.6, 0)
 	licence_marker.visible = false
 	add_child(licence_marker)
 

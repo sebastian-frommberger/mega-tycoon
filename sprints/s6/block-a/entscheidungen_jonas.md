@@ -3,3 +3,4 @@
 - Karte S-12 eingefroren. Die alten Archetyp-Startkapitale in hq_optionen sind entfernt (Code ignorierte sie). md5 slice_map.json: d99eb305afc23db4832bcb7ce6c857e0.
 - p95-Fix (RENDER_SPLIT) bleibt an; Fahrzeuge erscheinen 100 ms verzögert. Neuer Bench-Lauf auf dem Zielrechner, sobald Basti Zeit hat (keine Pflicht für diesen Sprint).
 - Lenas Annahmen bestätigt: Uhr und 2-min-Zähler stehen im Umsetzen-Modus, die Gratislizenz zählt als erste Lizenz, Radius inklusive.
+- D24 (Block B): Freeze-Ausnahme für werkzeug_1 → (133,216): Stahl→Werkzeug 34 F., Kohlberg 33 F.; Kohlberg-M7 im Modell 36–38 min (vorher 24). md5 slice_map.json: 718e062cd554b6a3c80460b33f088c8a. Schema: startkapital_cent aus hq_optionen entfernt.

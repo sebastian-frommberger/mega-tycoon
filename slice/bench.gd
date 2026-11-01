@@ -45,7 +45,7 @@ func start(main) -> void:
 	Engine.max_fps = 0
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var t0 := Time.get_ticks_usec()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	m.toast_time = 0.0
 	m.toast_label.text = "BENCH läuft – bitte warten (ca. %d s)" % int(WARMUP_SEC + RUNS * run_sec)
 	m.eco.ledger_enabled = false

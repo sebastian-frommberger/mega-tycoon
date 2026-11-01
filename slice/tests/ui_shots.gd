@@ -36,7 +36,7 @@ func _clear_toast() -> void:
 
 func _run() -> void:
 	await _shot("ui_1_startdialog.png")
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	_clear_toast()
 	var farm = m.by_id["farm_1"]
 	var mill = m.by_id["muehle_1"]

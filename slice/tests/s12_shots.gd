@@ -21,7 +21,7 @@ func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0] if args.size() > 0 else "user://"
 	var pre: String = args[1] if args.size() > 1 else "s12"
-	m.start_game("bergbau")
+	m.place_hq("kohlberg")
 	m.toast_time = 0.0
 	m.toast_label.text = ""
 	m.focus(Vector2(180, 240), 9.0)

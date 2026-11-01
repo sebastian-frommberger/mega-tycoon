@@ -40,7 +40,9 @@ func _run() -> void:
 			crosses = true
 	ok(crosses, "Fluss liegt zwischen Farm und Mühle (Brücke nötig)")
 	var dw: float = by["kohlberg"].distance_to(by["werkzeug_1"])
-	ok(dw >= 38.0 and dw <= 42.0, "Werkzeugfabrik ~40 Felder von Kohlberg, S-12 (%.1f)" % dw)
+	ok(dw <= 42.0, "Werkzeugfabrik höchstens 42 Felder von Kohlberg, D24 (%.1f)" % dw)
+	var ds: float = by["stahl_1"].distance_to(by["werkzeug_1"])
+	ok(ds <= 35.0, "Stahlwerk -> Werkzeugfabrik höchstens 35 Felder, D24 (%.1f)" % ds)
 	var q := {"NW": 0, "NO": 0, "SW": 0, "SO": 0}
 	var n := 0
 	for id in by:
@@ -59,7 +61,7 @@ func _run() -> void:
 	var m = load("res://main.tscn").instantiate()
 	root.add_child(m)
 	await process_frame
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var farm = m.by_id["farm_3"]
 	var cityb = m.by_id["mittelfurt"]
 	ok(farm != null and cityb != null, "farm_3 und Mittelfurt als Gebäude gebaut")

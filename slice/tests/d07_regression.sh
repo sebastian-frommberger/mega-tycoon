@@ -28,7 +28,7 @@ bash tests/run_tests.sh "$G" "$HERE/../d07_shots" > "$LOGS/run_tests.txt" 2>&1; 
 record "run_tests.sh (slice_test soa, slice_test alt, parity_test, 0 SCRIPT ERROR)" $r "$(grep -E 'Prüfungen OK|Paritätsprüfungen OK|SCRIPT ERROR' "$LOGS/run_tests.txt" | sed 's/Exit [0-9]*: //' | tr '\n' ';' | cut -c1-200)"
 
 # --- 2) Unabhängige Abnahmeprüfungen (tests/d07_abnahme.gd) je Block
-for blk in ui kredit parity lager; do
+for blk in ui kredit parity lager hq; do
   $G --headless --path . -s res://tests/d07_abnahme.gd -- --only=$blk > "$LOGS/abnahme_$blk.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/abnahme_$blk.txt")
   [ "$e" -gt 0 ] && r=1

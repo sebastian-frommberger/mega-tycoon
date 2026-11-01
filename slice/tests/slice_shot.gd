@@ -27,7 +27,7 @@ func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0] if args.size() > 0 else "user://"
 	await _shot(out.path_join("shot_start.png"))
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	m.toast_time = 0.0
 	m.toast_label.text = ""
 	await _shot(out.path_join("shot_start_agrar.png"))

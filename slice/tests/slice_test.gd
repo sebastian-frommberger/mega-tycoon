@@ -83,7 +83,7 @@ func _run() -> void:
 	ok(cnt[1] / tot < 0.4 and cnt[2] / tot < 0.4, "Region ≤ 40 % (Geländeanteile)")
 	for n in m.map_notes:
 		print("     Notiz: ", n)
-	ok(not m.company_started and m.start_panel.visible, "Startdialog sichtbar, Spiel pausiert bis zur Wahl")
+	ok(not m.company_started and m.hq.mode == m.hq.Mode.PLACING and not m.has_node("StartDialog") and m.speed == 0, "F-20: Start direkt auf der Karte im Platzierungsmodus, kein Startdialog, Zeit pausiert bis zur Gründung")
 	# T-12: Baukosten kommen aus dem JSON (bau_kosten), nicht aus dem Code
 	var bk: Dictionary = m.eco.slice["bau_kosten"]
 	var c_plain := Vector2i(-1, -1)
@@ -105,7 +105,7 @@ func _run() -> void:
 
 	# ------------------------------------------------------------------ 2) Durchlauf Agrar
 	print("== 2) Skript-Durchlauf Agrar: Lizenz Farm + Mühle, Straße, Lkw-Linie, 30 Spielminuten")
-	ok(m.start_game("agrar"), "Start Agrar (Knopf 1 von 2)")
+	ok(m.place_hq("haberau"), "F-20: HQ in Haberau gegründet (place_hq)")
 	var cap0: int = m.eco.cash_cent
 	# S6 (D22/T-14): ein Startkapital aus hq.start_capital_cent (Gegenprobe constants.startkapital_cent), Lkw-Paket für alle gleich
 	var cap_json: int = int(m.eco.slice["hq"]["start_capital_cent"])
@@ -176,7 +176,7 @@ func _run() -> void:
 	report.append("Linie Mühle→Haberau: Ertrag %s − Kosten %s = %s, %d Lieferungen (Sättigung Dorf 9 E/min)" % [m.money_str(v2.income_total), m.money_str(v2.cost_total()), m.money_str(l2), v2.deliveries])
 	ok(m.eco.cash_cent > cash_setup, "Kasse nach 30 min %s > nach Aufbau %s (Start %s)" % [m.money_str(m.eco.cash_cent), m.money_str(cash_setup), m.money_str(cap0)])
 	var ratio := float(m.eco.cash_cent) / cap0
-	ok(ratio >= 1.5 and ratio <= 2.5, "T-12/D23: Agrar-Kasse nach 30 min ×%.2f des Starts (Ziel ×1,5–2,5 nach Dorf ×2; Maßstab ist T-14 Bankrott 10–30 %, Skriptlauf, Kern %s)" % [ratio, m.vehicle_core])
+	ok(ratio >= 1.5 and ratio <= 2.5, "T-12/D23: Agrar-Kasse nach 30 min ×%.2f des Starts (Ziel ×1,5–2,5 nach Dorf ×2; Maßstab ist T-14 Bankrott 10–30 %%, Skriptlauf, Kern %s)" % [ratio, m.vehicle_core])
 	var all_done := true
 	for i in m.milestones.size():
 		all_done = all_done and m.milestones[i]["done"]
@@ -194,7 +194,7 @@ func _run() -> void:
 	# ------------------------------------------------------------------ 3) Lager-Pingpong
 	print("== 3) Lager-Pingpong")
 	_new_main()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var spot := _corridor(Vector2i(300, 300), 24)
 	ok(spot.x >= 0, "freier Korridor für 2 Lager gefunden bei %s" % spot)
 	var wa = m.build_warehouse(spot)
@@ -213,7 +213,7 @@ func _run() -> void:
 	# ------------------------------------------------------------------ 4) Bankrott
 	print("== 4) Bankrott: nur Fahrzeuge kaufen, keine Linie")
 	_new_main()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var bought := 0
 	while m.buy_vehicle("truck") != null:
 		bought += 1
@@ -225,7 +225,7 @@ func _run() -> void:
 	m.sim_tick()
 	ok(m.shim.tick_count == tk, "Simulation steht nach Bankrott")
 	_new_main()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	for i in 5:
 		m.buy_vehicle("truck")
 	m.run_ticks(TICKS_30_MIN)
@@ -234,9 +234,9 @@ func _run() -> void:
 	# ------------------------------------------------------------------ 5) Bergbau-Start, Tempo
 	print("== 5) Bergbau-Start und Tempo")
 	_new_main()
-	ok(m.start_game("bergbau") and m.eco.cash_cent == int(m.eco.slice["hq"]["start_capital_cent"]) and m.eco.cash_cent == cap0
+	ok(m.place_hq("kohlberg") and m.eco.cash_cent == int(m.eco.slice["hq"]["start_capital_cent"]) and m.eco.cash_cent == cap0
 		and m.free_trucks_left == int(m.eco.slice["fahrzeug_ref"]["startpaket_lkw_anzahl"]),
-		"Start Bergbau (Knopf 2 von 2): %s, gleiches Kapital und Lkw-Paket wie Agrar (D22)" % m.money_str(m.eco.cash_cent))
+		"HQ Kohlberg: %s, gleiches Kapital und Lkw-Paket wie Haberau (D22)" % m.money_str(m.eco.cash_cent))
 	# S6: Kreditschritt aus kredit.credit_step_cent (vorher hartcodiert), Dorfnachfrage über Stufen-Multiplikator (S-12/T-14)
 	ok(m.credit.step_cent == int(m.eco.slice["kredit"]["credit_step_cent"]) and m.credit.step_cent == int(m.eco.consts["kredit"]["schritt_cent"]),
 		"Kreditschritt %s aus JSON" % m.money_str(m.credit.step_cent))
@@ -276,7 +276,7 @@ func _run() -> void:
 	# ------------------------------------------------------------------ 6) U-01 / F-15 / B-01 (Sprint 5, UI-Team)
 	print("== 6) F-15 Kontextpanel + Lizenzkauf, U-01 Theme, B-01 Linie auflösen")
 	_new_main()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var farm6 = m.by_id["farm_1"]
 	var mill6 = m.by_id["muehle_1"]
 	var clicks := 0
@@ -362,7 +362,7 @@ func _section7() -> void:
 	print("== 7) B-xx Lager über Kapazität, B-02 Gleis auf Stadtstraße, F-19 Kredit (Kern %s)" % m.vehicle_core)
 	# --- B-xx: Ziel-Lager über Kapazität -> Annahme 0, keine Einheiten aus dem Nichts
 	_new_main()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var cap: int = m.eco.warehouse_cap
 	var spot := _corridor(Vector2i(300, 300), 24)
 	var wa = m.build_warehouse(spot)
@@ -385,7 +385,7 @@ func _section7() -> void:
 	var runs_ok := 0
 	for r in 20:
 		_new_main()
-		m.start_game("agrar")
+		m.place_hq("haberau")
 		var sp := _corridor(Vector2i(300, 300), 24)
 		var a = m.build_warehouse(sp)
 		var b = m.build_warehouse(sp + Vector2i(22, 0))
@@ -405,7 +405,7 @@ func _section7() -> void:
 	ok(runs_ok == 20, "B-xx: Lager ≤ Kapazität in %d/20 Läufen (höchster Bestand %d, Kapazität %d)" % [runs_ok, worst, cap])
 	# --- B-02: Gleis auf Stadtstraße nicht erlaubt, Grund im Ghost; Straße darauf bleibt „vorhanden“
 	_new_main()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var st := Vector2i(-1, -1)
 	for c in m.city_streets.keys():
 		st = c
@@ -426,7 +426,7 @@ func _section7() -> void:
 	ok(prd["ok"] and prd["new_count"] == 0, "B-02: Straße auf Stadtstraße weiterhin „vorhanden“ (0 neue Felder)")
 	# --- F-19 Kredit
 	_new_main()
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	var k: Dictionary = m.eco.slice["kredit"]
 	var c0: int = m.eco.cash_cent
 	var got := 0

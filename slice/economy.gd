@@ -125,7 +125,6 @@ var v_lots: Dictionary = {}              # Fahrzeug-ID -> Array[[gut, ursprung, 
 
 # ---- Firma ----
 var company_started := false
-var archetyp := ""
 var cash_cent := 0
 var start_capital_cent := 0
 var start_capital_json := 0                 # S6: hq.start_capital_cent
@@ -483,28 +482,24 @@ func seed_stock(site: int, gut_id: String, units: int) -> void:
 ## Spielstart (S6, D22): Firma mit dem einen Startkapital hq.start_capital_cent, HQ an einem Stadtknoten.
 ## Kein Archetyp, kein Kredit-Start. F-20 (hq_placement.gd) ruft diese Funktion direkt.
 func start_company_at(hq_node_id: int, hq_stage_id: String) -> bool:
-	var radmap := {"dorf": "village", "kleinstadt": "town", "stadt": "city", "metropole": "metro"}
-	if not radmap.has(hq_stage_id):
+	if not move_hq_to(hq_node_id, hq_stage_id):
 		return false
 	start_capital_cent = start_capital_json
 	cash_cent = start_capital_cent - int(slice["hq"]["hq_found_cost_cent"])
-	hq_radius_felder = slice["hq"]["hq_radius_%s_felder" % radmap[hq_stage_id]]
-	var hp: Vector2i = _sim_get().graph.nodes[hq_node_id]["pos"]
-	hq_x = hp.x
-	hq_y = hp.y
 	free_licences_left = free_licences_start
 	company_started = true
 	return true
 
 
-## Übergang bis F-20 den Startdialog ersetzt: Archetyp nur noch als Etikett (Ziel-Hinweise in main.ARCH),
-## ohne Einfluss auf Kapital oder Radius. Entfällt mit F-20.
-func start_company(archetyp_id: String, hq_node_id: int, hq_stage_id: String) -> bool:
-	if not archetyp_id in ["agrar", "bergbau", "hafen", "handelsknoten"]:
+## F-20 Umsetzen (D22): nur Ort und Radius des HQ, Kasse und Lizenzen bleiben. Die Umsetzen-Regel prüft hq_placement.gd.
+func move_hq_to(hq_node_id: int, hq_stage_id: String) -> bool:
+	var radmap := {"dorf": "village", "kleinstadt": "town", "stadt": "city", "metropole": "metro"}
+	if not radmap.has(hq_stage_id):
 		return false
-	if not start_company_at(hq_node_id, hq_stage_id):
-		return false
-	archetyp = archetyp_id
+	hq_radius_felder = slice["hq"]["hq_radius_%s_felder" % radmap[hq_stage_id]]
+	var hp: Vector2i = _sim_get().graph.nodes[hq_node_id]["pos"]
+	hq_x = hp.x
+	hq_y = hp.y
 	return true
 
 

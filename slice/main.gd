@@ -6,7 +6,7 @@ extends Node3D
 ##   (2) Ökonomie aus economy.gd + T-06-JSON: Ertrag nur beim Endabnehmer, Luftlinie, Lager 0 $, Sättigung,
 ##       Lizenzpflicht zum Laden. Fahrzeugkauf und Unterhalt aus vehicles.json, Lager-Unterhalt aus JSON.
 ##       Kredit (F-19): bis 2.000 $ manuell; Kasse unter 0 $ = Bankrott.
-##   (3) Start mit HQ: Startdialog Agrar/Bergbau, Klick-Panel mit Knopf „Lizenz kaufen“ (Preis, Ertrag/Monat).
+##   (3) Start auf der Karte: HQ-Platzierung (F-20, hq_placement.gd), Klick-Panel mit Knopf „Lizenz kaufen“ (Preis, Ertrag/Monat).
 ##   (4) Ziele oben rechts mit „Nächster Schritt“ und gelbem Marker über dem Ziel.
 ## Alles wird im Code aufgebaut (keine Szenen außer main.tscn).
 
@@ -15,7 +15,7 @@ const Vehicle := preload("res://vehicle.gd")
 const Economy := preload("res://economy.gd")
 const EcoShim := preload("res://eco_shim.gd")
 const KenneyLoader := preload("res://props/kenney_loader.gd")   # S-11: Natur-Props (CC0)
-const StartBackdrop := preload("res://ui/start_backdrop.gd")     # S-11: Startdialog-Hintergrund
+const HqPlacement := preload("res://hq_placement.gd")            # F-20: HQ-Platzierung (D22)
 const SimWorld := preload("res://core/sim_world.gd")    # F-18: SoA-Kern mit Linienbetrieb
 const FleetSoa := preload("res://fleet_soa.gd")
 const Credit := preload("res://credit.gd")             # F-19
@@ -56,14 +56,6 @@ const GOOD_COLORS := {"getreide": Color(0.95, 0.85, 0.3), "mehl": Color(1, 1, 1)
 	"erz": Color(0.6, 0.38, 0.32), "stahl": Color(0.7, 0.72, 0.78), "werkzeug": Color(0.25, 0.45, 0.9), "holz": Color(0.45, 0.3, 0.15)}
 const STAGE_NAMES := {"dorf": "Dorf", "kleinstadt": "Kleinstadt", "stadt": "Stadt", "metropole": "Metropole"}
 
-## Startdialog und Ziel-Hinweise je Archetyp (Ketten aus L-08/D17, Orte aus slice_map.hq_optionen).
-const ARCH := {
-	"agrar": {"title": "Agrar", "src": "farm_1", "proc": "muehle_1", "m3_from": "muehle_1", "m3_to": "haberau",
-		"m3_text": "Lizenz für die Mühle kaufen, Straße zu einer Stadt (Haberau nah, Mittelfurt weit und lohnender), Lkw-Linie Mühle → Stadt."},
-	"bergbau": {"title": "Bergbau", "src": "kohle_1", "proc": "kraftwerk_1", "m3_from": "stahl_1", "m3_to": "werkzeug_1",
-		"m3_text": "Erz und Kohle zum Stahlwerk fahren, Lizenz Stahlwerk kaufen, Stahl zur Werkzeugfabrik (weit: ein Zug lohnt sich)."},
-}
-
 # ---------------------------------------------------------------- Daten
 ## F-18 Schalter Fahrzeug-Kern: "alt" = Prototyp-Fahrzeuge (vehicle.gd + eco_shim.gd), "soa" = SoA-Kern
 ## (core/sim_world.gd über fleet_soa.gd). Default "soa" seit F-18 (Parität exakt, siehe felix.md); "alt" bleibt Rückfall.
@@ -103,7 +95,6 @@ var map_notes: Array = []
 
 # ---------------------------------------------------------------- Zustand
 var company_started := false
-var archetyp := ""
 var hq_city = null
 var bankrupt := false
 var speed := 0
@@ -159,11 +150,9 @@ var rig: Node3D
 var cam: Camera3D
 var sun: DirectionalLight3D
 var label_tier := -1          # S-11 Label-LOD: 0 fern, 1 mittel, 2 nah
-var start_backdrop_t := 0.0
 var zoom := 1.0
 var preview_root: Node3D
 var hover_marker: MeshInstance3D
-var influence_mesh: MeshInstance3D
 var goal_markers: Array = []
 var ui: CanvasLayer
 var ui_root: Control
@@ -202,7 +191,7 @@ var panel_why_text: Label
 var panel_button: Button
 var panel_reason: Label
 var panel_line_button: Button
-var start_panel: Control
+var hq = null                   # F-20: hq_placement.gd
 var bankrupt_panel: PanelContainer
 var bankrupt_label: Label
 var cursor_box: PanelContainer
@@ -218,7 +207,6 @@ var mat_exist: StandardMaterial3D
 var mat_demolish: StandardMaterial3D
 var mat_saum: StandardMaterial3D
 var mat_marker: StandardMaterial3D
-var mat_influence: StandardMaterial3D
 var mm_truck: MultiMeshInstance3D
 var mm_train: MultiMeshInstance3D
 var mm_cargo: MultiMeshInstance3D
@@ -338,7 +326,6 @@ func _setup_materials() -> void:
 	mat_marker = _mat(_pal("marker"), true)                    # S-08 marker
 	mat_marker.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	mat_marker.no_depth_test = true
-	mat_influence = _mat(Color(0.3, 0.6, 1.0, 0.16), true)
 
 
 func _hatch_texture() -> ImageTexture:
@@ -558,18 +545,10 @@ func _check_ids() -> void:
 		if not h["im_slice"]:
 			continue
 		if not ids.has(h["stadt"]):
-			map_missing_ids.append("HQ %s: Stadt %s fehlt" % [h["archetyp"], h["stadt"]])
+			map_missing_ids.append("HQ: Stadt %s fehlt" % h["stadt"])
 		for i in h["industrien_im_radius"]:
 			if not ids.has(i):
-				map_missing_ids.append("HQ %s: Industrie %s fehlt" % [h["archetyp"], i])
-		# S6 (D22/T-14): Archetyp-Flags und Kapital je Archetyp entfallen; Kapital gilt nur aus hq.start_capital_cent,
-		# ein startkapital_cent in der Karte wird ignoriert. Bis F-20 braucht jede Slice-HQ-Option einen Ziel-Hinweis.
-		if not ARCH.has(h["archetyp"]):
-			map_missing_ids.append("HQ %s: im_slice, aber kein Ziel-Hinweis (main.ARCH)" % h["archetyp"])
-	for a in ARCH:
-		for k in ["src", "proc", "m3_from", "m3_to"]:
-			if not ids.has(ARCH[a][k]):
-				map_missing_ids.append("Ziel-Hinweis %s.%s: %s fehlt" % [a, k, ARCH[a][k]])
+				map_missing_ids.append("HQ %s: Industrie %s fehlt" % [h["stadt"], i])
 
 
 func idx(c: Vector2i) -> int:
@@ -978,7 +957,10 @@ func _setup_ui() -> void:
 	cb.add_child(cursor_reason)
 
 	_style_map_labels()
-	_setup_start_dialog()
+	hq = HqPlacement.new()
+	add_child(hq)
+	hq.setup(self)
+	map_missing_ids.append_array(hq.missing_preview_ids())
 	_setup_bankrupt_panel()
 	_refresh_speed_buttons()
 	_refresh_tool_buttons()
@@ -1006,10 +988,18 @@ func _setup_hud() -> void:
 		h.add_child(_hud_chip(e[0], e[1], e[2], e[3]))
 		if e[0] == "kasse" and credit.active:
 			h.add_child(_credit_chip())
+		if e[0] == "kasse":
+			# U-02b: ruhige Zeile "Skillpunkt gespart" (nur Anzeige, kein Skilltree; SK-01 ist Papier). Kein Chip,
+			# kein Icon, gedämpfte Farbe; sichtbar erst ab M1b (siehe _update_hud).
+			var sk := Kit.label("", "LabelHudSmall")
+			sk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			sk.mouse_filter = Control.MOUSE_FILTER_PASS
+			sk.tooltip_text = "Skillpunkt aus Meilenstein M1b. Der Skilltree kommt später, der Punkt bleibt bis dahin gespart."
+			sk.visible = false
+			h.add_child(sk)
+			hud_vals["skill"] = sk
 	h.add_child(Kit.spacer())
-	var tl := Kit.label("TEMPO", "LabelHudSmall")
-	h.add_child(tl)
-	var seg := Kit.hbox(4)
+	var seg := Kit.hbox(4)      # U-02b: Label „TEMPO“ entfällt (U-02-Spec Fix 2), Platz für die Skillpunkt-Zeile
 	h.add_child(seg)
 	for s in [0, 1, 2, 4, 8]:
 		var b: Button
@@ -1056,9 +1046,7 @@ func _update_label_lod(force := false) -> void:
 		else:
 			l.modulate.a = industry_alpha
 			l.visible = industry_alpha > 0.02
-		if not company_started and start_panel != null and start_panel.visible:
-			l.visible = false          # hinter dem Startdialog keine verschmierten Beschriftungen
-		elif b.kind == Building.Kind.CITY:
+		if b.kind == Building.Kind.CITY:
 			l.visible = true
 	if tier != label_tier or force:
 		label_tier = tier
@@ -1076,6 +1064,26 @@ func _place_map_labels() -> void:
 	var kscale := vp.y / 900.0 * 560.0       # Bildschirm-px je Label-Einheit = pixel_size * kscale (gemessen bei 900 px Höhe)
 	var hud: Array[Rect2] = []
 	_collect_hud_rects(ui_root, 0, hud)
+	# U-02b: Zielpfeile haben Vorrang vor Beschriftungen (Spec: Überlappung -> niedrigere Priorität ausblenden).
+	# Rechteck deckt den ganzen Wipp-Bereich ab (siehe _process), damit das Label nicht im Takt flackert.
+	var marks: Array[Rect2] = []
+	for mk in goal_markers:
+		var ms: float = mk.scale.x
+		var mid := Vector3(mk.position.x, mk.get_meta("base_y") + 2.0 * ms, mk.position.z)
+		var ext := Vector3(1.3 * ms, 1.3 * ms + 0.6 * ms, 1.3 * ms)
+		var mr := Rect2()
+		var first := true
+		for sx in [-1.0, 1.0]:
+			for sy in [-1.0, 1.0]:
+				for sz in [-1.0, 1.0]:
+					var p3 := mid + Vector3(ext.x * sx, ext.y * sy, ext.z * sz)
+					if cam.is_position_behind(p3):
+						continue
+					var p2 := cam.unproject_position(p3)
+					mr = Rect2(p2, Vector2.ZERO) if first else mr.expand(p2)
+					first = false
+		if not first:
+			marks.append(mr.grow(4.0))
 	for b in buildings:
 		var l: Label3D = b.label
 		if not l.visible:
@@ -1099,16 +1107,30 @@ func _place_map_labels() -> void:
 					bottom = maxf(bottom, cam.unproject_position(corner).y)
 		var k := l.pixel_size * kscale
 		var off := -(bottom - pc.y + 5.0) / k
-		if absf(l.offset.y - off) > 0.4:
-			l.offset = Vector2(0, off)
 		var fpx := l.font_size * k
 		var lines := l.text.split("\n")
 		var wmax := 0
 		for ln in lines:
 			wmax = maxi(wmax, ln.length())
 		var r := Rect2(pc.x - wmax * fpx * 0.29, bottom + 5.0, wmax * fpx * 0.58, lines.size() * fpx * 1.4)
+		# U-02b: stößt das Label von oben an eine Leiste unten (Hinweis-/Werkzeugleiste), wird es nach oben
+		# verschoben statt ausgeblendet (Haberau im Nahzoom). Max. eine Labelhöhe, sonst wie bisher ausblenden.
+		var lift := 0.0
+		for h in hud:
+			var hg := h.grow(4.0)
+			if r.intersects(hg) and hg.position.y > r.position.y:
+				lift = maxf(lift, r.end.y - hg.position.y)
+		if lift > 0.0 and lift <= r.size.y:
+			r.position.y -= lift
+			off += lift / k
+		if absf(l.offset.y - off) > 0.4:
+			l.offset = Vector2(0, off)
 		for h in hud:
 			if r.intersects(h.grow(4.0)):
+				l.visible = false
+				break
+		for mr in marks:
+			if l.visible and r.intersects(mr):
 				l.visible = false
 				break
 
@@ -1143,11 +1165,11 @@ func _vline() -> StyleBoxLine:
 
 ## F-19: Kredit-Eintrag am Kassenfeld: offener Betrag / Rahmen, [+] aufnehmen, [−] tilgen (je 500 $).
 func _credit_chip() -> Control:
-	var tip := "Kredit: fester Zins %s %% je Spielminute auf den offenen Betrag, Rahmen %s.\n+ nimmt %s auf, - tilgt %s (Geld muss in der Kasse sein)." % [
+	var tip := "Kredit: fester Zins %s %% je Spielminute auf den offenen Betrag, max. %s.\n+ nimmt %s auf, - tilgt %s (Geld muss in der Kasse sein)." % [
 		String.num(credit.interest_pm / 10.0, 1).replace(".", ","), money_str(credit.limit_cent), money_str(credit.step_cent), money_str(credit.step_cent)]
 	var p := _hud_chip("kredit", "geld", "Kredit", tip)
 	var h: HBoxContainer = p.get_child(0)
-	hud_vals["kredit"].custom_minimum_size = Vector2(118, 0)
+	hud_vals["kredit"].custom_minimum_size = Vector2(74, 0)          # U-02b: nur offener Betrag, Rahmen als „max.“ im Tooltip (U-02-Spec)
 	var plus := Kit.button("+", "ButtonTempo", "", ui_credit_borrow)
 	var minus := Kit.button("-", "ButtonTempo", "", ui_credit_repay)
 	plus.tooltip_text = "Kredit aufnehmen: +%s" % money_str(credit.step_cent)
@@ -1385,100 +1407,6 @@ func _setup_toolbar() -> void:
 		tool_buttons.append([t, b])
 
 
-func _setup_start_dialog() -> void:
-	start_panel = Control.new()
-	start_panel.name = "StartDialog"
-	start_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	ui_root.add_child(start_panel)
-	var dim := ColorRect.new()
-	dim.color = Color(0.08, 0.06, 0.04, 0.55)
-	dim.color = Color(0.08, 0.06, 0.04, 0.22)   # HUD wird nur leicht abgedunkelt; die Karte blurrt StartBackdrop darunter
-	StartBackdrop.attach(self, start_panel)     # S-11: Karte geblurrt + abgedunkelt, dahinter Kamerafahrt
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	start_panel.add_child(dim)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	start_panel.add_child(center)
-	var card := Kit.panel("PanelDock")
-	var cbox: StyleBoxFlat = ui_theme.get_stylebox("panel", "PanelDock").duplicate()
-	cbox.bg_color = ThemeBuilder.C["paper"]
-	cbox.shadow_size = 28
-	cbox.shadow_color = Color(0, 0, 0, 0.45)
-	card.add_theme_stylebox_override("panel", cbox)
-	card.custom_minimum_size = Vector2(880, 0)
-	center.add_child(card)
-	var v := Kit.vbox(0)
-	card.add_child(v)
-	var head := Kit.panel("PanelHeader")
-	head.add_theme_stylebox_override("panel", _start_head_box())
-	v.add_child(head)
-	var hv := Kit.vbox(2)
-	head.add_child(hv)
-	hv.add_child(Kit.label("MEGA TYCOON", "LabelHeroWood"))
-	hv.add_child(Kit.label("Gründe deine Transportfirma", "LabelHudSmall"))
-	var body := Kit.margin(28, 22, 28, 24)
-	v.add_child(body)
-	var bv := Kit.vbox(14)
-	body.add_child(bv)
-	bv.add_child(Kit.label("Wo startest du?", "LabelTitle"))
-	bv.add_child(Kit.label("Das HQ kostet nichts. Kapital und Kette hängen an der Stadt.", "LabelMuted"))
-	var tiles := Kit.hbox(20)
-	bv.add_child(tiles)
-	for a in ["agrar", "bergbau"]:
-		tiles.add_child(_archetype_tile(a))
-	var foot := Kit.hbox(8, [Kit.icon("info", 18, ThemeBuilder.C["muted"]),
-		Kit.label("Kredit bis 2.000 $ über [+] im Kopfbereich. Fällt die Kasse unter 0 $, ist die Firma bankrott – nimm vorher Kredit auf. Laden nur an Industrien mit Lizenz, Geld erst beim Abnehmer.", "LabelMuted", true)])
-	foot.get_child(1).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bv.add_child(foot)
-
-
-func _start_head_box() -> StyleBoxFlat:
-	var s := ThemeBuilder.sb(ThemeBuilder.C["wood"], 12, 0, Color.TRANSPARENT, Vector4(28, 18, 28, 16))
-	s.corner_radius_bottom_left = 0
-	s.corner_radius_bottom_right = 0
-	s.border_width_bottom = 4
-	s.border_color = ThemeBuilder.C["amber"]
-	return s
-
-
-func _archetype_tile(a: String) -> Button:
-	var hq := _hq_option(a)
-	var cap: int = int(eco.slice["hq"]["start_capital_cent"])                 # S6: ein Kapital (D22)
-	var lkw: int = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_anzahl"])
-	var city = by_id.get(hq.get("stadt", ""), null)
-	var b := Kit.button("", "ButtonTile", "", func(): start_game(a))
-	b.custom_minimum_size = Vector2(402, 256)
-	b.name = "Tile_" + a
-	var m := Kit.margin(20, 18, 20, 18)
-	m.set_anchors_preset(Control.PRESET_FULL_RECT)
-	b.add_child(m)
-	var v := Kit.vbox(10)
-	m.add_child(v)
-	var disc := Kit.panel("PanelIconDisc")
-	disc.add_theme_stylebox_override("panel", ThemeBuilder.sb(ThemeBuilder.C["amber"], 30, 3, ThemeBuilder.C["amber_edge"], Vector4(10, 10, 10, 10)))
-	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	disc.add_child(Kit.icon("farm" if a == "agrar" else "mine", 36, ThemeBuilder.C["ink"]))
-	var tv := Kit.vbox(0, [Kit.label(ARCH[a]["title"], "LabelTitle"),
-		Kit.label("HQ in %s · %s" % [city.display_name if city else "?", STAGE_NAMES.get(city.city_stage, "") if city else ""], "LabelMuted")])
-	tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	v.add_child(Kit.hbox(14, [disc, tv]))
-	var chain := "Getreide › Mühle › Mehl › Stadt" if a == "agrar" else "Erz + Kohle › Stahlwerk › Stahl › Werkzeugfabrik"
-	var note := "Kurze Kette, schneller erster Gewinn." if a == "agrar" else "Längere Kette, weite Strecke: ein Zug lohnt sich."
-	var cl := Kit.label(chain, "LabelBody", true)
-	cl.custom_minimum_size = Vector2(0, 54)
-	cl.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	v.add_child(cl)
-	v.add_child(Kit.label(note, "LabelMuted", true))
-	var sp := Control.new()
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(sp)
-	var cap_l := Kit.label(money_str(cap), "LabelTitle")
-	v.add_child(Kit.hbox(10, [Kit.icon("geld", 26, ThemeBuilder.C["amber_edge"]), Kit.vbox(-2, [Kit.label("STARTKAPITAL", "LabelCaps"), cap_l]),
-		Kit.spacer(), Kit.icon("lkw", 22, ThemeBuilder.C["muted"]), Kit.label("%d Lkw gratis" % lkw, "LabelMuted")]))
-	return b
-
-
 ## Bankrott: kein zentriertes Modal, sondern Banner unter dem HUD (Karte bleibt sichtbar).
 func _setup_bankrupt_panel() -> void:
 	bankrupt_panel = Kit.panel("PanelBanner")
@@ -1497,13 +1425,6 @@ func _setup_bankrupt_panel() -> void:
 	var b := Kit.button("Neu starten", "ButtonPrimary", "", func(): get_tree().reload_current_scene())
 	b.size_flags_horizontal = Control.SIZE_SHRINK_END
 	v.add_child(b)
-
-
-func _hq_option(a: String) -> Dictionary:
-	for h in map_data["hq_optionen"]:
-		if h["archetyp"] == a:
-			return h
-	return {}
 
 
 func _refresh_tool_buttons() -> void:
@@ -1539,12 +1460,17 @@ func _toast(text: String, seconds := 4.0) -> void:
 	else:
 		toast_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 		toast_label.custom_minimum_size = Vector2.ZERO
-	var tsz := toast_panel.get_combined_minimum_size()
-	UiFx.set_rest(toast_panel, -tsz.x * 0.5, HUD_H + 14, tsz.x * 0.5, HUD_H + 14 + tsz.y)
+	_fit_toast()
+	_fit_toast.call_deferred()      # F-20: nach dem Umbruch neu messen (erste Messung nimmt die Höhe aus der alten Breite)
 	toast_time = seconds
 	if toast_panel and toast_panel.is_inside_tree() and not toast_panel.visible:
 		toast_panel.visible = true
 		UiFx.slide_in(toast_panel, Vector2(0, -16))
+
+
+func _fit_toast() -> void:
+	var tsz := toast_panel.get_combined_minimum_size()
+	UiFx.set_rest(toast_panel, -tsz.x * 0.5, HUD_H + 14, tsz.x * 0.5, HUD_H + 14 + tsz.y)
 
 
 func set_speed(s: int) -> void:
@@ -1564,48 +1490,9 @@ func _refresh_speed_buttons() -> void:
 
 # ---------------------------------------------------------------- Start, Lizenz, Panel
 
-## Startdialog-Knopf: Firma gründen (HQ gratis, Startkapital = Firma, L-08 §1).
-func start_game(a: String) -> bool:
-	if company_started:
-		return false
-	var hq := _hq_option(a)
-	if hq.is_empty() or not by_id.has(hq["stadt"]):
-		return false
-	hq_city = by_id[hq["stadt"]]
-	if not eco.start_company(a, hq_city.node_id, hq_city.city_stage):
-		_toast("Firma konnte nicht gegründet werden (JSON).")
-		return false
-	archetyp = a
-	company_started = true
-	free_trucks_left = int(eco.slice["fahrzeug_ref"]["startpaket_lkw_anzahl"]) if start_trucks_free else 0   # S6: 2 für alle
-	start_panel.visible = false
-	ms_panel.visible = true
-	if ms_panel.is_inside_tree():
-		UiFx.slide_in(ms_panel, Vector2(-40, 0))
-	_refresh_tool_buttons()
-	_show_influence()
-	_init_milestones()
-	var src = by_id[ARCH[a]["src"]]
-	var mid: Vector3 = (hq_city.center() + src.center()) * 0.5
-	rig.rotation = Vector3.ZERO   # Kamerafahrt des Startdialogs beenden
-	focus(Vector2(mid.x, mid.z), 3.2)
-	set_speed(1)
-	_toast("%s gegründet. Startkapital %s, %d Lkw im Startpaket. Klick auf %s (gelber Pfeil)." % [
-		"Agrarfirma" if a == "agrar" else "Bergbaufirma", money_str(eco.cash_cent), free_trucks_left, src.display_name], 8.0)
-	return true
-
-
-func _show_influence() -> void:
-	influence_mesh = MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = eco.hq_radius_felder
-	cyl.bottom_radius = eco.hq_radius_felder
-	cyl.height = 0.02
-	influence_mesh.mesh = cyl
-	influence_mesh.material_override = mat_influence
-	influence_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	influence_mesh.position = hq_city.center() + Vector3(0, 0.03, 0)
-	add_child(influence_mesh)
+## F-20 Testeinstieg / Kurzweg: HQ in einer Stadt gründen (Platzierungsmodus, hq_placement.gd).
+func place_hq(city_id: String) -> bool:
+	return hq.place(city_id)
 
 
 func licence_quote(b) -> Dictionary:
@@ -1873,8 +1760,8 @@ func _refresh_panel() -> void:
 
 # ---------------------------------------------------------------- Ziele / Meilensteine
 
-func _init_milestones() -> void:
-	var A: Dictionary = ARCH[archetyp]
+## Ziele aus der Startkette der HQ-Stadt (hq_placement.start_targets: src, proc, m3_from, m3_to, m3_text).
+func _init_milestones(A: Dictionary) -> void:
 	var src: String = by_id[A["src"]].display_name
 	var proc: String = by_id[A["proc"]].display_name
 	milestones = [
@@ -2022,6 +1909,8 @@ func _cancel() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if hq.handle_input(event):
+		return
 	var mb := event as InputEventMouseButton
 	if mb and mb.pressed:
 		match mb.button_index:
@@ -2716,7 +2605,7 @@ func _recompute_running_cost() -> void:
 
 ## Ein fester Tick (tick_ms aus JSON): Ökonomie, Fahrzeuge, Unterhalt, Bankrott.
 func sim_tick() -> void:
-	if not company_started or bankrupt:
+	if not company_started or bankrupt or hq.time_frozen():
 		return
 	if fleet != null:
 		shim.step()                 # F-18: Tick, Öko-Tick (economy.on_tick) und alle Fahrzeuge im SoA-Kern
@@ -2824,7 +2713,8 @@ func _refresh_lines() -> void:
 		for w in list:
 			deliv += w.deliveries
 			warn = warn or w.no_licence
-		r["sub"].text = Kit.txt("×%d · %d Felder · %d Lieferungen%s" % [list.size(), v.distance, deliv, " · keine Lizenz!" if warn else ""])
+		# U-02b: Zeile kürzen statt Spalte verbreitern („Lief.“), Warnung vorn, damit eine Kürzung nur das Ende trifft
+		r["sub"].text = Kit.txt("%s×%d · %d Felder · %d Lief." % ["keine Lizenz! · " if warn else "", list.size(), v.distance, deliv])
 		r["sub"].theme_type_variation = "LabelBad" if warn else "LabelMuted"
 		r["val"].text = "%+d $" % int(profit)
 		r["val"].add_theme_color_override("font_color", ThemeBuilder.C["ok_text"] if profit > 0 else (ThemeBuilder.C["bad_text"] if profit < 0 else ThemeBuilder.C["muted"]))
@@ -2843,8 +2733,12 @@ func _make_line_row(key: String, v) -> Dictionary:
 	title.clip_text = true
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	var sub := Kit.label("", "LabelMuted")
-	var tv := Kit.vbox(0, [title, sub])
-	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sub.clip_text = true          # U-02b: Zeile wächst nie über die 340-px-Spalte hinaus
+	sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var val := Kit.label("", "LabelValue")
 	var del := Kit.button("", "ButtonGhost", "abriss", func(): remove_line(key))
 	del.tooltip_text = "Linie auflösen: Fahrzeuge verkaufen (+50 % Kaufpreis), Ladung geht verloren. Danach ist die Straße abreißbar."
@@ -2856,7 +2750,11 @@ func _make_line_row(key: String, v) -> Dictionary:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 0)             # Platzhalter: zwei Trenner (je 8 px) = 16 px Abstand Text-zu-Gewinn statt 8 px
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var row := Kit.hbox(8, [Kit.icon("zug" if v.type == "train" else "lkw", 20, ThemeBuilder.C["muted"]), tv, gap, val, del])
+	# U-02b: zwei Zeilen statt einer breiten: oben Name + Papierkorb, unten Kennzahlen + Gewinn (rechtsbündig unter
+	# „Gewinn/min“). So bleibt die Spalte bei 340 px und der Name wird nicht mehr von Gewinn/Knopf abgeschnitten.
+	var tv := Kit.vbox(0, [Kit.hbox(8, [title, del]), Kit.hbox(8, [sub, gap, val])])
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var row := Kit.hbox(8, [Kit.icon("zug" if v.type == "train" else "lkw", 20, ThemeBuilder.C["muted"]), tv])
 	lines_box.add_child(row)
 	return {"row": row, "title": title, "sub": sub, "val": val, "del": del}
 
@@ -3036,9 +2934,6 @@ func _process(delta: float) -> void:
 		if tw == null or not tw.is_running():
 			toast_panel.visible = false
 	_move_camera(delta)
-	if not company_started and start_panel != null and start_panel.visible:
-		start_backdrop_t += delta
-		StartBackdrop.drift(self, start_backdrop_t)
 	if fleet != null:
 		fleet.render_step()          # S6: Portion des Fahrzeug-Puffers (siehe _render_vehicles)
 	_update_label_lod()
@@ -3081,14 +2976,18 @@ func _update_hud(cpm: int) -> void:
 	hud_vals["fahrzeuge"].text = str(fleet_size())
 	hud_vals["zeit"].text = time_str(shim.tick_count)
 	if hud_vals.has("kredit"):
-		hud_vals["kredit"].text = "%s / %s" % [money_str(credit.loan_cent), money_str(credit.limit_cent)]
+		hud_vals["kredit"].text = money_str(credit.loan_cent)          # U-02b: Rahmen steht als „max.“ im Tooltip
 		credit_buttons[0].disabled = not company_started or bankrupt or credit.borrow_amount(shim.tick_count) <= 0
 		credit_buttons[1].disabled = not company_started or bankrupt or credit.repay_amount(eco.cash_cent) <= 0
+	# U-02b: ein Skillpunkt ab M1b (D22 §1: M1a = Firma gegründet, M1b = erste Lizenz = Ziel-Index 1). Nur Anzeige.
+	var sp := 1 if milestones.size() > 1 and milestones[1]["done"] else 0
+	hud_vals["skill"].visible = sp > 0
+	hud_vals["skill"].text = "%d Skillpunkt gespart" % sp if sp == 1 else "%d Skillpunkte gespart" % sp
 
 
 func _update_hint() -> void:
-	if not company_started:
-		hint_label.text = "Wähle deinen Start: Agrar oder Bergbau."
+	if hq.hint() != "":
+		hint_label.text = hq.hint()
 		return
 	match tool:
 		Tool.ROAD, Tool.RAIL:

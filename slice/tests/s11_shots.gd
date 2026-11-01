@@ -28,7 +28,7 @@ func _run() -> void:
 	var out: String = args[0] if args.size() > 0 else "user://"
 	var pre: String = args[1] if args.size() > 1 else "s11"
 	await _shot(out.path_join(pre + "_1_startdialog.png"))
-	m.start_game("agrar")
+	m.place_hq("haberau")
 	m.toast_time = 0.0
 	m.toast_label.text = ""
 	m.focus(Vector2(370, 330), 14.0)

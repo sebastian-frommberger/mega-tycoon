@@ -1,42 +1,42 @@
 Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
 == F-18 Parität alt (vehicle.gd) gegen soa (core/sim_world.gd)
-MAP_LOAD_MS 138.0 READY_MS 176.8 MISSING_IDS 0
-MAP_LOAD_MS 123.1 READY_MS 144.2 MISSING_IDS 0
-PARITY agrar alt kasse=846162 lieferungen=119 mit_gewinn=89 ertrag=1090922 ausgaben=659760 v1=[60, 458640, 297104] v2=[59, 632282, 296656] kurve_5min=[428862, 516522, 604182, 691842, 779502, 846162] ziele=7 sim_ms=76
-PARITY agrar soa kasse=846162 lieferungen=119 mit_gewinn=89 ertrag=1090922 ausgaben=659760 v1=[60, 458640, 297104] v2=[59, 632282, 296656] kurve_5min=[428862, 516522, 604182, 691842, 779502, 846162] ziele=7 sim_ms=115
+MAP_LOAD_MS 189.8 READY_MS 236.0 MISSING_IDS 0
+MAP_LOAD_MS 187.6 READY_MS 224.8 MISSING_IDS 0
+PARITY agrar alt kasse=846162 lieferungen=119 mit_gewinn=89 ertrag=1090922 ausgaben=659760 v1=[60, 458640, 297104] v2=[59, 632282, 296656] kurve_5min=[428862, 516522, 604182, 691842, 779502, 846162] ziele=7 sim_ms=81
+PARITY agrar soa kasse=846162 lieferungen=119 mit_gewinn=89 ertrag=1090922 ausgaben=659760 v1=[60, 458640, 297104] v2=[59, 632282, 296656] kurve_5min=[428862, 516522, 604182, 691842, 779502, 846162] ziele=7 sim_ms=189
   OK   Agrar: Kasse soa 8.461 $ vs alt 8.461 $ (Abweichung 0.000 %, Ziel ≤ 1 %)
   OK   Agrar: Lieferungen soa 119 vs alt 119
   OK   Agrar: Ziele erreicht soa 7 vs alt 7
-MAP_LOAD_MS 131.5 READY_MS 153.7 MISSING_IDS 0
-MAP_LOAD_MS 159.1 READY_MS 183.6 MISSING_IDS 0
+MAP_LOAD_MS 162.0 READY_MS 200.2 MISSING_IDS 0
+MAP_LOAD_MS 145.1 READY_MS 169.2 MISSING_IDS 0
 PARITY bergbau alt kasse=614728 lieferungen=162 lkw=[81, 81]
 PARITY bergbau soa kasse=614728 lieferungen=162 lkw=[81, 81]
   OK   Bergbau (2 Lkw auf einer Linie): Kasse Abweichung 0.000 %, Lieferungen 162 vs 162
-MAP_LOAD_MS 175.8 READY_MS 205.0 MISSING_IDS 0
-MAP_LOAD_MS 131.3 READY_MS 157.6 MISSING_IDS 0
+MAP_LOAD_MS 147.4 READY_MS 172.7 MISSING_IDS 0
+MAP_LOAD_MS 150.2 READY_MS 176.6 MISSING_IDS 0
 PARITY zug alt { "rail": true, "train": true, "cash": 4845, "deliv": 84, "zug": [84, 567360, 973515], "bankrupt": false, "zins": 60000 }
 PARITY zug soa { "rail": true, "train": true, "cash": 4845, "deliv": 84, "zug": [84, 567360, 973515], "bankrupt": false, "zins": 60000 }
   OK   Zug-Linie (mit Kredit F-19): Kasse 48 $ vs 48 $, Lieferungen 84 vs 84
 == Determinismus: 10 Läufe soa, gleiches Skript
-MAP_LOAD_MS 153.5 READY_MS 193.1 MISSING_IDS 0
-MAP_LOAD_MS 179.8 READY_MS 210.1 MISSING_IDS 0
-MAP_LOAD_MS 126.0 READY_MS 150.4 MISSING_IDS 0
-MAP_LOAD_MS 156.8 READY_MS 180.9 MISSING_IDS 0
-MAP_LOAD_MS 138.5 READY_MS 167.5 MISSING_IDS 0
-MAP_LOAD_MS 168.2 READY_MS 202.3 MISSING_IDS 0
-MAP_LOAD_MS 164.4 READY_MS 191.3 MISSING_IDS 0
-MAP_LOAD_MS 227.3 READY_MS 268.1 MISSING_IDS 0
-MAP_LOAD_MS 213.6 READY_MS 253.0 MISSING_IDS 0
-MAP_LOAD_MS 142.9 READY_MS 188.7 MISSING_IDS 0
+MAP_LOAD_MS 147.8 READY_MS 173.8 MISSING_IDS 0
+MAP_LOAD_MS 165.3 READY_MS 207.2 MISSING_IDS 0
+MAP_LOAD_MS 150.2 READY_MS 175.5 MISSING_IDS 0
+MAP_LOAD_MS 200.2 READY_MS 241.5 MISSING_IDS 0
+MAP_LOAD_MS 247.8 READY_MS 276.0 MISSING_IDS 0
+MAP_LOAD_MS 155.1 READY_MS 180.5 MISSING_IDS 0
+MAP_LOAD_MS 167.4 READY_MS 205.8 MISSING_IDS 0
+MAP_LOAD_MS 149.3 READY_MS 174.3 MISSING_IDS 0
+MAP_LOAD_MS 160.6 READY_MS 188.2 MISSING_IDS 0
+MAP_LOAD_MS 173.3 READY_MS 214.1 MISSING_IDS 0
   OK   10/10 Läufe soa gleiche Kasse (1 verschiedene Werte)
 == Tick-Zeit 1.000 Lkw (Bench-Korridore, Sandbox-VM, kein Zielrechner)
-MAP_LOAD_MS 243.6 READY_MS 285.2 MISSING_IDS 0
-MAP_LOAD_MS 194.7 READY_MS 231.1 MISSING_IDS 0
-PARITY tick alt fahrzeuge=1000 mittel_ms=2.638 p95_ms=3.021 in_fahrt=636 umschlag_lager=1570
-PARITY tick soa fahrzeuge=1000 mittel_ms=0.664 p95_ms=1.391 in_fahrt=636 umschlag_lager=1570
+MAP_LOAD_MS 160.8 READY_MS 187.8 MISSING_IDS 0
+MAP_LOAD_MS 198.3 READY_MS 246.9 MISSING_IDS 0
+PARITY tick alt fahrzeuge=1000 mittel_ms=1.050 p95_ms=1.401 in_fahrt=636 umschlag_lager=1570
+PARITY tick soa fahrzeuge=1000 mittel_ms=0.615 p95_ms=0.831 in_fahrt=636 umschlag_lager=1570
   OK   1.000 SoA-Fahrzeuge: gleiche Lage wie alt nach 350 Ticks (in Fahrt 636/636, Lager-Umschlag 1570/1570)
-  OK   Sim-Tick Ø 0.664 ms ≤ 2 ms (Sandbox; Zielrechner offen)
+  OK   Sim-Tick Ø 0.615 ms ≤ 2 ms (Sandbox; Zielrechner offen)
 
 8/8 Paritätsprüfungen OK
 WARNING: 1115 ObjectDB instances were leaked at exit (run with `--verbose` for details).

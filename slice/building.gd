@@ -24,6 +24,8 @@ var owned := false             # Lager (eigener Bau)
 var licence_marker: MeshInstance3D
 
 const GREY := Color(0.62, 0.63, 0.66)
+const LABEL_PX_CITY := 0.00098
+const LABEL_PX_IND := 0.00070
 
 
 func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_color: Color, p_height: float) -> void:
@@ -41,15 +43,16 @@ func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_
 		_add_box(Vector3(footprint.x - 0.15, height, footprint.y - 0.15), Vector3(0, height * 0.5, 0), body)
 		_add_box(Vector3(footprint.x - 0.6, 0.25, footprint.y - 0.6), Vector3(0, height + 0.125, 0), cap_color)
 
+	# S-11: kleiner und schlanker als zuvor (Stadt ~17 px, Industrie ~12 px Schrift bei 1600x900), dezenter Saum;
+	# Stil (Font, Farbe, Saum) setzt main._style_map_labels, Ausblendung nach Zoom main._update_label_lod.
 	label = Label3D.new()
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
-	label.font_size = 48
+	label.font_size = 40
 	label.fixed_size = true          # Bildschirmgröße unabhängig vom Zoom (Lesbarkeit bei 512²)
-	label.pixel_size = 0.0011 if kind == Kind.CITY else 0.0007
-	label.outline_size = 12
-	if kind != Kind.CITY:
-		label.visibility_range_end = 220.0   # ferne Industrie-Labels ausblenden (Städte bleiben)
+	label.pixel_size = LABEL_PX_CITY if kind == Kind.CITY else LABEL_PX_IND
+	label.outline_size = 7
+	label.line_spacing = -4.0
 	label.position = Vector3(0, height + 1.2, 0)
 	add_child(label)
 

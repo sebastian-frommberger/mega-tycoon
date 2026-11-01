@@ -14,6 +14,8 @@ const Building := preload("res://building.gd")
 const Vehicle := preload("res://vehicle.gd")
 const Economy := preload("res://economy.gd")
 const EcoShim := preload("res://eco_shim.gd")
+const KenneyLoader := preload("res://props/kenney_loader.gd")   # S-11: Natur-Props (CC0)
+const StartBackdrop := preload("res://ui/start_backdrop.gd")     # S-11: Startdialog-Hintergrund
 const SimWorld := preload("res://core/sim_world.gd")    # F-18: SoA-Kern mit Linienbetrieb
 const FleetSoa := preload("res://fleet_soa.gd")
 const Credit := preload("res://credit.gd")             # F-19
@@ -154,6 +156,9 @@ var bench = null
 # ---------------------------------------------------------------- Szene
 var rig: Node3D
 var cam: Camera3D
+var sun: DirectionalLight3D
+var label_tier := -1          # S-11 Label-LOD: 0 fern, 1 mittel, 2 nah
+var start_backdrop_t := 0.0
 var zoom := 1.0
 var preview_root: Node3D
 var hover_marker: MeshInstance3D
@@ -352,19 +357,48 @@ func _mat(color: Color, unshaded := false) -> StandardMaterial3D:
 	return m
 
 
+## S-11 Licht + Palette: warme Sonne, tiefer Winkel mit weichen, leichten Schatten; Himmel und Dunst dezent
+## und im Farbton des Horizonts, damit das Kartenende nicht hart abbricht. Gras bleibt bei der S-08-Palette:
+## Ambient + Sonne sind so gewählt, dass die beleuchtete Wiese ungefähr den Palettenwert trifft, nicht heller.
+const SUN_COLOR := Color(1.0, 0.92, 0.78)
+const SKY_HORIZON := Color(0.76, 0.84, 0.91)
+const SUN_ENERGY := 0.52
+const AMBIENT_ENERGY := 0.36
+
+
 func _setup_environment() -> void:
 	var we := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.62, 0.75, 0.88)
+	var sm := ProceduralSkyMaterial.new()
+	sm.sky_top_color = Color(0.36, 0.56, 0.80)
+	sm.sky_horizon_color = SKY_HORIZON
+	sm.sky_curve = 0.18
+	sm.ground_horizon_color = SKY_HORIZON
+	sm.ground_bottom_color = Color(0.62, 0.72, 0.80)
+	sm.sun_angle_max = 0.0
+	var sky := Sky.new()
+	sky.sky_material = sm
+	sky.radiance_size = Sky.RADIANCE_SIZE_32
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.75, 0.78, 0.85)
-	env.ambient_light_energy = 0.6
+	env.ambient_light_color = Color(0.74, 0.81, 0.92)
+	env.ambient_light_energy = AMBIENT_ENERGY
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.fog_enabled = true
+	env.fog_light_color = SKY_HORIZON
+	env.fog_density = 0.00022
+	env.fog_sky_affect = 0.0
 	we.environment = env
 	add_child(we)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, 35, 0)
+	sun = DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-42, 38, 0)
+	sun.light_color = SUN_COLOR
+	sun.light_energy = SUN_ENERGY
 	sun.shadow_enabled = true
+	sun.shadow_opacity = 0.5
+	sun.shadow_blur = 1.6
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.directional_shadow_max_distance = 250.0
 	add_child(sun)
 
@@ -375,6 +409,7 @@ func _setup_camera() -> void:
 	add_child(rig)
 	cam = Camera3D.new()
 	cam.far = 6000.0
+	cam.near = 0.8                  # S-11: bessere Tiefenpräzision bei weitem Zoom (Streifen zwischen Ebenen)
 	rig.add_child(cam)
 	cam.rotation = Vector3(-atan2(20.0, 16.0), 0, 0)
 	zoom = 16.0
@@ -383,6 +418,8 @@ func _setup_camera() -> void:
 
 func _apply_zoom() -> void:
 	cam.position = Vector3(0, 20, 16) * zoom
+	if sun != null:   # Schattenreichweite folgt dem Zoom: nah scharf, fern nicht verschwendet
+		sun.directional_shadow_max_distance = clampf(zoom * 26.0 * 1.4, 110.0, 520.0)
 
 
 func focus(cell: Vector2, z: float) -> void:
@@ -395,10 +432,24 @@ func _setup_ground() -> void:
 	var ground := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(GRID, GRID)
+	plane.subdivide_width = 63     # Compatibility-Renderer rechnet Nebel je Vertex: grobe Flächen würden sonst komplett vernebelt
+	plane.subdivide_depth = 63
 	ground.mesh = plane
-	ground.material_override = _mat(_bg("gras"))
+	ground.material_override = _grass_material()
 	ground.position = Vector3(GRID * 0.5, 0, GRID * 0.5)
 	add_child(ground)
+	# Weite Fläche um die Karte im Dunstton: kein harter Schnitt zwischen Kartenrand und Himmel (S-11)
+	var outer := MeshInstance3D.new()
+	var op := PlaneMesh.new()
+	op.size = Vector2(GRID * 12.0, GRID * 12.0)
+	op.subdivide_width = 47
+	op.subdivide_depth = 47
+	outer.mesh = op
+	outer.material_override = _mat(Color(0.64, 0.74, 0.84), true)   # unshaded im Dunstton
+	(outer.material_override as StandardMaterial3D).transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	outer.position = Vector3(GRID * 0.5, -0.9, GRID * 0.5)       # Abstand gegen Z-Fighting bei weitem Zoom
+	outer.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(outer)
 	preview_root = Node3D.new()
 	add_child(preview_root)
 	hover_marker = MeshInstance3D.new()
@@ -408,6 +459,27 @@ func _setup_ground() -> void:
 	hover_marker.material_override = _mat(Color(1, 1, 1, 0.35), true)
 	hover_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(hover_marker)
+
+
+## Gras: Palettenfarbe S-08 mit sehr leiser, kachelnder Helligkeitsvariation (±5 %), damit die Fläche nicht tot wirkt.
+## Mittelwert der Textur ≈ 0,97, die Kontraste der Marker (S-08) bleiben dadurch unverändert.
+func _grass_material() -> StandardMaterial3D:
+	var m := _mat(_bg("gras"))
+	m.roughness = 1.0
+	var n := FastNoiseLite.new()
+	n.seed = 7
+	n.frequency = 0.018
+	n.fractal_octaves = 3
+	var img := n.get_seamless_image(256, 256)
+	img.convert(Image.FORMAT_L8)
+	var px := img.get_data()
+	for i in px.size():
+		px[i] = int(clampf(0.90 + (px[i] / 255.0) * 0.12, 0.0, 1.0) * 255.0)
+	var tex := ImageTexture.create_from_image(Image.create_from_data(256, 256, false, Image.FORMAT_L8, px))
+	m.albedo_texture = tex
+	m.uv1_scale = Vector3(28, 28, 1)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	return m
 
 
 func _setup_astar(a: AStarGrid2D) -> void:
@@ -713,6 +785,8 @@ func _retarget_chains() -> void:
 		ch["kanten"] = out
 
 
+## Bäume: Kenney Nature Kit (CC0, 114/230 Dreiecke, Faktor ×0,8 Szene-Einheiten je Modell-Einheit) als zwei
+## MultiMeshes; fehlt die GLB, fallen die Quader-Bäume des Prototyps ein. Krone nimmt die Palettenfarbe wald_baum.
 func _scatter_trees() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
@@ -722,21 +796,54 @@ func _scatter_trees() -> void:
 			cand.append(c)
 	for i in 900:
 		cand.append(Vector2i(rng.randi_range(0, GRID - 1), rng.randi_range(0, GRID - 1)))
-	var tt := []
-	var tc := []
-	var tcells := []
 	var c_tree := _bg("wald_baum")
+	var trunk := Color(0.36, 0.26, 0.17)
+	var meshes := [KenneyLoader.tree_mesh(KenneyLoader.TREE_DEFAULT, trunk), KenneyLoader.tree_mesh(KenneyLoader.TREE_PINE, trunk)]
+	var use_kenney: bool = meshes[0] != null and meshes[1] != null
+	var tt := [[], []]
+	var tc := [[], []]
+	var tcells := [[], []]
 	for c in cand:
 		if terrain_at(c) != Terrain.PLAIN or cell_to_building.has(c) or decor.has(c):
 			continue
-		var h := rng.randf_range(0.8, 1.8)
-		tt.append(Transform3D(Basis().scaled(Vector3(0.6, h, 0.6)), Vector3(c.x + 0.5, h * 0.5, c.y + 0.5)))
-		tc.append(c_tree.lightened(rng.randf_range(-0.05, 0.12)))
-		tcells.append(c)
+		var v := 0 if rng.randf() < 0.6 else 1
+		var jitter := Vector3(rng.randf_range(-0.3, 0.3), 0.0, rng.randf_range(-0.3, 0.3))
+		if use_kenney:
+			var sc := KenneyLoader.NATURE_SCALE * rng.randf_range(0.8, 1.3)
+			var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * rng.randf_range(0.9, 1.15), sc))
+			tt[v].append(Transform3D(b, Vector3(c.x + 0.5, 0.0, c.y + 0.5) + jitter))
+		else:
+			var h := rng.randf_range(0.8, 1.8)
+			tt[v].append(Transform3D(Basis().scaled(Vector3(0.6, h, 0.6)), Vector3(c.x + 0.5, h * 0.5, c.y + 0.5)))
+		tc[v].append(c_tree.lightened(rng.randf_range(-0.05, 0.12)) if v == 0 else c_tree.darkened(0.08).lightened(rng.randf_range(-0.04, 0.08)))
+		tcells[v].append(c)
 		decor[c] = true
-	var tm := _multimesh(Vector3(1, 1, 1), tt, tc, false)
-	for i in tcells.size():
-		decor[tcells[i]] = [tm, i]
+	for v in 2:
+		var tm: MultiMeshInstance3D
+		if use_kenney:
+			tm = _multimesh_mesh(meshes[v], tt[v], tc[v], true)
+		else:
+			tm = _multimesh(Vector3(1, 1, 1), tt[v], tc[v], false)
+		for i in tcells[v].size():
+			decor[tcells[v][i]] = [tm, i]
+
+
+## Wie _multimesh, aber mit beliebigem Mesh (Instanzfarbe tönt Flächen mit vertex_color_use_as_albedo).
+func _multimesh_mesh(mesh: Mesh, transforms: Array, colors: Array, shadows: bool) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = mesh
+	mm.instance_count = transforms.size()
+	for i in transforms.size():
+		mm.set_instance_transform(i, transforms[i])
+		mm.set_instance_color(i, colors[i])
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	if not shadows:
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mmi)
+	return mmi
 
 
 func _build_terrain_visuals() -> void:
@@ -748,7 +855,7 @@ func _build_terrain_visuals() -> void:
 	var c_w := _bg("wasser")
 	var c_w2 := _bg("wasser_hell")
 	var c_rock := _bg("berg_stein")
-	var c_snow := Color(0.95, 0.95, 0.97)
+	var c_snow := _bg("berg_schnee").darkened(0.10)   # S-11: unter Sonne sonst ausgebrannt
 	for y in GRID:
 		for x in GRID:
 			var i := y * GRID + x
@@ -919,16 +1026,54 @@ func _setup_hud() -> void:
 		speed_buttons.append([s, b])
 
 
-## Karten-Beschriftung im Theme: Poppins, cremefarben mit dunklem Holz-Saum statt Schwarz.
+## Karten-Beschriftung im Theme (S-11): Poppins etwas leichter (negative Emboldening), cremefarben, dezenter
+## dunkler Holz-Saum statt dicker Kontur. Lesbarkeit bleibt über den Saum (hell auf Gras, Wasser, Berg).
 func _style_map_labels() -> void:
-	var f := ThemeBuilder.font(ThemeBuilder.FONT_BODY)
+	var fv := FontVariation.new()
+	fv.base_font = ThemeBuilder.font(ThemeBuilder.FONT_BODY)
+	fv.variation_embolden = -0.08
 	for b in buildings:
 		var l: Label3D = b.label
-		l.font = f
+		l.font = fv
 		l.modulate = ThemeBuilder.C["cream"]
-		l.outline_modulate = Color(ThemeBuilder.C["ink"], 0.9)
-		l.outline_size = 14
-		l.line_spacing = -6.0
+		l.outline_modulate = Color(ThemeBuilder.C["ink"], 0.92)
+		l.outline_size = 7
+		l.line_spacing = -4.0
+		l.offset = Vector2(0, 34 if b.kind == Building.Kind.CITY else 48)        # über das Gebäude heben, damit Text nicht auf der Dachfläche liegt
+	_update_label_lod(true)
+
+
+## Label-LOD nach Zoom (Kamera-Zoom, kleiner = näher): 
+##   fern  (> 9):  nur Stadtnamen, Industrie-Labels ausgeblendet (weich zwischen Zoom 8 und 10)
+##   mittel (3,5-9): Stadt Name + Größe, Industrie nur Name
+##   nah   (<= 3,5): voller Text (Bestand, Lizenz)
+func _update_label_lod(force := false) -> void:
+	var tier := 0 if zoom > 9.0 else (1 if zoom > 3.5 else 2)
+	var industry_alpha := clampf((10.0 - zoom) / 2.0, 0.0, 1.0)
+	for b in buildings:
+		var l: Label3D = b.label
+		if b.kind == Building.Kind.CITY:
+			l.modulate.a = 1.0
+		else:
+			l.modulate.a = industry_alpha
+			l.visible = industry_alpha > 0.02
+		if not company_started and start_panel != null and start_panel.visible:
+			l.visible = false          # hinter dem Startdialog keine verschmierten Beschriftungen
+		elif b.kind == Building.Kind.CITY:
+			l.visible = true
+	if tier != label_tier or force:
+		label_tier = tier
+		_refresh_label_text()
+
+
+func _label_lod_text(b) -> String:
+	var full: String = Kit.txt(_building_label(b))
+	if label_tier >= 2:
+		return full
+	var parts := full.split("\n")
+	if b.kind == Building.Kind.CITY:
+		return parts[0] if label_tier == 0 else full
+	return parts[0]
 
 
 func _vline() -> StyleBoxLine:
@@ -1192,6 +1337,8 @@ func _setup_start_dialog() -> void:
 	ui_root.add_child(start_panel)
 	var dim := ColorRect.new()
 	dim.color = Color(0.08, 0.06, 0.04, 0.55)
+	dim.color = Color(0.08, 0.06, 0.04, 0.22)   # HUD wird nur leicht abgedunkelt; die Karte blurrt StartBackdrop darunter
+	StartBackdrop.attach(self, start_panel)     # S-11: Karte geblurrt + abgedunkelt, dahinter Kamerafahrt
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	start_panel.add_child(dim)
 	var center := CenterContainer.new()
@@ -1386,6 +1533,7 @@ func start_game(a: String) -> bool:
 	_init_milestones()
 	var src = by_id[ARCH[a]["src"]]
 	var mid: Vector3 = (hq_city.center() + src.center()) * 0.5
+	rig.rotation = Vector3.ZERO   # Kamerafahrt des Startdialogs beenden
 	focus(Vector2(mid.x, mid.z), 3.2)
 	set_speed(1)
 	_toast("%s gegründet. Startkapital %s, %d Lkw im Startpaket. Klick auf %s (gelber Pfeil)." % [
@@ -2662,10 +2810,15 @@ func _building_label(b) -> String:
 
 func _refresh_labels() -> void:
 	eco.sync_all(shim)
+	_refresh_label_text()
 	for b in buildings:
-		b.label.text = Kit.txt(_building_label(b))
 		if b.site >= 0 and b.is_industry():
 			b.licence_marker.visible = eco.licence_valid(b.site)
+
+
+func _refresh_label_text() -> void:
+	for b in buildings:
+		b.label.text = _label_lod_text(b)
 
 
 ## Fahrzeuge zeichnen: drei MultiMeshes, Puffer je Sim-Tick am Stück gebaut (12 Floats Transform, Ladung + 4
@@ -2801,6 +2954,10 @@ func _process(delta: float) -> void:
 		if tw == null or not tw.is_running():
 			toast_panel.visible = false
 	_move_camera(delta)
+	if not company_started and start_panel != null and start_panel.visible:
+		start_backdrop_t += delta
+		StartBackdrop.drift(self, start_backdrop_t)
+	_update_label_lod()
 	var ms := maxf(1.0, zoom / 1.4)          # Marker wächst beim Rauszoomen mit (S-08 marker)
 	for m in goal_markers:
 		m.scale = Vector3.ONE * ms

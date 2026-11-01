@@ -74,7 +74,7 @@ func _run() -> void:
 			n_inert += 1
 		else:
 			n_ind += 1
-	ok(n_city == 8 and n_ind == 8 and n_inert == 2, "8 Städte, 8 Ökonomie-Industrien, 2 Holz-Kulissen (%d/%d/%d)" % [n_city, n_ind, n_inert])
+	ok(n_city == 8 and n_ind == 10 and n_inert == 2, "8 Städte, 10 Ökonomie-Industrien (8 + farm_3, muehle_2 aus D22-Vorarbeit), 2 Holz-Kulissen (%d/%d/%d)" % [n_city, n_ind, n_inert])
 	var cnt := [0, 0, 0]
 	for i in m.terrain.size():
 		cnt[m.terrain[i]] += 1

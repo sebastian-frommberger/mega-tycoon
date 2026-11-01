@@ -3,8 +3,8 @@
  "status": {
   "stand": "eingefroren",
   "stichtag": "2026-12-15",
-  "version": "S-10",
-  "hinweis": "Basis fuer F-14/T-12; Aenderungen nur ueber Sophie"
+  "version": "S-10+D22",
+  "hinweis": "Basis fuer F-14/T-12; Aenderungen nur ueber Sophie. D22-Vorarbeit (Sprint 5): farm_3 + muehle_2 im Radius von Mittelfurt (Farm 43,5 / Muehle 37,7 Felder, Fluss dazwischen)."
  },
  "karte": {
   "breite_felder": 512,
@@ -115,6 +115,36 @@
    "typ": "muehle",
    "x_felder": 352,
    "y_felder": 335,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "getreide"
+   ],
+   "ausgang_gueter": [
+    "mehl"
+   ],
+   "kette": "k1"
+  },
+  {
+   "id": "farm_3",
+   "typ": "getreidefarm",
+   "x_felder": 432,
+   "y_felder": 232,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "getreide"
+   ],
+   "kette": "k1"
+  },
+  {
+   "id": "muehle_2",
+   "typ": "muehle",
+   "x_felder": 360,
+   "y_felder": 235,
    "stufe": 1,
    "rolle": "verarbeiter",
    "im_slice": true,
@@ -522,6 +552,16 @@
      "von": "muehle_1",
      "nach": "mittelfurt",
      "luftlinie_felder": 126
+    },
+    {
+     "von": "farm_3",
+     "nach": "muehle_2",
+     "luftlinie_felder": 72
+    },
+    {
+     "von": "muehle_2",
+     "nach": "mittelfurt",
+     "luftlinie_felder": 38
     }
    ]
   },

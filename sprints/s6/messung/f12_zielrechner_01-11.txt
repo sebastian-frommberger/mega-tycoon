@@ -1,0 +1,17 @@
+Mega Tycoon – F-12 Bench (Grey-Box-Slice)
+Datum: 2026-11-01 18:51:49
+Godot: 4.7.2-stable (official)
+OS: Windows · CPU: AMD Ryzen 7 5800X3D 8-Core Processor (16 Threads)
+GPU: NVIDIA / NVIDIA GeForce RTX 3080 Ti · Treiber: ["NVIDIA", "32.0.16.1742"]
+Renderer: gl_compatibility · Fenster: (1600, 900) · VSync: aus
+Karte: 512² Felder, Ladezeit 122 ms (Ziel ≤ 3000 ms), fehlende IDs: 0
+Fahrzeuge: 5000 Lkw auf 51 Korridoren, Setup 479 ms, Tempo 1× (100 ms/Tick)
+Läufe: 3 × 15 s nach 3 s Aufwärmen
+  Lauf 1: Median 89.7 FPS · Mittel 86.0 FPS · Frame Median 9.40 ms · p95 22.31 ms · Performance.TIME_PROCESS Median 32.01 ms (roh) · 1291 Frames · in Fahrt 4657
+  Lauf 2: Median 90.6 FPS · Mittel 90.4 FPS · Frame Median 9.33 ms · p95 21.77 ms · Performance.TIME_PROCESS Median 31.78 ms (roh) · 1357 Frames · in Fahrt 3261
+  Lauf 3: Median 88.1 FPS · Mittel 87.8 FPS · Frame Median 9.42 ms · p95 22.72 ms · Performance.TIME_PROCESS Median 31.93 ms (roh) · 1317 Frames · in Fahrt 3815
+Median der Läufe: 89.7 FPS · Streuung (max−min)/Median: 2.7 %
+Ziel F-12: 3/3 Läufe ≥ 60 FPS → ERFÜLLT · Streuung ≤ 10 % → ERFÜLLT · Absturz: nein (Datei geschrieben)
+
+Einordnung (Daniel, Gate D-07/D-08): Erste echte Messung auf dem Zielrechner mit Look S-11 (Bäume) und SoA-Kern.
+Ø-Ziel ≥ 60 FPS erfüllt (89,7, Faktor ~1,5 Reserve bei 5.000 Lkw statt 1.000). p95 ~22 ms = ~45 FPS: genau an der 1-%-Low-Grenze ≥ 45 → Auflage: Spitzen (vermutlich Tick-Frames alle 100 ms) in S6 profilieren. TIME_PROCESS 32 ms roh ist Summe über Ticks, nicht Frame-Zeit.

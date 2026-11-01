@@ -5,3 +5,8 @@ export/
 __pycache__/
 .DS_Store
 Thumbs.db
+
+# Exporte
+*.exe
+slice/mega_tycoon_bench.txt
+slice/build/

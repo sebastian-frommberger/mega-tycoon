@@ -33,8 +33,12 @@ const VEHICLES := {
 		"max_wait": 12.0, "upkeep": 5.0, "y": 0.3, "size": Vector3(0.55, 0.4, 1.6), "color": Color(0.2, 0.3, 0.55)},
 }
 
-enum Tool { NONE, ROAD, RAIL, WAREHOUSE, TRUCK_LINE, TRAIN_LINE, BUY }
-const TOOL_NAMES := ["–", "Straße", "Gleis", "Lager", "Lkw-Linie", "Zug-Linie", "Firma kaufen"]
+enum Tool { NONE, ROAD, RAIL, WAREHOUSE, TRUCK_LINE, TRAIN_LINE, BUY, DEMOLISH }
+const TOOL_NAMES := ["–", "Straße", "Gleis", "Lager", "Lkw-Linie", "Zug-Linie", "Firma kaufen", "Abriss"]
+
+## F-13 Bau-Tool (wie OpenTTD): ziehen, gerade + 45°, Ghost, Abriss mit Erstattung.
+const BRIDGE_MAX := 8              # wie OpenTTD: Brücke nur gerade, Land an beiden Enden, begrenzte Länge
+const REFUND_SHARE := 0.5          # Abriss erstattet 50 % des tatsächlich bezahlten Feldpreises
 
 const GOOD_COLORS := {
 	"Getreide": Color(0.95, 0.85, 0.3),
@@ -72,6 +76,12 @@ var vehicles: Array = []
 var connected: Array = []
 
 var drag_start := Vector2i(-1, -1)
+var dragging := false
+var road_paid := {}      # Zelle -> bezahlter Feldpreis (int $), Grundlage der Abriss-Erstattung
+var rail_paid := {}
+var sim_hover_active := false   # Tests/Screenshot: Cursor programmatisch setzen
+var sim_hover := Vector2i(-1, -1)
+var plan := {}           # aktueller Ghost-Plan während des Ziehens
 var line_src: Node3D = null
 var hover_cell := Vector2i(-1, -1)
 var last_preview_cell := Vector2i(-99, -99)
@@ -104,6 +114,11 @@ var mat_rail: StandardMaterial3D
 var mat_bridge: StandardMaterial3D
 var mat_ok: StandardMaterial3D
 var mat_bad: StandardMaterial3D
+var mat_exist: StandardMaterial3D
+var mat_demolish: StandardMaterial3D
+var cursor_box: VBoxContainer
+var cursor_cost: Label
+var cursor_reason: Label
 var mat_influence: StandardMaterial3D
 var mat_influence_hq: StandardMaterial3D
 
@@ -125,10 +140,23 @@ func _setup_materials() -> void:
 	mat_road = _mat(Color(0.25, 0.25, 0.27))
 	mat_rail = _mat(Color(0.45, 0.3, 0.2))
 	mat_bridge = _mat(Color(0.75, 0.7, 0.6))
-	mat_ok = _mat(Color(0.3, 1.0, 0.4, 0.55), true)
-	mat_bad = _mat(Color(1.0, 0.35, 0.3, 0.55), true)
+	mat_ok = _mat(Color(1.0, 1.0, 1.0, 0.75), true)        # weiß = baubar (wie OpenTTD/TF2)
+	mat_bad = _mat(Color(1.0, 0.2, 0.15, 0.8), true)       # rot schraffiert = nicht baubar
+	mat_bad.albedo_texture = _hatch_texture()
+	mat_exist = _mat(Color(1.0, 1.0, 1.0, 0.25), true)     # schon vorhanden, kostet nichts
+	mat_demolish = _mat(Color(1.0, 0.55, 0.1, 0.8), true)  # wird abgerissen
+	mat_demolish.albedo_texture = _hatch_texture()
 	mat_influence = _mat(Color(0.3, 0.6, 1.0, 0.12), true)
 	mat_influence_hq = _mat(Color(0.3, 0.6, 1.0, 0.18), true)
+
+
+## Diagonale Streifen für "nicht baubar" / "Abriss" (Schraffur).
+func _hatch_texture() -> ImageTexture:
+	var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	for x in 16:
+		for y in 16:
+			img.set_pixel(x, y, Color(1, 1, 1, 1) if (x + y) % 8 < 4 else Color(1, 1, 1, 0.35))
+	return ImageTexture.create_from_image(img)
 
 
 func _mat(color: Color, transparent := false) -> StandardMaterial3D:
@@ -494,6 +522,7 @@ func _setup_ui() -> void:
 	bar.add_child(_button("[3] Lager (%d $)" % WAREHOUSE_COST, func(): _set_tool(Tool.WAREHOUSE)))
 	bar.add_child(_button("[4] Lkw-Linie (%d $)" % VEHICLES["truck"]["cost"], func(): _set_tool(Tool.TRUCK_LINE)))
 	bar.add_child(_button("[5] Zug-Linie (%d $)" % VEHICLES["train"]["cost"], func(): _set_tool(Tool.TRAIN_LINE)))
+	bar.add_child(_button("[X] Abriss (50 %)", func(): _set_tool(Tool.DEMOLISH)))
 	bar.add_child(_button("[Esc]", func(): _cancel()))
 	lines_label = _label(15)
 	top.add_child(lines_label)
@@ -530,6 +559,17 @@ func _setup_ui() -> void:
 	toast_label.offset_bottom = 180
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ui.add_child(toast_label)
+
+	# Kosten und Grund direkt am Cursor (wie OpenTTD/TF2)
+	cursor_box = VBoxContainer.new()
+	cursor_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cursor_box.visible = false
+	ui.add_child(cursor_box)
+	cursor_cost = _label(20)
+	cursor_box.add_child(cursor_cost)
+	cursor_reason = _label(18)
+	cursor_reason.modulate = Color(1, 0.45, 0.4)
+	cursor_box.add_child(cursor_reason)
 
 
 
@@ -661,14 +701,15 @@ func _set_tool(t: int) -> void:
 		t = Tool.BUY
 	tool = t
 	drag_start = Vector2i(-1, -1)
+	dragging = false
+	plan = {}
 	line_src = null
 	_clear_preview()
 
 
 func _cancel() -> void:
-	if (tool == Tool.ROAD or tool == Tool.RAIL) and drag_start.x >= 0:
-		drag_start = Vector2i(-1, -1)
-		_clear_preview()
+	if dragging:
+		cancel_drag()
 	elif (tool == Tool.TRUCK_LINE or tool == Tool.TRAIN_LINE) and line_src != null:
 		line_src = null
 	else:
@@ -686,9 +727,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				zoom = clampf(zoom * 1.1, 0.4, 9.0)
 				_apply_zoom()
 			MOUSE_BUTTON_LEFT:
-				_click(_mouse_cell())
+				if tool == Tool.ROAD or tool == Tool.RAIL or tool == Tool.DEMOLISH:
+					begin_drag(_mouse_cell())
+				else:
+					_click(_mouse_cell())
 			MOUSE_BUTTON_RIGHT:
 				_cancel()
+		return
+	if mb and not mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and dragging:
+		end_drag()
 		return
 	var key := event as InputEventKey
 	if key and key.pressed and not key.echo:
@@ -705,6 +752,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_set_tool(Tool.TRUCK_LINE)
 			KEY_5:
 				_set_tool(Tool.TRAIN_LINE)
+			KEY_X:
+				_set_tool(Tool.DEMOLISH)
 			KEY_ESCAPE:
 				_cancel()
 
@@ -726,13 +775,6 @@ func _click(cell: Vector2i) -> void:
 	if cell.x < 0:
 		return
 	match tool:
-		Tool.ROAD, Tool.RAIL:
-			if drag_start.x < 0:
-				drag_start = cell
-			else:
-				if _build_track(_l_path(drag_start, cell), tool == Tool.RAIL):
-					drag_start = cell  # weiterbauen ab dem Endpunkt
-				last_preview_cell = Vector2i(-99, -99)
 		Tool.WAREHOUSE:
 			_build_warehouse(cell)
 		Tool.BUY:
@@ -777,19 +819,35 @@ func _line_filter(a: Node3D, b: Node3D) -> Array:
 	return []
 
 
-func _l_path(a: Vector2i, b: Vector2i) -> Array:
-	var out := []
-	var step_x := 1 if b.x >= a.x else -1
-	var step_y := 1 if b.y >= a.y else -1
-	var x := a.x
-	while x != b.x:
-		out.append(Vector2i(x, a.y))
-		x += step_x
-	var y := a.y
-	while y != b.y:
-		out.append(Vector2i(b.x, y))
-		y += step_y
-	out.append(b)
+## Zugroute wie OpenTTD-Drag: erst gerade entlang der Hauptachse, dann 45°.
+## Das Raster ist 4-verbunden; ein 45°-Schritt belegt deshalb zwei Felder (Treppe) –
+## so belegt auch OpenTTD eine Diagonale (Halbfeld-Stücke auf einer Feldtreppe).
+func _drag_path(a: Vector2i, b: Vector2i) -> Array:
+	var out := [a]
+	var d := b - a
+	var sx := signi(d.x)
+	var sy := signi(d.y)
+	var adx := absi(d.x)
+	var ady := absi(d.y)
+	var c := a
+	if adx >= ady:
+		for i in adx - ady:
+			c.x += sx
+			out.append(c)
+		for i in ady:
+			c.x += sx
+			out.append(c)
+			c.y += sy
+			out.append(c)
+	else:
+		for i in ady - adx:
+			c.y += sy
+			out.append(c)
+		for i in adx:
+			c.y += sy
+			out.append(c)
+			c.x += sx
+			out.append(c)
 	return out
 
 
@@ -806,30 +864,130 @@ func _terrain_factor(c: Vector2i) -> float:
 	return 1.0
 
 
-func _track_cost(cells: Array, rail: bool) -> Array:
-	var net: Dictionary = rails if rail else roads
+## Preis eines neuen Feldes (ganze $). Bestehende Regeln: Außerhalb-Aufschlag × Gelände-Faktor.
+func field_cost(c: Vector2i, rail: bool) -> int:
 	var base := RAIL_COST if rail else ROAD_COST
-	var cost := 0.0
+	return int(_cell_cost(c, base) * _terrain_factor(c))
+
+
+func _in_grid(c: Vector2i) -> bool:
+	return c.x >= 0 and c.y >= 0 and c.x < GRID and c.y < GRID
+
+
+## Plant eine Strecke von a nach b. Ergebnis:
+## {cells, items:[{cell, state:"new"|"exist"|"bad", cost, reason}], total, ok, reason, outside, new_count}
+## Alles oder nichts (wie TF2): ist ein Feld rot, wird nichts gebaut.
+func plan_track(a: Vector2i, b: Vector2i, rail: bool) -> Dictionary:
+	var cells := _drag_path(a, b)
+	var net: Dictionary = rails if rail else roads
+	var items := []
+	var n := cells.size()
+	# Anschluss an ein Gebäude am Anfang/Ende ist erlaubt (wie OpenTTD an Station/Industrie).
+	var head := _building_run(cells, false)
+	var tail := _building_run(cells, true)
+	for i in n:
+		var c: Vector2i = cells[i]
+		var it := {"cell": c, "state": "new", "cost": 0, "reason": ""}
+		if not _in_grid(c):
+			it["state"] = "bad"
+			it["reason"] = "Außerhalb der Karte"
+		elif net.has(c) or city_streets.has(c):
+			it["state"] = "exist"
+		elif cell_to_building.has(c):
+			var bb = cell_to_building[c]
+			if bb.kind != Building.Kind.CITY and (i < head or i >= n - tail):
+				it["state"] = "exist"
+			else:
+				it["state"] = "bad"
+				it["reason"] = "Gebäude im Weg: %s" % bb.display_name
+		else:
+			it["cost"] = field_cost(c, rail)
+		items.append(it)
+	_check_bridges(cells, items)
+	var total := 0
 	var outside := 0
-	for c in cells:
-		if net.has(c) or cell_to_building.has(c):
+	var new_count := 0
+	var reason := ""
+	for it in items:
+		if it["state"] == "bad" and reason == "":
+			reason = it["reason"]
+		if it["state"] == "new":
+			total += it["cost"]
+			new_count += 1
+			if _distance_outside(it["cell"]) > 0.0:
+				outside += 1
+	if reason == "" and total > money:
+		reason = "Zu wenig Geld: %d $ nötig, %d $ vorhanden" % [total, int(money)]
+		for it in items:
+			if it["state"] == "new":
+				it["state"] = "bad"
+				it["reason"] = reason
+	return {"a": a, "b": b, "rail": rail, "cells": cells, "items": items, "total": total,
+		"ok": reason == "", "reason": reason, "outside": outside, "new_count": new_count}
+
+
+## Länge der Gebäudefelder am Anfang (bzw. Ende) des Pfads, die zum End-Gebäude gehören.
+func _building_run(cells: Array, from_end: bool) -> int:
+	var n := cells.size()
+	var first: Vector2i = cells[n - 1] if from_end else cells[0]
+	var bb = cell_to_building.get(first)
+	if bb == null or bb.kind == Building.Kind.CITY:
+		return 0
+	var k := 0
+	while k < n:
+		var c: Vector2i = cells[n - 1 - k] if from_end else cells[k]
+		if cell_to_building.get(c) != bb:
+			break
+		k += 1
+	return k
+
+
+## Wasser: automatische Brücke nur wie OpenTTD – gerade, Land an beiden Köpfen, max. BRIDGE_MAX Felder.
+func _check_bridges(cells: Array, items: Array) -> void:
+	var n := cells.size()
+	var i := 0
+	while i < n:
+		if not (items[i]["state"] == "new" and terrain.get(cells[i], -1) == Terrain.WATER):
+			i += 1
 			continue
-		cost += _cell_cost(c, base) * _terrain_factor(c)
-		if _distance_outside(c) > 0.0:
-			outside += 1
-	return [int(cost), outside]
+		var s := i
+		while i < n and items[i]["state"] == "new" and terrain.get(cells[i], -1) == Terrain.WATER:
+			i += 1
+		var e := i - 1
+		var why := ""
+		if s == 0 or e == n - 1:
+			why = "Wasser ohne Brücke: Brückenkopf braucht Land an beiden Enden"
+		elif e - s + 1 > BRIDGE_MAX:
+			why = "Wasser ohne Brücke: Brücke zu lang (max. %d Felder)" % BRIDGE_MAX
+		else:
+			var p: Vector2i = cells[s - 1]
+			var q: Vector2i = cells[e + 1]
+			var straight := true
+			for k in range(s - 1, e + 2):
+				var c: Vector2i = cells[k]
+				if not (c.x == p.x and p.x == q.x) and not (c.y == p.y and p.y == q.y):
+					straight = false
+			if not straight:
+				why = "Wasser ohne Brücke: Brücken nur gerade, nicht diagonal"
+		if why != "":
+			for k in range(s, e + 1):
+				items[k]["state"] = "bad"
+				items[k]["reason"] = why
 
 
-func _build_track(cells: Array, rail: bool) -> bool:
-	var rc := _track_cost(cells, rail)
-	if rc[0] > money:
-		_toast("Zu wenig Geld: %d $ nötig." % rc[0])
+## Baut eine geplante Strecke. Gibt false zurück (und baut nichts), wenn ein Feld rot ist.
+func build_track(a: Vector2i, b: Vector2i, rail: bool) -> bool:
+	var p := plan_track(a, b, rail)
+	if not p["ok"]:
+		_toast(p["reason"])
 		return false
 	var net: Dictionary = rails if rail else roads
-	var a: AStarGrid2D = astar_rail if rail else astar_road
-	for c in cells:
-		if net.has(c) or cell_to_building.has(c):
+	var paid: Dictionary = rail_paid if rail else road_paid
+	var astar: AStarGrid2D = astar_rail if rail else astar_road
+	for it in p["items"]:
+		if it["state"] != "new":
 			continue
+		var c: Vector2i = it["cell"]
 		_clear_decor(c)
 		var bridge: bool = terrain.get(c, Terrain.PLAIN) == Terrain.WATER
 		var lift := 0.12 if bridge else 0.0
@@ -846,10 +1004,129 @@ func _build_track(cells: Array, rail: bool) -> bool:
 		mi.mesh = box
 		add_child(mi)
 		net[c] = mi
-		a.set_point_solid(c, false)
-	money -= rc[0]
+		paid[c] = it["cost"]
+		astar.set_point_solid(c, false)
+	money -= p["total"]
 	_clear_preview()
+	if p["total"] > 0:
+		_toast("%s gebaut: %d Felder, %d $" % ["Gleis" if rail else "Straße", p["new_count"], p["total"]], 2.5)
 	return true
+
+
+## Felder, auf denen eine Linie fährt (Abriss dort gesperrt, wie OpenTTD bei Fahrzeug auf dem Gleis).
+func _used_cells(rail: bool) -> Dictionary:
+	var out := {}
+	for v in vehicles:
+		if (v.kind_name == VEHICLES["train"]["name"]) != rail:
+			continue
+		for pos in v.path:
+			out[Vector2i(int(floor(pos.x)), int(floor(pos.z)))] = true
+	return out
+
+
+## Abriss-Rechteck wie OpenTTD (Feld a bis Feld b). Nur eigene Straßen/Gleise.
+## {items:[{cell, rail, refund, state:"remove"|"bad", reason}], refund, reason, count}
+func plan_demolish(a: Vector2i, b: Vector2i) -> Dictionary:
+	var used_road := _used_cells(false)
+	var used_rail := _used_cells(true)
+	var items := []
+	var refund := 0.0
+	var reason := ""
+	var foreign := false
+	for x in range(mini(a.x, b.x), maxi(a.x, b.x) + 1):
+		for y in range(mini(a.y, b.y), maxi(a.y, b.y) + 1):
+			var c := Vector2i(x, y)
+			if not _in_grid(c):
+				continue
+			if city_streets.has(c) or cell_to_building.has(c):
+				foreign = true
+			for rail in [false, true]:
+				var net: Dictionary = rails if rail else roads
+				if not net.has(c):
+					continue
+				var used: Dictionary = used_rail if rail else used_road
+				if used.has(c):
+					items.append({"cell": c, "rail": rail, "refund": 0.0, "state": "bad", "reason": "Von einer Linie befahren – erst Linie entfernen"})
+					if reason == "":
+						reason = items[-1]["reason"]
+				else:
+					var paid: Dictionary = rail_paid if rail else road_paid
+					var r: float = paid.get(c, 0) * REFUND_SHARE
+					items.append({"cell": c, "rail": rail, "refund": r, "state": "remove", "reason": ""})
+					refund += r
+	if reason == "" and foreign:
+		reason = "Stadtstraßen und Gebäude kann man nicht abreißen"
+	var count := 0
+	for it in items:
+		if it["state"] == "remove":
+			count += 1
+	return {"a": a, "b": b, "items": items, "refund": refund, "reason": reason, "count": count, "demolish": true}
+
+
+## Reißt alle erlaubten Felder im Rechteck ab und erstattet genau 50 % des bezahlten Preises.
+func demolish(a: Vector2i, b: Vector2i) -> float:
+	var p := plan_demolish(a, b)
+	for it in p["items"]:
+		if it["state"] != "remove":
+			continue
+		var c: Vector2i = it["cell"]
+		var rail: bool = it["rail"]
+		var net: Dictionary = rails if rail else roads
+		var paid: Dictionary = rail_paid if rail else road_paid
+		var astar: AStarGrid2D = astar_rail if rail else astar_road
+		net[c].queue_free()
+		net.erase(c)
+		paid.erase(c)
+		astar.set_point_solid(c, true)
+	money += p["refund"]
+	_clear_preview()
+	if p["count"] > 0:
+		_toast("Abriss: %d Felder, +%d $ erstattet (50 %%)" % [p["count"], int(p["refund"])], 2.5)
+	elif p["reason"] != "":
+		_toast(p["reason"])
+	return p["refund"]
+
+
+# ---- Ziehen (Maus oder programmatisch aus Tests)
+
+func begin_drag(cell: Vector2i) -> void:
+	if cell.x < 0 or not (tool == Tool.ROAD or tool == Tool.RAIL or tool == Tool.DEMOLISH):
+		return
+	drag_start = cell
+	dragging = true
+	last_preview_cell = Vector2i(-99, -99)
+
+
+## Nur für Tests/Screenshot: Cursor auf ein Feld setzen.
+func drag_to(cell: Vector2i) -> void:
+	sim_hover_active = true
+	sim_hover = cell
+	hover_cell = cell
+	_update_preview()
+
+
+func end_drag() -> bool:
+	if not dragging:
+		return false
+	var end := hover_cell
+	var start := drag_start
+	dragging = false
+	drag_start = Vector2i(-1, -1)
+	plan = {}
+	_clear_preview()
+	if end.x < 0:
+		return false
+	if tool == Tool.DEMOLISH:
+		demolish(start, end)
+		return true
+	return build_track(start, end, tool == Tool.RAIL)
+
+
+func cancel_drag() -> void:
+	dragging = false
+	drag_start = Vector2i(-1, -1)
+	plan = {}
+	_clear_preview()
 
 
 func _warehouse_cells(cell: Vector2i) -> Array:
@@ -916,14 +1193,18 @@ func _clear_preview() -> void:
 	last_preview_cell = Vector2i(-99, -99)
 
 
-func _ghost(c: Vector2i, ok: bool) -> void:
+func _ghost(c: Vector2i, mat: Material) -> void:
 	var mi := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = Vector3(0.9, 0.1, 0.9)
 	mi.mesh = box
-	mi.material_override = mat_ok if ok else mat_bad
+	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mi.position = Vector3(c.x + 0.5, 0.06, c.y + 0.5)
+	var lift := 0.25 if terrain.get(c, -1) == Terrain.MOUNTAIN else 0.0
+	var bb = cell_to_building.get(c)
+	if bb != null and not city_streets.has(c):
+		lift = minf(bb.height, 3.0) + 0.05   # über dem Gebäude, damit Rot sichtbar ist
+	mi.position = Vector3(c.x + 0.5, 0.12 + lift, c.y + 0.5)
 	preview_root.add_child(mi)
 
 
@@ -932,18 +1213,48 @@ func _update_preview() -> void:
 		return
 	_clear_preview()
 	last_preview_cell = hover_cell
+	plan = {}
 	if hover_cell.x < 0:
 		return
 	if tool == Tool.WAREHOUSE:
 		var free := _warehouse_free(hover_cell)
 		for c in _warehouse_cells(hover_cell):
-			_ghost(c, free and _distance_outside(c) <= 0.0)
+			_ghost(c, mat_ok if free and _distance_outside(c) <= 0.0 else mat_bad)
 		return
-	var net: Dictionary = rails if tool == Tool.RAIL else roads
-	for c in _l_path(drag_start, hover_cell):
-		if net.has(c) or cell_to_building.has(c):
-			continue
-		_ghost(c, _distance_outside(c) <= 0.0)
+	if not dragging:
+		return
+	if tool == Tool.DEMOLISH:
+		plan = plan_demolish(drag_start, hover_cell)
+		for it in plan["items"]:
+			_ghost(it["cell"], mat_demolish if it["state"] == "remove" else mat_bad)
+		return
+	plan = plan_track(drag_start, hover_cell, tool == Tool.RAIL)
+	for it in plan["items"]:
+		match it["state"]:
+			"new":
+				_ghost(it["cell"], mat_ok)
+			"bad":
+				_ghost(it["cell"], mat_bad)
+			_:
+				_ghost(it["cell"], mat_exist)
+
+
+## Kosten / Erstattung und Grund am Cursor.
+func _update_cursor_label() -> void:
+	if not dragging or plan.is_empty() or hover_cell.x < 0:
+		cursor_box.visible = false
+		return
+	cursor_box.visible = true
+	var world := Vector3(hover_cell.x + 0.5, 0.0, hover_cell.y + 0.5)
+	cursor_box.position = cam.unproject_position(world) + Vector2(22, 8)
+	if plan.get("demolish", false):
+		cursor_cost.text = "Abriss: %d Felder  +%d $ (50 %%)" % [plan["count"], int(plan["refund"])]
+		cursor_cost.modulate = Color(1, 0.8, 0.5)
+		cursor_reason.text = plan["reason"]
+		return
+	cursor_cost.text = "%s: %d Felder  %d $" % ["Gleis" if plan["rail"] else "Straße", plan["new_count"], plan["total"]]
+	cursor_cost.modulate = Color(1, 1, 1) if plan["ok"] else Color(1, 0.6, 0.55)
+	cursor_reason.text = "" if plan["ok"] else "✖ " + plan["reason"]
 
 
 # ---------------------------------------------------------------- Wirtschaft & Meilensteine
@@ -1017,7 +1328,7 @@ func _process(delta: float) -> void:
 		lines_timer = 1.0
 		_refresh_lines()
 
-	hover_cell = _mouse_cell()
+	hover_cell = sim_hover if sim_hover_active else _mouse_cell()
 	hover_marker.visible = hover_cell.x >= 0 and tool != Tool.NONE
 	if hover_marker.visible:
 		hover_marker.position = Vector3(hover_cell.x + 0.5, 0.05, hover_cell.y + 0.5)
@@ -1028,12 +1339,15 @@ func _process(delta: float) -> void:
 	match tool:
 		Tool.ROAD, Tool.RAIL:
 			var what: String = "Gleis" if tool == Tool.RAIL else "Straße"
-			if drag_start.x < 0:
-				hint_label.text = "%s: Startpunkt anklicken. Blau = dein Einfluss (günstig), außerhalb wird es teurer." % what
+			if not dragging:
+				hint_label.text = "%s: Maustaste am Startfeld drücken und zum Ziel ziehen (gerade + 45°). Blau = dein Einfluss (günstig)." % what
 			else:
 				_update_preview()
-				var rc: Array = _track_cost(_l_path(drag_start, hover_cell), tool == Tool.RAIL) if hover_cell.x >= 0 else [0, 0]
-				hint_label.text = "%s: Endpunkt anklicken.  Kosten: %d $  (%d Felder außerhalb des Einflusses)   Rechtsklick = abbrechen" % [what, rc[0], rc[1]]
+				hint_label.text = "%s: Loslassen = bauen · Rechtsklick/Esc = abbrechen · weiß = baubar, rot = nicht baubar" % what
+		Tool.DEMOLISH:
+			if dragging:
+				_update_preview()
+			hint_label.text = "Abriss: Fläche über eigene Straßen/Gleise ziehen, Loslassen = abreißen (50 % Erstattung) · Rechtsklick/Esc = abbrechen"
 		Tool.WAREHOUSE:
 			_update_preview()
 			var wc: int = _warehouse_cost(hover_cell) if hover_cell.x >= 0 else 0
@@ -1053,7 +1367,8 @@ func _process(delta: float) -> void:
 			else:
 				hint_label.text = "%s-Linie: Ziel anklicken. Quelle und Ziel müssen per %s verbunden sein." % [vname, need]
 		_:
-			hint_label.text = "WASD bewegen · Q/E drehen · Mausrad zoomen · [B] Kaufen · [1] Straße · [2] Gleis · [3] Lager · [4] Lkw · [5] Zug · Klick auf Gebäude = Info"
+			hint_label.text = "WASD bewegen · Q/E drehen · Mausrad zoomen · [B] Kaufen · [1] Straße · [2] Gleis · [3] Lager · [4] Lkw · [5] Zug · [X] Abriss · Klick auf Gebäude = Info"
+	_update_cursor_label()
 
 
 func _move_camera(delta: float) -> void:

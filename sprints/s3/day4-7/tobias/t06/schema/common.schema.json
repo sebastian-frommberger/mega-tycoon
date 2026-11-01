@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mega-tycoon/common.schema.json",
+  "title": "Gemeinsame Festkomma-Typen (F-09)",
+  "description": "Alle Zahlen sind Ganzzahlen. Geld in Cent (_cent), Zeiten in Sim-Ticks (_ticks, 1 Tick = 100 ms), Anteile in Promille (_promille) oder Basispunkten (_bp = 0,01 %), Strecken in Feldern (_felder) oder Millimetern (_mm). Obergrenze 2^53-1, weil Godots JSON-Parser Zahlen als float64 liest.",
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,31}$" },
+    "cent": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "cent_signed": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+    "ticks": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "ticks_pos": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "promille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+    "promille_faktor": { "type": "integer", "minimum": 0, "maximum": 100000, "description": "Faktor in Promille, darf ueber 1000 liegen (z. B. 1600 = x1,6)" },
+    "bp_signed": { "type": "integer", "minimum": -100000, "maximum": 100000, "description": "Basispunkte, 100 bp = 1 %" },
+    "felder": { "type": "integer", "minimum": 0, "maximum": 100000 },
+    "mm": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "einheiten": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "epoche": { "type": "integer", "minimum": 1, "maximum": 4 }
+  }
+}

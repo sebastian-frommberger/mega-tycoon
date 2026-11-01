@@ -1,0 +1,48 @@
+[jsonschema] goods.json gegen goods.schema.json: OK
+[jsonschema] vehicles.json gegen vehicles.schema.json: OK
+[jsonschema] economy_constants.json gegen economy_constants.schema.json: OK
+[jsonschema] economy_slice.json gegen economy_slice.schema.json: OK
+[querbezuege+rechenprobe+slice+abgleich]: OK
+ERGEBNIS: gueltig, Exit 0
+exit=0
+[fallback] goods.json gegen goods.schema.json: OK
+[fallback] vehicles.json gegen vehicles.schema.json: OK
+[fallback] economy_constants.json gegen economy_constants.schema.json: OK
+[fallback] economy_slice.json gegen economy_slice.schema.json: OK
+[querbezuege+rechenprobe+slice+abgleich]: OK
+ERGEBNIS: gueltig, Exit 0
+exit=0
+selftest [jsonschema/auto] Gleitkomma-Preis: erkannt (2 Fehler)
+selftest [fallback] Gleitkomma-Preis: erkannt (2 Fehler)
+selftest [jsonschema/auto] unbekanntes Feld kauf_dollar: erkannt (1 Fehler)
+selftest [fallback] unbekanntes Feld kauf_dollar: erkannt (1 Fehler)
+selftest [jsonschema/auto] Pflichtfeld fehlt: erkannt (2 Fehler)
+selftest [fallback] Pflichtfeld fehlt: erkannt (2 Fehler)
+selftest [jsonschema/auto] Rabatt als Dauerregel: erkannt (1 Fehler)
+selftest [fallback] Rabatt als Dauerregel: erkannt (1 Fehler)
+selftest [jsonschema/auto] Laufzeit kein Periodenvielfaches: erkannt (2 Fehler)
+selftest [fallback] Laufzeit kein Periodenvielfaches: erkannt (2 Fehler)
+selftest [jsonschema/auto] id mit Grossbuchstabe: erkannt (1 Fehler)
+selftest [fallback] id mit Grossbuchstabe: erkannt (1 Fehler)
+selftest [jsonschema/auto] Wert ueber 2^53-1: erkannt (3 Fehler)
+selftest [fallback] Wert ueber 2^53-1: erkannt (3 Fehler)
+selftest [jsonschema/auto] Etikett 'getestet' ohne Grey-Box: erkannt (1 Fehler)
+selftest [fallback] Etikett 'getestet' ohne Grey-Box: erkannt (1 Fehler)
+selftest [jsonschema/auto] Slice: Ausbau Stufe 2 = 6.000 $ (D19 verletzt): erkannt (3 Fehler)
+selftest [fallback] Slice: Ausbau Stufe 2 = 6.000 $ (D19 verletzt): erkannt (3 Fehler)
+selftest [jsonschema/auto] Slice: Gleitkomma Lizenzanteil: erkannt (3 Fehler)
+selftest [fallback] Slice: Gleitkomma Lizenzanteil: erkannt (3 Fehler)
+selftest [jsonschema/auto] Slice: unbekannter Suffix kauf_dollar: erkannt (1 Fehler)
+selftest [fallback] Slice: unbekannter Suffix kauf_dollar: erkannt (1 Fehler)
+selftest [jsonschema/auto] Slice: nur 2 Ketten: erkannt (2 Fehler)
+selftest [fallback] Slice: nur 2 Ketten: erkannt (2 Fehler)
+selftest [jsonschema/auto] Slice: Hafen im Slice (D18 verletzt): erkannt (1 Fehler)
+selftest [fallback] Slice: Hafen im Slice (D18 verletzt): erkannt (1 Fehler)
+selftest [jsonschema/auto] Slice/constants: Kreditrahmen weicht ab: erkannt (2 Fehler)
+selftest [fallback] Slice/constants: Kreditrahmen weicht ab: erkannt (2 Fehler)
+selftest [jsonschema/auto] Slice: Strecke unter Mindestdistanz: erkannt (1 Fehler)
+selftest [fallback] Slice: Strecke unter Mindestdistanz: erkannt (1 Fehler)
+selftest [jsonschema/auto] Slice: Abgleichpfad fehlt: erkannt (1 Fehler)
+selftest [fallback] Slice: Abgleichpfad fehlt: erkannt (1 Fehler)
+selftest: OK
+exit=0

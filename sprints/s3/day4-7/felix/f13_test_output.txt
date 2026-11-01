@@ -1,0 +1,47 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+  OK   Setup: Mühle + Getreidefarm gekauft
+-- 1 Gerade Strecke
+  OK   Plan gerade ok ()
+  OK   8 Felder auf einer Linie y=118
+  OK   Drag gebaut
+  OK   Kosten = Summe Feldkosten (80 = 80, abgebucht 80.0)
+  OK   Alle Felder im Straßennetz
+-- 2 45°-Strecke
+  OK   Plan 45° ok ()
+  OK   Treppe 8×(1+1)+1 = 17 Felder, 4-verbunden, endet am Ziel
+  OK   Pfad (0,0)->(6,2): erst 4 gerade, dann 45°
+  OK   45° gebaut
+  OK   Kosten 45° = Summe Feldkosten (680)
+-- 3 Wasser
+  OK   Küste/Meer abgelehnt: 'Wasser ohne Brücke: Brückenkopf braucht Land an beiden Enden'
+  OK   Abgelehnt: nichts gebaut, kein Geld abgebucht
+  OK   Diagonal über Fluss abgelehnt: 'Wasser ohne Brücke: Brücken nur gerade, nicht diagonal'
+  OK   Gerade Brücke über Fluss erlaubt (4 Wasserfelder, 10585 $)
+  OK   Gebäude im Weg abgelehnt: 'Gebäude im Weg: Mühle'
+  OK   Anschluss am Gebäuderand erlaubt ()
+-- 4 Abriss 50 %
+  OK   Abriss-Drag ausgeführt
+  OK   Erstattung genau 50 % (209.5 von 419.0)
+  OK   Felder entfernt, Pfadsuche gesperrt
+-- 5 Exploits (Bauen/Abreißen darf kein Geld erzeugen)
+  OK   E1 Bauen+Abriss: Verlust 5820.5 = 50 % von 11641.0
+  OK   E2 50× Bauen/Abriss: Geld fällt jede Runde (-43425.0 gesamt)
+  OK   E3 Zweiter Abriss derselben Felder erstattet 0
+  OK   E4a Zweites Bauen über bestehende Felder kostet 0
+  OK   E4b Abriss erstattet nur 50 % des einmal Bezahlten
+  OK   E5 Vorbedingung: (40,100) ist Stadtstraße Kornfeld
+  OK   E5 Stadtstraße: unmöglich, 0 $, bleibt befahrbar
+  OK   E6 Mühle: unmöglich, 0 $, Grund 'Stadtstraßen und Gebäude kann man nicht abreißen'
+  OK   E7 Lager: X reißt keine Gebäude ab, 0 $
+  OK   E8 Erstattung = 50 % des Bezahlten (399.5), Feldpreis jetzt 10 statt 94
+  OK   E9a Geld = Kosten-1: abgelehnt ('Zu wenig Geld: 10640 $ nötig, 10639 $ vorhanden')
+  OK   E9b Geld = Kosten: gebaut, Rest 0
+  OK   E10 Vorbedingung: Straße Farm→Mühle
+  OK   E10 Vorbedingung: Lkw-Linie aktiv
+  OK   E10 Vorbedingung: (26,121) ist eigene Straße
+  OK   E10 Befahrene Straße: Abriss gesperrt ('Von einer Linie befahren – erst Linie entfernen')
+  OK   E11 Esc/Rechtsklick: abgebrochen, nichts gebaut, 0 $
+  OK   E12 Kreuzung: Erstattung 50 % von beiden (5410.0)
+
+F-13: 38 Prüfungen, 0 Fehler

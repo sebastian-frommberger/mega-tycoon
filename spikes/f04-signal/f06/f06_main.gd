@@ -331,7 +331,7 @@ func _render_list() -> void:
 		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		h.add_child(tv)
-		var t := _label(world.titel(m["vehicle_id"]), 18, C_TEXT, true, true)
+		var t := _label(titel_fuer(m), 18, C_TEXT, true, true)
 		_title_labels[m["meldung_id"]] = t
 		tv.add_child(t)
 		tv.add_child(_label("bei %s" % F06World.FEHLER[m["fehler"]]["ort"], 14, C_DIM, false, true))
@@ -610,16 +610,29 @@ func _process(delta: float) -> void:
 	_title_timer += delta
 	if _title_timer >= 1.0:
 		_title_timer = 0.0
-		for mid in _title_labels:
-			var lab: Label = _title_labels[mid]
-			if is_instance_valid(lab):
-				lab.text = world.titel(meldung_by_id(mid)["vehicle_id"])
+		refresh_titles()
 	_session_timer += delta
 	if _session_timer >= 30.0:
 		_session_timer = 0.0
 		_write_session(false)
 	karte.queue_redraw()
 	overlay.queue_redraw()
+
+
+## S3 Tag 4–7 (Felix): eine Quelle für die Standzeit. Geschlossene Meldungen laufen live mit (1 s Takt).
+## Die offene Meldung zeigt im Titel denselben Schnappschuss wie Kettenzeile 1 und der Kopf "Stand m:ss" –
+## Titel und Text sind damit zu jedem Zeitpunkt gleich (vorher lief der Titel weiter, Zeile 1 stand).
+func titel_fuer(m: Dictionary) -> String:
+	if m.get("meldung_id", -1) == open_id and not snap_rows.is_empty():
+		return snap_rows[0]["text"]
+	return world.titel(m["vehicle_id"])
+
+
+func refresh_titles() -> void:
+	for mid in _title_labels:
+		var lab: Label = _title_labels[mid]
+		if is_instance_valid(lab):
+			lab.text = titel_fuer(meldung_by_id(mid))
 
 
 func step_sim(n: int) -> void:
@@ -740,6 +753,19 @@ class Overlay extends Control:
 		for nid in g.nodes:
 			var p: Vector2 = main.to_screen(main.world_px(g.nodes[nid]["pos"]))
 			draw_string(font, p + Vector2(6, 50), g.nodes[nid]["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#A8A8A8"))
+		# S3 Tag 4–7: Orte aus den Meldungstexten und Abschnitts-/Signalnummern auf der Karte (L-07 Punkt 2)
+		for ort in main.world.orts_labels():
+			var op: Vector2 = main.to_screen(main.world_px(ort["pos"]))
+			var w := font.get_string_size(ort["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+			draw_string_outline(font, op + Vector2(-w * 0.5, ort["dy"]), ort["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 6, Color("#1A1A1A"))
+			draw_string(font, op + Vector2(-w * 0.5, ort["dy"]), ort["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("#F0E6C8"))
+		for lab in main.world.abschnitt_labels():
+			var lp: Vector2 = main.to_screen(main.world_px(lab["pos"]))
+			var lw := font.get_string_size(lab["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			draw_string(font, lp + Vector2(-lw * 0.5, -10), lab["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#D0D0D0"))
+		for sid in g.signals:
+			var sp2: Vector2 = main.to_screen(main.signal_draw_pos(sid))
+			draw_string(font, sp2 + Vector2(-12, 18), "S%s" % main.world.name_of("SIGNAL", sid), HORIZONTAL_ALIGNMENT_CENTER, 24, 11, Color("#9AA0A4"))
 		for id in sim.vehicles:
 			var vp: Vector2 = main.to_screen(main.vehicle_draw_pos(sim.vehicles[id]))
 			draw_string(font, vp + Vector2(-20, 30), sim.vehicles[id]["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#F0F0F0"))

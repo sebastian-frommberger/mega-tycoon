@@ -136,6 +136,32 @@ func _number_new(old_blocks: Dictionary, old_signals: Dictionary, base: int, sub
 		names["SIGNAL:%d" % ns[i]] = str(base + i + 1)
 
 
+## Ortsbeschriftungen für die Karte: genau die Wörter aus FEHLER[...]["ort"] (Meldungsuntertitel).
+## Position in mm (Weltkoordinaten), dy = Pixelversatz über der Strecke.
+func orts_labels() -> Array:
+	var g = sim.graph
+	var mk := func(n1: int, n2: int) -> Vector2i: return (g.nodes[n1]["pos"] + g.nodes[n2]["pos"]) / 2
+	return [
+		{"text": FEHLER["F1"]["ort"], "pos": mk.call(100, 102), "dy": -72.0},
+		{"text": FEHLER["F2"]["ort"], "pos": mk.call(200, 202), "dy": 6.0},
+		{"text": FEHLER["F3"]["ort"], "pos": g.nodes[301]["pos"], "dy": -72.0},
+	]
+
+
+## Abschnittsnummern wie in den Kettenzeilen ("Abschnitt 13"), mittig auf der Kante.
+## Zweigleisige Kanten haben zwei Abschnitte (je Richtung): "Abschnitt 23/24".
+func abschnitt_labels() -> Array:
+	var out := []
+	var g = sim.graph
+	for eid in g.edges:
+		var e: Dictionary = g.edges[eid]
+		var nf := name_of("BLOCK", e["block_fwd"])
+		var nr := name_of("BLOCK", e["block_rev"])
+		var t := "Abschnitt %s" % nf if nf == nr else "Abschnitt %s/%s" % [nf, nr]
+		out.append({"text": t, "pos": (g.nodes[e["a"]]["pos"] + g.nodes[e["b"]]["pos"]) / 2, "edge": eid})
+	return out
+
+
 func name_of(kind: String, id: int) -> String:
 	return names.get("%s:%d" % [kind, id], "")
 

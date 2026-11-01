@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mega-tycoon/economy_constants.schema.json",
+  "title": "Oekonomie-Konstanten (economy_constants.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "zeit", "raum", "rundung", "lizenz", "kauf", "kredit", "ertrag", "saettigung", "ausbau", "startkapital_cent", "wachstum", "bau"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "zeit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["tick_ms", "oeko_tick_ticks", "periode_ticks", "spielmonat_ticks", "spieljahr_ticks"],
+      "properties": {
+        "tick_ms": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "oeko_tick_ticks": { "$ref": "common.schema.json#/$defs/ticks_pos", "description": "Oekonomie laeuft alle N Sim-Ticks (felix.md: 10)" },
+        "periode_ticks": { "$ref": "common.schema.json#/$defs/ticks_pos", "description": "Bezugsperiode aller *_pro_periode-Raten (600 = 1 Spielminute)" },
+        "spielmonat_ticks": { "$ref": "common.schema.json#/$defs/ticks_pos" },
+        "spieljahr_ticks": { "$ref": "common.schema.json#/$defs/ticks_pos" }
+      }
+    },
+    "raum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["feld_mm"],
+      "properties": { "feld_mm": { "type": "integer", "minimum": 1, "maximum": 1000000 } }
+    },
+    "rundung": {
+      "type": "object", "additionalProperties": false,
+      "required": ["modus", "regel"],
+      "properties": {
+        "modus": { "enum": ["halb_auf"] },
+        "regel": { "type": "string" }
+      }
+    },
+    "lizenz": {
+      "type": "object", "additionalProperties": false,
+      "required": ["anteil_promille", "laufzeit_ticks", "radius_rabatt_promille", "ausserhalb_zuschlag_promille_pro_feld", "hinweis_vor_ablauf_ticks", "gratis_anzahl_start"],
+      "properties": {
+        "anteil_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "laufzeit_ticks": { "$ref": "common.schema.json#/$defs/ticks_pos" },
+        "radius_rabatt_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "ausserhalb_zuschlag_promille_pro_feld": { "$ref": "common.schema.json#/$defs/promille" },
+        "hinweis_vor_ablauf_ticks": { "$ref": "common.schema.json#/$defs/ticks" },
+        "gratis_anzahl_start": { "type": "integer", "minimum": 0, "maximum": 3 }
+      }
+    },
+    "kauf": {
+      "type": "object", "additionalProperties": false,
+      "required": ["anrechnung_lizenz_promille", "werksmarge_promille", "unterhalt_cent_pro_periode_pro_stufe", "rabatt_m5b_promille", "rabatt_m5b_einmalig", "verkauf_anteil_firmenwert_promille", "firmenwert_invest_promille", "firmenwert_monate_ueberschuss"],
+      "properties": {
+        "anrechnung_lizenz_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "werksmarge_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "unterhalt_cent_pro_periode_pro_stufe": { "$ref": "common.schema.json#/$defs/cent" },
+        "rabatt_m5b_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "rabatt_m5b_einmalig": { "const": true, "description": "D1: Kaufrabatt nur einmal (Belohnung M5b)" },
+        "verkauf_anteil_firmenwert_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "firmenwert_invest_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "firmenwert_monate_ueberschuss": { "type": "integer", "minimum": 0, "maximum": 120 }
+      }
+    },
+    "kredit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rahmen_cent", "ab_tick", "zins_promille_pro_periode", "sperre_firmenkauf_im_minus", "sperre_ausbau_im_minus", "zwangsverkauf_nach_ticks_unter_rahmen"],
+      "properties": {
+        "rahmen_cent": { "$ref": "common.schema.json#/$defs/cent" },
+        "ab_tick": { "$ref": "common.schema.json#/$defs/ticks", "description": "D1: 0 = ab Minute 0" },
+        "zins_promille_pro_periode": { "$ref": "common.schema.json#/$defs/promille" },
+        "sperre_firmenkauf_im_minus": { "type": "boolean" },
+        "sperre_ausbau_im_minus": { "type": "boolean" },
+        "zwangsverkauf_nach_ticks_unter_rahmen": { "$ref": "common.schema.json#/$defs/ticks_pos" }
+      }
+    },
+    "ertrag": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mindestdistanz_felder", "d_eff_knick_felder", "d_eff_jenseits_promille", "formel"],
+      "properties": {
+        "mindestdistanz_felder": { "$ref": "common.schema.json#/$defs/felder" },
+        "d_eff_knick_felder": { "$ref": "common.schema.json#/$defs/felder" },
+        "d_eff_jenseits_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "formel": { "type": "string" }
+      }
+    },
+    "saettigung": {
+      "type": "object", "additionalProperties": false,
+      "required": ["voll_bis_promille", "abfall_bis_promille", "abfall_ziel_promille", "darueber_promille"],
+      "properties": {
+        "voll_bis_promille": { "$ref": "common.schema.json#/$defs/promille_faktor" },
+        "abfall_bis_promille": { "$ref": "common.schema.json#/$defs/promille_faktor" },
+        "abfall_ziel_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "darueber_promille": { "$ref": "common.schema.json#/$defs/promille" }
+      }
+    },
+    "ausbau": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["stufe", "durchsatz_einheiten_pro_periode", "kosten_cent"],
+        "properties": {
+          "stufe": { "type": "integer", "minimum": 1, "maximum": 4 },
+          "durchsatz_einheiten_pro_periode": { "$ref": "common.schema.json#/$defs/einheiten" },
+          "kosten_cent": { "$ref": "common.schema.json#/$defs/cent" }
+        }
+      }
+    },
+    "startkapital_cent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["agrar", "hafen", "bergbau", "handelsknoten"],
+      "properties": {
+        "agrar": { "$ref": "common.schema.json#/$defs/cent" },
+        "hafen": { "$ref": "common.schema.json#/$defs/cent" },
+        "bergbau": { "$ref": "common.schema.json#/$defs/cent" },
+        "handelsknoten": { "$ref": "common.schema.json#/$defs/cent" }
+      }
+    },
+    "wachstum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["variante", "basisrate_bp_pro_monat", "band", "zuschlag_max_promille", "zuschlag_anteil_personen_promille", "zuschlag_anteil_jobs_promille", "tor_schwelle_promille", "tor_versorgung_min_promille", "etikett"],
+      "properties": {
+        "variante": { "const": "B" },
+        "basisrate_bp_pro_monat": { "$ref": "common.schema.json#/$defs/bp_signed" },
+        "band": {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["g_ab_promille", "rate_bp_pro_monat"],
+            "properties": {
+              "g_ab_promille": { "$ref": "common.schema.json#/$defs/promille" },
+              "rate_bp_pro_monat": { "$ref": "common.schema.json#/$defs/bp_signed" }
+            }
+          }
+        },
+        "zuschlag_max_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "zuschlag_anteil_personen_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "zuschlag_anteil_jobs_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "tor_schwelle_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "tor_versorgung_min_promille": { "$ref": "common.schema.json#/$defs/promille" },
+        "etikett": { "const": "ungetestet" }
+      }
+    },
+    "bau": {
+      "type": "object", "additionalProperties": false,
+      "required": ["strasse_cent_pro_feld", "lager_cent", "lager_unterhalt_cent_pro_periode", "lager_kapazitaet_einheiten", "rampe_einheiten_pro_tick_x100"],
+      "properties": {
+        "strasse_cent_pro_feld": { "$ref": "common.schema.json#/$defs/cent" },
+        "lager_cent": { "$ref": "common.schema.json#/$defs/cent" },
+        "lager_unterhalt_cent_pro_periode": { "$ref": "common.schema.json#/$defs/cent" },
+        "lager_kapazitaet_einheiten": { "$ref": "common.schema.json#/$defs/einheiten" },
+        "rampe_einheiten_pro_tick_x100": { "type": "integer", "minimum": 1, "maximum": 100000, "description": "2 Einheiten/s = 0,2 je Tick -> 20 (Hundertstel)" }
+      }
+    }
+  }
+}

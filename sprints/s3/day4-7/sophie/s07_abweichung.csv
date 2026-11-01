@@ -1,0 +1,8 @@
+kit;leitobjekt;mass;gemessen_m;soll_m;abweichung_prozent;ok_le_10
+nature_kit;tree_default;Hoehe;13.663;15.0;-8.9;ja
+city_kit_industrial;building-a;Laenge;20.836;20.0;+4.2;ja
+watercraft_pack;ship-cargo-a;Laenge;105.487;100.0;+5.5;ja
+band;tree_default;Hoehe 10-20 m;13.663;in Band
+band;tree_pineDefaultA;Hoehe 10-20 m;12.367;in Band
+band;tree_default;Krone 4-6 m (x/z);6.040/5.231;+0,7 % ueber Bandkante, <=10 %
+band;tree_pineDefaultA;Krone 4-6 m;4.256;in Band

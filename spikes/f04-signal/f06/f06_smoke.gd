@@ -68,6 +68,29 @@ func _run() -> void:
 		for r in rows:
 			ok_txt = ok_txt and not String(r["text"]).contains("{") and String(r["text"]).length() <= 60
 		check(ok_txt, "%s Texte ohne Platzhalter, <= 60 Zeichen" % key)
+		# S3 Tag 4–7: Standzeit Titel == Kettenzeile 1, auch wenn die Sim weiterläuft (600 Ticks)
+		main.step_sim(600)
+		main.refresh_titles()
+		var lab: Label = main._title_labels[m["meldung_id"]]
+		check(lab.text == rows[0]["text"], "%s Titel '%s' == Zeile 1 '%s' nach 600 Ticks" % [key, lab.text, rows[0]["text"]])
+		# Ort und alle in den Zeilen genannten Abschnitte stehen auf der Karte
+		var map_txt: Array = main.world.orts_labels().map(func(x): return x["text"]) + main.world.abschnitt_labels().map(func(x): return x["text"])
+		var joined := " | ".join(PackedStringArray(map_txt))
+		var missing: Array = []
+		if not map_txt.has(F06World.FEHLER[key]["ort"]):
+			missing.append(F06World.FEHLER[key]["ort"])
+		var rx := RegEx.new()
+		rx.compile("Abschnitt (\\d+)")
+		for r in rows:
+			for mt in rx.search_all(r["text"]):
+				var num: String = mt.get_string(1)
+				var found := false
+				for t in map_txt:
+					if String(t).begins_with("Abschnitt ") and (String(t).trim_prefix("Abschnitt ").split("/") as Array).has(num):
+						found = true
+				if not found:
+					missing.append("Abschnitt " + num)
+		check(missing.is_empty(), "%s Ort + Abschnitte der Kette auf der Karte beschriftet (fehlt: %s)" % [key, str(missing)])
 		await _wait(0.75)
 		var want: Vector2 = main._cam_pos_for(main.world_px(rows[0]["pos"]), main.JUMP_ZOOM)
 		check(main.cam.position.distance_to(want) < 1.0, "%s beim Öffnen: Kamera an Zeile 1 (%s)" % [key, str(main.cam.position)])
@@ -80,6 +103,14 @@ func _run() -> void:
 		main._on_back()
 		check(main.open_id == -1, "%s Zurück zur Übersicht -> Z1" % key)
 		await _wait(0.1)
+	print("Karte: " + " | ".join(PackedStringArray(main.world.orts_labels().map(func(x): return x["text"]) + main.world.abschnitt_labels().map(func(x): return x["text"]))))
+	# geschlossene Meldungen laufen live: Titel nach 100 Ticks = aktuelle Standzeit
+	main.step_sim(100)
+	main.refresh_titles()
+	var live_ok := true
+	for m in main.meldungen:
+		live_ok = live_ok and main._title_labels[m["meldung_id"]].text == main.world.titel(m["vehicle_id"])
+	check(live_ok, "geschlossene Meldungen: Titel = aktuelle Standzeit (laufend)")
 	print("Sonstige Klicks")
 	var ev := InputEventMouseButton.new()
 	ev.button_index = MOUSE_BUTTON_LEFT

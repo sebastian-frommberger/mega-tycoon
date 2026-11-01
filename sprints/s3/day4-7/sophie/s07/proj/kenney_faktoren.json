@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "beschreibung": "Importkonvention Kenney-Kits fuer Mega Tycoon (S-07, Godot 4.7.2). Festkomma wie F-09: keine Gleitkommazahlen. 1 Feld = 10 m (raum.feld_mm = 1000 ist Tobias' Spieleinheit; hier Szenen-Meter, 1 Feld = 10 Godot-Einheiten).",
+  "einheiten": { "feld_m": 10, "faktor": "faktor_promille: 1000 = x1,0; Modell-Einheit x Faktor = Meter", "pivot": "_milli = Tausendstel Modell-Einheit (vor Skalierung)" },
+  "nicht_enthalten": ["car_kit", "train_kit", "railroad", "fahrzeuge", "gleise"],
+  "nicht_enthalten_grund": "Fahrzeuge laut Entscheidung nicht (Eigenbau, Tris 7-8x Budget); Gleise passen nicht ins Raster (14,8 m Kachel bei x3,7).",
+  "kits": {
+    "nature_kit": {
+      "ordner": "NatureKit",
+      "faktor_promille": 8000,
+      "achsen": { "oben": "+y", "laengsachse": "z", "handedness": "y-up, rechtshaendig (glTF -> Godot Standard)" },
+      "pivot": { "xz": "mitte", "y_korrektur_milli": 50, "hinweis": "Modellunterkante liegt bei y = -0,05 Einheiten; +50 hebt die Basis auf y = 0 (sonst versinken Baeume x8 = 0,4 m im Boden)." },
+      "textur": "keine (Materialfarbe), Palette v1 umlegen",
+      "leitobjekt": { "modell": "tree_default", "mass": "hoehe", "soll_mm": 15000, "begruendung": "Maßstabsregel: Baum 1-2 Felder hoch, Mitte = 1,5 Felder = 15 m" },
+      "massstabsband": { "hoehe_mm": [10000, 20000], "krone_breite_mm": [4000, 6000], "gilt_fuer": ["tree_default", "tree_pineDefaultA"] },
+      "multimesh": true
+    },
+    "city_kit_industrial": {
+      "ordner": "CityKitIndustrial",
+      "faktor_promille": 10000,
+      "achsen": { "oben": "+y", "laengsachse": "x", "handedness": "y-up, rechtshaendig (glTF -> Godot Standard)" },
+      "pivot": { "xz": "behalten", "y_korrektur_milli": 0, "hinweis": "Pivot liegt am Boden. XZ nicht zentrieren: Kit-Module sind nicht mittig um den Ursprung (building-f Mitte x = +0,45 Einheiten); Anbauten sollen im Kit-Raster schnappen." },
+      "textur": "Textures/colormap.png relativ neben der GLB zwingend (sonst weiss); Atlas auf Palette v1 umlegen",
+      "leitobjekt": { "modell": "building-a", "mass": "laenge", "soll_mm": 20000, "begruendung": "Maßstabsregel: Halle ca. 2 Felder = 20 m" },
+      "massstabsband": null,
+      "multimesh": true
+    },
+    "watercraft_pack": {
+      "ordner": "WatercraftPack",
+      "faktor_promille": 10000,
+      "achsen": { "oben": "+y", "laengsachse": "z", "handedness": "y-up, rechtshaendig (glTF -> Godot Standard)" },
+      "pivot": { "xz": "mitte", "y_korrektur_milli": 0, "hinweis": "Pivot am Kiel/Wasserlinie-Basis (min y = 0), XZ bereits mittig." },
+      "textur": "Textures/colormap.png relativ neben der GLB zwingend; Atlas auf Palette v1 umlegen",
+      "leitobjekt": { "modell": "ship-cargo-a", "mass": "laenge", "soll_mm": 100000, "begruendung": "Maßstabsregel: Frachtschiff ca. 100 m" },
+      "massstabsband": null,
+      "multimesh": false
+    }
+  },
+  "abnahme": { "abweichung_max_promille": 100 }
+}

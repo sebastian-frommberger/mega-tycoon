@@ -5,7 +5,7 @@ extends Node3D
 ##       2 Typen (Wasser = Fluss/Küste, Gebirge), Wald nur Deko; Grey-Box-Gebäude, Farben aus S-08.
 ##   (2) Ökonomie aus economy.gd + T-06-JSON: Ertrag nur beim Endabnehmer, Luftlinie, Lager 0 $, Sättigung,
 ##       Lizenzpflicht zum Laden. Fahrzeugkauf und Unterhalt aus vehicles.json, Lager-Unterhalt aus JSON.
-##       Kein Kredit (S5): Kasse unter 0 $ = Bankrott.
+##       Kredit (F-19): bis 2.000 $ manuell; Kasse unter 0 $ = Bankrott.
 ##   (3) Start mit HQ: Startdialog Agrar/Bergbau, Klick-Panel mit Knopf „Lizenz kaufen“ (Preis, Ertrag/Monat).
 ##   (4) Ziele oben rechts mit „Nächster Schritt“ und gelbem Marker über dem Ziel.
 ## Alles wird im Code aufgebaut (keine Szenen außer main.tscn).
@@ -1372,7 +1372,7 @@ func _setup_start_dialog() -> void:
 	for a in ["agrar", "bergbau"]:
 		tiles.add_child(_archetype_tile(a))
 	var foot := Kit.hbox(8, [Kit.icon("info", 18, ThemeBuilder.C["muted"]),
-		Kit.label("Noch kein Kredit: fällt die Kasse unter 0 $, ist die Firma bankrott. Laden nur an Industrien mit Lizenz, Geld erst beim Abnehmer.", "LabelMuted", true)])
+		Kit.label("Kredit bis 2.000 $ über [+] im Kopfbereich. Fällt die Kasse unter 0 $, ist die Firma bankrott – nimm vorher Kredit auf. Laden nur an Industrien mit Lizenz, Geld erst beim Abnehmer.", "LabelMuted", true)])
 	foot.get_child(1).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bv.add_child(foot)
 
@@ -1669,8 +1669,13 @@ func _set_fields(rows: Array) -> void:
 		r["val"].add_theme_color_override("font_color", e[3] if e.size() > 3 else ThemeBuilder.C["ink"])
 
 
+var _pv: Dictionary = {}
+
 func _set_primary(icon_name: String, l1: String, l2: String, disabled: bool) -> void:
-	panel_button.visible = true
+	if _pv.is_empty():
+		panel_button.visible = true
+	else:
+		_pv[panel_button] = true
 	Kit.set_price_button(panel_button, icon_name, l1, l2, disabled)
 
 
@@ -1689,11 +1694,8 @@ func _refresh_panel() -> void:
 	var tf: Font = panel_title.get_theme_font("font")
 	var big := tf == null or tf.get_string_size(panel_title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ThemeBuilder.SIZE_TITLE).x <= PANEL_W - 130
 	panel_title.add_theme_font_size_override("font_size", ThemeBuilder.SIZE_TITLE if big else ThemeBuilder.SIZE_VALUE)
-	panel_button.visible = false
-	panel_reason.visible = false
-	panel_line_button.visible = false
-	panel_lic.visible = false
-	panel_why.visible = false
+	# BUG-1 (D-07): Sichtbarkeit erst am Ende setzen, sonst verschluckt der 0,25-s-Refresh gehaltene Klicks.
+	_pv = {panel_button: false, panel_reason: false, panel_line_button: false, panel_lic: false, panel_why: false}
 	var fields: Array = []
 	var why := ""
 	var C: Dictionary = ThemeBuilder.C
@@ -1725,7 +1727,7 @@ func _refresh_panel() -> void:
 			fields.append(["lager", "Funktion", "nimmt alles an, gibt alles ab"])
 			fields.append(["geld", "Ertrag", "0 $ – Geld gibt es erst beim Endabnehmer"])
 			fields.append(["kosten", "Unterhalt", "%s/min" % money_str(warehouse_upkeep)])
-			panel_line_button.visible = true
+			_pv[panel_line_button] = true
 		Building.Kind.INERT:
 			panel_icon.texture = Kit.icon_tex("fabrik")
 			panel_sub.text = "Kulisse"
@@ -1767,7 +1769,7 @@ func _refresh_panel() -> void:
 				for e in outs:
 					prof += _line_profit(e[1])
 				fields.append(["geld", "Ertrag/min", "–" if outs.is_empty() else "%+d $/min" % int(prof), C["ok_text"] if prof > 0 else (C["bad_text"] if prof < 0 else C["ink"])])
-				panel_lic.visible = true
+				_pv[panel_lic] = true
 				if q["aktiv"]:
 					var rest: int = eco.s_lic_until[b.site] - shim.tick_count
 					panel_lic_head.text = "LIZENZ AKTIV"
@@ -1800,11 +1802,15 @@ func _refresh_panel() -> void:
 						"\n1. Lizenz gratis (sonst %s)." % money_str(q["kosten_cent"]) if q["gratis"] else ""])
 					if not q["kaufbar"]:
 						var miss: int = q["zu_zahlen_cent"] - eco.cash_cent
-						panel_reason.visible = true
-						panel_reason.text = "Dir fehlen %s. Kredit gibt es noch nicht." % money_str(miss)
+						_pv[panel_reason] = true
+						panel_reason.text = "Dir fehlen %s. Nimm im Kopfbereich einen Kredit auf [+]." % money_str(miss)
 						panel_button.tooltip_text = panel_reason.text
 	_set_fields(fields)
-	panel_why.visible = why != ""
+	_pv[panel_why] = why != ""
+	for n in _pv:
+		if n.visible != _pv[n]:
+			n.visible = _pv[n]
+	_pv = {}
 	panel_why_text.text = Kit.txt(why)
 	var tw: Tween = panel.get_meta("slide_tw") if panel.has_meta("slide_tw") else null
 	if tw == null or not tw.is_running():

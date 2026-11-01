@@ -15,12 +15,12 @@ ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
 WARNING: All audio drivers failed, falling back to the dummy driver.
      at: initialize (servers/audio/audio_server.cpp:258)
 
-MAP_LOAD_MS 199.0 READY_MS 243.0 MISSING_IDS 0
-saved /home/claude/mega-tycoon/shots/shot_start.png (1600, 900)
-saved /home/claude/mega-tycoon/shots/shot_start_agrar.png (1600, 900)
-saved /home/claude/mega-tycoon/shots/shot_ghost.png (1600, 900)
-saved /home/claude/mega-tycoon/shots/shot_after_30min.png (1600, 900)
-Kasse nach 30 min: 8.700 $ Lieferungen mit Gewinn: 91
+MAP_LOAD_MS 211.0 READY_MS 258.2 MISSING_IDS 0
+saved /home/claude/mega-tycoon/slice/../d07_shots/shot_start.png (1600, 900)
+saved /home/claude/mega-tycoon/slice/../d07_shots/shot_start_agrar.png (1600, 900)
+saved /home/claude/mega-tycoon/slice/../d07_shots/shot_ghost.png (1600, 900)
+saved /home/claude/mega-tycoon/slice/../d07_shots/shot_after_30min.png (1600, 900)
+Kasse nach 30 min: 8.674 $ Lieferungen mit Gewinn: 91
 WARNING: 14 ObjectDB instances were leaked at exit (run with `--verbose` for details).
    at: cleanup (core/object/object.cpp:2536)
 ERROR: 5 resources still in use at exit (run with --verbose for details).

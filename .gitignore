@@ -13,3 +13,4 @@ slice/build/
 slice/tests/d08_logs_*
 slice/tests/*.translation
 d07_shots*/
+slice/tests/d07_logs/

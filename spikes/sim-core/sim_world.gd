@@ -21,6 +21,9 @@ extends RefCounted
 ##   (Äquivalenztest K8 gegen res://ref/sim_world.gd). Genre-Standard (D15): Warte-Graph mit
 ##   Zykluserkennung, wie bei Block-Signalsystemen üblich; nichts Neues erfunden.
 ##
+## F-16: `economy` (economy.gd) hängt sich optional ein: on_tick (Öko-Tick), load_gate/on_load beim Laden,
+## on_unload beim Entladen (Ertrag nur beim Endabnehmer, Stempel). economy == null -> Verhalten und Prüfsumme wie S3.
+##
 ## Kompatibilität: `vehicles` und `stations` sind Lesesichten (Dictionary je ID wie im Spike), gepuffert
 ## je Sim-Version. Schreiben in die Sicht hat keine Wirkung; Änderungen gehen über set_vehicle_speed().
 
@@ -38,11 +41,12 @@ const S_WARTET_LADUNG := 3
 const S_ENDE := 4
 
 var graph = NetGraph.new()
+var economy = null                      # F-16: Ökonomie-Modul (economy.gd), optional; null = Kern wie S3
 var tick_count := 0
 # Erkannte Deadlocks: [{members, root_cause, tick_formed, tick_detected, ticks_to_detect}]
 var deadlock_events: Array = []
 # Profil des letzten Ticks in Mikrosekunden
-var profile_usec := {"vehicles": 0, "deadlock": 0, "total": 0}
+var profile_usec := {"vehicles": 0, "deadlock": 0, "total": 0, "economy": 0}  # economy: on_tick-Anteil (in vehicles enthalten)
 # Statistik Deadlock-Prüfung (kumuliert): Kettenläufe, besuchte Fahrzeuge
 var dl_walks := 0
 var dl_visits := 0
@@ -83,6 +87,7 @@ var r_block := PackedInt32Array()
 var r_len := PackedInt32Array()
 var r_from := PackedInt32Array()
 var r_to := PackedInt32Array()
+var r_stop := PackedByteArray()         # F-16: 1 = Zielknoten des Schritts ist Lade-/Entladeknoten dieses Fahrzeugs
 var l_nodes := PackedInt32Array()
 var u_nodes := PackedInt32Array()
 
@@ -99,6 +104,7 @@ var st_amount := PackedInt32Array()
 var st_delivered := PackedInt32Array()
 var st_name := PackedStringArray()
 var _station_of: Dictionary = {}        # Knoten-ID -> Lager-Slot
+var _producers := PackedInt32Array()    # F-16: Lager-Slots mit produce_every > 0, aufsteigend (nur diese besucht _produce)
 
 var _slot_of: Dictionary = {}           # Fahrzeug-ID -> Slot
 var _order_dirty := false
@@ -150,6 +156,14 @@ func add_station(node_id: int, station_name: String, stock: int, produce_every: 
 		st_amount.append(produce_amount)
 		st_delivered.append(0)
 		st_name.append(station_name)
+		if produce_every > 0:
+			_producers.append(st_node.size() - 1)   # neuer Slot ist der größte -> Liste bleibt aufsteigend
+		_ver += 1
+		return
+	_producers = PackedInt32Array()                 # bestehendes Lager geändert: Liste neu aufbauen
+	for kk in range(st_node.size()):
+		if st_every[kk] > 0:
+			_producers.append(kk)
 	_ver += 1
 
 
@@ -195,6 +209,7 @@ func add_vehicle(id: int, vname: String, route: Array, speed_mm_per_tick: int, s
 		r_len.append(e["length"])
 		r_from.append(e["a"] if fwd else e["b"])
 		r_to.append(e["b"] if fwd else e["a"])
+		r_stop.append(0)
 	v_lstart.append(l_nodes.size())
 	v_lcount.append(load_nodes.size())
 	for x in load_nodes:
@@ -203,7 +218,18 @@ func add_vehicle(id: int, vname: String, route: Array, speed_mm_per_tick: int, s
 	v_ucount.append(unload_nodes.size())
 	for x in unload_nodes:
 		u_nodes.append(x)
+	_calc_stops(i)
 	_ver += 1
+
+
+## F-16: Halte-Markierung je Routenschritt (für den schnellen Pfad in step(); gleiches Ergebnis wie _arrive).
+func _calc_stops(i: int) -> void:
+	var rs := v_rstart[i]
+	for k in range(rs, rs + v_rlen[i]):
+		var nd := r_to[k]
+		var stop := (v_lcount[i] > 0 and _has_node(l_nodes, v_lstart[i], v_lcount[i], nd)) \
+			or (v_ucount[i] > 0 and _has_node(u_nodes, v_ustart[i], v_ucount[i], nd))
+		r_stop[k] = 1 if stop else 0
 
 
 ## Geschwindigkeit ändern (Ersatz für das Schreiben in vehicles[id]["speed"] im Spike).
@@ -322,8 +348,12 @@ func step() -> void:
 	var t0 := Time.get_ticks_usec()
 	tick_count += 1
 	_ver += 1
-	if st_node.size() > 0:
+	if _producers.size() > 0:
 		_produce()
+	if economy != null:
+		var te := Time.get_ticks_usec()
+		economy.on_tick(self)
+		profile_usec["economy"] = Time.get_ticks_usec() - te
 	var t := tick_count
 	for i in range(n):
 		var st := v_state[i]
@@ -333,8 +363,9 @@ func step() -> void:
 			var length := r_len[ri]
 			if p >= length:
 				v_pos[i] = length
-				if v_lcount[i] == 0 and v_ucount[i] == 0 and v_idx[i] + 1 < v_rlen[i]:
-					# schneller Pfad (gleiches Ergebnis wie _arrive): kein Lager-Knoten, Route nicht zu Ende
+				if r_stop[ri] == 0 and v_idx[i] + 1 < v_rlen[i]:
+					# schneller Pfad (gleiches Ergebnis wie _arrive): Zielknoten ist kein Lade-/Entladeknoten
+					# dieses Fahrzeugs (F-16: je Schritt statt je Fahrzeug), Route nicht zu Ende
 					v_idx[i] += 1
 					_try_enter(i)
 				else:
@@ -366,9 +397,8 @@ func run_ticks(count: int) -> void:
 
 
 func _produce() -> void:
-	for k in range(st_node.size()):
-		var every := st_every[k]
-		if every > 0 and tick_count % every == 0:
+	for k in _producers:
+		if tick_count % st_every[k] == 0:
 			st_stock[k] += st_amount[k]
 
 
@@ -411,9 +441,12 @@ func _arrive(i: int) -> void:
 	v_idx[i] += 1
 	if v_cargo[i] > 0 and v_ucount[i] > 0 and _has_node(u_nodes, v_ustart[i], v_ucount[i], node_id) and _station_of.has(node_id):
 		var k: int = _station_of[node_id]
-		st_stock[k] += v_cargo[i]
-		st_delivered[k] += v_cargo[i]
-		v_cargo[i] = 0
+		if economy != null:
+			v_cargo[i] -= economy.on_unload(self, i, k)   # nur angenommene Einheiten verlassen das Fahrzeug
+		else:
+			st_stock[k] += v_cargo[i]
+			st_delivered[k] += v_cargo[i]
+			v_cargo[i] = 0
 	if v_lcount[i] > 0 and _has_node(l_nodes, v_lstart[i], v_lcount[i], node_id) and _station_of.has(node_id):
 		v_state[i] = S_WARTET_LADUNG
 		v_wait_since[i] = tick_count
@@ -433,11 +466,21 @@ func _try_load(i: int) -> void:
 	# Fahrzeug steht am Lagerknoten: letzter Schritt ist idx-1
 	var node_id := r_to[v_rstart[i] + v_idx[i] - 1]
 	var k: int = _station_of[node_id]
+	if economy != null:
+		var gate: int = economy.load_gate(self, i, k)
+		if gate == 0:      # Economy.L_WAIT (z. B. keine Lizenz)
+			return
+		if gate == 2:      # Economy.L_SKIP: Restladung an Bord, weiterfahren
+			v_wait_since[i] = -1
+			_continue(i)
+			return
 	if st_stock[k] >= v_cargo_cap[i]:
 		st_stock[k] -= v_cargo_cap[i]
 		v_cargo[i] = v_cargo_cap[i]
 		v_loaded_tick[i] = tick_count
 		v_wait_since[i] = -1
+		if economy != null:
+			economy.on_load(self, i, k, v_cargo_cap[i])
 		_continue(i)
 
 
@@ -481,6 +524,7 @@ func _reverse_route(i: int) -> void:
 		var f := r_from[k]
 		r_from[k] = r_to[k]
 		r_to[k] = f
+	_calc_stops(i)
 
 
 func _swap_step(a: int, b: int) -> void:
@@ -765,6 +809,8 @@ func _get_vehicles_view() -> Dictionary:
 
 func _get_stations_view() -> Dictionary:
 	if _sview_ver != _ver:
+		if economy != null:
+			economy.sync_all(self)   # F-16: Rohstoffbestände nachziehen
 		var out: Dictionary = {}
 		for k in range(st_node.size()):
 			out[st_node[k]] = {
@@ -839,6 +885,8 @@ func vehicle_pos_slot(i: int) -> Vector2i:
 ## Knoten-ID. FNV-1a-Variante auf Ganzzahlen (int64, Überlauf gewollt).
 func checksum() -> int:
 	_ensure()
+	if economy != null:
+		economy.sync_all(self)       # F-16: Rohstoffbestände nachziehen (lazy Produktion)
 	var h: int = -3750763034362895579
 	var prime: int = 1099511628211
 	h = (h ^ tick_count) * prime
@@ -856,6 +904,8 @@ func checksum() -> int:
 	snodes.sort()
 	for nd in snodes:
 		h = (h ^ (st_stock[_station_of[nd]] & 0xFFFFFFFF)) * prime
+	if economy != null:
+		h = (h ^ economy.checksum()) * prime   # F-16: ohne Ökonomie bleibt die Formel wie in S3
 	return h
 
 

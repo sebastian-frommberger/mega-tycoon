@@ -1,0 +1,14 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+== F-05 SoA-Untergrenze (ohne Deadlock-Prüfung), Godot 4.7.2-stable (official), CPU Intel(R) Xeon(R) Processor @ 2.80GHz (2 Kerne), Ticks 3000 (+300), 3 Runden ==
+config,run,ticks,median_ms,p95_ms,max_ms,moving_t2000,waiting_t2000
+1k-SoA,1,3000,0.166,0.341,1.910,936,64
+5k-SoA,1,3000,0.881,1.861,4.674,4667,333
+10k-SoA,1,3000,1.814,3.966,11.903,9260,740
+1k-SoA,2,3000,0.172,0.358,1.375,936,64
+5k-SoA,2,3000,0.889,1.756,5.009,4667,333
+10k-SoA,2,3000,1.948,4.468,9.351,9260,740
+1k-SoA,3,3000,0.243,0.352,3.423,936,64
+5k-SoA,3,3000,0.871,1.758,9.051,4667,333
+10k-SoA,3,3000,2.217,4.430,7.687,9260,740
+exit 0

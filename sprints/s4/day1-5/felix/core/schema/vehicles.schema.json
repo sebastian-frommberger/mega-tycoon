@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mega-tycoon/vehicles.schema.json",
+  "title": "Fahrzeuge (vehicles.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "fahrzeuge"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "fahrzeuge": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "typ", "kauf_cent", "fix_cent_pro_periode", "variabel_cent_pro_feld",
+                     "kapazitaet_einheiten", "tempo_mm_pro_tick", "lebensdauer_ticks", "epoche", "nur_massengut"],
+        "properties": {
+          "id": { "$ref": "common.schema.json#/$defs/id" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "typ": { "enum": ["lkw", "lok", "waggon", "schiff", "flugzeug", "bus", "strassenbahn"] },
+          "kauf_cent": { "$ref": "common.schema.json#/$defs/cent" },
+          "fix_cent_pro_periode": {
+            "$ref": "common.schema.json#/$defs/cent",
+            "description": "Fixkosten je Periode (economy_constants.periode_ticks = 600 Ticks = 1 Spielminute)"
+          },
+          "variabel_cent_pro_feld": { "$ref": "common.schema.json#/$defs/cent" },
+          "kapazitaet_einheiten": { "$ref": "common.schema.json#/$defs/einheiten" },
+          "tempo_mm_pro_tick": { "$ref": "common.schema.json#/$defs/mm", "description": "6 Felder/s bei feld_mm 1000 und 10 Hz -> 600" },
+          "lebensdauer_ticks": { "$ref": "common.schema.json#/$defs/ticks_pos", "description": "1 Spieljahr = 12 Spielmonate = 7.200 Ticks" },
+          "alterung_unterhalt_bp_pro_jahr": { "$ref": "common.schema.json#/$defs/bp_signed", "description": "+5 %/Jahr nach Lebensdauer = 500 bp" },
+          "epoche": { "$ref": "common.schema.json#/$defs/epoche" },
+          "nur_massengut": { "type": "boolean" },
+          "max_anhaenger": { "type": "integer", "minimum": 0, "maximum": 16 },
+          "braucht_infrastruktur": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kauf_cent"],
+            "properties": { "id": { "$ref": "common.schema.json#/$defs/id" }, "kauf_cent": { "$ref": "common.schema.json#/$defs/cent" } }
+          },
+          "gleis_cent_pro_feld_pro_periode": { "$ref": "common.schema.json#/$defs/cent" }
+        }
+      }
+    }
+  }
+}

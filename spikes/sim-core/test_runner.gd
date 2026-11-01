@@ -16,6 +16,7 @@ const NetGraph := preload("res://net_graph.gd")
 const DanielLauf := preload("res://daniel_d04_lauf_v2.gd")
 const F06World := preload("res://f06/f06_world.gd")
 const BenchWorld := preload("res://bench_world.gd")
+const EcoTests := preload("res://eco_tests.gd")   # F-16 (Sprint 4)
 # Referenz: unveränderter Sprint-2-Spike-Kern (Objekte/Dictionaries) als Orakel für K7/K8
 const RefScenarios := preload("res://ref/scenarios.gd")
 const RefDaniel := preload("res://ref/daniel_d04_lauf_v2.gd")
@@ -53,6 +54,7 @@ func _init() -> void:
 	test_k7_wende_deadlock()
 	test_k8_aequivalenz_und_ereignis()
 	test_k10_determinismus_bench()
+	EcoTests.new().run(self)
 	print("== Dauer %d ms ==" % (Time.get_ticks_msec() - t0))
 	if failures.is_empty():
 		print("ERGEBNIS: ALLE TESTS GRUEN (Exit 0)")

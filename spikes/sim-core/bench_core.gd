@@ -18,6 +18,7 @@ var ticks := 3000
 var warmup := 300
 var runs := 3
 var seed_base := 1001
+var eco := false   # F-16: --eco=1 -> Ökonomie aktiv (bench_world eco-Modus)
 var checksums: Dictionary = {}  # n -> Array der Prüfsummen je Runde
 
 
@@ -37,10 +38,11 @@ func _bench_main() -> void:
 			"--warmup": warmup = int(kv[1])
 			"--runs": runs = int(kv[1])
 			"--seed": seed_base = int(kv[1])
+			"--eco": eco = kv[1] == "1"
 	var build_label: String = "editor" if OS.has_feature("editor") else ("release-export" if OS.has_feature("release") else "debug-export")
-	_log("== F-10/F-11 Bench SoA-Kern mit Deadlock-Prüfung, Godot %s, Build %s, CPU %s (%d Kerne), OS %s, Ticks %d (+%d Warm-up), %d Runden ==" % [
-		Engine.get_version_info()["string"], build_label, OS.get_processor_name(), OS.get_processor_count(), OS.get_name(), ticks, warmup, runs])
-	_log("config,run,ticks,setup_ms,median_ms,p95_ms,p99_ms,max_ms,mean_ms,share_gt4ms,share_gt6ms,veh_median_ms,dl_median_ms,dl_p99_ms,dl_max_ms,frame8_median_ms,frame8_p95_ms,moving_t2000,waiting_t2000,deadlock_events,dl_walks,dl_visits,checksum")
+	_log("== F-10/F-11/F-16 Bench SoA-Kern mit Deadlock-Prüfung, Ökonomie %s, Godot %s, Build %s, CPU %s (%d Kerne), OS %s, Ticks %d (+%d Warm-up), %d Runden ==" % [
+		"AKTIV" if eco else "aus", Engine.get_version_info()["string"], build_label, OS.get_processor_name(), OS.get_processor_count(), OS.get_name(), ticks, warmup, runs])
+	_log("config,run,ticks,setup_ms,median_ms,p95_ms,p99_ms,max_ms,mean_ms,share_gt4ms,share_gt6ms,veh_median_ms,dl_median_ms,dl_p99_ms,dl_max_ms,frame8_median_ms,frame8_p95_ms,moving_t2000,waiting_t2000,deadlock_events,dl_walks,dl_visits,checksum,eco_vehicles,eco_sites,eco_deliveries,eco_units_paid,eco_units_lager,eco_revenue_cent,eco_ontick_median_ms,eco_ontick_max_ms")
 	var t_all := Time.get_ticks_msec()
 	for run in range(1, runs + 1):
 		for nv in vehicles_list:
@@ -72,10 +74,11 @@ static func _median(sorted: Array) -> float:
 
 func _run_one(nv: int, run: int) -> void:
 	var t0 := Time.get_ticks_usec()
-	var world: Dictionary = BenchWorld.new().build(nv, seed_base + nv)
+	var world: Dictionary = BenchWorld.new().build(nv, seed_base + nv, eco)
 	var sim = world["sim"]
 	var setup_ms: float = (Time.get_ticks_usec() - t0) / 1000.0
 	var samples: Array = []
+	var oeko: Array = []   # Dauer economy.on_tick je Tick (Verarbeitung, Lizenzen), in veh_* enthalten
 	var veh: Array = []
 	var dl: Array = []
 	var frames: Array = []
@@ -91,6 +94,8 @@ func _run_one(nv: int, run: int) -> void:
 			veh.append(int(sim.profile_usec["vehicles"]))
 			dl.append(int(sim.profile_usec["deadlock"]))
 			acc += d
+			if eco:
+				oeko.append(int(sim.profile_usec["economy"]))
 			if (i - warmup + 1) % 8 == 0:
 				frames.append(acc)
 				acc = 0
@@ -99,6 +104,7 @@ func _run_one(nv: int, run: int) -> void:
 			moving = sc["UNTERWEGS"]
 			waiting = sc["WARTET_BLOCK"]
 	samples.sort()
+	oeko.sort()
 	veh.sort()
 	dl.sort()
 	frames.sort()
@@ -121,7 +127,10 @@ func _run_one(nv: int, run: int) -> void:
 		float(samples[-1]) / 1000.0, float(sum) / n / 1000.0, float(gt4) / n, float(gt6) / n,
 		_median(veh), _median(dl), _pct(dl, 0.99), float(dl[-1]) / 1000.0,
 		_median(frames), _pct(frames, 0.95), moving, waiting,
-		sim.deadlock_events.size(), sim.dl_walks, sim.dl_visits, cs])
+		sim.deadlock_events.size(), sim.dl_walks, sim.dl_visits, cs]
+		+ (",%d,%d,%d,%d,%d,%d,%.3f,%.3f" % [world["eco_vehicles"], world["eco"].s_kind.size(), world["eco"].yield_events,
+			world["eco"].units_paid, world["eco"].units_to_warehouse, world["eco"].revenue_total, _median(oeko),
+			float(oeko[-1]) / 1000.0 if oeko.size() > 0 else 0.0] if eco else ",,,,,,,,"))
 
 
 func _log(s: String) -> void:

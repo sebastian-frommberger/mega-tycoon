@@ -1,0 +1,16 @@
+Datei;Operation;Mutationen;Schema_jsonschema;Schema_mini;Voller_Validator;NICHT_vom_Schema_erkannt
+goods.json;del;63;62;62;62;1
+   offen: gueter/6/frische_verfall_ticks
+goods.json;neg;33;33;33;33;0
+goods.json;float;23;23;23;23;0
+vehicles.json;del;52;52;52;52;0
+vehicles.json;neg;39;36;36;36;3
+vehicles.json;float;35;35;35;35;0
+economy_constants.json;del;74;74;74;74;0
+economy_constants.json;neg;69;64;64;66;5
+economy_constants.json;float;66;66;66;66;0
+economy_slice.json;del;280;280;280;280;0
+economy_slice.json;neg;177;175;175;176;2
+economy_slice.json;float;138;138;138;138;0
+Key-Loeschungen gesamt 469, vom Schema (beide Engines) erkannt 468, dokumentierte Ausnahme 1 (goods frische_verfall_ticks)
+B-03 Key-Loeschung 100 % (ausser dokumentierter Ausnahme): JA

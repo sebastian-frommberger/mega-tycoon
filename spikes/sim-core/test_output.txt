@@ -169,5 +169,62 @@ K8 Äquivalenz SoA-Kern = Spike-Kern, Ereignisprüfung = Vollscan
 K10 Determinismus Bench-Welt 1k, 3 Läufe à 3300 Ticks
     Prüfsummen: [4674943293165125399, 4674943293165125399, 4674943293165125399]
     [OK] 3 Läufe, identische Prüfsumme
-== Dauer 22679 ms ==
+E0 JSON laden (F-16): Slice + Konstanten, Festkomma, Gegenprobe
+    [OK] economy_slice.json + economy_constants.json geladen, 0 Fehler []
+    [OK] Güter 6, Industrien 7, Ketten 3 (K1–K3)
+    [OK] Gleitkommawert im JSON -> Ladefehler (["user://f16_float_slice.json/ertrag/dist_knee_felder: keine Festkommazahl (60.5)", "Slice ertrag.dist_knee_felder = 0 weicht von constants ertrag.d_eff_knick_felder = 60 ab"])
+E1 Ertrag nur beim Endabnehmer (K1: Farm -> Mühle -> Kleinstadt)
+    [OK] Firma Agrar gegründet
+    [OK] Lizenzen Farm + Mühle gekauft
+    [OK] kein Ertrag beim Laden/an der Quelle: Farm 0 Cent, Buchungen außerhalb Endabnehmer 0
+    [OK] Lieferungen bezahlt: Getreide an Mühle 19, Mehl an Stadt 19
+    [OK] erste Getreide-Lieferung: 10 E, Ursprung Farm, 18 Felder, F_zeit 1000 -> 7200 Cent (erwartet 7200)
+    [OK] erste Mehl-Lieferung: Ursprung Mühle, 45 Felder Luftlinie, 45000 Cent (erwartet 45000)
+    [OK] Kasse = Startkapital − Lizenzen + Erträge (1427800 = 450000 − 14000 + 991800)
+E2 Zwischenlager zahlt 0 $, Herkunftsstempel bleibt (Farm -> Lager -> Mühle)
+    [OK] Lieferungen ins Lager: 13, Ertrag dort 0 Cent (JSON warehouse_yield_cent = 0)
+    [OK] 13 Lieferungen an der Mühle, alle mit Ursprung Farm und 30 Feldern Luftlinie (Pfad über Lager 43 Felder)
+    [OK] Mühle zahlt Luftlinie Farm->Mühle: 12000 Cent
+E3 Lager-Pingpong bringt 0 $
+    [OK] Aktivität: 1250 Einheiten in Lager umgeschlagen, Pingpong-Lkw 125 Fahrten
+    [OK] Ertrag gesamt 0 Cent, Kasse unverändert (450000)
+E4 Umweg 1,5× Pfad bringt nicht mehr als Luftlinie
+    gerade: Pfad 40000 mm, 19 Lieferungen, 304000 Cent; Umweg: Pfad 60002 mm, 19 Lieferungen, 304000 Cent
+    [OK] Umweg-Pfad = 1,5× gerade (60002 / 40000 mm)
+    [OK] beide Lieferungen mit 40 Feldern Luftlinie bewertet
+    [OK] Ertrag je Einheit Umweg (max 1600000) <= gerade (max 1600000) [Milli-Cent]
+    [OK] Ertrag gesamt Umweg 304000 <= gerade 304000 Cent
+E5 Sättigung senkt den Preis wie im JSON (je Stadt und Kategorie)
+    [OK] Kennlinie: 1000‰ -> 1000, 1250‰ -> 700, 1500‰ -> 400, >1500‰ -> 100
+    [OK] eine Lieferung an die Stadt (1)
+    [OK] 50 Mehl bei Bedarf 25/Periode: Σ F_sätt 34556 (erwartet 34556), 155502 Cent (erwartet 155502)
+    [OK] gesättigt 155502 Cent < ungesättigt 225000 Cent (−31 %)
+E6 Lizenz-API (1 Klick): Preis, Laufzeit, Ertrag/Monat, Kauf, Laden erst mit Lizenz, Verlängerung
+    [OK] ohne Firma kein Angebot (keine_firma)
+    [OK] erste Lizenz gratis (free_licence_count 1)
+    [OK] ohne Lizenz: Lkw wartet an der Farm, lädt nicht
+    [OK] Klick 1 (Farm): gekauft, 0 Cent
+    [OK] nach Kauf lädt der Lkw (10 E)
+    [OK] Mühle im HQ-Radius: 14000 Cent (JSON-Rechnung 14000, F-09-Probe 14.000)
+    [OK] Laufzeit 18000 Ticks (= 30 Spielminuten)
+    [OK] Ertrag/Monat 90000 Cent (Mehl 20 E × 45 Felder Luftlinie zur Kleinstadt, erwartet 90000)
+    [OK] Mühle 20 Felder außerhalb Radius: 32000 Cent (erwartet 32000)
+    [OK] Klick 2 (Mühle): 14000 Cent abgebucht, Lizenz gültig bis Tick 18405
+    [OK] zweiter Klick: schon_lizenziert
+    [OK] zu wenig Guthaben: abgelehnt, kein Minus (kein Kredit in S4)
+    [OK] Auto-Verlängerung nach Laufzeit: Mühle + Farm verlängert, 27900 Cent (Farm-Verlängerung nicht gratis)
+    [OK] Kasse konsistent nach Verlängerung
+E7 Firma = Startkapital, kein Kredit; 8×-Tempo nur bis 5k Fahrzeuge
+    [OK] Agrar: 450000 Cent
+    [OK] Bergbau: 700000 Cent, HQ-Radius Dorf 55 Felder
+    [OK] Hafen nicht im Slice -> keine Firma
+    [OK] keine Kredit-Funktion im Modul (S5)
+    [OK] Tempo: [0, 1, 2, 4, 8] bei 5.000, [0, 1, 2, 4] bei 5.001 Fahrzeugen
+E8 Determinismus Slice-Welt K1–K3 mit Ökonomie, 3 Läufe à 9000 Ticks
+    Prüfsummen [-4022315942921815639, -4022315942921815639, -4022315942921815639], Kasse [3656160, 3656160, 3656160]
+    [OK] 3 Läufe identisch (Prüfsumme und Kasse)
+    Erträge je Gut->Abnehmer (Cent): { "getreide->muehle": 208800, "kohle->kraftwerk": 232000, "erz->stahlwerk": 261000, "kohle->stahlwerk": 243600, "mehl->kleinstadt_a": 1305000, "stahl->werkzeugfabrik": 1160000 }; Lizenzen 204240; Start 450000 -> Kasse 3656160
+    [OK] alle Kanten K1–K3 liefern bezahlt
+    [OK] Prüfsumme erfasst Ökonomie (1 Cent Unterschied -> andere Summe)
+== Dauer 19782 ms ==
 ERGEBNIS: ALLE TESTS GRUEN (Exit 0)

@@ -1,0 +1,47 @@
+{
+ "inhalte_gesamt": 18,
+ "staedte": 8,
+ "industrien_im_slice": 10,
+ "quadranten_anzahl": {
+  "NW": 5,
+  "NO": 4,
+  "SW": 4,
+  "SO": 5
+ },
+ "quadranten_prozent": {
+  "NW": 27.8,
+  "NO": 22.2,
+  "SW": 22.2,
+  "SO": 27.8
+ },
+ "stadtabstand_min_felder": 80.6,
+ "stadtabstand_min_paar": [
+  "lindach",
+  "weidenau"
+ ],
+ "stadtabstand_min_prozent_breite": 15.7,
+ "gelaende_prozent": {
+  "gebirge": 13.1,
+  "wald": 1.4,
+  "meer": 6.8
+ },
+ "nischen": [
+  [
+   "kohle_1",
+   "stahl_1",
+   25
+  ],
+  [
+   "farm_2",
+   "muehle_1",
+   26
+  ]
+ ],
+ "kriterien": {
+  "quadrant_25_pm5": true,
+  "stadtabstand_ge_15": true,
+  "region_le_40": true,
+  "nische_20_30": true,
+  "staedte_ge_4": true
+ }
+}

@@ -1,0 +1,1642 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "mega-tycoon/economy_slice.schema.json",
+ "title": "Oekonomie-Datenmodell Vertical Slice (T-06, B-03 streng)",
+ "description": "Erzeugt von gen_schema.py aus data/economy_slice.json (v2, L-10). Jede Objektebene hat required fuer alle Schluessel und additionalProperties:false; Typ je Einheitensuffix (F-09). Objekte in Listen: je Rolle/Schluesselsatz eine Variante. Keine Gleitkommazahlen.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "schema_version",
+  "meta",
+  "zeit",
+  "hq",
+  "lizenz",
+  "kauf",
+  "kredit",
+  "ertrag",
+  "zeitfaktor",
+  "saettigung",
+  "wachstum",
+  "fabrik",
+  "lager",
+  "energie",
+  "meilensteine",
+  "genre_standard",
+  "preise",
+  "gueter",
+  "industrien",
+  "ketten",
+  "staedte",
+  "fahrzeug_ref"
+ ],
+ "properties": {
+  "schema_version": {
+   "const": 1
+  },
+  "meta": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "quelle_text",
+    "etikett_text",
+    "archetypen_im_slice_ids"
+   ],
+   "properties": {
+    "quelle_text": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 400
+    },
+    "etikett_text": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 400
+    },
+    "archetypen_im_slice_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    }
+   }
+  },
+  "zeit": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "tick_ms",
+    "periode_ticks",
+    "spielmonat_ticks"
+   ],
+   "properties": {
+    "tick_ms": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 1000
+    },
+    "periode_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "spielmonat_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  },
+  "hq": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "hq_found_cost_cent",
+    "hq_radius_village_felder",
+    "hq_radius_town_felder",
+    "hq_radius_city_felder",
+    "hq_radius_metro_felder",
+    "start_capital_agrar_cent",
+    "start_capital_mining_cent",
+    "start_capital_port_cent",
+    "start_capital_trade_cent",
+    "start_capital_floor_mining_cent",
+    "free_licence_count_anzahl",
+    "start_skillpoints_punkte",
+    "hq_guarantee_build_source_flag",
+    "archetyp_agrar_im_slice_flag",
+    "archetyp_mining_im_slice_flag",
+    "archetyp_port_im_slice_flag",
+    "archetyp_trade_im_slice_flag"
+   ],
+   "properties": {
+    "hq_found_cost_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "hq_radius_village_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "hq_radius_town_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "hq_radius_city_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "hq_radius_metro_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "start_capital_agrar_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "start_capital_mining_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "start_capital_port_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "start_capital_trade_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "start_capital_floor_mining_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "free_licence_count_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "start_skillpoints_punkte": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1000
+    },
+    "hq_guarantee_build_source_flag": {
+     "type": "boolean"
+    },
+    "archetyp_agrar_im_slice_flag": {
+     "type": "boolean"
+    },
+    "archetyp_mining_im_slice_flag": {
+     "type": "boolean"
+    },
+    "archetyp_port_im_slice_flag": {
+     "type": "boolean"
+    },
+    "archetyp_trade_im_slice_flag": {
+     "type": "boolean"
+    }
+   }
+  },
+  "lizenz": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "licence_cost_share_promille",
+    "licence_auto_renew_flag",
+    "licence_duration_ticks",
+    "licence_discount_in_radius_promille",
+    "licence_surcharge_per_field_promille",
+    "licence_shared_max_anzahl",
+    "licence_shared_output_share_promille",
+    "licence_exclusive_mult_promille",
+    "licence_required_to_load_flag"
+   ],
+   "properties": {
+    "licence_cost_share_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "licence_auto_renew_flag": {
+     "type": "boolean"
+    },
+    "licence_duration_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "licence_discount_in_radius_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "licence_surcharge_per_field_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "licence_shared_max_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "licence_shared_output_share_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "licence_exclusive_mult_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "licence_required_to_load_flag": {
+     "type": "boolean"
+    }
+   }
+  },
+  "kauf": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "buy_price_base_min_cent",
+    "buy_price_base_max_cent",
+    "buy_price_stufe_mult_flag",
+    "buy_surcharge_per_field_promille",
+    "buy_licence_credit_share_promille",
+    "buy_discount_first_promille",
+    "buy_discount_first_once_flag",
+    "buy_unlock_milestone_id",
+    "buy_only_from_balance_flag",
+    "works_margin_promille",
+    "company_upkeep_per_level_cent_pro_periode"
+   ],
+   "properties": {
+    "buy_price_base_min_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "buy_price_base_max_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "buy_price_stufe_mult_flag": {
+     "type": "boolean"
+    },
+    "buy_surcharge_per_field_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "buy_licence_credit_share_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "buy_discount_first_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "buy_discount_first_once_flag": {
+     "type": "boolean"
+    },
+    "buy_unlock_milestone_id": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_]{1,31}$"
+    },
+    "buy_only_from_balance_flag": {
+     "type": "boolean"
+    },
+    "works_margin_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "company_upkeep_per_level_cent_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  },
+  "kredit": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "credit_limit_cent",
+    "credit_available_from_ticks",
+    "credit_interest_promille_pro_periode",
+    "credit_blocks_company_buy_flag",
+    "credit_allowed_minus_ids",
+    "credit_blocked_ids",
+    "credit_forced_sale_after_ticks",
+    "credit_forced_sale_active_flag",
+    "credit_active_in_slice_flag",
+    "credit_planned_sprint_anzahl"
+   ],
+   "properties": {
+    "credit_limit_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "credit_available_from_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "credit_interest_promille_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "credit_blocks_company_buy_flag": {
+     "type": "boolean"
+    },
+    "credit_allowed_minus_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    },
+    "credit_blocked_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    },
+    "credit_forced_sale_after_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "credit_forced_sale_active_flag": {
+     "type": "boolean"
+    },
+    "credit_active_in_slice_flag": {
+     "type": "boolean"
+    },
+    "credit_planned_sprint_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  },
+  "ertrag": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "yield_formula_term_ids",
+    "yield_only_at_end_customer_flag",
+    "yield_end_customer_ids",
+    "yield_none_for_ids",
+    "dist_basis_modus",
+    "dist_knee_felder",
+    "dist_slope_beyond_promille",
+    "dist_min_felder",
+    "origin_stamp",
+    "skill_bonus_cap_promille",
+    "rundung_modus"
+   ],
+   "properties": {
+    "yield_formula_term_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    },
+    "yield_only_at_end_customer_flag": {
+     "type": "boolean"
+    },
+    "yield_end_customer_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    },
+    "yield_none_for_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    },
+    "dist_basis_modus": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "dist_knee_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "dist_slope_beyond_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "dist_min_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "origin_stamp": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "enabled_flag",
+      "stamp_ids",
+      "persists_in_warehouse_flag"
+     ],
+     "properties": {
+      "enabled_flag": {
+       "type": "boolean"
+      },
+      "stamp_ids": {
+       "type": "array",
+       "minItems": 1,
+       "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,31}$"
+       }
+      },
+      "persists_in_warehouse_flag": {
+       "type": "boolean"
+      }
+     }
+    },
+    "skill_bonus_cap_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "rundung_modus": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    }
+   }
+  },
+  "zeitfaktor": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "fresh_grace_ticks",
+    "fresh_decay_ticks",
+    "bulk_grace_ticks",
+    "bulk_decay_ticks",
+    "f_time_min_promille",
+    "f_time_semantik_modus",
+    "transfer_counts_in_f_time_flag"
+   ],
+   "properties": {
+    "fresh_grace_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "fresh_decay_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "bulk_grace_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "bulk_decay_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "f_time_min_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "f_time_semantik_modus": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "transfer_counts_in_f_time_flag": {
+     "type": "boolean"
+    }
+   }
+  },
+  "saettigung": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "demand_per_100_inhabitants_einheiten_pro_periode",
+    "sat_full_until_promille",
+    "sat_knee_promille",
+    "sat_floor_at_150_promille",
+    "sat_over_150_promille",
+    "sat_scope_modus",
+    "basket_by_stage"
+   ],
+   "properties": {
+    "demand_per_100_inhabitants_einheiten_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "sat_full_until_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "sat_knee_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "sat_floor_at_150_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "sat_over_150_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "sat_scope_modus": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "basket_by_stage": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "stage_id",
+       "kategorien_ids"
+      ],
+      "properties": {
+       "stage_id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$"
+       },
+       "kategorien_ids": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+         "type": "string",
+         "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "wachstum": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "growth_variant_id",
+    "growth_etikett_modus",
+    "growth_base_rate_bp_pro_monat",
+    "growth_band_hi_promille",
+    "growth_band_mid_promille",
+    "growth_band_low_promille",
+    "growth_hi_factor_promille",
+    "growth_mid_factor_promille",
+    "growth_low_factor_promille",
+    "growth_neg_factor_promille_signed",
+    "growth_bonus_weight_persons_promille",
+    "growth_bonus_weight_jobs_promille",
+    "growth_bonus_cap_promille",
+    "growth_bonus_only_positive_band_flag",
+    "gate_halt_share_promille",
+    "gate_min_supply_promille",
+    "gate_from_stage_id",
+    "slice_build_category_active_flag",
+    "gate_unlock_good_id",
+    "gate_good_in_growth_supply_flag",
+    "growth_factory_rule_flag",
+    "stage_threshold_kleinstadt_anzahl",
+    "stage_threshold_stadt_anzahl",
+    "stage_threshold_metropole_anzahl",
+    "ziel_dorf_kleinstadt_min_ticks",
+    "ziel_dorf_kleinstadt_max_ticks",
+    "ziel_kleinstadt_stadt_min_ticks",
+    "ziel_kleinstadt_stadt_max_ticks"
+   ],
+   "properties": {
+    "growth_variant_id": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_]{1,31}$"
+    },
+    "growth_etikett_modus": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "growth_base_rate_bp_pro_monat": {
+     "type": "integer",
+     "minimum": -100000,
+     "maximum": 100000
+    },
+    "growth_band_hi_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_band_mid_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_band_low_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_hi_factor_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_mid_factor_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_low_factor_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_neg_factor_promille_signed": {
+     "type": "integer",
+     "minimum": -1000,
+     "maximum": 100000
+    },
+    "growth_bonus_weight_persons_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_bonus_weight_jobs_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_bonus_cap_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "growth_bonus_only_positive_band_flag": {
+     "type": "boolean"
+    },
+    "gate_halt_share_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "gate_min_supply_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "gate_from_stage_id": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_]{1,31}$"
+    },
+    "slice_build_category_active_flag": {
+     "type": "boolean"
+    },
+    "gate_unlock_good_id": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_]{1,31}$"
+    },
+    "gate_good_in_growth_supply_flag": {
+     "type": "boolean"
+    },
+    "growth_factory_rule_flag": {
+     "type": "boolean"
+    },
+    "stage_threshold_kleinstadt_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "stage_threshold_stadt_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "stage_threshold_metropole_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "ziel_dorf_kleinstadt_min_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "ziel_dorf_kleinstadt_max_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "ziel_kleinstadt_stadt_min_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "ziel_kleinstadt_stadt_max_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  },
+  "fabrik": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "factory_throughput_l1_einheiten_pro_periode",
+    "factory_throughput_l2_einheiten_pro_periode",
+    "factory_throughput_l3_einheiten_pro_periode",
+    "factory_throughput_l4_einheiten_pro_periode",
+    "factory_upgrade_cost_l2_cent",
+    "factory_upgrade_cost_l3_cent",
+    "factory_upgrade_cost_l4_cent",
+    "factory_max_level_slice_stufe",
+    "labour_base_promille",
+    "labour_full_promille",
+    "labour_throttles_never_stops_flag",
+    "production_mult_cap_promille"
+   ],
+   "properties": {
+    "factory_throughput_l1_einheiten_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "factory_throughput_l2_einheiten_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "factory_throughput_l3_einheiten_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "factory_throughput_l4_einheiten_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "factory_upgrade_cost_l2_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "factory_upgrade_cost_l3_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "factory_upgrade_cost_l4_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "factory_max_level_slice_stufe": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 4
+    },
+    "labour_base_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "labour_full_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "labour_throttles_never_stops_flag": {
+     "type": "boolean"
+    },
+    "production_mult_cap_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    }
+   }
+  },
+  "lager": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "warehouse_cost_cent",
+    "warehouse_upkeep_cent_pro_periode",
+    "warehouse_capacity_einheiten",
+    "warehouse_ramps_anzahl",
+    "warehouse_ramp_rate_x100",
+    "warehouse_yield_cent",
+    "truck_collects_below_felder",
+    "truck_zug_cross_felder",
+    "truck_zug_cross_einheiten_pro_periode",
+    "ms5_sources_min_anzahl"
+   ],
+   "properties": {
+    "warehouse_cost_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "warehouse_upkeep_cent_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "warehouse_capacity_einheiten": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "warehouse_ramps_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "warehouse_ramp_rate_x100": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "warehouse_yield_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "truck_collects_below_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "truck_zug_cross_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "truck_zug_cross_einheiten_pro_periode": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "ms5_sources_min_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  },
+  "energie": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "power_base_promille",
+    "power_radius_felder",
+    "power_bonus_max_promille",
+    "power_bonus_scaled_by_supply_flag",
+    "power_overlap_mode_modus",
+    "power_bonus_affects_ids",
+    "power_bonus_never_price_flag"
+   ],
+   "properties": {
+    "power_base_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "power_radius_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "power_bonus_max_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "power_bonus_scaled_by_supply_flag": {
+     "type": "boolean"
+    },
+    "power_overlap_mode_modus": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "power_bonus_affects_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    },
+    "power_bonus_never_price_flag": {
+     "type": "boolean"
+    }
+   }
+  },
+  "meilensteine": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "ms_1a",
+    "ms_1b_skillpoints_punkte",
+    "ms_1b",
+    "ms_2_skillpoints_punkte",
+    "ms_2",
+    "ms_3",
+    "ms_4",
+    "ms_5",
+    "ms_5b",
+    "ms_6",
+    "ms_7",
+    "ms7_target_min_low_ticks",
+    "ms7_target_min_high_ticks",
+    "hq_l2_cost_cent",
+    "hq_l2_radius_bonus_felder",
+    "ms_8_im_slice_flag",
+    "ki_spediteur_im_slice_flag"
+   ],
+   "properties": {
+    "ms_1a": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_1b_skillpoints_punkte": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1000
+    },
+    "ms_1b": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_2_skillpoints_punkte": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1000
+    },
+    "ms_2": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_3": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "abnehmer_ids",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "abnehmer_ids": {
+       "type": "array",
+       "minItems": 1,
+       "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,31}$"
+       }
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_4": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_5": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_5b": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_6": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms_7": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "bedingung_id",
+      "belohnung_id"
+     ],
+     "properties": {
+      "bedingung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      },
+      "belohnung_id": {
+       "type": "string",
+       "pattern": "^[a-z][a-z0-9_]{1,31}$"
+      }
+     }
+    },
+    "ms7_target_min_low_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "ms7_target_min_high_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "hq_l2_cost_cent": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "hq_l2_radius_bonus_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "ms_8_im_slice_flag": {
+     "type": "boolean"
+    },
+    "ki_spediteur_im_slice_flag": {
+     "type": "boolean"
+    }
+   }
+  },
+  "genre_standard": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "demolition_refund_promille",
+    "stop_radius_bus_felder",
+    "stop_radius_station_felder",
+    "build_snap_grad_anzahl",
+    "build_ghost_white_buildable_flag",
+    "vehicle_buy_from_balance_flag",
+    "signal_ids",
+    "path_signals_in_slice_flag",
+    "game_speed_stufen",
+    "line_chain_stops_flag",
+    "context_dialog_on_click_flag",
+    "demand_basket_grows_with_stage_flag"
+   ],
+   "properties": {
+    "demolition_refund_promille": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "stop_radius_bus_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "stop_radius_station_felder": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "build_snap_grad_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "build_ghost_white_buildable_flag": {
+     "type": "boolean"
+    },
+    "vehicle_buy_from_balance_flag": {
+     "type": "boolean"
+    },
+    "signal_ids": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+     }
+    },
+    "path_signals_in_slice_flag": {
+     "type": "boolean"
+    },
+    "game_speed_stufen": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+     }
+    },
+    "line_chain_stops_flag": {
+     "type": "boolean"
+    },
+    "context_dialog_on_click_flag": {
+     "type": "boolean"
+    },
+    "demand_basket_grows_with_stage_flag": {
+     "type": "boolean"
+    }
+   }
+  },
+  "preise": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "price_grain_cent_pro_einheit_feld",
+    "price_flour_cent_pro_einheit_feld",
+    "price_coal_cent_pro_einheit_feld",
+    "price_ore_cent_pro_einheit_feld",
+    "price_steel_cent_pro_einheit_feld",
+    "price_tools_cent_pro_einheit_feld"
+   ],
+   "properties": {
+    "price_grain_cent_pro_einheit_feld": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "price_flour_cent_pro_einheit_feld": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "price_coal_cent_pro_einheit_feld": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "price_ore_cent_pro_einheit_feld": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "price_steel_cent_pro_einheit_feld": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "price_tools_cent_pro_einheit_feld": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  },
+  "gueter": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "preis_ref_id",
+     "kategorie_id",
+     "zeitklasse_modus"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+     },
+     "preis_ref_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+     },
+     "kategorie_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+     },
+     "zeitklasse_modus": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     }
+    }
+   }
+  },
+  "industrien": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "anyOf": [
+     {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "id",
+       "rolle_modus",
+       "kaufpreis_stufe1_cent",
+       "ausgang_gut_id",
+       "produktion_l1_einheiten_pro_periode",
+       "annahme_flag"
+      ],
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$"
+       },
+       "rolle_modus": {
+        "const": "rohstoff"
+       },
+       "kaufpreis_stufe1_cent": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+       },
+       "ausgang_gut_id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$"
+       },
+       "produktion_l1_einheiten_pro_periode": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+       },
+       "annahme_flag": {
+        "type": "boolean"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "id",
+       "rolle_modus",
+       "kaufpreis_stufe1_cent",
+       "eingang_gut_ids",
+       "ausgang_gut_id",
+       "annahme_flag"
+      ],
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$"
+       },
+       "rolle_modus": {
+        "const": "verarbeiter"
+       },
+       "kaufpreis_stufe1_cent": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+       },
+       "eingang_gut_ids": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+         "type": "string",
+         "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        }
+       },
+       "ausgang_gut_id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$"
+       },
+       "annahme_flag": {
+        "type": "boolean"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "id",
+       "rolle_modus",
+       "kaufpreis_stufe1_cent",
+       "eingang_gut_ids",
+       "abnahme_max_einheiten_pro_periode",
+       "annahme_flag"
+      ],
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$"
+       },
+       "rolle_modus": {
+        "const": "verarbeiter"
+       },
+       "kaufpreis_stufe1_cent": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+       },
+       "eingang_gut_ids": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+         "type": "string",
+         "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        }
+       },
+       "abnahme_max_einheiten_pro_periode": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+       },
+       "annahme_flag": {
+        "type": "boolean"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "id",
+       "rolle_modus",
+       "kaufpreis_stufe1_cent",
+       "eingang_gut_ids",
+       "abnahme_max_einheiten_pro_periode",
+       "annahme_flag"
+      ],
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$"
+       },
+       "rolle_modus": {
+        "const": "abnehmer"
+       },
+       "kaufpreis_stufe1_cent": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+       },
+       "eingang_gut_ids": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+         "type": "string",
+         "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        }
+       },
+       "abnahme_max_einheiten_pro_periode": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+       },
+       "annahme_flag": {
+        "type": "boolean"
+       }
+      }
+     }
+    ]
+   }
+  },
+  "ketten": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "name_text",
+     "kanten"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+     },
+     "name_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400
+     },
+     "kanten": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "von_id",
+        "nach_id",
+        "gut_id",
+        "strecke_felder"
+       ],
+       "properties": {
+        "von_id": {
+         "type": "string",
+         "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "nach_id": {
+         "type": "string",
+         "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "gut_id": {
+         "type": "string",
+         "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "strecke_felder": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 100000
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "staedte": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "stage_id",
+     "einwohner_anzahl"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+     },
+     "stage_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+     },
+     "einwohner_anzahl": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+     }
+    }
+   }
+  },
+  "fahrzeug_ref": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "lkw_id",
+    "startpaket_lkw_agrar_anzahl",
+    "startpaket_lkw_mining_anzahl",
+    "strasse_cent_pro_feld",
+    "load_ticks"
+   ],
+   "properties": {
+    "lkw_id": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_]{1,31}$"
+    },
+    "startpaket_lkw_agrar_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "startpaket_lkw_mining_anzahl": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "strasse_cent_pro_feld": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "load_ticks": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  }
+ }
+}

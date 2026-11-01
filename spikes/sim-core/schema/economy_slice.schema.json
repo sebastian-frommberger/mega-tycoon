@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mega-tycoon/economy_slice.schema.json",
+  "title": "Oekonomie-Datenmodell Vertical Slice (T-06)",
+  "description": "Der Schluesselsuffix bestimmt den Typ (Festkomma-Konvention F-09): _cent, _ms, _ticks, _promille, _bp, _felder, _einheiten, _anzahl, _punkte, _x100, _flag, _id, _modus, _text. Ein Schluessel ohne bekannten Suffix muss ein Objekt oder Array sein (Tippfehler wie 'kauf_dollar' fallen durch). Keine Gleitkommazahlen.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "meta", "zeit", "hq", "lizenz", "kauf", "kredit", "ertrag", "zeitfaktor", "saettigung", "wachstum", "fabrik", "lager", "energie", "meilensteine", "genre_standard", "preise", "gueter", "industrien", "ketten", "staedte", "fahrzeug_ref"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "meta": { "$ref": "#/$defs/node" }, "zeit": { "$ref": "#/$defs/node" }, "hq": { "$ref": "#/$defs/node" },
+    "lizenz": { "$ref": "#/$defs/node" }, "kauf": { "$ref": "#/$defs/node" }, "kredit": { "$ref": "#/$defs/node" },
+    "ertrag": { "$ref": "#/$defs/node" }, "zeitfaktor": { "$ref": "#/$defs/node" }, "saettigung": { "$ref": "#/$defs/node" },
+    "wachstum": { "$ref": "#/$defs/node" }, "fabrik": { "$ref": "#/$defs/node" }, "lager": { "$ref": "#/$defs/node" },
+    "energie": { "$ref": "#/$defs/node" }, "meilensteine": { "$ref": "#/$defs/node" }, "genre_standard": { "$ref": "#/$defs/node" },
+    "preise": { "$ref": "#/$defs/node" }, "gueter": { "$ref": "#/$defs/list" }, "industrien": { "$ref": "#/$defs/list" },
+    "ketten": { "$ref": "#/$defs/list" }, "staedte": { "$ref": "#/$defs/list" }, "fahrzeug_ref": { "$ref": "#/$defs/node" }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "patternProperties": {
+        "_cent(_pro_[a-z_]+)?$": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "_ms$": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "_ticks$": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "_promille(_pro_[a-z_]+)?$": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "_promille_signed$": { "type": "integer", "minimum": -1000, "maximum": 100000 },
+        "_bp(_pro_[a-z_]+)?$": { "type": "integer", "minimum": -100000, "maximum": 100000 },
+        "_felder$": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "_einheiten(_pro_[a-z_]+)?$": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "_anzahl$": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "_punkte$": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "_stufe$": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "_x100$": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "_flag$": { "type": "boolean" },
+        "(^|_)id$": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,31}$" },
+        "_modus$": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "_text$": { "type": "string", "minLength": 1, "maxLength": 400 }
+      },
+      "additionalProperties": { "$ref": "#/$defs/container" }
+    },
+    "container": {
+      "anyOf": [
+        { "$ref": "#/$defs/node" },
+        { "type": "array", "items": { "anyOf": [ { "$ref": "#/$defs/node" }, { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" }, { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } ] } }
+      ]
+    },
+    "list": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/node" }
+    }
+  }
+}

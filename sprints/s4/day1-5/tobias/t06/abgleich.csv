@@ -1,0 +1,153 @@
+nr;abschnitt;regel;l08_key;json_pfad
+1;1 HQ;HQ-Gruendung kostenlos;hq_found_cost;hq.hq_found_cost_cent
+2;1 HQ;Einflussradius Dorf;hq_radius_village;hq.hq_radius_village_felder
+3;1 HQ;Einflussradius Kleinstadt;hq_radius_town;hq.hq_radius_town_felder
+4;1 HQ;Einflussradius Stadt;hq_radius_city;hq.hq_radius_city_felder
+5;1 HQ;Einflussradius Metropole;hq_radius_metro;hq.hq_radius_metro_felder
+6;1 HQ;Startkapital Agrar;start_capital_agrar;hq.start_capital_agrar_cent
+7;1 HQ;Startkapital Bergbau;start_capital_mining;hq.start_capital_mining_cent
+8;1 HQ;Startkapital Hafen (D18: nicht im Slice);start_capital_port;hq.start_capital_port_cent
+9;1 HQ;Startkapital Handel (D18: nicht im Slice);start_capital_trade;hq.start_capital_trade_cent
+10;1 HQ;Bergbau-Untergrenze 6.000 $ (D20);start_capital_floor_mining;hq.start_capital_floor_mining_cent
+11;1 HQ;Gratis-Lizenz 1;free_licence_count;hq.free_licence_count_anzahl
+12;1 HQ;1 Skillpunkt zum Start;start_skillpoints;hq.start_skillpoints_punkte
+13;1 HQ;Startkarte garantiert Bau-Rohstoffquelle (D13);hq_guarantee_build_source;hq.hq_guarantee_build_source_flag
+14;1 HQ;Archetypen im Slice Agrar und Bergbau (D18);-;hq.archetyp_agrar_im_slice_flag
+15;1 HQ;Hafen und Handel nicht im Slice (D18);-;hq.archetyp_port_im_slice_flag
+16;2 Lizenz;Lizenzpreis 10 % des Kaufpreises;licence_cost_share;lizenz.licence_cost_share_promille
+17;2 Lizenz;Auto-Verlaengerung;licence_auto_renew;lizenz.licence_auto_renew_flag
+18;2 Lizenz;Laufzeit 30 Spielminuten;licence_duration_min;lizenz.licence_duration_ticks
+19;2 Lizenz;Radius-Rabatt -30 %;licence_discount_in_radius;lizenz.licence_discount_in_radius_promille
+20;2 Lizenz;Aufschlag +3 % je Feld ausserhalb;licence_surcharge_per_field;lizenz.licence_surcharge_per_field_promille
+21;2 Lizenz;geteilt max. 2 Nehmer;licence_shared_max;lizenz.licence_shared_max_anzahl
+22;2 Lizenz;geteilt Output 50/50;-;lizenz.licence_shared_output_share_promille
+23;2 Lizenz;exklusiv Output x2,5;licence_exclusive_mult;lizenz.licence_exclusive_mult_promille
+24;2 Lizenz;Laden nur mit Lizenz oder Besitz;-;lizenz.licence_required_to_load_flag
+25;2 Kauf;Kaufpreis 1.000 bis 4.000 $ je Stufe (Spanne);buy_price_base;kauf.buy_price_base_min_cent
+26;2 Kauf;Kaufpreis Obergrenze und Stufen-Multiplikator;-;kauf.buy_price_base_max_cent
+27;2 Kauf;Kaufpreis je Firma (Slice-Firmen);-;industrien[id=muehle].kaufpreis_stufe1_cent
+28;2 Kauf;Aufschlag +3 % je Feld ausserhalb;buy_surcharge_per_field;kauf.buy_surcharge_per_field_promille
+29;2 Kauf;Anrechnung Lizenzgebuehren 50 %;buy_licence_credit_share;kauf.buy_licence_credit_share_promille
+30;2 Kauf;Kaufrabatt einmalig -20 % bei M5b (D1);buy_discount_first;kauf.buy_discount_first_promille
+31;2 Kauf;Rabatt nur einmal;-;kauf.buy_discount_first_once_flag
+32;2 Kauf;Kauf nur aus Guthaben, ab M5b;-;kauf.buy_only_from_balance_flag
+33;2 Kauf;Werksmarge 15 %;works_margin;kauf.works_margin_promille
+34;2 Kauf;Unterhalt 20 $/min je Stufe;company_upkeep_per_level;kauf.company_upkeep_per_level_cent_pro_periode
+35;2 Kredit;Kreditrahmen 2.000 $;credit_limit;kredit.credit_limit_cent
+36;2 Kredit;Rahmen ab Minute 0;-;kredit.credit_available_from_ticks
+37;2 Kredit;Zins 1 % je Spielminute auf gezogenen Betrag;credit_interest_per_min;kredit.credit_interest_promille_pro_periode
+38;2 Kredit;Kredit sperrt Firmenkauf;credit_blocks_company_buy;kredit.credit_blocks_company_buy_flag
+39;2 Kredit;Firmen- und HQ-Ausbau nur aus Guthaben;-;kredit.credit_blocked_ids
+40;2 Kredit;Strasse, Fahrzeuge, Lager, Verlaengerung duerfen ins Minus;-;kredit.credit_allowed_minus_ids
+41;2 Kredit;Zwangsverkauf nach 10 Min unter Rahmen (nicht im Slice);credit_forced_sale_after_min;kredit.credit_forced_sale_after_ticks
+42;2 Kredit;Zwangsverkauf im Slice aus;-;kredit.credit_forced_sale_active_flag
+43;3 Ertrag;Formel E = M x P x D_eff x F_zeit x F_saett x (1+B_skill);-;ertrag.yield_formula_term_ids
+44;3 Ertrag;Endabnehmer Verarbeiter (Eingangsgut) oder Stadt;yield_only_at_end_customer;ertrag.yield_only_at_end_customer_flag
+45;3 Ertrag;Endabnehmer-Arten;-;ertrag.yield_end_customer_ids
+46;3 Ertrag;Kein Ertrag fuer Lager, Umladen, Umwege;-;ertrag.yield_none_for_ids
+47;3 Ertrag;Herkunftsstempel (Ursprungsfirma, Abfahrtszeit), bleibt im Lager;origin_stamp;ertrag.origin_stamp
+48;3 Ertrag;Distanz Luftlinie Herkunft zu Endabnehmer;-;ertrag.dist_basis_modus
+49;3 Ertrag;Distanz linear bis 60 Felder;dist_knee_fields;ertrag.dist_knee_felder
+50;3 Ertrag;danach halbe Steigung;dist_slope_beyond;ertrag.dist_slope_beyond_promille
+51;3 Ertrag;unter 6 Feldern 0;dist_min_fields;ertrag.dist_min_felder
+52;3 Ertrag;Frische Frist 60 s;fresh_grace_s;zeitfaktor.fresh_grace_ticks
+53;3 Ertrag;Frische Verfall 120 s;fresh_decay_s;zeitfaktor.fresh_decay_ticks
+54;3 Ertrag;Massengut Frist 300 s;bulk_grace_s;zeitfaktor.bulk_grace_ticks
+55;3 Ertrag;Massengut Verfall 600 s;bulk_decay_s;zeitfaktor.bulk_decay_ticks
+56;3 Ertrag;F_zeit Untergrenze 0,3;f_time_min;zeitfaktor.f_time_min_promille
+57;3 Ertrag;Skillbonus-Deckel +0,40;skill_bonus_cap;ertrag.skill_bonus_cap_promille
+58;3 Ertrag;Preis Getreide 0,40;price_grain;preise.price_grain_cent_pro_einheit_feld
+59;3 Ertrag;Preis Mehl 1,00;price_flour;preise.price_flour_cent_pro_einheit_feld
+60;3 Ertrag;Preis Kohle 0,40;price_coal;preise.price_coal_cent_pro_einheit_feld
+61;3 Ertrag;Preis Erz 0,45;price_ore;preise.price_ore_cent_pro_einheit_feld
+62;3 Ertrag;Preis Stahl 1,00;price_steel;preise.price_steel_cent_pro_einheit_feld
+63;3 Ertrag;Preis Werkzeug 2,00;price_tools;preise.price_tools_cent_pro_einheit_feld
+64;3 Ertrag;Gueter mit Zeitklasse (Mehl frisch, Rest Massengut);-;gueter[id=mehl].zeitklasse_modus
+65;3 Ertrag;Rundung halb auf, eine Division am Ende;-;ertrag.rundung_modus
+66;4 Saettigung;Bedarf Einwohner/100 je min;demand_per_100_inhabitants;saettigung.demand_per_100_inhabitants_einheiten_pro_periode
+67;4 Saettigung;F_saett 1,0 bis 100 %;sat_full_until;saettigung.sat_full_until_promille
+68;4 Saettigung;Knick bei 150 %;-;saettigung.sat_knee_promille
+69;4 Saettigung;0,4 bei 150 %;sat_floor_at_150;saettigung.sat_floor_at_150_promille
+70;4 Saettigung;darueber 0,1;sat_over_150;saettigung.sat_over_150_promille
+71;4 Saettigung;Warenkorb je Stufe;basket_by_stage;saettigung.basket_by_stage
+72;4 Saettigung;Saettigung je Stadt und Kategorie, nicht je Linie;-;saettigung.sat_scope_modus
+73;5 Wachstum;Variante B, ungetestet;-;wachstum.growth_etikett_modus
+74;5 Wachstum;Basisrate 1,8 % je Spielmonat;growth_base_rate;wachstum.growth_base_rate_bp_pro_monat
+75;5 Wachstum;Band G >= 0,8 voll;growth_band_hi;wachstum.growth_band_hi_promille
+76;5 Wachstum;Band 0,5 bis 0,8 ein Viertel;growth_band_mid;wachstum.growth_band_mid_promille
+77;5 Wachstum;Band 0,3 bis 0,5 null;growth_band_low;wachstum.growth_band_low_promille
+78;5 Wachstum;Faktor Mittelband 1/4;growth_mid_factor;wachstum.growth_mid_factor_promille
+79;5 Wachstum;Faktor unter 0,3 minus 1/4;growth_neg_factor;wachstum.growth_neg_factor_promille_signed
+80;5 Wachstum;Zuschlag X = 0,625 P + 0,375 J;growth_bonus_weight;wachstum.growth_bonus_weight_persons_promille
+81;5 Wachstum;Gewicht Jobs 0,375;-;wachstum.growth_bonus_weight_jobs_promille
+82;5 Wachstum;Zuschlag max. +25 %;growth_bonus_cap;wachstum.growth_bonus_cap_promille
+83;5 Wachstum;Zuschlag nur bei positivem Band;-;wachstum.growth_bonus_only_positive_band_flag
+84;5 Wachstum;Tor Halt bei 95 % der Schwelle;gate_halt_share;wachstum.gate_halt_share_promille
+85;5 Wachstum;Tor bis neue Kategorie >= 25 % versorgt;gate_min_supply;wachstum.gate_min_supply_promille
+86;5 Wachstum;Tor nur Kleinstadt zu Stadt (D13);gate_from_stage;wachstum.gate_from_stage_id
+87;5 Wachstum;+0,5-%-Fabrikregel gestrichen;-;wachstum.growth_factory_rule_flag
+88;5 Wachstum;Zielzeit Dorf zu Kleinstadt 11-13 min (Pruefwert);-;wachstum.ziel_dorf_kleinstadt_min_ticks
+89;5 Wachstum;Zielzeit Kleinstadt zu Stadt 72-90 min (Pruefwert);-;wachstum.ziel_kleinstadt_stadt_min_ticks
+90;6 Fabrik;Durchsatz Stufe 1;factory_throughput_l1;fabrik.factory_throughput_l1_einheiten_pro_periode
+91;6 Fabrik;Durchsatz Stufe 2;factory_throughput_l2;fabrik.factory_throughput_l2_einheiten_pro_periode
+92;6 Fabrik;Slice nur bis Stufe 2;-;fabrik.factory_max_level_slice_stufe
+93;6 Fabrik;Ausbau auf Stufe 2: 2.000 $ (D19);factory_upgrade_cost_l2;fabrik.factory_upgrade_cost_l2_cent
+94;6 Fabrik;Ausbau Stufe 3 und 4 (ausserhalb Slice);-;fabrik.factory_upgrade_cost_l4_cent
+95;6 Fabrik;Arbeit ohne Pendler 80 %;labour_base;fabrik.labour_base_promille
+96;6 Fabrik;Arbeit volle Abdeckung 110 %;labour_full;fabrik.labour_full_promille
+97;6 Fabrik;Arbeit drosselt, stoppt nie;-;fabrik.labour_throttles_never_stops_flag
+98;6 Fabrik;Gesamtdeckel Produktion x1,6;production_mult_cap;fabrik.production_mult_cap_promille
+99;7 Lager;Lager Kauf 800 $;warehouse_cost;lager.warehouse_cost_cent
+100;7 Lager;Lager Unterhalt 30 $/min;warehouse_upkeep;lager.warehouse_upkeep_cent_pro_periode
+101;7 Lager;Kapazitaet 200;warehouse_capacity;lager.warehouse_capacity_einheiten
+102;7 Lager;2 Rampen;warehouse_ramps;lager.warehouse_ramps_anzahl
+103;7 Lager;Rampe 2 E/s;warehouse_ramp_rate;lager.warehouse_ramp_rate_x100
+104;7 Lager;Lager ohne eigenen Ertrag;warehouse_yield;lager.warehouse_yield_cent
+105;7 Lager;Umschlagzeit zaehlt in F_zeit;transfer_counts_in_f_time;zeitfaktor.transfer_counts_in_f_time_flag
+106;7 Lager;Lkw sammelt unter 25 Feldern;-;lager.truck_collects_below_felder
+107;7 Lager;Kreuzung Lkw/Zug ab 25 Feldern;truck_zug_cross_fields;lager.truck_zug_cross_felder
+108;7 Lager;Kreuzung Lkw/Zug ab 20 E/min;truck_zug_cross_units;lager.truck_zug_cross_einheiten_pro_periode
+109;7 Lager;Lager fuer Slice-Meilenstein 2 Quellen;ms5_sources_min;lager.ms5_sources_min_anzahl
+110;8 Energie;Grundversorgung immer 100 %;power_base;energie.power_base_promille
+111;8 Energie;Kraftwerk-Radius 25 Felder;power_radius;energie.power_radius_felder
+112;8 Energie;max. Bonus +25 % Menge;power_bonus_max;energie.power_bonus_max_promille
+113;8 Energie;Bonus anteilig zur Versorgung;-;energie.power_bonus_scaled_by_supply_flag
+114;8 Energie;Ueberlappung Maximum statt Summe;power_overlap_mode;energie.power_overlap_mode_modus
+115;8 Energie;nur Menge, nie Preis;-;energie.power_bonus_never_price_flag
+116;9 Meilensteine;M1a HQ gegruendet, Einflussradius;ms_1a;meilensteine.ms_1a
+117;9 Meilensteine;M1b erste Lizenz, +1 Skillpunkt;ms_1b_skillpoints;meilensteine.ms_1b_skillpoints_punkte
+118;9 Meilensteine;M2 Lkw-Linie, +1 Punkt Strasse;ms_2_skillpoints;meilensteine.ms_2_skillpoints_punkte
+119;9 Meilensteine;M3 Endprodukt an Abnehmer, Stadt-Panel;ms_3;meilensteine.ms_3
+120;9 Meilensteine;M4 Busline, Ast Stadtverkehr;ms_4;meilensteine.ms_4
+121;9 Meilensteine;M5 Lager mit 2 Quellen, Zug frei;-;meilensteine.ms_5
+122;9 Meilensteine;M5b erste Firma, -20 % einmalig;-;meilensteine.ms_5b
+123;9 Meilensteine;M6 Zugstrecke mit Signal;ms_6;meilensteine.ms_6
+124;9 Meilensteine;M7 HQ-Stufe 2 nach 35 min;ms7_target_min_low;meilensteine.ms7_target_min_low_ticks
+125;9 Meilensteine;M7 HQ-Stufe 2 nach 50 min;ms7_target_min_high;meilensteine.ms7_target_min_high_ticks
+126;9 Meilensteine;HQ-Stufe 2 kostet 12.000 $;hq_l2_cost;meilensteine.hq_l2_cost_cent
+127;9 Meilensteine;HQ-Stufe 2 +10 Felder;-;meilensteine.hq_l2_radius_bonus_felder
+128;9 Meilensteine;M7 Beleg: HQ-Stufe 2;-;meilensteine.ms_7
+129;9 Meilensteine;M8 und KI-Spediteur nicht im Slice;-;meilensteine.ki_spediteur_im_slice_flag
+130;3 Ketten;K1 Getreide, Muehle, Mehl, Stadt (D17);-;ketten[id=k1].kanten
+131;3 Ketten;K2 Kohle, Kraftwerk (D17);-;ketten[id=k2].kanten
+132;3 Ketten;K3 Erz und Kohle, Stahlwerk, Stahl, Werkzeugfabrik (D17);-;ketten[id=k3].kanten
+133;3 Ketten;Werkzeugfabrik 40 E/min, Annahme;-;industrien[id=werkzeugfabrik].abnahme_max_einheiten_pro_periode
+134;Genre;Abriss Rueckerstattung 50 %;-;genre_standard.demolition_refund_promille
+135;Genre;Haltestelle Bus 5 Felder;-;genre_standard.stop_radius_bus_felder
+136;Genre;Bahnhof 10 Felder;-;genre_standard.stop_radius_station_felder
+137;Genre;Bauen 45 Grad Snap, Ghost weiss;-;genre_standard.build_snap_grad_anzahl
+138;Genre;Fahrzeugkauf aus Guthaben;-;genre_standard.vehicle_buy_from_balance_flag
+139;Genre;Signale Block und Auto, keine Pfadsignale;-;genre_standard.signal_ids
+140;Genre;Zeit Pause 1x 2x 4x;-;genre_standard.game_speed_stufen
+141;Genre;Linien Haltestellen verketten;-;genre_standard.line_chain_stops_flag
+142;Genre;Kontextdialog bei Klick;-;genre_standard.context_dialog_on_click_flag
+143;Genre;Warenkorb waechst mit Stufe;-;genre_standard.demand_basket_grows_with_stage_flag
+144;2 Kredit;Kredit im Slice aktiv: aus, Sprint 5 (L-08 v2);credit_active_in_slice;kredit.credit_active_in_slice_flag
+145;2 Kredit;Kredit geplant ab Sprint 5;-;kredit.credit_planned_sprint_anzahl
+146;1 HQ;Hafen nicht im Slice (D18);archetyp_port_im_slice;hq.archetyp_port_im_slice_flag
+147;1 HQ;Handel nicht im Slice (D18);archetyp_trade_im_slice;hq.archetyp_trade_im_slice_flag
+148;5a L-10;Bau-Kategorie im Slice-Korb inaktiv;slice_build_category_active;wachstum.slice_build_category_active_flag
+149;5a L-10;Tor Kleinstadt zu Stadt oeffnet ueber Stahl;gate_unlock_good;wachstum.gate_unlock_good_id
+150;5a L-10;Tor-Gut zaehlt nicht in G;gate_good_in_growth_supply;wachstum.gate_good_in_growth_supply_flag
+151;6 Fabrik;Ausbau auf Stufe 3 (ausserhalb Slice);factory_upgrade_cost_l3;fabrik.factory_upgrade_cost_l3_cent
+152;6 Fabrik;Ausbau auf Stufe 4 (ausserhalb Slice);factory_upgrade_cost_l4;fabrik.factory_upgrade_cost_l4_cent

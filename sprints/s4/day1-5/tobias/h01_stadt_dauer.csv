@@ -1,0 +1,13 @@
+regel;start_einwohner;bonus_promille;n;dauer_bis_4750_min_median;dauer_bis_5000_min_median
+alt (Bau = 0, G <= 0,5);1000;0;20;347;359
+alt (Bau = 0, G <= 0,5);1000;125;20;313;324
+alt (Bau = 0, G <= 0,5);1000;250;20;279;289
+alt (Bau = 0, G <= 0,5);2500;0;20;143;155
+alt (Bau = 0, G <= 0,5);2500;125;20;129;139
+alt (Bau = 0, G <= 0,5);2500;250;20;116;125
+L-10 (G nur Nahrung);1000;0;20;88;91
+L-10 (G nur Nahrung);1000;125;20;78;81
+L-10 (G nur Nahrung);1000;250;20;70;73
+L-10 (G nur Nahrung);2500;0;20;36;39
+L-10 (G nur Nahrung);2500;125;20;33;35
+L-10 (G nur Nahrung);2500;250;20;29;32

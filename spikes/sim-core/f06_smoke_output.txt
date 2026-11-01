@@ -2,9 +2,9 @@ Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
 == F-06 Smoke-Test, Godot 4.7.2-stable (official) ==
     [OK] Main-Scene res://f06/f06_main.tscn lädt
-F-06 Testbuild, Session T1_20261101-140109, Tester T1, Reihenfolge ["F1", "F2", "F3"]
-Klick-Log: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/klicklog_T1_20261101-140109.csv
-Session/Replay: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/session_T1_20261101-140109.json
+F-06 Testbuild, Session T1_20261101-153719, Tester T1, Reihenfolge ["F1", "F2", "F3"]
+Klick-Log: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/klicklog_T1_20261101-153719.csv
+Session/Replay: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/session_T1_20261101-153719.json
 Meldungen
     [OK] 3 Meldungen erzeugt (3)
     [OK] Reihenfolge T1 = F1, F2, F3 (["F1", "F2", "F3"])
@@ -67,7 +67,7 @@ Sonstige Klicks
     [OK] genau 2 Deadlock-Ereignisse (F1, F2): 2
     Tick jetzt 4351, F3 fuell_ist 6
 Klick-Log
-    [OK] Klick-Log vorhanden: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/klicklog_T1_20261101-140109.csv
+    [OK] Klick-Log vorhanden: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/klicklog_T1_20261101-153719.csv
     [OK] Kopfzeile nach Aylin Abschnitt 5
     Ereignisse: {"feed_ausgeklappt":1,"feed_eingeklappt":1,"klick_sonstige":1,"meldung_geoeffnet":3,"meldung_geschlossen":3,"session_ende":1,"session_start":1,"sprung_zurueck":3,"zeile_klick":15}
     [OK] jede Zeile 8 Spalten, unix_ms 13-stellig

@@ -1,0 +1,28 @@
+H-01 Lauf. JSON: Kredit im Slice AUS | Bau-Kategorie aktiv: False | Tor-Gut: stahl
+[0] Treue-Check T-11 (Kredit an, alte Regel): Bankrott 7.0 % (Sprint 3: 7 %), Median Gewinn Min 30 15850 $ (Sprint 3: 15.850 $)
+[1] Basis S4 (Kredit aus, L-10): Bankrott Min 30 12.0 % (12/100), Bankrott Min 60 14 %, nie gebaut 0, Median Gewinn Min 30 16185 $, Median erste Lieferung 4 min
+    agrar: Bankrott 10.0 % (n=50), Median Gewinn Min 30 19324 $
+    bergbau: Bankrott 14.0 % (n=50), Median Gewinn Min 30 7477 $
+    Spieler sorgfaeltig: n=45, Bankrott 0.0 %, nie gebaut 0
+    Spieler normal: n=41, Bankrott 7.3 %, nie gebaut 0
+    Spieler hastig: n=14, Bankrott 64.3 %, nie gebaut 0
+[1b] Streuung der Bankrottrate ueber weitere Seed-Bloecke (Kredit aus, L-10): Seeds 101-200: 13.0 %, Seeds 201-300: 15.0 %, Seeds 301-400: 11.0 %, Seeds 401-500: 14.0 %, Seeds 501-600: 17.0 %
+[2] Determinismus: Lauf A sha256 1ba9b3376d96bab4, Lauf B 1ba9b3376d96bab4 -> GLEICH; Einzelseeds 7/41/99 doppelt: gleich
+[3] Dauer bis Stadt (Regel isoliert, Mehl-Versorgung 100 %, Tor-Stahl nicht eingerechnet; ab Wachstumsstart):
+    alt (Bau = 0, G <= 0,5)    Start 1000 Bonus + 0 %: 4.750 nach 347 min, 5.000 nach 359 min
+    alt (Bau = 0, G <= 0,5)    Start 1000 Bonus +12 %: 4.750 nach 313 min, 5.000 nach 324 min
+    alt (Bau = 0, G <= 0,5)    Start 1000 Bonus +25 %: 4.750 nach 279 min, 5.000 nach 289 min
+    alt (Bau = 0, G <= 0,5)    Start 2500 Bonus + 0 %: 4.750 nach 143 min, 5.000 nach 155 min
+    alt (Bau = 0, G <= 0,5)    Start 2500 Bonus +12 %: 4.750 nach 129 min, 5.000 nach 139 min
+    alt (Bau = 0, G <= 0,5)    Start 2500 Bonus +25 %: 4.750 nach 116 min, 5.000 nach 125 min
+    L-10 (G nur Nahrung)       Start 1000 Bonus + 0 %: 4.750 nach 88 min, 5.000 nach 91 min
+    L-10 (G nur Nahrung)       Start 1000 Bonus +12 %: 4.750 nach 78 min, 5.000 nach 81 min
+    L-10 (G nur Nahrung)       Start 1000 Bonus +25 %: 4.750 nach 70 min, 5.000 nach 73 min
+    L-10 (G nur Nahrung)       Start 2500 Bonus + 0 %: 4.750 nach 36 min, 5.000 nach 39 min
+    L-10 (G nur Nahrung)       Start 2500 Bonus +12 %: 4.750 nach 33 min, 5.000 nach 35 min
+    L-10 (G nur Nahrung)       Start 2500 Bonus +25 %: 4.750 nach 29 min, 5.000 nach 32 min
+[4] Modellspieler Agrar (n=50, 240 min, Kredit aus, ohne Mehl-Nachbau): Stadt erreicht 9, Median Einwohner bei 240 min 4113, Max 8134
+    lizenz: n=17, Stadt erreicht 0, Median Einwohner 4113, Stufe 2 gebaut 0
+    direktkauf: n=17, Stadt erreicht 0, Median Einwohner 4113, Stufe 2 gebaut 0
+    lager_hub: n=16, Stadt erreicht 9, Median Einwohner 6324, Stufe 2 gebaut 16
+Abstuerze gesamt (alle Laeufe oben): 0 []

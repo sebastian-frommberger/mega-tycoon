@@ -1,0 +1,13 @@
+welt,lkw,ansicht,zoom,dreiecke,draw_calls,objekte
+slice,0,uebersicht,16.80,1106362,355,787
+slice,0,stadt_nah,2.73,1094270,236,668
+slice,0,stadt_strasse,0.62,685002,209,641
+slice,0,mine,1.64,1093734,198,630
+slice,0,farm,3.52,1093460,282,714
+slice,0,rand_max,26.00,1096112,321,753
+slice,5000,uebersicht,16.80,1392288,4068,4833
+slice,5000,stadt_nah,2.73,1349632,1345,2110
+slice,5000,stadt_strasse,0.62,687128,270,1035
+slice,5000,mine,1.64,1340900,665,1430
+slice,5000,farm,3.52,1350566,1595,2360
+slice,5000,rand_max,26.00,1380982,3946,4711

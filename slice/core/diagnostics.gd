@@ -35,7 +35,7 @@ extends RefCounted
 const VS_WARTET_BLOCK := 2  # entspricht SimWorld.VState.WARTET_BLOCK
 const VS_WARTET_LADUNG := 3  # entspricht SimWorld.VState.WARTET_LADUNG
 
-const FELD_MM := 10000  # 1 Logikfeld = 10 m (Sophies Maßstabsband)
+const FELD_MM := 1000  # = economy_constants raum.feld_mm (W-01, S7: war 10000 aus dem Spike, strecke_felder damit ×10 zu klein)
 
 const SUGGESTIONS := {
 	"EINGLEISIG_GEGENVERKEHR": "AUSWEICHGLEIS_BAUEN",

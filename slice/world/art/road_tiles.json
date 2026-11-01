@@ -1,0 +1,280 @@
+{
+ "strassen": {
+  "stand": "S7 Block A, Sophie",
+  "einheit": "m",
+  "masken_bits": {
+   "N": 1,
+   "E": 2,
+   "S": 4,
+   "W": 8
+  },
+  "achsen": "Godot Y-up; N=-Z, E=+X; rot_y positiv = gegen den Uhrzeigersinn von oben (E->N->W->S)",
+  "kit": "City Kit - Roads (CC0), res://props/kenney_city/roads/",
+  "lizenz": "res://props/kenney_city/roads/LICENSE_kenney_city_kit_roads.txt",
+  "nativ": {
+   "kachel_einheit": 1.0,
+   "hoehe_einheit": 0.02,
+   "gerade_laeuft": "E-W",
+   "bruecke_laeuft": "N-S (nativ, Hoehe 0,52 Einheiten)",
+   "anteil_asphalt_inkl_rinne": 0.77,
+   "hinweis": "Gehweg (weiss) je Seite ca. 0,115 der Breite"
+  },
+  "feld_m": 25.0,
+  "klassen": {
+   "stadtstrasse": {
+    "breite_m": 12.0,
+    "fahrbahn_m": 9.2,
+    "skala_xz": 12.0,
+    "knoten_m": 12.0,
+    "arm_laenge_m": 6.5,
+    "gerade_laenge_m": 25.1,
+    "gerade_skala": {
+     "laenge": 25.1,
+     "breite": 12.0
+    },
+    "y_skala": 1.0,
+    "regel": "Feld mit Maske 5/10: eine gestreckte Gerade 25x12 m; sonst Knotenkachel 12x12 m in Feldmitte + je offener Seite ein Arm (Gerade 6,5x12 m) Gerade 25,1 m (0,1 m Ueberlappung gegen Fugen)."
+   },
+   "landstrasse": {
+    "breite_m": 9.75,
+    "fahrbahn_m": 7.5,
+    "skala_xz": 9.75,
+    "knoten_m": 9.75,
+    "arm_laenge_m": 7.625,
+    "gerade_laenge_m": 25.1,
+    "gerade_skala": {
+     "laenge": 25.1,
+     "breite": 9.75
+    },
+    "y_skala": 1.0,
+    "regel": "wie Stadtstrasse; Fahrbahn 7,5 m (+ Gehweg-Streifen der Kachel als Bankett ca. 1,1 m je Seite, Soll 1,2) Gerade 25,1 m (0,1 m Ueberlappung gegen Fugen)."
+   }
+  },
+  "gerade_native_laenge_achse": "X (E-W); bei Streckung X-Skala = Laenge_m, Z-Skala = Breite_m",
+  "autotile": {
+   "0": {
+    "offen": "",
+    "kachel": "punkt",
+    "modell": "road-square.glb",
+    "rot_y_grad": 0,
+    "dreiecke": 36
+   },
+   "1": {
+    "offen": "N",
+    "kachel": "ende",
+    "modell": "road-end.glb",
+    "rot_y_grad": 90,
+    "dreiecke": 42
+   },
+   "2": {
+    "offen": "E",
+    "kachel": "ende",
+    "modell": "road-end.glb",
+    "rot_y_grad": 0,
+    "dreiecke": 42
+   },
+   "3": {
+    "offen": "EN",
+    "kachel": "kurve",
+    "modell": "road-bend.glb",
+    "rot_y_grad": 180,
+    "dreiecke": 260
+   },
+   "4": {
+    "offen": "S",
+    "kachel": "ende",
+    "modell": "road-end.glb",
+    "rot_y_grad": 270,
+    "dreiecke": 42
+   },
+   "5": {
+    "offen": "NS",
+    "kachel": "gerade",
+    "modell": "road-straight.glb",
+    "rot_y_grad": 90,
+    "dreiecke": 44
+   },
+   "6": {
+    "offen": "SE",
+    "kachel": "kurve",
+    "modell": "road-bend.glb",
+    "rot_y_grad": 90,
+    "dreiecke": 260
+   },
+   "7": {
+    "offen": "SNE",
+    "kachel": "t",
+    "modell": "road-intersection.glb",
+    "rot_y_grad": 90,
+    "dreiecke": 84
+   },
+   "8": {
+    "offen": "W",
+    "kachel": "ende",
+    "modell": "road-end.glb",
+    "rot_y_grad": 180,
+    "dreiecke": 42
+   },
+   "9": {
+    "offen": "NW",
+    "kachel": "kurve",
+    "modell": "road-bend.glb",
+    "rot_y_grad": 270,
+    "dreiecke": 260
+   },
+   "10": {
+    "offen": "EW",
+    "kachel": "gerade",
+    "modell": "road-straight.glb",
+    "rot_y_grad": 0,
+    "dreiecke": 44
+   },
+   "11": {
+    "offen": "EWN",
+    "kachel": "t",
+    "modell": "road-intersection.glb",
+    "rot_y_grad": 180,
+    "dreiecke": 84
+   },
+   "12": {
+    "offen": "WS",
+    "kachel": "kurve",
+    "modell": "road-bend.glb",
+    "rot_y_grad": 0,
+    "dreiecke": 260
+   },
+   "13": {
+    "offen": "NSW",
+    "kachel": "t",
+    "modell": "road-intersection.glb",
+    "rot_y_grad": 270,
+    "dreiecke": 84
+   },
+   "14": {
+    "offen": "WES",
+    "kachel": "t",
+    "modell": "road-intersection.glb",
+    "rot_y_grad": 0,
+    "dreiecke": 84
+   },
+   "15": {
+    "offen": "NESW",
+    "kachel": "kreuzung",
+    "modell": "road-crossroad.glb",
+    "rot_y_grad": 0,
+    "dreiecke": 116
+   }
+  },
+  "sonder": {
+   "bruecke": {
+    "modell": "road-bridge.glb",
+    "dreiecke": 240,
+    "nativ_lauf": "N-S",
+    "rot_y_grad_fuer_NS": 0,
+    "rot_y_grad_fuer_EW": 90,
+    "skala": "xz wie Klasse (Breite), Laenge 25 m (Z-Skala)",
+    "y_skala_hinweis": "Deck nativ 0,52 Einheiten = 6,2 m bei x12; Pfeiler bridge-pillar.glb (0,5 Einh., 38 Dreiecke) strecken auf Lichte >= 9 m",
+    "pfeiler": [
+     "bridge-pillar.glb",
+     "bridge-pillar-wide.glb"
+    ]
+   },
+   "kreisverkehr": {
+    "modell": "road-roundabout.glb",
+    "nativ_einheit": 3.0,
+    "dreiecke": 1636,
+    "anmerkung": "3x3 Einheiten = 36 m bei x12; nur Dekor, nicht im Autotile"
+   },
+   "bordstein_kurve_gross": {
+    "modell": "road-curve.glb",
+    "nativ_einheit": 2.0,
+    "dreiecke": 308,
+    "anmerkung": "2x2, Viertelkreis R=1 Einh. (12 m); Option fuer Landstrasse-Kurven ohne Knoten"
+   },
+   "ende_rund": {
+    "modell": "road-end-round.glb",
+    "dreiecke": 218,
+    "offen": "E"
+   },
+   "zebra": {
+    "modell": "road-crossing.glb",
+    "dreiecke": 104,
+    "laeuft": "E-W"
+   },
+   "stadtanschluss_randfeld": {
+    "modell": "road-end.glb",
+    "anmerkung": "Z-01: Anschlusspunkt = Mitte Randfeld; Marker-Farbe palette_s08.tokens.marker"
+   }
+  },
+  "messung_dreiecke_kachel": {
+   "bridge-pillar-wide": 38,
+   "bridge-pillar": 38,
+   "road-bend-square": 60,
+   "road-bend": 260,
+   "road-bridge": 240,
+   "road-crossing": 104,
+   "road-crossroad": 116,
+   "road-curve": 308,
+   "road-end-round": 218,
+   "road-end": 42,
+   "road-intersection": 84,
+   "road-roundabout": 1636,
+   "road-split": 862,
+   "road-square": 36,
+   "road-straight-half": 44,
+   "road-straight": 44,
+   "tile-low": 12
+  }
+ },
+ "gleise": {
+  "stand": "S7 Block A, Sophie",
+  "kit": "Train Kit (CC0), res://props/kenney_city/rail/",
+  "lizenz": "res://props/kenney_city/rail/LICENSE_kenney_train_kit.txt",
+  "spur_m": 1.435,
+  "gleisabstand_m": 5.0,
+  "nativ_gleismitte_abstand_einh": 0.6,
+  "skala_uniform": 2.392,
+  "kacheln": {
+   "gerade": {
+    "modell": "railroad-straight.glb",
+    "nativ_einh": {
+     "x": 1.0,
+     "z": 4.0,
+     "y_min": -1.0,
+     "y_max": -0.9
+    },
+    "laenge_m": 9.57,
+    "breite_m": 2.39,
+    "y_offset_m": 2.39,
+    "pivot": "Anfang bei z=0, x zentriert; laeuft entlang +Z",
+    "dreiecke": 376,
+    "stueck_je_feld": 2.61
+   },
+   "kurve": {
+    "modell": "railroad-corner-large.glb",
+    "nativ_einh": {
+     "x": [
+      -4.0,
+      0.49
+     ],
+     "z": [
+      0.0,
+      4.49
+     ]
+    },
+    "radius_m": 9.57,
+    "y_offset_m": 2.39,
+    "dreiecke": 568,
+    "anmerkung": "Radius 9,6 m = nur Platzhalter; Spline-Band in S8"
+   }
+  },
+  "luecken": [
+   "Weiche/Kreuzung fehlen im Train Kit -> eigenes Mesh oder S8-Spline",
+   "Schotterkrone Modell 2,4 m statt Soll 3,8 m (Gleisabstand 5 m bleibt frei)"
+  ],
+  "gleisabstand_doppelgleis": {
+   "versatz_je_gleis_m": 2.5,
+   "hinweis": "Mitte-zu-Mitte 5,0 m; 12 m Strasse + Gleis passen in 25-m-Feld (12 + 2,4 + Zwischenraum)"
+  }
+ }
+}

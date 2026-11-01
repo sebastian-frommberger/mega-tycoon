@@ -1,0 +1,796 @@
+{
+ "schema_version": 1,
+ "meta": {
+  "titel": "Lage-Regeln Industrie und Stadtstufen, Sprint 7 (W-05 Teil 1, W-03 Radien)",
+  "autor": "Lena Hoffmann (Game Design)",
+  "stand": "Entwurf Block A, Tag 1-2, Karten-Freeze Ende Tag 7",
+  "verbraucher": "tools/world_gen.py (Felix), Validator (Tobias)",
+  "einheit": {
+   "m_pro_feld": 25,
+   "felder_pro_km": 40,
+   "konvention": "Laengen als Felder (Sim) mit _m daneben (= Felder x 25, nur Anzeige). Steigung und Anteile in Promille (30 = 3 %), Gini in Promille, keine Floats (F-09). Alle Abstaende Zentrum zu Zentrum, euklidisch (Luftlinie), Felder ab Feldmitte.",
+   "steigung_messung": "Steigung = max Hoehendifferenz zu den 4 Nachbarfeldern / 25 m. Umfeld-Steigung = Mittelwert ueber den Kreis (Radius siehe Klasse)."
+  },
+  "quellen": [
+   "ergebnis.md W-05/W-03",
+   "design.md Lage-Logik",
+   "basti_feedback_01-11 Punkt 6",
+   "sophie_sp03 Abschnitt 2",
+   "economy_slice.json (ketten, hq)",
+   "slice_map.json (Messwerte heute)"
+  ]
+ },
+ "karte": {
+  "breite_felder": 512,
+  "hoehe_felder": 512,
+  "randabstand_industrie": {
+   "felder": 40,
+   "m": 1000
+  },
+  "randabstand_stadt": {
+   "felder": 40,
+   "m": 1000
+  },
+  "hoehenspanne_min_m": 900,
+  "hinweis": "Randabstand gilt zur Kante der spielbaren Flaeche; der Landschaftsrand (7,5 km) bleibt frei von Spielobjekten."
+ },
+ "gelaende_klassen": {
+  "ebene": {
+   "umfeld_radius_felder": 12,
+   "umfeld_steigung_max_promille": 30,
+   "hoehe_m": {
+    "min": 0,
+    "max": 250
+   }
+  },
+  "aue": {
+   "definition": "Ebene UND Flussabstand (Flussmitte) im Band",
+   "fluss_abstand_felder": {
+    "min": 12,
+    "max": 60
+   },
+   "fluss_abstand_m": {
+    "min": 300,
+    "max": 1500
+   },
+   "hoehe_ueber_fluss_max_m": 30
+  },
+  "gebirgsfuss": {
+   "umfeld_radius_felder": 20,
+   "umfeld_steigung_promille": {
+    "min": 80,
+    "max": 200
+   },
+   "hoehe_m": {
+    "min": 120,
+    "max": 600
+   },
+   "nicht_in_gelaende_polygon": [
+    "meer"
+   ],
+   "hinweis": "Am Rand der Klasse 'gebirge' oder an einem Hang des Hoehenreliefs; Nachbarschaft zu Hoehe > 500 m im Umkreis 40 Felder"
+  },
+  "flussnaehe": {
+   "fluss_abstand_felder": {
+    "min": 0,
+    "max": 8
+   },
+   "fluss_abstand_m": {
+    "min": 0,
+    "max": 200
+   }
+  },
+  "stadtrand": {
+   "definition": "Abstand zum Zentrum einer Stadt von radius_felder bis radius_felder + ausfransung_max_felder der jeweiligen Stufe",
+   "bezug": "staedte.stufen"
+  },
+  "waldrand": {
+   "definition": "Feld grenzt an Wald-Polygon (Abstand <= 4 Felder)",
+   "umfeld_steigung_max_promille": 120
+  }
+ },
+ "industrie_plateau": {
+  "kern_radius_felder": 3,
+  "kern_radius_m": 75,
+  "steigung_max_promille": 30,
+  "hinweis": "Der blockierende Footprint (<= 150 m, 6 Felder Durchmesser) wird eben gestempelt. Die Gelaende-Klasse (Umfeld) wird VOR dem Stempeln gemessen, die Plateau-Bedingung < 3 % NACH dem Stempeln.",
+  "bodenflaeche_durchmesser_m": 300,
+  "mindestabstand_beliebige_industrien": {
+   "felder": 12,
+   "m": 300
+  }
+ },
+ "industrie_typen": {
+  "getreidefarm": {
+   "regel": "R1",
+   "aktiv": true,
+   "anzahl": {
+    "min": 3,
+    "max": 6
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "ebene",
+     "aue"
+    ],
+    "anteil_aue_min_promille": 500,
+    "umfeld_steigung_max_promille": 30
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 30,
+    "felder_max": 160,
+    "m_min": 750,
+    "m_max": 4000
+   },
+   "hoehe_m": {
+    "min": 0,
+    "max": 250
+   },
+   "fluss_abstand_min": {
+    "felder": 12,
+    "m": 300
+   },
+   "rolle": "rohstoff",
+   "ausgang": [
+    "getreide"
+   ]
+  },
+  "muehle": {
+   "regel": "R2",
+   "aktiv": true,
+   "anzahl": {
+    "min": 3,
+    "max": 6
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "flussnaehe",
+     "stadtrand"
+    ],
+    "umfeld_steigung_max_promille": 30
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 40,
+    "felder_max": 80,
+    "m_min": 1000,
+    "m_max": 2000
+   },
+   "hoehe_m": {
+    "min": 0,
+    "max": 250
+   },
+   "rolle": "verarbeiter",
+   "eingang": [
+    "getreide"
+   ],
+   "ausgang": [
+    "mehl"
+   ],
+   "hinweis": "Stadtrand-Variante nur wenn Abstand >= 40 Felder erfuellbar (Kleinstadt/Stadt-Rand); sonst Flussnaehe."
+  },
+  "kohlemine": {
+   "regel": "R3",
+   "aktiv": true,
+   "anzahl": {
+    "min": 3,
+    "max": 6
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "gebirgsfuss"
+    ]
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 40,
+    "felder_max": 160,
+    "m_min": 1000,
+    "m_max": 4000
+   },
+   "hoehe_m": {
+    "min": 120,
+    "max": 600
+   },
+   "rolle": "rohstoff",
+   "ausgang": [
+    "kohle"
+   ],
+   "abstand_zu_erzmine": {
+    "felder_min": 36,
+    "felder_max": 60,
+    "m_min": 900,
+    "m_max": 1500
+   }
+  },
+  "erzmine": {
+   "regel": "R3",
+   "aktiv": true,
+   "anzahl": {
+    "min": 3,
+    "max": 6
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "gebirgsfuss"
+    ]
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 40,
+    "felder_max": 160,
+    "m_min": 1000,
+    "m_max": 4000
+   },
+   "hoehe_m": {
+    "min": 120,
+    "max": 600
+   },
+   "rolle": "rohstoff",
+   "ausgang": [
+    "erz"
+   ],
+   "abstand_zu_kohlemine": {
+    "felder_min": 36,
+    "felder_max": 60,
+    "m_min": 900,
+    "m_max": 1500
+   }
+  },
+  "stahlwerk": {
+   "regel": "R4",
+   "aktiv": true,
+   "anzahl": {
+    "min": 3,
+    "max": 6
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "ebene"
+    ],
+    "umfeld_steigung_max_promille": 40,
+    "nicht_im_gelaende_polygon": [
+     "gebirge",
+     "meer"
+    ]
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 30,
+    "felder_max": 160,
+    "m_min": 750,
+    "m_max": 4000
+   },
+   "hoehe_m": {
+    "min": 100,
+    "max": 400
+   },
+   "rolle": "verarbeiter",
+   "eingang": [
+    "erz",
+    "kohle"
+   ],
+   "ausgang": [
+    "stahl"
+   ]
+  },
+  "kraftwerk": {
+   "regel": "R4",
+   "aktiv": true,
+   "anzahl": {
+    "min": 3,
+    "max": 6
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "ebene"
+    ],
+    "umfeld_steigung_max_promille": 30,
+    "nicht_im_gelaende_polygon": [
+     "gebirge",
+     "meer"
+    ]
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 30,
+    "felder_max": 120,
+    "m_min": 750,
+    "m_max": 3000
+   },
+   "hoehe_m": {
+    "min": 0,
+    "max": 400
+   },
+   "rolle": "verarbeiter",
+   "eingang": [
+    "kohle"
+   ],
+   "ausgang_art": "energie",
+   "energie_radius_felder": 25
+  },
+  "werkzeugfabrik": {
+   "regel": "R5",
+   "aktiv": true,
+   "anzahl": {
+    "min": 3,
+    "max": 6
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "ebene",
+     "stadtrand"
+    ],
+    "umfeld_steigung_max_promille": 30
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 30,
+    "felder_max": 80,
+    "m_min": 750,
+    "m_max": 2000
+   },
+   "hoehe_m": {
+    "min": 0,
+    "max": 300
+   },
+   "rolle": "abnehmer",
+   "eingang": [
+    "stahl"
+   ],
+   "naechste_stadt_mindeststufe": "kleinstadt",
+   "max_je_stadt": 1,
+   "max_anzahl_effektiv": "<= Anzahl Staedte der Stufen kleinstadt+stadt"
+  },
+  "holzfaeller": {
+   "regel": "R6",
+   "aktiv": false,
+   "anzahl": {
+    "min": 0,
+    "max": 0
+   },
+   "gelaende": {
+    "mindestens_eine_von": [
+     "waldrand"
+    ],
+    "umfeld_steigung_max_promille": 120
+   },
+   "abstand_naechste_stadt": {
+    "felder_min": 30,
+    "felder_max": 120,
+    "m_min": 750,
+    "m_max": 3000
+   },
+   "hoehe_m": {
+    "min": 0,
+    "max": 350
+   },
+   "rolle": "bau_quelle",
+   "ausgang": [
+    "holz"
+   ],
+   "hinweis": "INAKTIV in S7 (Holz/Saegewerk spaeter). Zielanzahl ab S8: 3-6, Saegewerk dann Kette Holz-Bretter. Regel steht, damit der Generator den Typ schon kennt."
+  }
+ },
+ "industrie_anzahl_gesamt_min": 20,
+ "abstand_stadt_regeln": {
+  "wirksamer_mindestabstand": "max(abstand_naechste_stadt.min des Typs, radius_felder(Stufe) + 6) zum Zentrum jeder Stadt",
+  "puffer_felder": 6,
+  "hinweis": "Industrie steht nie in der Stadtflaeche. Ausfransungshaeuser meiden die Industrie-Bodenflaeche (Sektor-Maske)."
+ },
+ "ketten_baender": [
+  {
+   "id": "K1a",
+   "regel": "R1/R2",
+   "von": "getreidefarm",
+   "nach": "muehle",
+   "gut": "getreide",
+   "luftlinie": {
+    "felder_min": 18,
+    "felder_max": 30,
+    "m_min": 450,
+    "m_max": 750
+   },
+   "heute_felder": [
+    18,
+    26,
+    28
+   ],
+   "optional_fern": {
+    "felder_min": 31,
+    "felder_max": 80,
+    "m_min": 775,
+    "m_max": 2000
+   },
+   "optional_fern_heute": [
+    78
+   ],
+   "anforderung": "jede Muehle >= 1 Farm im Nahband; jede Farm >= 1 Muehle in 18-80"
+  },
+  {
+   "id": "K1b",
+   "regel": "R2",
+   "von": "muehle",
+   "nach": "stadt",
+   "gut": "mehl",
+   "luftlinie": {
+    "felder_min": 40,
+    "felder_max": 130,
+    "m_min": 1000,
+    "m_max": 3250
+   },
+   "heute_felder": [
+    44,
+    126
+   ],
+   "anforderung": "jede Muehle >= 1 Stadt jeder Stufe im Band"
+  },
+  {
+   "id": "K2a",
+   "regel": "R3/R4",
+   "von": "kohlemine",
+   "nach": "kraftwerk",
+   "gut": "kohle",
+   "luftlinie": {
+    "felder_min": 18,
+    "felder_max": 30,
+    "m_min": 450,
+    "m_max": 750
+   },
+   "heute_felder": [
+    20,
+    24
+   ]
+  },
+  {
+   "id": "K2b",
+   "regel": "R4",
+   "von": "kraftwerk",
+   "nach": "stahlwerk",
+   "gut": "energie",
+   "luftlinie": {
+    "felder_min": 15,
+    "felder_max": 25,
+    "m_min": 375,
+    "m_max": 625
+   },
+   "heute_felder": [
+    21
+   ],
+   "hinweis": "hartes Maximum = energie.power_radius_felder 25"
+  },
+  {
+   "id": "K3a",
+   "regel": "R3/R4",
+   "von": "erzmine",
+   "nach": "stahlwerk",
+   "gut": "erz",
+   "luftlinie": {
+    "felder_min": 18,
+    "felder_max": 30,
+    "m_min": 450,
+    "m_max": 750
+   },
+   "heute_felder": [
+    20,
+    21
+   ]
+  },
+  {
+   "id": "K3b",
+   "regel": "R3/R4",
+   "von": "kohlemine",
+   "nach": "stahlwerk",
+   "gut": "kohle",
+   "luftlinie": {
+    "felder_min": 15,
+    "felder_max": 30,
+    "m_min": 375,
+    "m_max": 750
+   },
+   "heute_felder": [
+    15,
+    25
+   ]
+  },
+  {
+   "id": "K3c",
+   "regel": "R4/R5",
+   "von": "stahlwerk",
+   "nach": "werkzeugfabrik",
+   "gut": "stahl",
+   "luftlinie": {
+    "felder_min": 30,
+    "felder_max": 42,
+    "m_min": 750,
+    "m_max": 1050
+   },
+   "heute_felder": [
+    34,
+    40
+   ]
+  },
+  {
+   "id": "K3d",
+   "regel": "R5",
+   "von": "werkzeugfabrik",
+   "nach": "stadt",
+   "gut": "werkzeug",
+   "luftlinie": {
+    "felder_min": 30,
+    "felder_max": 260,
+    "m_min": 750,
+    "m_max": 6500
+   },
+   "heute_felder": [
+    33,
+    259
+   ],
+   "anforderung": "naechste Stadt (>= Kleinstadt) liegt im Unterband 30-80 (R5)"
+  }
+ ],
+ "ketten_baender_hinweis": "Bandgrenzen = heutige Messwerte aus slice_map.ketten und economy_slice.ketten, gerundet mit ca. +-30 %. Ketten bleiben in Feldern (Sim unveraendert). Jede Kohlemine/Erzmine/Stahlwerk/Kraftwerk/Werkzeugfabrik gehoert zu genau einem 'Revier' (Cluster aus K2a, K2b, K3a-K3c); Muehle+Farm zu einem 'Agrarpaar'. Die Erzeugung darf ein Revier nur mit allen 5 Gliedern anlegen.",
+ "r7_abstand_gleicher_typ": {
+  "regel": "R7",
+  "mindestabstand": {
+   "felder": 160,
+   "m": 4000
+  },
+  "cluster": {
+   "radius": {
+    "felder": 200,
+    "m": 5000
+   },
+   "max_gleicher_typ": 2
+  },
+  "gilt_fuer": "alle aktiven Typen",
+  "hinweis": "160 Felder = 4 km; max. 2 Instanzen desselben Typs in jedem Kreis von 5 km Radius."
+ },
+ "r8_zulieferer": {
+  "regel": "R8",
+  "zulieferer_typen": "alle aktiven Industrietypen",
+  "nahversorgung": {
+   "radius": {
+    "felder": 240,
+    "m": 6000
+   },
+   "min_verschiedene_typen": 2
+  },
+  "anti_spezialisierung": {
+   "radius": {
+    "felder": 80,
+    "m": 2000
+   },
+   "max_verschiedene_typen": 5,
+   "hinweis": "'nie alle' gilt im 2-km-Umkreis. Im 6-km-Umkreis sieht fast jede Stadt alle 7 Typen (Karte 12,8 km), dort ist 'nie alle' nicht erfuellbar (Simulation: 0 von 300)."
+  },
+  "gini": {
+   "radius": {
+    "felder": 240,
+    "m": 6000
+   },
+   "bezug": "Typ-Anzahlen der im Radius vorhandenen Typen (Nullen ausgenommen)",
+   "max_promille": 500
+  },
+  "gilt_fuer": "jede Stadt jeder Stufe"
+ },
+ "staedte": {
+  "stufen": {
+   "dorf": {
+    "einwohner_anzahl": {
+     "min": 400,
+     "max": 999
+    },
+    "zielradius": {
+     "felder": 9,
+     "m": 225
+    },
+    "radius_toleranz_promille": 150,
+    "radius_erlaubt": {
+     "felder_min": 8,
+     "felder_max": 10,
+     "m_min": 200,
+     "m_max": 250
+    },
+    "ausfransung": {
+     "felder_min": 4,
+     "felder_max": 12,
+     "m_min": 100,
+     "m_max": 300
+    },
+    "ausfallstrassen": {
+     "min": 2,
+     "max": 2
+    },
+    "gebaeude_min": 80,
+    "anzahl_auf_karte": {
+     "min": 5,
+     "max": 7
+    },
+    "raster_strasse_m": 72,
+    "gebaeudetypen": [
+     "rand"
+    ]
+   },
+   "kleinstadt": {
+    "einwohner_anzahl": {
+     "min": 1000,
+     "max": 4999
+    },
+    "zielradius": {
+     "felder": 18,
+     "m": 450
+    },
+    "radius_toleranz_promille": 150,
+    "radius_erlaubt": {
+     "felder_min": 16,
+     "felder_max": 20,
+     "m_min": 400,
+     "m_max": 500
+    },
+    "ausfransung": {
+     "felder_min": 12,
+     "felder_max": 28,
+     "m_min": 300,
+     "m_max": 700
+    },
+    "ausfallstrassen": {
+     "min": 3,
+     "max": 4
+    },
+    "gebaeude_min": 400,
+    "anzahl_auf_karte": {
+     "min": 3,
+     "max": 4
+    },
+    "raster_strasse_m": 72,
+    "gebaeudetypen": [
+     "kern",
+     "mitte",
+     "rand"
+    ]
+   },
+   "stadt": {
+    "einwohner_anzahl": {
+     "min": 5000,
+     "max": 19999
+    },
+    "zielradius": {
+     "felder": 32,
+     "m": 800
+    },
+    "radius_toleranz_promille": 150,
+    "radius_erlaubt": {
+     "felder_min": 28,
+     "felder_max": 36,
+     "m_min": 700,
+     "m_max": 900
+    },
+    "ausfransung": {
+     "felder_min": 20,
+     "felder_max": 40,
+     "m_min": 500,
+     "m_max": 1000
+    },
+    "ausfallstrassen": {
+     "min": 4,
+     "max": 6
+    },
+    "gebaeude_min": 1200,
+    "anzahl_auf_karte": {
+     "min": 1,
+     "max": 2
+    },
+    "raster_strasse_m": 72,
+    "gebaeudetypen": [
+     "kern",
+     "mitte",
+     "rand"
+    ],
+    "perf_fallback": {
+     "ausloeser": "Perf-Gate S7 (Stadt nah <= 2,9 M Dreiecke) reisst",
+     "radius": {
+      "felder": 26,
+      "m": 650
+     },
+     "gebaeude_min": 800,
+     "reihenfolge": "Baumzahl, Randdetail, dann dieser Radius"
+    }
+   },
+   "grossstadt": {
+    "aktiv": false,
+    "zielradius": {
+     "felder": 52,
+     "m": 1300
+    },
+    "hinweis": "S8, nur Platzhalter aus SP-03"
+   }
+  },
+  "radius_messung": "Effektiver Flaechenradius = Wurzel(bebaute Flaeche des Rasters ohne Ausfallstrassen-Streuhaeuser / Pi). Soll = zielradius +-15 %. Randknoten duerfen +-25 % um den Sollradius streuen, Hauptachsen bis 115 %.",
+  "rand_variation_promille": 250,
+  "hauptachse_faktor_promille": 1150,
+  "dichte_pruefung": {
+   "einwohner_je_km2": {
+    "min": 2500,
+    "max": 6000
+   },
+   "hinweis": "Annahme SP-03 (3000-4000 je km2 Kleinstadt); Stadt am oberen Ende. Nachfrageformel unveraendert, Radius beeinflusst sie nicht."
+  },
+  "leerflaeche_je_block_max_promille": 500,
+  "plateau": {
+   "kern_radius": "radius_felder der Stufe",
+   "steigung_max_promille": 30,
+   "ausfransung_steigung_max_promille": 60,
+   "hoehe_m": {
+    "min": 0,
+    "max": 300
+   },
+   "fluss_im_kern": false,
+   "fluss_in_ausfransung": "erlaubt, Bruecke <= 8 Felder",
+   "hinweis": "Plateau < 3 % wird gestempelt, Kern frei von Flussmaske."
+  },
+  "mindestabstand_zentrum": {
+   "stadt_stadt": {
+    "felder": 200,
+    "m": 5000
+   },
+   "stadt_kleinstadt": {
+    "felder": 140,
+    "m": 3500
+   },
+   "kleinstadt_kleinstadt": {
+    "felder": 120,
+    "m": 3000
+   },
+   "dorf_zu_jeder_stufe": {
+    "felder": 60,
+    "m": 1500
+   }
+  },
+  "nachbarstadt_max": {
+   "felder": 240,
+   "m": 6000
+  },
+  "anzahl_gesamt": {
+   "min": 9,
+   "max": 13
+  }
+ },
+ "validator": [
+  {
+   "id": "V-R1..R6",
+   "pruefung": "Gelaende-Klasse, Hoehenband, Abstand naechste Stadt, Fluss-Abstand je Typ gemaess industrie_typen"
+  },
+  {
+   "id": "V-PLAT",
+   "pruefung": "Plateau Industrie und Stadt-Kern < 30 Promille"
+  },
+  {
+   "id": "V-ANZ",
+   "pruefung": "je aktivem Typ 3-6, gesamt >= 20, Stadtstufen gemaess staedte.stufen.anzahl_auf_karte"
+  },
+  {
+   "id": "V-K",
+   "pruefung": "alle ketten_baender K1a-K3d, jede Instanz in genau einem Revier bzw. Agrarpaar"
+  },
+  {
+   "id": "V-R7",
+   "pruefung": "Mindestabstand gleicher Typ 160 und Cluster <= 2 in 200"
+  },
+  {
+   "id": "V-R8",
+   "pruefung": "r8_zulieferer: >= 2 Typen in 240, <= 5 Typen in 80, Gini < 500 Promille"
+  },
+  {
+   "id": "V-STADT",
+   "pruefung": "Radien, Mindestabstaende, nachbarstadt_max, Gebaeudezahl (Soll nur Generator-Ausgabe)"
+  }
+ ],
+ "erzeugung_hinweis": {
+  "reihenfolge": [
+   "Staedte (Plateau, Mindestabstaende)",
+   "Reviere (Kohle, Erz, Stahl, Kraftwerk, Werkzeug)",
+   "Agrarpaare (Muehle, Farm)",
+   "Validator, bei Verstoss naechster Versuch im selben Seed-Strom"
+  ],
+  "machbarkeit": "Zufalls-Stichprobe auf flacher 512er Karte (ohne Gelaende): R1-R7 und alle Kettenbaender erfuellbar; R8 (80/240/Gini) bei ca. 33 % der Versuche."
+ },
+ "offen_fuer_tobias_felix": [
+  "HQ-Startkette: hq_radius 45-55 Felder verlangt ggf. >= 1 Rohstoff-Industrie im Radius je Stadt >= Kleinstadt; Farm-Mindestabstand 30 laesst das zu, Regel nicht erzwungen.",
+  "Werkzeugfabrik-Stufe: Entwurf verlangte Stadt ab 8.000 EW; bei 1-2 Staedten der Stufe Stadt nicht fuer 3-6 Fabriken erfuellbar, daher ab Kleinstadt."
+ ]
+}

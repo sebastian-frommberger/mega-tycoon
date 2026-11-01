@@ -17,11 +17,25 @@ var _last_toast := ""
 var _ms_done: Array = []
 var list_wanted := false
 var cam_note := ""
+var no_shot := false            # --no-shot: kein Schlussbild (spart ca. 10 s Software-GL)
+var fast := false               # --fast: kürzere Panel-Pausen (spart ca. 0,2 s je Klickbefehl)
+var budget_s := 100.0           # --budget=<s>: ab dieser Laufzeit werden restliche Befehle nicht mehr gespielt (0 = aus)
+var settle_s := 0.35
+var real_equiv_s := 0.0         # T-02: Echtzeit, die die `wait`s im Spiel bei dem jeweils eingestellten Tempo gedauert hätten
+var aborted := ""
 
 
 func _initialize() -> void:
 	var a := OS.get_cmdline_user_args()
 	out_dir = a[0] if a.size() > 0 else "user://play"
+	for x in a.slice(1):
+		if x == "--no-shot":
+			no_shot = true
+		elif x == "--fast":
+			fast = true
+			settle_s = 0.12
+		elif x.begins_with("--budget="):
+			budget_s = float(x.substr(9))
 	_run.call_deferred()
 
 
@@ -161,7 +175,7 @@ func fit_two(a: Vector2, b: Vector2) -> void:
 
 
 func panel_settle() -> void:
-	await pause(0.35)
+	await pause(settle_s)
 	await frames(2)
 
 
@@ -303,6 +317,7 @@ func cmd(line: String) -> String:
 			if n < 3: return "warehouse <x> <y>"
 			if not m.company_started: return "Erst HQ gründen"
 			var c := Vector2i(int(w[1]), int(w[2]))
+			if not m._in_grid(c): return "Feld %d,%d liegt außerhalb der Karte (0–%d)" % [c.x, c.y, m.GRID - 1]
 			var k0: int = m.warehouse_count
 			await tool_off()
 			await select_tool(m.Tool.WAREHOUSE)
@@ -366,18 +381,130 @@ func cmd(line: String) -> String:
 			if not m.company_started: return "Zeit läuft erst nach der Gründung"
 			if m.bankrupt: return "Bankrott – Zeit steht"
 			if m.speed == 0: return "Pause (Tempo 0): keine Spielzeit vergangen – erst `speed 1`"
+			if m.hq.time_frozen(): return "HQ-Umsetzen-Modus: Zeit steht – `esc` oder `move_hq <stadt>`"
+			# T-02/T-08: wie _physics_process des Spiels: je Schritt `speed` Ticks (Tempo-Faktor), danach die Frame-Regeln
+			# (HQ-Frist, Meldungen) – dadurch exakt auf den Tick statt in 15-s-Schritten.
 			var ticks := int(round(float(w[1]) * m.month_ticks))
+			var step: int = maxi(1, m.speed)
 			var done := 0
+			var n_steps := 0
 			while done < ticks and not m.bankrupt:
-				var step := mini(10, ticks - done)
-				m.run_ticks(step)
-				done += step
+				var k := mini(step, ticks - done)
+				m.run_ticks(k)
+				done += k
+				n_steps += 1
+				m.hq.refresh_rule()
 				poll()
-				if done % 600 == 0:
+				if n_steps % 300 == 0:
 					await process_frame
+			real_equiv_s += float(done) * m.tick_ms / 1000.0 / float(step)
 			return "BANKROTT nach %s" % gt() if m.bankrupt else ""
+		"hq_move", "move_hq":
+			# T-01: HQ-Umsetzen mit echter Maus. hq_move [ring|toast] startet nur den Modus,
+			# move_hq <stadt> [ring|toast] startet (falls nötig), wählt die Stadt und klickt „HQ hierher umsetzen“.
+			if not m.company_started: return "Erst HQ gründen"
+			var via := "ring"
+			var city = null
+			if op == "move_hq":
+				if n < 2: return "move_hq <stadt> [ring|toast]"
+				city = find_b(w[1])
+				if city == null or city.kind != Building.Kind.CITY: return "Keine Stadt: %s (siehe `list`)" % w[1]
+				if n > 2: via = w[2]
+			elif n > 1:
+				via = w[1]
+			if m.hq.mode != m.hq.Mode.MOVING:
+				if not m.hq.can_move():
+					return "Umsetzen nicht möglich: %s" % ("HQ ist fest (Frist 2:00 oder erste Lizenz)" if m.hq.fixed or m.hq._licence_bought() else "Frist abgelaufen")
+				await tool_off()
+				if via == "toast":
+					if not (m.hq._move_toast != "" and m.toast_label.text == m.hq._move_toast):
+						return "Umsetzen-Toast nicht mehr sichtbar (läuft wenige Sekunden Echtzeit) – `ring` nehmen"
+					m.toast_time = maxf(m.toast_time, 2.0)
+					await frames(2)
+					await click_control(m.toast_panel)
+				else:
+					var hc: Vector2i = m.hq.hq_cell(m.hq_city)
+					if not await point_cell(hc, func(cc): return m.hq._hits_ring_or_hq(cc)): return "Maus trifft den HQ-Ring nicht"
+					var rp := root.get_mouse_position()
+					await button_ev(rp, true)
+					await button_ev(rp, false)
+					await frames(2)
+				if m.hq.mode != m.hq.Mode.MOVING: return "Klick auf %s startete das Umsetzen nicht" % via
+				await panel_settle()
+				cam_note = "Umsetzen-Übersicht (vom Spiel gesetzt)"
+			if op == "hq_move": return ""
+			if city == m.hq_city: return "%s ist schon das HQ" % city.display_name
+			if not await point_cell(city.anchor(), func(cc): return m.hq.city_at(cc) == city, 16.0): return "Maus trifft %s nicht" % city.display_name
+			var p := root.get_mouse_position()
+			await button_ev(p, true)
+			await button_ev(p, false)
+			await frames(2)
+			await panel_settle()
+			if m.hq.selected != city: return "Stadt %s nicht gewählt" % city.display_name
+			if not m.hq.button.is_visible_in_tree() or m.hq.button.disabled: return "Knopf „HQ hierher umsetzen“ nicht bedienbar"
+			await click_control(m.hq.button)
+			await frames(2)
+			cam_note = "Ansicht nach Umsetzen (vom Spiel gesetzt)"
+			return "" if (m.hq_city == city and m.hq.mode == m.hq.Mode.FOUNDED) else "Umsetzen nach %s fehlgeschlagen" % city.display_name
+		"drag_start":
+			# T-03: Zwischenzustand – Werkzeug wählen, Maustaste auf A drücken und HALTEN (danach drag_to/drag_end/esc).
+			if n < 3 or not (w[1] in ["road", "rail"]): return "drag_start road|rail <id_a>"
+			var a = find_b(w[2])
+			if a == null: return "Unbekannt: %s" % w[2]
+			if not m.company_started: return "Erst HQ gründen"
+			await tool_off()
+			await select_tool(m.Tool.RAIL if w[1] == "rail" else m.Tool.ROAD)
+			if not await point_cell(a.anchor(), func(cc): return cc == a.anchor()): return "Maus trifft Startfeld %s nicht" % a.display_name
+			await button_ev(root.get_mouse_position(), true)
+			await frames(2)
+			cam_note = "Ziehen ab %s" % a.display_name
+			return "" if m.dragging else "Ziehen startet nicht"
+		"drag_to":
+			if n < 2: return "drag_to <id>"
+			var b = find_b(w[1])
+			if b == null: return "Unbekannt: %s" % w[1]
+			if not m.dragging: return "Kein Ziehen aktiv (erst `drag_start`)"
+			if not await point_cell(b.anchor(), func(cc): return cc == b.anchor()): return "Maus trifft Zielfeld %s nicht" % b.display_name
+			await frames(2)
+			cam_note = "Ziehen bis %s" % b.display_name
+			return ""
+		"drag_end":
+			if not m.dragging: return "Kein Ziehen aktiv"
+			await button_ev(root.get_mouse_position(), false)
+			await frames(2)
+			return ""
+		"dblclick":
+			if n < 2: return "dblclick <id>"
+			var b = find_b(w[1])
+			if b == null: return "Unbekannt: %s" % w[1]
+			if not await point_building(b): return "Maus trifft %s nicht" % b.display_name
+			var p := root.get_mouse_position()
+			for i in 2:
+				var e := InputEventMouseButton.new()
+				e.button_index = MOUSE_BUTTON_LEFT
+				e.pressed = true
+				e.double_click = i == 1
+				e.position = p
+				e.global_position = p
+				root.push_input(e, true)
+				await process_frame
+				e = e.duplicate()
+				e.pressed = false
+				e.double_click = false
+				root.push_input(e, true)
+				await process_frame
+			await frames(2)
+			await panel_settle()
+			cam_note = "auf %s" % b.display_name
+			return ""
 		"camera":
-			if n < 2: return "camera <id> [zoom]"
+			# camera <id> [zoom]  oder  camera <x> <y> [zoom]  (Feldkoordinaten). Zoom: GRÖSSER = WEITER WEG (0,4–26).
+			if n < 2: return "camera <id> [zoom] | camera <x> <y> [zoom]"
+			if w[1].is_valid_int() and n > 2 and w[2].is_valid_int():
+				var z2 := float(w[3]) if n > 3 else 3.2
+				m.focus(Vector2(float(w[1]) + 0.5, float(w[2]) + 0.5), clampf(z2, 0.4, 26.0))
+				cam_note = "camera %s,%s Zoom %.1f" % [w[1], w[2], z2]
+				return ""
 			var b = find_b(w[1])
 			if b == null: return "Unbekannt: %s" % w[1]
 			var z := float(w[2]) if n > 2 else 3.2
@@ -488,18 +615,22 @@ func state_md(cmds: Array, last_err: String, run_s: float) -> String:
 				typ += " (Kulisse)"
 			elif b.site >= 0 and b.is_industry():
 				var q: Dictionary = m.licence_quote(b)
-				if not q.get("ok", false):
+				if not m.company_started:
+					lic = "erst nach Gründung"          # T-07: vor der Gründung gibt es kein Angebot, nicht „nicht nötig“
+				elif not q.get("ok", false):
 					lic = "nicht nötig (Abnehmer)"
 				elif q["aktiv"]:
 					lic = "aktiv"
-				elif m.company_started:
-					lic = "keine (%s)" % ("gratis" if q["gratis"] else money(q["kosten_cent"]))
 				else:
-					lic = "keine"
+					lic = "keine (%s)" % ("gratis" if q["gratis"] else money(q["kosten_cent"]))
 				typ += " (%s)" % {Building.Kind.PRODUCER: "Rohstoff", Building.Kind.PROCESSOR: "Verarbeiter", Building.Kind.SINK: "Abnehmer"}.get(b.kind, "")
 			L.append("| %s | %s | %s | %d,%d | %s |" % [b.map_id, b.display_name, typ, b.anchor().x, b.anchor().y, lic])
 	L.append("")
-	L.append("Kamera: %s · Laufzeit %.1f s" % [cam_note if cam_note != "" else "Startansicht", run_s])
+	L.append("Tempo-Faktor: `wait` spielt je Schritt `speed` Ticks wie das Spiel; die gewarteten Spielminuten entsprächen bei dem jeweils gewählten Tempo %.0f s Echtzeit." % real_equiv_s)
+	L.append("Kamera: %s · Laufzeit %.1f s%s" % [cam_note if cam_note != "" else "Startansicht", run_s, " · KEIN BILD (--no-shot)" if no_shot else ""])
+	if aborted != "":
+		L.append("")
+		L.append("**ABBRUCH: %s**" % aborted)
 	return "\n".join(L) + "\n"
 
 
@@ -522,7 +653,13 @@ func _run() -> void:
 	root.disable_3d = OS.get_environment("PLAY_RENDER") == ""     # Tempo: Software-GL zeichnet die 3D-Welt erst fürs Schlussbild (UI läuft echt)
 	var last_err := ""
 	var errs: Array = []
+	var played := 0
 	for i in cmds.size():
+		if budget_s > 0.0 and (Time.get_ticks_msec() - t0) / 1000.0 > budget_s:
+			aborted = "Zeitbudget %.0f s erreicht nach %d von %d Befehlen (Rest nicht gespielt; Lauf kürzen oder `--no-shot`/`--fast`/`--budget=0`)" % [budget_s, i, cmds.size()]
+			print("ABBRUCH ", aborted)
+			break
+		played += 1
 		poll()
 		var tc := Time.get_ticks_msec()
 		var mode0: int = m.hq.mode
@@ -538,21 +675,25 @@ func _run() -> void:
 		if last_err != "":
 			errs.append("Zeile %d `%s`: %s" % [i + 1, cmds[i], last_err])
 			print("FEHLER ", errs[-1])
-	root.disable_3d = false
-	# Bild: Fahrzeug-Puffer ohne Physik-Ticks füllen (RENDER_SPLIT braucht begin -> step(_process) -> finish)
-	for i in 3:
-		m._render_vehicles()
-		await frames(2)
-	if OS.get_environment("PLAY_DEBUG") != "" and m.mm_truck.multimesh.instance_count > 0:
-		print("DBG truck ", m.mm_truck.multimesh.get_instance_transform(0), " states ", m.vehicles.map(func(v): return v.state))
-	m.toast_time = maxf(m.toast_time, 2.0)
-	await frames(6)
-	await pause(0.5)
-	poll()
-	var img := root.get_viewport().get_texture().get_image()
-	img.save_png(out_dir.path_join("shot.png"))
+	if not no_shot:
+		root.disable_3d = false
+		# Bild: Fahrzeug-Puffer ohne Physik-Ticks füllen (RENDER_SPLIT braucht begin -> step(_process) -> finish)
+		for i in 3:
+			m._render_vehicles()
+			await frames(2)
+		if OS.get_environment("PLAY_DEBUG") != "" and m.mm_truck.multimesh.instance_count > 0:
+			print("DBG truck ", m.mm_truck.multimesh.get_instance_transform(0), " states ", m.vehicles.map(func(v): return v.state))
+		m.toast_time = maxf(m.toast_time, 2.0)
+		await frames(6)
+		await pause(0.5)
+		poll()
+		var img := root.get_viewport().get_texture().get_image()
+		img.save_png(out_dir.path_join("shot.png"))
+	else:
+		poll()
+		DirAccess.remove_absolute(out_dir.path_join("shot.png"))     # kein altes Bild stehen lassen
 	var run_s := (Time.get_ticks_msec() - t0) / 1000.0
-	var md := state_md(cmds, last_err, run_s)
+	var md := state_md(cmds.slice(0, played), last_err, run_s)
 	if errs.size() > 0:
 		md += "\n## Fehler in früheren Zeilen\n" + "\n".join(errs.map(func(e): return "- " + e)) + "\n"
 	var sf := FileAccess.open(out_dir.path_join("state.md"), FileAccess.WRITE)
@@ -570,8 +711,8 @@ func _run() -> void:
 	var ms_done := 0
 	for e in m.milestones:
 		ms_done += 1 if e["done"] else 0
-	lf.store_line("| %d | `%s` | %s | %s | %d/%d | %s |" % [cmds.size(), cmds[-1] if cmds.size() > 0 else "-", gt(),
-		money(m.eco.cash_cent), ms_done, m.milestones.size(), last_err if last_err != "" else "–"])
+	lf.store_line("| %d | `%s` | %s | %s | %d/%d | %s |" % [played, cmds[played - 1] if played > 0 else "-", gt(),
+		money(m.eco.cash_cent), ms_done, m.milestones.size(), ("ABBRUCH Zeitbudget; " if aborted != "" else "") + (last_err if last_err != "" else "–")])
 	lf.close()
-	print("PLAY_OK %d Befehle, %s, %.1f s" % [cmds.size(), gt(), run_s])
-	quit(0)
+	print("PLAY_OK %d Befehle, %s, %.1f s" % [played, gt(), run_s])
+	quit(3 if aborted != "" else 0)

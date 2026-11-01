@@ -51,6 +51,13 @@ e=$(grep -c "SCRIPT ERROR" "$LOGS/d08_lizenzfaktor.txt")
 [ "$e" -gt 0 ] && r=1
 record "d08_lizenzfaktor (Vorschau gegen Spielpreis)" $r "$(tail -1 "$LOGS/d08_lizenzfaktor.txt" | cut -c1-120)"
 
+# --- 2c2) S7 Block A (Mira): Z-01 Stadtanschluss beide Richtungen + B-xx (Ring-Klick, Ziele typgenau, Lizenz-Toast, -0 $)
+$G --headless --path . -s res://tests/s7_mira_test.gd > "$LOGS/s7_mira.txt" 2>&1; r=$?
+e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_mira.txt")
+[ "$e" -gt 0 ] && r=1
+fl=$(grep "^  FAIL" "$LOGS/s7_mira.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
+record "s7_mira (Z-01 + B-xx Regression)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_mira.txt") ${fl:+ -- FAIL: $fl}"
+
 # --- 2d) D-08: HQ-Platzierung mit echter Maus (X-Zeiger über warp_mouse, echte Projektion Bildschirm -> Feld). Braucht xvfb-run.
 if command -v xvfb-run >/dev/null 2>&1; then
   D08_NOSHOT=1 xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/d08_maus.gd -- "$LOGS" > "$LOGS/d08_maus.txt" 2>&1; r=$?
@@ -60,6 +67,32 @@ if command -v xvfb-run >/dev/null 2>&1; then
   record "d08_maus (echte Maus, xvfb)" $r "$(grep 'Prüfungen OK' "$LOGS/d08_maus.txt") ${fl:+ -- FAIL: $fl}"
 else
   record "d08_maus (echte Maus, xvfb)" 1 "xvfb-run fehlt"
+fi
+
+# --- 2e) S7 W-01: Suite s7_boot (Schalter --welt=s7, Kamera-Klemme 40 m-5,6 km, Maßstab 25 m/Feld, km-Texte).
+# Zwei Läufe: Default-Start (muss Slice bleiben) + world_override, und der echte Kommandozeilen-Schalter.
+for mode in default arg; do
+  if [ "$mode" = arg ]; then a="-- --welt=s7"; else a=""; fi
+  $G --headless --path . -s res://tests/s7_boot.gd $a > "$LOGS/s7_boot_$mode.txt" 2>&1; r=$?
+  e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_boot_$mode.txt")
+  [ "$e" -gt 0 ] && r=1
+  fl=$(grep "^  FAIL" "$LOGS/s7_boot_$mode.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
+  record "s7_boot ($mode${a:+: --welt=s7})" $r "$(grep 'Prüfungen OK' "$LOGS/s7_boot_$mode.txt") ${fl:+ -- FAIL: $fl}"
+done
+# --- 2e) D-09 (S7): Perf-Baseline Slice. Dreiecke/Draw Calls/Objekte an den 6 SP-03-Kameras mit 0 und 5.000 Lkw (Zählwerte,
+# keine Zeiten) gegen tests/perf_s7_baseline_slice.csv. Gate: > +10 % = rot. Neue Baseline bewusst setzen:
+#   tests/perf_s7.gd -- --out=<abs>/tests/perf_s7_baseline_slice.csv (nur nach Absprache mit Daniel, Änderung im Bericht begründen).
+# S7-Welt (sobald Felix' Schalter da ist): PERF_WELT=s7 PERF_BASELINE=<csv> bash tests/d07_regression.sh ...
+if command -v xvfb-run >/dev/null 2>&1; then
+  PW=${PERF_WELT:-slice}
+  PB=${PERF_BASELINE:-$HERE/tests/perf_s7_baseline_slice.csv}
+  xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/perf_s7.gd -- --welt=$PW --out=$HERE/$LOGS/perf_s7_$PW.csv --check=$PB > "$LOGS/perf_s7.txt" 2>&1; r=$?
+  e=$(grep -c "SCRIPT ERROR" "$LOGS/perf_s7.txt")
+  [ "$e" -gt 0 ] && r=1
+  fl=$(grep "^  FAIL" "$LOGS/perf_s7.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
+  record "perf_s7 ($PW, 6 Kameras x 0/5.000 Lkw, Gate +10 %)" $r "$(grep -E 'Prüfungen OK|perf_s7 FEHLER' "$LOGS/perf_s7.txt") ${fl:+ -- FAIL: $fl}"
+else
+  record "perf_s7" 1 "xvfb-run fehlt"
 fi
 
 # --- 3) Spike-Suiten (Kern, Signal/Diagnose) auf Kopien; prüft, dass die Slice-Änderungen die Spikes nicht berühren

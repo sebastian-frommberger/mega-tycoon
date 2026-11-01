@@ -1,0 +1,573 @@
+{
+ "stand": "S7 Block A, Sophie",
+ "einheit": "m",
+ "skalierung_hinweis": "Kenney-Einheit x9 (SP-03): Suburban-EFH 11,7x9,3 m = Ziel 12x9 m",
+ "stufen": [
+  "dorf",
+  "kleinstadt",
+  "stadt"
+ ],
+ "zonen_regeln": {
+  "kern": "nur Commercial, ab Kleinstadt; Blockrand dicht",
+  "mitte": "Suburban + niedrige Commercial (Kleinstadt+); Dorf nur Suburban",
+  "rand": "kleine Suburban, locker, Gartenbaeume",
+  "garten": "tree-large/small x9 = 7/5 m (nur Garten, Waldbaeume weiter Nature Kit)"
+ },
+ "zonen_statistik": {
+  "kern": {
+   "anzahl": 9,
+   "mittel_dreiecke": 3073,
+   "max_hoehe_m": 28.4,
+   "min_hoehe_m": 8.0
+  },
+  "mitte": {
+   "anzahl": 14,
+   "mittel_dreiecke": 1428,
+   "max_hoehe_m": 11.6,
+   "min_hoehe_m": 6.6
+  },
+  "rand": {
+   "anzahl": 11,
+   "mittel_dreiecke": 1162,
+   "max_hoehe_m": 10.3,
+   "min_hoehe_m": 6.6
+  }
+ },
+ "farb_shader": "res://world/art/roof_palette.gdshader",
+ "gebaeude": [
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-a.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.7,
+    9.3
+   ],
+   "hoehe_m": 7.5,
+   "dreiecke": 1174,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-c.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.6,
+    9.3
+   ],
+   "hoehe_m": 9.3,
+   "dreiecke": 1196,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-e.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.7,
+    9.3
+   ],
+   "hoehe_m": 10.2,
+   "dreiecke": 1731,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-h.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.7,
+    8.2
+   ],
+   "hoehe_m": 6.6,
+   "dreiecke": 770,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-i.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.6,
+    9.3
+   ],
+   "hoehe_m": 6.6,
+   "dreiecke": 800,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-k.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    8.3,
+    9.2
+   ],
+   "hoehe_m": 10.3,
+   "dreiecke": 1024,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-l.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    9.3,
+    9.2
+   ],
+   "hoehe_m": 9.4,
+   "dreiecke": 1310,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-o.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.4,
+    9.3
+   ],
+   "hoehe_m": 10.2,
+   "dreiecke": 1326,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-p.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.2,
+    8.9
+   ],
+   "hoehe_m": 8.3,
+   "dreiecke": 1282,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-q.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.2,
+    8.0
+   ],
+   "hoehe_m": 8.3,
+   "dreiecke": 1140,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-r.glb",
+   "kit": "suburban",
+   "zone": "rand",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    9.3,
+    9.2
+   ],
+   "hoehe_m": 10.3,
+   "dreiecke": 1030,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-b.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    16.5,
+    10.3
+   ],
+   "hoehe_m": 10.2,
+   "dreiecke": 1748,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-d.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    15.8,
+    9.3
+   ],
+   "hoehe_m": 11.1,
+   "dreiecke": 1757,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-f.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    12.9,
+    12.7
+   ],
+   "hoehe_m": 10.2,
+   "dreiecke": 1616,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-j.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    12.3,
+    8.2
+   ],
+   "hoehe_m": 9.3,
+   "dreiecke": 1210,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-m.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    12.9,
+    12.9
+   ],
+   "hoehe_m": 6.6,
+   "dreiecke": 1112,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-n.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    16.1,
+    12.4
+   ],
+   "hoehe_m": 10.2,
+   "dreiecke": 1612,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-s.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    12.7,
+    9.8
+   ],
+   "hoehe_m": 10.2,
+   "dreiecke": 1212,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-t.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    11.8,
+    12.7
+   ],
+   "hoehe_m": 10.4,
+   "dreiecke": 2062,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/building-type-u.glb",
+   "kit": "suburban",
+   "zone": "mitte",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    12.9,
+    9.8
+   ],
+   "hoehe_m": 10.2,
+   "dreiecke": 1332,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-a.glb",
+   "kit": "commercial",
+   "zone": "mitte",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    8.0,
+    8.5
+   ],
+   "hoehe_m": 11.6,
+   "dreiecke": 1252,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-b.glb",
+   "kit": "commercial",
+   "zone": "mitte",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    8.7,
+    8.5
+   ],
+   "hoehe_m": 11.6,
+   "dreiecke": 1276,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-c.glb",
+   "kit": "commercial",
+   "zone": "mitte",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    8.0,
+    9.8
+   ],
+   "hoehe_m": 8.0,
+   "dreiecke": 1195,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-d.glb",
+   "kit": "commercial",
+   "zone": "mitte",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    7.6,
+    8.1
+   ],
+   "hoehe_m": 11.6,
+   "dreiecke": 1100,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-h.glb",
+   "kit": "commercial",
+   "zone": "mitte",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    8.0,
+    9.1
+   ],
+   "hoehe_m": 11.6,
+   "dreiecke": 1512,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-e.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    14.8,
+    9.1
+   ],
+   "hoehe_m": 8.0,
+   "dreiecke": 1509,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-f.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    7.6,
+    9.3
+   ],
+   "hoehe_m": 15.2,
+   "dreiecke": 1794,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-g.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    8.7,
+    8.3
+   ],
+   "hoehe_m": 15.2,
+   "dreiecke": 2006,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-i.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    11.2,
+    11.7
+   ],
+   "hoehe_m": 15.1,
+   "dreiecke": 2544,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-j.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    18.8,
+    12.1
+   ],
+   "hoehe_m": 15.2,
+   "dreiecke": 5246,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-k.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    18.8,
+    8.5
+   ],
+   "hoehe_m": 13.2,
+   "dreiecke": 2960,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-l.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    12.3,
+    12.6
+   ],
+   "hoehe_m": 20.4,
+   "dreiecke": 3512,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-m.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    11.2,
+    11.2
+   ],
+   "hoehe_m": 28.4,
+   "dreiecke": 3740,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-n.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "kleinstadt",
+   "grundflaeche_m": [
+    20.9,
+    16.4
+   ],
+   "hoehe_m": 22.3,
+   "dreiecke": 4350,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-skyscraper-a.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "grossstadt",
+   "grundflaeche_m": [
+    12.2,
+    12.2
+   ],
+   "hoehe_m": 25.9,
+   "dreiecke": 1292,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z",
+   "hinweis": "erst Grossstadt (S8)"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/commercial/building-skyscraper-b.glb",
+   "kit": "commercial",
+   "zone": "kern",
+   "min_stufe": "grossstadt",
+   "grundflaeche_m": [
+    12.2,
+    12.2
+   ],
+   "hoehe_m": 40.3,
+   "dreiecke": 1592,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z",
+   "hinweis": "erst Grossstadt (S8)"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/tree-large.glb",
+   "kit": "suburban",
+   "zone": "garten",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    1.9,
+    2.2
+   ],
+   "hoehe_m": 6.9,
+   "dreiecke": 42,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  },
+  {
+   "modell": "res://props/kenney_city/buildings/suburban/tree-small.glb",
+   "kit": "suburban",
+   "zone": "garten",
+   "min_stufe": "dorf",
+   "grundflaeche_m": [
+    1.9,
+    2.2
+   ],
+   "hoehe_m": 5.1,
+   "dreiecke": 42,
+   "skalierung": 9.0,
+   "pivot": "Mitte Grundflaeche, y=0; Fassade/Eingang zeigt +Z"
+  }
+ ]
+}

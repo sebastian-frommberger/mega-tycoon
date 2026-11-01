@@ -20,6 +20,8 @@ const SimWorld := preload("res://core/sim_world.gd")    # F-18: SoA-Kern mit Lin
 const FleetSoa := preload("res://fleet_soa.gd")
 const Credit := preload("res://credit.gd")             # F-19
 const Bench := preload("res://bench.gd")
+const WorldSel := preload("res://world/welt.gd")       # W-01 (S7): Weltauswahl + Maßstab, siehe world/welt.gd
+const S7World := preload("res://world/s7_world.gd")    # W-01: Hooks der S7-Welt (nur bei --welt=s7)
 const ThemeBuilder := preload("res://ui/theme/theme_builder.gd")
 const Kit := preload("res://ui/ui_kit.gd")
 const UiFx := preload("res://ui/ui_fx.gd")
@@ -62,6 +64,14 @@ const STAGE_NAMES := {"dorf": "Dorf", "kleinstadt": "Kleinstadt", "stadt": "Stad
 ## Umschalten: Kommandozeile --fahrzeuge=soa (bzw. =alt) oder vor dem Laden Main.core_override = "soa".
 const VEHICLE_CORE_DEFAULT := "soa"
 static var core_override := ""
+## W-01 (S7): Welt "slice" (Default) oder "s7". Umschalten: --welt=s7, ProjectSettings mega_tycoon/welt oder
+## vor dem Laden Main.world_override = "s7" (Reihenfolge siehe world/welt.gd).
+static var world_override := ""
+var welt := WorldSel.DEFAULT
+var world_s7 = null                 # S7World, nur bei welt == "s7"
+var m_pro_feld := WorldSel.m_pro_feld(WorldSel.DEFAULT)   # nur Darstellung/Text, Sim bleibt in Feldern
+var zoom_min := 0.4
+var zoom_max := 26.0
 var vehicle_core := VEHICLE_CORE_DEFAULT
 var fleet = null                    # F-18: FleetSoa (nur bei vehicle_core == "soa")
 var credit = Credit.new()           # F-19: Kredit (Werte aus economy_slice.json „kredit“)
@@ -220,6 +230,8 @@ func _ready() -> void:
 	_setup_environment()
 	_setup_camera()
 	_setup_ground()
+	if world_s7 != null:
+		world_s7.build_terrain(self)   # W-01: Block A no-op (flache 512²-Ebene), Block B Heightmap
 	_build_map()
 	load_ms = (Time.get_ticks_usec() - t0) / 1000.0
 	_setup_vehicle_meshes()
@@ -262,13 +274,17 @@ func _pick_vehicle_core() -> String:
 
 func _load_data() -> void:
 	vehicle_core = _pick_vehicle_core()
+	welt = WorldSel.pick(world_override, OS.get_cmdline_user_args() + OS.get_cmdline_args())
+	m_pro_feld = WorldSel.m_pro_feld(welt)
+	if welt == "s7":
+		world_s7 = S7World.new()
 	shim = SimWorld.new() if vehicle_core == "soa" else EcoShim.new()
 	eco = Economy.new()
 	if not eco.load_from(SLICE_PATH, CONSTS_PATH):
 		for e in eco.errors:
 			push_error("Ökonomie-JSON: " + e)
 	eco.attach(shim)
-	map_data = _json(MAP_PATH)
+	map_data = _json(MAP_PATH if world_s7 == null else world_s7.map_path(MAP_PATH))
 	for v in _json(VEHICLES_PATH)["fahrzeuge"]:
 		vdefs[v["id"]] = v
 	for g in _json(GOODS_PATH)["gueter"]:
@@ -400,14 +416,23 @@ func _setup_camera() -> void:
 	cam.near = 0.8                  # S-11: bessere Tiefenpräzision bei weitem Zoom (Streifen zwischen Ebenen)
 	rig.add_child(cam)
 	cam.rotation = Vector3(-atan2(20.0, 16.0), 0, 0)
+	if world_s7 != null:
+		world_s7.setup_camera(self)
 	zoom = 16.0
 	_apply_zoom()
 
 
 func _apply_zoom() -> void:
+	if world_s7 != null:
+		world_s7.apply_zoom(self)   # W-01: Klemme 40 m–5,6 km, near/far
 	cam.position = Vector3(0, 20, 16) * zoom
 	if sun != null:   # Schattenreichweite folgt dem Zoom: nah scharf, fern nicht verschwendet
 		sun.directional_shadow_max_distance = clampf(zoom * 26.0 * 1.4, 110.0, 520.0)
+
+
+## W-01: Distanztext. Slice: "%d Felder" wie bisher (bitgleich), S7: m/km aus m_pro_feld (world/welt.gd).
+func dist_str(felder: int) -> String:
+	return WorldSel.dist_text(welt, felder)
 
 
 func focus(cell: Vector2, z: float) -> void:
@@ -1467,7 +1492,15 @@ static func money_str(cent: int) -> String:
 	while s.length() > 3:
 		out = "." + s.substr(s.length() - 3) + out
 		s = s.substr(0, s.length() - 3)
-	return ("-" if neg else "") + s + out + " $"
+	return ("-" if neg and d > 0 else "") + s + out + " $"      # B-xx S7: nie „-0 $“ (Bankrott bei -0,xx $)
+
+
+## B-xx (S7): Kasse im Bankrott-Overlay. Unter 1 $ im Minus mit Cent („-0,37 $“), sonst wie money_str; so steht dort
+## nie „-0 $“ und nie „0 $“ neben „Ein Konto unter 0 $ ist das Ende“.
+static func bankrupt_cash_str(cent: int) -> String:
+	if cent < 0 and cent > -100:
+		return "-0,%02d $" % (-cent)
+	return money_str(cent)
 
 
 func time_str(ticks: int) -> String:
@@ -1764,8 +1797,8 @@ func _refresh_panel() -> void:
 					_set_status("bad", "Ohne Lizenz · Laden gesperrt")
 					var price := "gratis" if q["gratis"] else money_str(q["kosten_cent"])
 					_set_primary("lizenz", "Lizenz kaufen · %s" % price, "Ertrag ca. %s/Monat" % money_str(q["ertrag_pro_monat_cent"]), not q["kaufbar"])
-					panel_button.tooltip_text = Kit.txt("Ertrag geschätzt bis %s, %s Felder Luftlinie, volle Frische, ohne Sättigung.%s" % [
-						_target_name(str(q["ertrag_ziel_id"])), str(q["ertrag_distanz_felder"]),
+					panel_button.tooltip_text = Kit.txt("Ertrag geschätzt bis %s, %s Luftlinie, volle Frische, ohne Sättigung.%s" % [
+						_target_name(str(q["ertrag_ziel_id"])), dist_str(int(q["ertrag_distanz_felder"])),
 						"\n1. Lizenz gratis (sonst %s)." % money_str(q["kosten_cent"]) if q["gratis"] else ""])
 					if not q["kaufbar"]:
 						var miss: int = q["zu_zahlen_cent"] - eco.cash_cent
@@ -1790,13 +1823,22 @@ func _refresh_panel() -> void:
 func _init_milestones(A: Dictionary) -> void:
 	var src: String = by_id[A["src"]].display_name
 	var proc: String = by_id[A["proc"]].display_name
+	# B-xx (S7): Ziele 1–3 nennen den TYP („eine Getreidefarm“) und haken mit jedem Objekt dieses Typs ab; der Pfeil
+	# zeigt die nächste Empfehlung (src/proc). Objektgenau würde Spieler sperren, die auf eine andere Farm ausweichen
+	# (Aylin: Farm 2 nur über Fluss-Diagonale erreichbar), und „jede erste Linie“ machte den Kohlberg-Text falsch.
+	ms_src_typ = by_id[A["src"]].typ if by_id[A["src"]].kind == Building.Kind.PRODUCER else ""
+	ms_proc_typ = by_id[A["proc"]].typ if by_id[A["proc"]].is_industry() else ""
+	var st: String = IND_NAMES.get(ms_src_typ, src)
+	var pt: String = IND_NAMES.get(ms_proc_typ, proc)
+	var alt := " Jede andere %s zählt auch." % st if ms_src_typ != "" and _typ_count(ms_src_typ) > 1 else ""
 	milestones = [
 		{"text": "Firma gegründet (HQ %s)" % hq_city.display_name, "done": true, "hint": "", "t": []},
-		{"text": "Lizenz für %s kaufen" % src, "done": false, "t": [A["src"]],
-			"hint": "Klick auf %s (gelber Pfeil) und dann im Panel auf „Lizenz kaufen“." % src},
-		{"text": "Straße %s → %s bauen" % [src, proc], "done": false, "t": [A["src"], A["proc"]],
+		{"text": "Lizenz für %s %s kaufen" % [_article_acc(ms_src_typ), st] if ms_src_typ != "" else "Lizenz für %s kaufen" % src,
+			"done": false, "t": [A["src"]],
+			"hint": "Am nächsten: %s (gelber Pfeil). Klick darauf, dann im Panel auf „Lizenz kaufen“.%s" % [src, alt]},
+		{"text": "Straße %s → %s bauen" % [st, pt], "done": false, "t": [A["src"], A["proc"]],
 			"hint": "Taste [1] Straße: Maustaste auf %s drücken, bis %s ziehen, loslassen. Wasser nur gerade queren (Brücke)." % [src, proc]},
-		{"text": "Lkw-Linie %s → %s" % [src, proc], "done": false, "t": [A["src"], A["proc"]],
+		{"text": "Lkw-Linie %s → %s" % [st, pt], "done": false, "t": [A["src"], A["proc"]],
 			"hint": "Taste [4] Lkw-Linie: erst %s, dann %s anklicken." % [src, proc]},
 		{"text": "Erste Lieferung mit Ertrag", "done": false, "t": [A["proc"]],
 			"hint": "Der Lkw lädt und fährt los. Schneller: Tempo 2× oder 4× oben links."},
@@ -1805,6 +1847,32 @@ func _init_milestones(A: Dictionary) -> void:
 		{"text": "Endprodukt an einen Abnehmer (M3)", "done": false, "t": [A["m3_from"], A["m3_to"]], "hint": A["m3_text"]},
 	]
 	_refresh_milestones()
+
+
+var ms_src_typ := ""     # B-xx S7: Typ der Startquelle (Ziele 1–3), "" = jeder
+var ms_proc_typ := ""
+
+
+func _typ_ok(b, typ: String) -> bool:
+	return typ == "" or b.typ == typ
+
+
+func _typ_count(typ: String) -> int:
+	var n := 0
+	for b in buildings:
+		if b.typ == typ:
+			n += 1
+	return n
+
+
+## Unbestimmter Artikel im Akkusativ je Industrietyp („Lizenz für eine Getreidefarm / ein Kraftwerk / einen Holzfäller“).
+static func _article_acc(typ: String) -> String:
+	match typ:
+		"kraftwerk", "stahlwerk":
+			return "ein"
+		"holzfaeller":
+			return "einen"
+	return "eine"
 
 
 func _complete(i: int) -> void:
@@ -1826,20 +1894,20 @@ func _check_milestones() -> void:
 		return
 	if not milestones[1]["done"]:
 		for b in buildings:
-			if b.kind == Building.Kind.PRODUCER and eco.licence_valid(b.site):
+			if b.kind == Building.Kind.PRODUCER and _typ_ok(b, ms_src_typ) and eco.licence_valid(b.site):
 				_complete(1)
 				break
 	if not milestones[2]["done"] and network_dirty:
 		network_dirty = false
 		for b in buildings:
-			if b.kind == Building.Kind.PRODUCER and eco.licence_valid(b.site):
+			if b.kind == Building.Kind.PRODUCER and _typ_ok(b, ms_src_typ) and eco.licence_valid(b.site):
 				for t in buildings:
-					if t.is_industry() and t.in_goods.has(b.out_good) and not astar_road.get_id_path(b.anchor(), t.anchor()).is_empty():
+					if t.is_industry() and _typ_ok(t, ms_proc_typ) and t.in_goods.has(b.out_good) and not astar_road.get_id_path(b.anchor(), t.anchor()).is_empty():
 						_complete(2)
 	if not milestones[3]["done"] and lines_dirty:
 		lines_dirty = false
 		for v in vehicles:
-			if v.src != null and v.src.kind == Building.Kind.PRODUCER and v.dst.is_industry():
+			if v.src != null and v.src.kind == Building.Kind.PRODUCER and v.dst.is_industry() and _typ_ok(v.src, ms_src_typ) and _typ_ok(v.dst, ms_proc_typ):
 				_complete(3)
 	if deliveries_profit >= 3:
 		_complete(5)
@@ -1941,10 +2009,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if mb and mb.pressed:
 		match mb.button_index:
 			MOUSE_BUTTON_WHEEL_UP:
-				zoom = clampf(zoom * 0.9, 0.4, 26.0)
+				zoom = clampf(zoom * 0.9, zoom_min, zoom_max)
 				_apply_zoom()
 			MOUSE_BUTTON_WHEEL_DOWN:
-				zoom = clampf(zoom * 1.1, 0.4, 26.0)
+				zoom = clampf(zoom * 1.1, zoom_min, zoom_max)
 				_apply_zoom()
 			MOUSE_BUTTON_LEFT:
 				if tool == Tool.ROAD or tool == Tool.RAIL or tool == Tool.DEMOLISH:
@@ -2095,8 +2163,145 @@ func _in_grid(c: Vector2i) -> bool:
 	return c.x >= 0 and c.y >= 0 and c.x < GRID and c.y < GRID
 
 
+## Z-01 (S7): Endet oder beginnt der Drag auf einer Stadtfläche, dockt die Strecke am Stadtrand an (beide
+## Richtungen gleich): Weg vom Außenende zur Stadt, abgeschnitten am ersten Stadtfeld. Ist das eine Stadtstraße,
+## endet die Straße dort (Gleis: ein Feld davor). Liegt dort ein Haus, sucht _city_dock ein Randfeld neben einer
+## Stadtstraße. plan["dock_street"] = Anschlusspunkt (Vorschau-Marker), plan["dock_city"] = Stadtname.
 func plan_track(a: Vector2i, b: Vector2i, rail: bool) -> Dictionary:
-	var cells := _drag_path(a, b)
+	var ca = _city_of(a)
+	var cb = _city_of(b)
+	if (ca == null and cb == null) or ca == cb:
+		return _plan_cells(a, b, _drag_path(a, b), rail)
+	if ca != null and cb != null:
+		# Stadt zu Stadt: erst b vom Zentrum von a aus andocken, dann a vom Andockfeld von b aus.
+		var pb := _city_dock(ca.anchor(), b, cb, rail)
+		var pa := _city_dock(pb["end"], a, ca, rail)
+		var cells2: Array = pa["cells"].duplicate()
+		cells2.reverse()
+		var tail := _drag_path(pa["end"], pb["end"])
+		for i in range(1, tail.size()):
+			cells2.append(tail[i])
+		var p2 := _plan_cells(a, b, cells2, rail)
+		p2["dock_street"] = pb["street"]
+		p2["dock_city"] = cb.display_name
+		return p2
+	var city = cb if cb != null else ca
+	var outer := a if cb != null else b
+	var d := _city_dock(outer, b if cb != null else a, city, rail)
+	var cells: Array = d["cells"]
+	if ca != null:
+		cells = cells.duplicate()
+		cells.reverse()
+	var p := _plan_cells(a, b, cells, rail)
+	p["dock_street"] = d["street"]
+	p["dock_city"] = city.display_name
+	return p
+
+
+func _l_path(a: Vector2i, b: Vector2i, horiz_first: bool) -> Array:
+	var out := [a]
+	var c := a
+	for leg in 2:
+		if (leg == 0) == horiz_first:
+			while c.x != b.x:
+				c.x += signi(b.x - c.x)
+				out.append(c)
+		else:
+			while c.y != b.y:
+				c.y += signi(b.y - c.y)
+				out.append(c)
+	return out
+
+
+func _city_of(c: Vector2i):
+	var bb = cell_to_building.get(c)
+	return bb if bb != null and bb.kind == Building.Kind.CITY else null
+
+
+## Weg vom Außenpunkt `outer` zur Stadt `city` (gezielt auf `target`). Ergebnis: cells (outer … Ende),
+## end (letztes Feld), street (Stadtstraße, an der die Strecke anschließt).
+func _city_dock(outer: Vector2i, target: Vector2i, city, rail: bool) -> Dictionary:
+	var raw := _drag_path(outer, target)
+	var k := 0
+	while k < raw.size() and cell_to_building.get(raw[k]) != city:
+		k += 1
+	var trunc := {}
+	var reach := _city_reach(city)
+	if k < raw.size() and reach.has(raw[k]) and (not rail or k > 0):
+		var endk := k - 1 if rail else k
+		trunc = {"cells": raw.slice(0, endk + 1), "end": raw[endk], "street": raw[k]}
+		if _plan_cells(outer, trunc["end"], trunc["cells"], rail, false)["ok"]:
+			return trunc
+	# Randfelder: freies Feld außerhalb, 4-Nachbar einer mit dem Zentrum verbundenen Stadtstraße. Nach Abstand
+	# sortiert; das erste baubare gewinnt. Höchstens PLAN_BUDGET Vollplanungen je Aufruf (Vorschau läuft je Mausfeld).
+	var cand: Array = []
+	for s in city.cells():
+		if not reach.has(s):
+			continue
+		for dv in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = s + dv
+			if not _in_grid(n) or cell_to_building.has(n) or terrain_at(n) == Terrain.WATER:
+				continue
+			cand.append([absi(n.x - outer.x) + absi(n.y - outer.y), n, s])
+	cand.sort_custom(func(x, y): return x[0] < y[0] or (x[0] == y[0] and (x[1].x < y[1].x or (x[1].x == y[1].x and x[1].y < y[1].y))))
+	var best := {}
+	var best_ok := false
+	var budget := 24
+	for e in cand:
+		if budget <= 0:
+			break
+		var n: Vector2i = e[1]
+		# Form wie beim Drag, sonst als L (erst waagrecht bzw. erst senkrecht): so quert eine Brücke gerade.
+		for shape in 3:
+			var cells: Array = _drag_path(outer, n) if shape == 0 else _l_path(outer, n, shape == 1)
+			var clean := true
+			for c in cells:
+				if cell_to_building.get(c) == city:
+					clean = false
+					break
+			if not clean:
+				continue
+			budget -= 1
+			if best.is_empty():
+				best = {"cells": cells, "end": n, "street": e[2]}
+			if _plan_cells(outer, n, cells, rail, false)["ok"]:
+				best = {"cells": cells, "end": n, "street": e[2]}
+				best_ok = true
+				break
+		if best_ok:
+			break
+	var best_key := 0.0 if best_ok else 100000.0
+	if best.is_empty() or (best_key >= 100000.0 and not trunc.is_empty()):
+		if not trunc.is_empty():
+			return trunc
+		return {"cells": raw, "end": target, "street": Vector2i(-1, -1)}
+	return best
+
+
+## Stadtstraßen, die über Stadtstraßen mit dem Stadtzentrum (anchor, Ziel der Linien) verbunden sind. Ein Fluss
+## kann eine Stadt teilen (Mittelfurt): Andocken am abgetrennten Teil verbände nicht. Statisch, daher gecacht.
+var _reach_cache := {}
+
+func _city_reach(city) -> Dictionary:
+	if _reach_cache.has(city):
+		return _reach_cache[city]
+	var seen := {}
+	var a: Vector2i = city.anchor()
+	if city_streets.has(a):
+		seen[a] = true
+		var q: Array = [a]
+		while not q.is_empty():
+			var p: Vector2i = q.pop_back()
+			for dv in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var n: Vector2i = p + dv
+				if city_streets.has(n) and not seen.has(n) and cell_to_building.get(n) == city:
+					seen[n] = true
+					q.append(n)
+	_reach_cache[city] = seen
+	return seen
+
+
+func _plan_cells(a: Vector2i, b: Vector2i, cells: Array, rail: bool, check_money := true) -> Dictionary:
 	var net: Dictionary = rails if rail else roads
 	var items := []
 	var n := cells.size()
@@ -2118,6 +2323,9 @@ func plan_track(a: Vector2i, b: Vector2i, rail: bool) -> Dictionary:
 			var bb = cell_to_building[c]
 			if bb.kind != Building.Kind.CITY and (i < head or i >= n - tail):
 				it["state"] = "exist"
+			elif bb.kind == Building.Kind.CITY:
+				it["state"] = "bad"
+				it["reason"] = "Stadt im Weg: %s. Strecke um die Stadt herumführen oder am Stadtrand enden lassen." % bb.display_name
 			else:
 				it["state"] = "bad"
 				it["reason"] = "Gebäude im Weg: %s" % bb.display_name
@@ -2134,7 +2342,7 @@ func plan_track(a: Vector2i, b: Vector2i, rail: bool) -> Dictionary:
 		if it["state"] == "new":
 			total += it["cost"]
 			new_count += 1
-	if reason == "" and total > eco.cash_cent:
+	if check_money and reason == "" and total > eco.cash_cent:
 		reason = "Zu wenig Geld: %s nötig, %s vorhanden" % [money_str(total), money_str(eco.cash_cent)]
 		for it in items:
 			if it["state"] == "new":
@@ -2174,7 +2382,7 @@ func _check_bridges(cells: Array, items: Array) -> void:
 		if s == 0 or e == n - 1:
 			why = "Wasser ohne Brücke: Brückenkopf braucht Land an beiden Enden"
 		elif e - s + 1 > BRIDGE_MAX:
-			why = "Wasser ohne Brücke: Brücke zu lang (max. %d Felder)" % BRIDGE_MAX
+			why = "Wasser ohne Brücke: Brücke zu lang (max. %s)" % dist_str(BRIDGE_MAX)
 		else:
 			var p: Vector2i = cells[s - 1]
 			var q: Vector2i = cells[e + 1]
@@ -2184,7 +2392,8 @@ func _check_bridges(cells: Array, items: Array) -> void:
 				if not (c.x == p.x and p.x == q.x) and not (c.y == p.y and p.y == q.y):
 					straight = false
 			if not straight:
-				why = "Wasser ohne Brücke: Brücken nur gerade, nicht diagonal"
+				# Z-01/U-03: Ursache + Lösung statt „Brücken nur gerade, nicht diagonal“ (Aylins Liste, S6)
+				why = "Brücke geht nur geradeaus über das Wasser. In zwei Teilen bauen: erst bis ans Ufer, dann gerade hinüber."
 		if why != "":
 			for k in range(s, e + 1):
 				items[k]["state"] = "bad"
@@ -2228,7 +2437,8 @@ func build_track(a: Vector2i, b: Vector2i, rail: bool) -> bool:
 	network_dirty = true
 	cost_dirty = true
 	if p["total"] > 0:
-		_toast("%s gebaut: %d Felder, %s" % ["Gleis" if rail else "Straße", p["new_count"], money_str(p["total"])], 2.5)
+		var dock: String = " · angeschlossen am Stadtrand %s" % p["dock_city"] if p.get("dock_city", "") != "" else ""
+		_toast("%s gebaut: %s, %s%s" % ["Gleis" if rail else "Straße", dist_str(p["new_count"]), money_str(p["total"]), dock], 2.5)
 	_check_milestones()
 	return true
 
@@ -2355,7 +2565,7 @@ func demolish(a: Vector2i, b: Vector2i) -> int:
 	cost_dirty = true
 	network_dirty = true
 	if p["count"] > 0:
-		_toast("Abriss: %d Felder, +%s erstattet (50 %%)" % [p["count"], money_str(p["refund"])], 2.5)
+		_toast("Abriss: %s, +%s erstattet (50 %%)" % [dist_str(p["count"]), money_str(p["refund"])], 2.5)
 	elif p["reason"] != "":
 		_toast(p["reason"])
 	return p["refund"]
@@ -2512,7 +2722,7 @@ func create_line(a, b, type: String):
 		return null
 	v.assign(a, b, Array(path))
 	register_line(v)
-	_toast("%s-Linie: %s → %s (%d Felder)" % [v.kind_name, a.display_name, b.display_name, v.distance])
+	_toast("%s-Linie: %s → %s (%s)" % [v.kind_name, a.display_name, b.display_name, dist_str(v.distance)])
 	_refresh_lines()
 	_check_milestones()
 	return v
@@ -2589,6 +2799,22 @@ func _update_preview() -> void:
 				_ghost(it["cell"], mat_bad)
 			_:
 				_ghost(it["cell"], mat_exist)
+	_dock_marker(plan.get("dock_street", Vector2i(-1, -1)))
+
+
+## Z-01: Anschlusspunkt am Stadtrand in der Vorschau (Marker-Farbe S-08, Säule über der Stadtstraße).
+func _dock_marker(c: Vector2i) -> void:
+	if c.x < 0:
+		return
+	var mi := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.5, 1.6, 0.5)
+	mi.mesh = box
+	mi.material_override = mat_marker
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(c.x + 0.5, 0.8, c.y + 0.5)
+	mi.name = "DockMarker"
+	preview_root.add_child(mi)
 
 
 func _update_cursor_label() -> void:
@@ -2599,13 +2825,15 @@ func _update_cursor_label() -> void:
 	var world := Vector3(hover_cell.x + 0.5, 0.0, hover_cell.y + 0.5)
 	cursor_box.position = cam.unproject_position(world) + Vector2(22, 8)
 	if plan.get("demolish", false):
-		cursor_cost.text = "Abriss: %d Felder  +%s (50 %%)" % [plan["count"], money_str(plan["refund"])]
+		cursor_cost.text = "Abriss: %s  +%s (50 %%)" % [dist_str(plan["count"]), money_str(plan["refund"])]
 		cursor_cost.add_theme_color_override("font_color", ThemeBuilder.C["status_warn"])
 		cursor_reason.text = Kit.txt(plan["reason"])
 		cursor_reason.visible = plan["reason"] != ""
 		cursor_box.reset_size()
 		return
-	cursor_cost.text = "%s: %d Felder  %s" % ["Gleis" if plan["rail"] else "Straße", plan["new_count"], money_str(plan["total"])]
+	cursor_cost.text = "%s: %s  %s" % ["Gleis" if plan["rail"] else "Straße", dist_str(plan["new_count"]), money_str(plan["total"])]
+	if plan.get("dock_city", "") != "":
+		cursor_cost.text += "\nAnschluss am Stadtrand %s" % plan["dock_city"]
 	cursor_cost.add_theme_color_override("font_color", ThemeBuilder.C["cream"] if plan["ok"] else ThemeBuilder.C["status_bad"])
 	cursor_reason.text = "" if plan["ok"] else Kit.txt(plan["reason"])
 	cursor_reason.visible = not plan["ok"]
@@ -2641,6 +2869,8 @@ func sim_tick() -> void:
 		eco.on_tick(shim)
 		for v in vehicles:
 			v.tick(self)
+	if not eco.lic_events.is_empty():
+		_licence_events()
 	if cost_dirty:
 		_recompute_running_cost()
 	cost_acc += running_cost_per_period
@@ -2656,6 +2886,26 @@ func sim_tick() -> void:
 		_go_bankrupt()
 	elif shim.tick_count % 10 == 0:
 		_check_milestones()
+
+
+## B-xx (S7): Toast je automatischer Lizenzverlängerung mit Betrag (vorher still, Daniel Z-05 / Lena S6).
+var licence_toasts: Array = []      # Testspur: Texte der Verlängerungs-Toasts
+
+func _licence_events() -> void:
+	for e in eco.lic_events:
+		var nm := "Lizenz"
+		for b in buildings:
+			if b.site == e["site"] and b.kind != Building.Kind.CITY:
+				nm = b.display_name
+				break
+		var t: String
+		if e["ok"]:
+			t = "Lizenz %s verlängert: -%s, gilt weitere %s Spielzeit." % [nm, money_str(e["cent"]), time_str(eco.lic_duration)]
+		else:
+			t = "Lizenz %s abgelaufen: Verlängerung kostet %s, Kasse reicht nicht. Neu kaufen im Panel." % [nm, money_str(e["cent"])]
+		licence_toasts.append(t)
+		_toast(t, 6.0)
+	eco.lic_events.clear()
 
 
 func run_ticks(n: int) -> void:
@@ -2674,7 +2924,7 @@ func _go_bankrupt() -> void:
 	if bankrupt_panel.is_inside_tree():
 		UiFx.slide_in(bankrupt_panel, Vector2(0, -20))
 	bankrupt_label.text = Kit.txt("Kasse %s nach %s Spielzeit. Ein Konto unter 0 $ ist das Ende (Kredit vorher aufnehmen).\nEinnahmen %s · Ausgaben %s · Fahrzeuge %d (Unterhalt %s/min)." % [
-		money_str(eco.cash_cent), time_str(shim.tick_count), money_str(eco.revenue_total), money_str(expenses_total),
+		bankrupt_cash_str(eco.cash_cent), time_str(shim.tick_count), money_str(eco.revenue_total), money_str(expenses_total),
 		fleet_size(), money_str(running_cost_per_period)])
 	print("BANKROTT tick=%d kasse=%d" % [shim.tick_count, eco.cash_cent])
 
@@ -2740,7 +2990,7 @@ func _refresh_lines() -> void:
 			deliv += w.deliveries
 			warn = warn or w.no_licence
 		# U-02b: Zeile kürzen statt Spalte verbreitern („Lief.“), Warnung vorn, damit eine Kürzung nur das Ende trifft
-		r["sub"].text = Kit.txt("%s×%d · %d Felder · %d Lief." % ["keine Lizenz! · " if warn else "", list.size(), v.distance, deliv])
+		r["sub"].text = Kit.txt("%s×%d · %s · %d Lief." % ["keine Lizenz! · " if warn else "", list.size(), dist_str(v.distance), deliv])
 		r["sub"].theme_type_variation = "LabelBad" if warn else "LabelMuted"
 		r["val"].text = "%+d $" % int(profit)
 		r["val"].add_theme_color_override("font_color", ThemeBuilder.C["ok_text"] if profit > 0 else (ThemeBuilder.C["bad_text"] if profit < 0 else ThemeBuilder.C["muted"]))

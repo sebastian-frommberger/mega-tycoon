@@ -707,9 +707,20 @@ func ring_anim_sec() -> float:
 func _hits_ring_or_hq(c: Vector2i) -> bool:
 	if m.hq_city == null:
 		return false
+	# B-xx (S7): Klick auf oder direkt neben eine Industrie/ein Lager öffnet deren Panel, nie das Umsetzen.
+	# Umsetzen nur über HQ, Ring-Label, freie Ringfelder oder den Toast.
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			var bb = m.cell_to_building.get(c + Vector2i(dx, dy))
+			if bb != null and bb.kind != Building.Kind.CITY:
+				return false
 	var hc := hq_cell(m.hq_city)
 	if absi(c.x - hc.x) <= 2 and absi(c.y - hc.y) <= 2:
 		return true
+	if ring_label != null and ring_label.visible:
+		var lp := ring_label.position
+		if absf(c.x + 0.5 - lp.x) <= 5.0 and absf(c.y + 0.5 - lp.z) <= 1.5:
+			return true
 	var ctr: Vector3 = m.hq_city.center()
 	var d := Vector2(c.x + 0.5 - ctr.x, c.y + 0.5 - ctr.z).length()
 	return absf(d - float(m.eco.hq_radius_felder)) <= RING_HIT_FELDER

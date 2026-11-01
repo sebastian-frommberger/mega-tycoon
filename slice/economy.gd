@@ -65,6 +65,7 @@ var lic_duration := 0
 var lic_disc := 0
 var lic_surcharge := 0
 var lic_auto_renew := false
+var lic_events: Array = []    # B-xx S7: [{site, cent, ok}] je Verlängerung/Ablauf; main leert die Liste (Toast)
 var lic_required := false
 var free_licences_start := 0
 var warehouse_cap := 0
@@ -610,8 +611,10 @@ func _renew_licences(t: int) -> void:
 				cash_cent -= cost
 				licence_paid_total += cost
 				s_lic_until[site] += lic_duration
+				lic_events.append({"site": site, "cent": cost, "ok": true})
 			else:
 				s_lic_until[site] = -1
+				lic_events.append({"site": site, "cent": cost, "ok": false})
 	_update_next_expiry()
 
 

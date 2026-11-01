@@ -19,6 +19,12 @@ window/stretch/aspect="expand"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 
+[mega_tycoon]
+
+; W-01 (S7): Welt beim Start, "slice" (Default) oder "s7". Lokal umstellen, committet bleibt "slice".
+; Kommandozeile --welt=... hat Vorrang. Siehe world/welt.gd.
+welt="slice"
+
 [physics]
 
 common/physics_ticks_per_second=10

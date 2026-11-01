@@ -25,7 +25,7 @@ func _mesh(path: String) -> Array:   # [Mesh, Texture2D]
 	if _mesh_cache.has(path):
 		return _mesh_cache[path]
 	var doc := GLTFDocument.new(); var st := GLTFState.new()
-	doc.append_from_file(path, st)  # B-2: res://-Pfad, kein globalize_path
+	doc.append_from_file(path, st)  # B-2: res://-Pfad direkt (Export-sicher)
 	var n := doc.generate_scene(st)
 	var mi := n.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
 	var tex: Texture2D = null

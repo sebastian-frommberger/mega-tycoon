@@ -11,6 +11,8 @@ const Scenarios := preload("res://scenarios.gd")
 const SimWorld := preload("res://sim_world.gd")
 const Diagnostics := preload("res://diagnostics.gd")
 const NetGraph := preload("res://net_graph.gd")
+const DanielLauf := preload("res://daniel_d04_lauf_v2.gd")
+const F06World := preload("res://f06/f06_world.gd")
 
 const MAX_DETECT_TICKS := 50
 
@@ -37,6 +39,8 @@ func _init() -> void:
 	test_k2_astar()
 	test_k3_pruefsumme()
 	test_k4_position_fahrend()
+	test_k5_b8_freier_block()
+	test_k6_f06_welt()
 	print("== Dauer %d ms ==" % (Time.get_ticks_msec() - t0))
 	if failures.is_empty():
 		print("ERGEBNIS: ALLE TESTS GRUEN (Exit 0)")
@@ -284,3 +288,122 @@ func test_k4_position_fahrend() -> void:
 	print("    Zug 1 Zustand %d, Kantenfortschritt %d mm, Position %s" % [v1["state"], v1["pos"], str(p)])
 	check(v1["state"] == SimWorld.VState.UNTERWEGS and p == Vector2i(int(v1["pos"]), 0), "Position = Kantenfortschritt auf der x-Achse (%s)" % str(p))
 
+
+
+## B8 (Daniel, 23.11.): Fahrzeug wartet zwischen zwei Ticks auf einen Block, den der Halter im selben Tick
+## freigegeben hat (Halter = -1). Vorher: SCRIPT ERROR in build_wait_chain, Rückgabe {}. Jetzt: gültige Kette,
+## Ursache BLOCK_BELEGT_UNTERWEGS mit halter_id -1 (keine Meldung).
+func test_k5_b8_freier_block() -> void:
+	print("K5 Regression B8: Warten auf im selben Tick freigegebenen Block")
+	# a) synthetisch, von Hand konstruiert: Zug 2 (id 2) fährt ab Tick 1 auf Kante 1 (200 m, 50 Ticks),
+	#    Zug 1 (id 1, im Tick zuerst dran) startet in Tick 51 und will denselben Block. In Tick 51 versucht Zug 1
+	#    zuerst (Block noch von Zug 2 gehalten -> WARTET_BLOCK), danach fährt Zug 2 auf Kante 2 und gibt frei.
+	var s = SimWorld.new()
+	s.graph.add_node(0, Vector2i(0, 0), "A")
+	s.graph.add_node(1, Vector2i(Scenarios.SEG, 0), "B")
+	s.graph.add_node(2, Vector2i(2 * Scenarios.SEG, 0), "C")
+	s.graph.add_edge(1, 0, 1, false)
+	s.graph.add_edge(2, 1, 2, false)
+	s.add_vehicle(2, "Zug 2", s.graph.find_path(0, 2), Scenarios.SPEED, 0)
+	s.add_vehicle(1, "Zug 1", s.graph.find_path(0, 2), Scenarios.SPEED, 51)
+	s.run_ticks(51)
+	var v1: Dictionary = s.vehicles[1]
+	var holder: int = s.graph.blocks[v1["wait_block"]]["holder"] if v1["wait_block"] != -1 else -99
+	check(v1["state"] == SimWorld.VState.WARTET_BLOCK and holder == -1, "B8-Zustand hergestellt: Zug 1 wartet, Halter -1 (Zustand %d, Halter %d)" % [v1["state"], holder])
+	var c: Dictionary = s.get_wait_chain(1)
+	check(not c.is_empty() and c.has("links"), "get_wait_chain liefert kein leeres Dictionary")
+	if c.has("links"):
+		print("    " + Diagnostics.debug_text(c))
+		check(c["root_cause"] == "BLOCK_BELEGT_UNTERWEGS" and c["params"].get("halter_id") == -1, "Ursache BLOCK_BELEGT_UNTERWEGS, halter_id -1 (%s)" % c["root_cause"])
+		check_valid(c, "B8 synthetisch")
+	s.step()
+	check(s.vehicles[1]["state"] == SimWorld.VState.UNTERWEGS, "einen Tick später ist Zug 1 eingefahren")
+	# b) Glied in der Mitte der Kette: Zug 3 steht hinter Zug 1 (wartet auf dessen Block), Zug 1 wartet auf freien Block
+	var s2 = SimWorld.new()
+	s2.graph.add_node(0, Vector2i(-Scenarios.SEG, 0), "Z")
+	s2.graph.add_node(1, Vector2i(0, 0), "A")
+	s2.graph.add_node(2, Vector2i(Scenarios.SEG, 0), "B")
+	s2.graph.add_node(3, Vector2i(2 * Scenarios.SEG, 0), "C")
+	s2.graph.add_edge(1, 1, 2, false)
+	s2.graph.add_edge(2, 2, 3, false)
+	s2.graph.add_edge(3, 0, 1, false)
+	# Zug 1 hält Kante 3 (Z-A) und will Kante 1, die Zug 2 bis Tick 51 hält; Zug 0 (id 0, zuerst dran) will Kante 3
+	s2.add_vehicle(2, "Zug 2", s2.graph.find_path(1, 3), Scenarios.SPEED, 0)
+	s2.add_vehicle(1, "Zug 1", s2.graph.find_path(0, 3), Scenarios.SPEED, 0)
+	s2.add_vehicle(0, "Zug 0", s2.graph.find_path(0, 3), Scenarios.SPEED, 5)
+	var mid_ok := true
+	var mid_seen := 0
+	for t in range(200):
+		s2.step()
+		for vid in s2.vehicles:
+			var vv: Dictionary = s2.vehicles[vid]
+			if vv["state"] == SimWorld.VState.WARTET_BLOCK:
+				var cc: Dictionary = s2.get_wait_chain(vid)
+				if cc.is_empty() or not Diagnostics.validate(cc).is_empty():
+					mid_ok = false
+				elif cc["params"].get("halter_id") == -1 and cc["links"].size() > 4:
+					mid_seen += 1
+	check(mid_seen >= 1, "B8 als mittleres Glied hergestellt (%d Fälle)" % mid_seen)
+	check(mid_ok, "alle Ketten in 200 Ticks gültig (inkl. B8 in der Mitte)")
+	# c) Daniels Replay (daniel_b8_replay.gd): Normalnetz Variante 1, 6000 Ticks, jedes wartende Fahrzeug jeden Tick
+	var sim = DanielLauf.build_normal(1)
+	var b8 := 0
+	var bad := 0
+	var empty := 0
+	var meld := 0
+	var first_bad := ""
+	for t in range(6000):
+		sim.step()
+		for vid in sim.vehicles:
+			var vv: Dictionary = sim.vehicles[vid]
+			if vv["state"] != SimWorld.VState.WARTET_BLOCK and vv["state"] != SimWorld.VState.WARTET_LADUNG:
+				continue
+			var unsafe: bool = DanielLauf.b8_unsafe(sim, vid)
+			var cc: Dictionary = sim.get_wait_chain(vid)
+			if cc.is_empty():
+				empty += 1
+				continue
+			var e: Array = Diagnostics.validate(cc)
+			if not e.is_empty():
+				bad += 1
+				if first_bad == "":
+					first_bad = "Tick %d Fz %d %s" % [sim.tick_count, vid, str(e)]
+			if unsafe:
+				b8 += 1
+			# Meldungsregel Datenvertrag 3a: Deadlock sofort, Ladung erst ab wait_ticks >= 600
+			if cc["is_deadlock"] or (cc["root_cause"] == "WARTEN_AUF_LADUNG" and cc["wait_ticks"] >= 600):
+				meld += 1
+	print("    Daniel Normalnetz V1, 6000 Ticks: B8-Abfragen %d, leere Ketten %d, ungültige %d, meldungsfähige Ursachen %d" % [b8, empty, bad, meld])
+	check(b8 >= 80, "B8-Situationen im Replay reproduziert (%d Fahrzeug-Abfragen, Daniel: 80 Ticks)" % b8)
+	check(empty == 0 and bad == 0, "keine leere und keine ungültige Kette (%s)" % first_bad)
+	check(meld == 0, "Normalbetrieb: keine Meldung nach Regel 3a (Deadlock oder Ladung >= 600 Ticks) (%d)" % meld)
+	var sim3 = DanielLauf.build_normal(1)
+	sim3.run_ticks(3451)
+	var c3: Dictionary = sim3.get_wait_chain(1)
+	check(c3.has("links") and Diagnostics.validate(c3).is_empty() and c3["root_obj"]["id"] == 3,
+		"Daniels Fall Tick 3451, Fahrzeug 1: gültige Kette, Ursache-Objekt Block 3")
+
+
+## F-06 Testwelt: drei Fehler + Kontrolle in einer SimWorld (Datenseite der Testszene).
+func test_k6_f06_welt() -> void:
+	print("K6 F-06 Testwelt (Datenseite): 3 Fehler nach Vorlauf, Kontrollzüge ohne Meldung")
+	var w = F06World.new()
+	w.build()
+	w.vorlauf()
+	for key in ["F1", "F2", "F3"]:
+		var vid: int = F06World.FEHLER[key]["vehicle"]
+		var c: Dictionary = w.sim.get_wait_chain(vid)
+		var rows: Array = w.rows_for(c)
+		check(c["root_cause"] == F06World.FEHLER[key]["code"], "%s Zug %d Ursache %s (%s)" % [key, vid, F06World.FEHLER[key]["code"], c["root_cause"]])
+		check(Diagnostics.validate(c).is_empty(), "%s Validator gültig" % key)
+		check(rows.size() == F06World.FEHLER[key]["zeilen"], "%s Zeilen %d (Soll %d)" % [key, rows.size(), F06World.FEHLER[key]["zeilen"]])
+		check(c["wait_ticks"] >= 1200, "%s steht beim Start >= 120 s (%d Ticks)" % [key, c["wait_ticks"]])
+	var kont_ok := true
+	for t in range(3000):
+		w.sim.step()
+		for vid in F06World.KONTROLLE:
+			var cc: Dictionary = w.sim.get_wait_chain(vid)
+			if cc["root_cause"] != "KEINE" and cc["root_cause"] != "BLOCK_BELEGT_UNTERWEGS":
+				kont_ok = false
+	check(kont_ok and w.sim.deadlock_events.size() == 2, "3000 Ticks: Kontrollzüge ohne Meldung, genau 2 Deadlocks (F1, F2) (%d)" % w.sim.deadlock_events.size())
+	check(w.sim.get_wait_chain(F06World.FEHLER["F3"]["vehicle"])["root_cause"] == "WARTEN_AUF_LADUNG", "F3 besteht nach Vorlauf + 3000 Ticks noch")

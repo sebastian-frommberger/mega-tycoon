@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+B8-Ticks in 6000 Ticks (irgendein Fahrzeug wartet auf schon freien Block): 80, erster Tick 704
+Tick 3451: Fahrzeug 1 Zustand 2, wait_block 3, Halter -1
+get_wait_chain(1) Rueckgabe: { "vehicle_id": 1, "root_cause": "BLOCK_BELEGT_UNTERWEGS", "is_deadlock": false, "in_cycle": false, "root_pos": (300000, 0), "root_obj": { "kind": "BLOCK", "id": 3 }, "params": { "halter_id": -1, "block_frei_im_tick": true, "block_id": 3, "faehrt_ein": 1 }, "cycle": [], "cycle_back_index": -1, "suggestion_id": "", "wait_ticks": 17, "wait_since_tick": 3435, "links": [{ "kind": "FAHRZEUG", "id": 1, "pos": (200000, 0), "role": "ANFRAGE", "name": "Zug 1", "rolle": "SYMPTOM" }, { "kind": "SIGNAL", "id": 3, "pos": (200000, 0), "rolle": "ZWISCHEN" }, { "kind": "BLOCK", "id": 3, "pos": (300000, 0), "edge": 2, "single": false, "holder": -1, "holder_fwd": true, "wanted_fwd": true, "rolle": "ZWISCHEN" }, { "kind": "URSACHE", "id": 3, "obj_kind": "BLOCK", "pos": (300000, 0), "code": "BLOCK_BELEGT_UNTERWEGS", "params": { "halter_id": -1, "block_frei_im_tick": true, "block_id": 3, "faehrt_ein": 1 }, "rolle": "WURZEL" }] }  (leer/abgebrochen = Absturz reproduziert)
+Tick 3452 (einen Tick spaeter): Zustand 1, held_block 3  (Fahrzeug ist eingefahren, Zustand war nur im Tick-Zwischenstand inkonsistent)

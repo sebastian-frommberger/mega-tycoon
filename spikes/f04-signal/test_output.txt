@@ -1,6 +1,6 @@
-Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
-== Spike F-04 Testlauf, Godot 4.4.1-stable (official) ==
+== Spike F-04 Testlauf, Godot 4.7.2-stable (official) ==
     [OK] Enum-Konstanten Diagnose = Sim
 S1 Gegenverkehr eingleisig
     [OK] genau ein Deadlock-Ereignis (1)
@@ -97,5 +97,35 @@ K3 Prüfsumme (Daniel S5): gleicher Aufbau = gleiche Summe, anderer Zustand = an
 K4 Position fahrender Fahrzeuge (int32-Überlauf, gefunden 23.11.)
     Zug 1 Zustand 1, Kantenfortschritt 96000 mm, Position (96000, 0)
     [OK] Position = Kantenfortschritt auf der x-Achse ((96000, 0))
-== Dauer 128 ms ==
+K5 Regression B8: Warten auf im selben Tick freigegebenen Block
+    [OK] B8-Zustand hergestellt: Zug 1 wartet, Halter -1 (Zustand 2, Halter -1)
+    [OK] get_wait_chain liefert kein leeres Dictionary
+    V1: FAHRZEUG#1@(0,0) -> SIGNAL#1@(0,0) -> BLOCK#1@(100000,0) -> URSACHE#1@(100000,0) | Ursache=BLOCK_BELEGT_UNTERWEGS @(100000,0) params={"block_frei_im_tick":true,"block_id":1,"faehrt_ein":1,"halter_id":-1} Vorschlag= wartet=1 Ticks
+    [OK] Ursache BLOCK_BELEGT_UNTERWEGS, halter_id -1 (BLOCK_BELEGT_UNTERWEGS)
+    [OK] Validator B8 synthetisch: gültig
+    [OK] B8 synthetisch: root_pos == letztes Kettenglied (D9)
+    [OK] einen Tick später ist Zug 1 eingefahren
+    [OK] B8 als mittleres Glied hergestellt (1 Fälle)
+    [OK] alle Ketten in 200 Ticks gültig (inkl. B8 in der Mitte)
+    Daniel Normalnetz V1, 6000 Ticks: B8-Abfragen 160, leere Ketten 0, ungültige 0, meldungsfähige Ursachen 0
+    [OK] B8-Situationen im Replay reproduziert (160 Fahrzeug-Abfragen, Daniel: 80 Ticks)
+    [OK] keine leere und keine ungültige Kette ()
+    [OK] Normalbetrieb: keine Meldung nach Regel 3a (Deadlock oder Ladung >= 600 Ticks) (0)
+    [OK] Daniels Fall Tick 3451, Fahrzeug 1: gültige Kette, Ursache-Objekt Block 3
+K6 F-06 Testwelt (Datenseite): 3 Fehler nach Vorlauf, Kontrollzüge ohne Meldung
+    [OK] F1 Zug 4 Ursache EINGLEISIG_GEGENVERKEHR (EINGLEISIG_GEGENVERKEHR)
+    [OK] F1 Validator gültig
+    [OK] F1 Zeilen 4 (Soll 4)
+    [OK] F1 steht beim Start >= 120 s (1250 Ticks)
+    [OK] F2 Zug 5 Ursache DEADLOCK (DEADLOCK)
+    [OK] F2 Validator gültig
+    [OK] F2 Zeilen 6 (Soll 6)
+    [OK] F2 steht beim Start >= 120 s (1250 Ticks)
+    [OK] F3 Zug 10 Ursache WARTEN_AUF_LADUNG (WARTEN_AUF_LADUNG)
+    [OK] F3 Validator gültig
+    [OK] F3 Zeilen 5 (Soll 5)
+    [OK] F3 steht beim Start >= 120 s (1291 Ticks)
+    [OK] 3000 Ticks: Kontrollzüge ohne Meldung, genau 2 Deadlocks (F1, F2) (2)
+    [OK] F3 besteht nach Vorlauf + 3000 Ticks noch
+== Dauer 1276 ms ==
 ERGEBNIS: ALLE TESTS GRUEN (Exit 0)

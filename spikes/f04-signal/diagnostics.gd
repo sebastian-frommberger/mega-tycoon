@@ -17,7 +17,8 @@ extends RefCounted
 ##       EINGLEISIG_GEGENVERKEHR: strecke_mm, strecke_felder, gleiszahl (=1), n_fahrzeuge, bloecke, kanten
 ##       DEADLOCK:                n_fahrzeuge, bloecke, kanten, gleiszahl (min über Kanten)
 ##       WARTEN_AUF_LADUNG:       fuell_ist, fuell_soll, n_lkw, lkw_ids, produce_every, produce_amount, lager_id
-##       BLOCK_BELEGT_UNTERWEGS:  halter_id
+##       BLOCK_BELEGT_UNTERWEGS:  halter_id (-1 = B8: Block im selben Tick frei geworden, dazu
+##                                block_frei_im_tick, block_id, faehrt_ein; root_obj ist dann der BLOCK)
 ##   cycle: Array[int]    Fahrzeug-IDs im Zyklus (leer ohne Zyklus)
 ##   cycle_back_index: int  Index des Kettenglieds (FAHRZEUG), auf das der Kreis zurückführt; -1 ohne Zyklus
 ##                          (Aylins kette_kreis_zurueck_zu)
@@ -118,6 +119,17 @@ static func build_wait_chain(sim, vehicle_id: int) -> Dictionary:
 				"edge": step["edge"], "single": b["single"], "holder": b["holder"],
 				"holder_fwd": b["holder_fwd"], "wanted_fwd": step["fwd"]})
 			var holder: int = b["holder"]
+			if holder == -1 or holder == cur:
+				# B8 (Daniel, 23.11.): Halter hat den Block im selben Tick freigegeben, nachdem dieses Fahrzeug
+				# (kleinere ID, früher im Tick dran) es schon versucht hatte. Zwischen zwei Ticks steht es dann in
+				# WARTET_BLOCK auf einen freien Block und fährt im nächsten Tick ein. Vorübergehend, wie ein
+				# fahrender Halter: BLOCK_BELEGT_UNTERWEGS (erzeugt keine Meldung, kein neuer Code im Namensraum).
+				# halter_id = -1 kennzeichnet den Fall; Ursache-Objekt ist der freie Block.
+				res["root_cause"] = "BLOCK_BELEGT_UNTERWEGS"
+				res["root_pos"] = b["center"]
+				res["root_obj"] = {"kind": "BLOCK", "id": v["wait_block"]}
+				res["params"] = {"halter_id": -1, "block_frei_im_tick": true, "block_id": v["wait_block"], "faehrt_ein": cur}
+				break
 			if visited.has(holder):
 				# Zyklus geschlossen: Mitglieder ab erstem Auftreten des Halters
 				var cyc: Array = visited.slice(visited.find(holder))

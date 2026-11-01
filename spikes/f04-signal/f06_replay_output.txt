@@ -1,0 +1,34 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Session T1_20261101-102315, Tester T1, Reihenfolge ["F1", "F2", "F3"]
+Start-Prüfsumme gleich
+  t=0 ms tick 1300 session_start
+  t=22 ms tick 1301 meldung_geoeffnet -> Zug 4 steht seit 2:05 min (4 Zeilen)
+  t=775 ms tick 1309 zeile_klick -> Zeile 1: Zug 4 steht seit 2:05 min
+  t=783 ms tick 1309 zeile_klick -> Zeile 2: Wartet am Signal 13: Abschnitt 12 ist besetzt
+  t=788 ms tick 1309 zeile_klick -> Zeile 3: Zug 2 besetzt Abschnitt 12 und fährt entgegen
+  t=795 ms tick 1309 zeile_klick -> Zeile 4: Mühlbach–Kornfeld hat nur ein Gleis (40 Felder)
+  t=1527 ms tick 1316 sprung_zurueck
+  t=1527 ms tick 1316 meldung_geschlossen
+  t=1631 ms tick 1317 meldung_geoeffnet -> Zug 5 steht seit 2:06 min (6 Zeilen)
+  t=2382 ms tick 1325 zeile_klick -> Zeile 1: Zug 5 steht seit 2:06 min
+  t=2390 ms tick 1325 zeile_klick -> Zeile 2: Zug 5 wartet auf Zug 8, der Abschnitt 32 besetzt
+  t=2398 ms tick 1325 zeile_klick -> Zeile 3: Zug 8 wartet auf Zug 6, der Abschnitt 33 besetzt
+  t=2406 ms tick 1325 zeile_klick -> Zeile 4: Zug 6 wartet auf Zug 9, der Abschnitt 34 besetzt
+  t=2415 ms tick 1325 zeile_klick -> Zeile 5: Zug 9 wartet auf Zug 5, der Abschnitt 31 besetzt
+  t=2422 ms tick 1325 zeile_klick -> Zeile 6: Alle 4 warten aufeinander, keiner kann zuerst fahren
+  t=3136 ms tick 1332 sprung_zurueck
+  t=3136 ms tick 1332 meldung_geschlossen
+  t=3239 ms tick 1333 meldung_geoeffnet -> Zug 10 steht seit 2:12 min (5 Zeilen)
+  t=3992 ms tick 1341 zeile_klick -> Zeile 1: Zug 10 steht seit 2:12 min
+  t=4002 ms tick 1341 zeile_klick -> Zeile 2: Wartet am Signal 21: Abschnitt 21 ist besetzt
+  t=4012 ms tick 1341 zeile_klick -> Zeile 3: Zug 7 besetzt Abschnitt 21
+  t=4020 ms tick 1341 zeile_klick -> Zeile 4: Zug 7 wartet in Hafen-Ost auf Ladung (1 von 40)
+  t=4029 ms tick 1341 zeile_klick -> Zeile 5: Hafen-Ost bekommt zu wenig Ware: nur 1 Lkw liefert
+  t=4747 ms tick 1348 sprung_zurueck
+  t=4747 ms tick 1348 meldung_geschlossen
+  t=4850 ms tick 1349 klick_sonstige karte_leer
+  t=4851 ms tick 1349 feed_eingeklappt
+  t=4851 ms tick 1349 feed_ausgeklappt
+  t=5091 ms tick 4352 session_ende
+End-Prüfsumme (Tick 4352) gleich

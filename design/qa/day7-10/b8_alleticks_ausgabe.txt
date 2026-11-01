@@ -1,0 +1,3 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERGEBNIS wartende Fahrzeug-Ticks 24502, davon B8 459, leer 0, ungueltig 0, ohne URSACHE-Glied 0, root_pos!=links[-1].pos 0, Deadlock-Fehlalarme 0

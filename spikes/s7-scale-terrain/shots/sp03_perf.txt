@@ -1,0 +1,16 @@
+SP03 tile road-crossroad.glb open=["+x", "-x", "+z", "-z"]
+SP03 tile road-intersection.glb open=["+x", "-x", "+z"]
+SP03 tile road-straight.glb open=["+x", "-x"]
+SP03 tile road-bend-square.glb open=["-x", "+z"]
+SP03 tile road-end.glb open=["+x"]
+SP03 city nodes=87 buildings=536
+SP03 trees=28469
+SP03 gen_ms=26668 verts=370514 tris=6180466 instances=37987 mmi=105
+SP03 perf sp03_uebersicht draw_calls=114 objects=114 primitives=598638 vmem_mb=41 fps=1.0 border={ "max_out_m": 0.0, "miss": 0 }
+SP03 perf sp03_stadt_nah draw_calls=173 objects=173 primitives=2867672 vmem_mb=41 fps=1.0 border={ "max_out_m": 0.0, "miss": 0 }
+SP03 perf sp03_stadt_strasse draw_calls=171 objects=171 primitives=2205749 vmem_mb=41 fps=1.0 border={ "max_out_m": 0.0, "miss": 0 }
+SP03 perf sp03_rand_max_nw draw_calls=10 objects=10 primitives=168838 vmem_mb=41 fps=1.0 border={ "max_out_m": 6752.2900390625, "miss": 0 }
+SP03 perf sp03_rand_max_ost draw_calls=17 objects=17 primitives=194864 vmem_mb=41 fps=1.0 border={ "max_out_m": 3223.75390625, "miss": 0 }
+SP03 perf sp03_mine draw_calls=49 objects=49 primitives=2007718 vmem_mb=41 fps=1.0 border={ "max_out_m": 0.0, "miss": 0 }
+SP03 perf sp03_farm draw_calls=52 objects=52 primitives=2276504 vmem_mb=41 fps=2.0 border={ "max_out_m": 0.0, "miss": 0 }
+SP03 border sweep: max Bodentreffer ausserhalb spielbarer Flaeche = 6752 m (Rand 7500 m), Fehltreffer=0

@@ -1,0 +1,13 @@
+Option;Archetyp;Startkapital;K_V;Lizenz_V;Drei_Lizenzen;Drei_Lizenzen_in_K_V;C_in_K_V;C_in_S0;C_in_min_Einkommen;Kauf_plus_Startpaket_bezahlbar;Kauf_bei_min0;K0_t_Linie_voll;L_t_Linie_voll;t_Kauf_bezahlbar_Casual;Break_even_Cash_Kauf_vs_Lizenz_min;Ausbau_Stufe2_in_K_V
+0/C Ist: hq-Kapital, Preise 1-4k;Agrar;30000;2000;140.0;350.0;0.175;15.0;21.9;35.5;1;1;1;1;1;17;1.0
+0/C Ist: hq-Kapital, Preise 1-4k;Hafen;25000;2000;140.0;350.0;0.175;12.5;17.1;39.9;1;1;1;1;1;22;1.0
+0/C Ist: hq-Kapital, Preise 1-4k;Bergbau;25000;4000;280.0;686.0;0.172;6.25;15.0;32.0;1;1;1;1;1;35;0.5
+0/C Ist: hq-Kapital, Preise 1-4k;Handel;20000;2500;175.0;434.0;0.174;8.0;15.1;50.1;1;1;1;1;1;56;0.8
+A Startkapital runter;Agrar;4500;2000;140.0;350.0;0.175;2.25;3.3;5.3;1;1;1;1;1;17;1.0
+A Startkapital runter;Hafen;4500;2000;140.0;350.0;0.175;2.25;3.1;7.2;1;1;1;1;1;22;1.0
+A Startkapital runter;Bergbau;7000;4000;280.0;686.0;0.172;1.75;4.2;9.0;1;1;1;1;1;35;0.5
+A Startkapital runter;Handel;5000;2500;175.0;434.0;0.174;2.0;3.8;12.5;1;1;1;1;1;56;0.8
+B Kaufpreise x6, hq-Kapital;Agrar;30000;12000;840.0;2100.0;0.175;2.5;21.9;35.5;1;1;1;1;1;83;0.17
+B Kaufpreise x6, hq-Kapital;Hafen;25000;12000;840.0;2100.0;0.175;2.08;17.1;39.9;1;1;1;1;1;99;0.17
+B Kaufpreise x6, hq-Kapital;Bergbau;25000;24000;1680.0;4116.0;0.172;1.04;15.0;32.0;0;1;>60;1;1;151;0.08
+B Kaufpreise x6, hq-Kapital;Handel;20000;15000;1050.0;2604.0;0.174;1.33;15.1;50.1;1;1;1;1;1;199;0.13

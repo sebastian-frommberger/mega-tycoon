@@ -1,0 +1,21 @@
+Archetyp;Fall;Beschreibung;Firma;Kaufpreis;Lizenz_je30min;Rate_Lizenz_pro_min;Rate_Kauf_pro_min;Mehrertrag_Besitz_pro_min;Break_even_Cash_min;Break_even_Netto_min;Lizenzroute_vorn_ueber_30min
+Agrar;F1;Verarbeiter im Radius, KI aus (Standard);Muehle;2000;140.0;844;959;119.7;17;6;0
+Agrar;F2;Verarbeiter im Radius, KI teilt Lizenz ab min 15;Muehle;2000;140.0;332;379;51.7;18;6;0
+Agrar;F3;Verarbeiter 12 Felder ausserhalb Radius (+36 %);Muehle;2720;272.0;844;959;124.1;22;8;0
+Agrar;F4;Rohstoff-Firma im Radius, KI aus;Getreidefarm;1000;70.0;844;845;3.3;>120;91;1
+Agrar;F5;Verarbeiter im Radius, kleiner Abnehmermarkt (9 E/min, Dorf 900 Einw.);Muehle;2000;140.0;34;27;-2.3;>120;>120;1
+Hafen;F1;Verarbeiter im Radius, KI aus (Standard);Saegewerk;2000;140.0;627;715;92.7;22;8;0
+Hafen;F2;Verarbeiter im Radius, KI teilt Lizenz ab min 15;Saegewerk;2000;140.0;224;258;38.7;31;8;1
+Hafen;F3;Verarbeiter 12 Felder ausserhalb Radius (+36 %);Saegewerk;2720;272.0;627;715;97.1;28;10;0
+Hafen;F4;Rohstoff-Firma im Radius, KI aus;Holzfaeller;1000;70.0;627;623;-1.7;>120;>120;1
+Hafen;F5;Verarbeiter im Radius, kleiner Abnehmermarkt (9 E/min, Dorf 900 Einw.);Saegewerk;2000;140.0;238;267;33.7;61;24;1
+Bergbau;F1;Verarbeiter im Radius, KI aus (Standard);Stahlwerk;4000;280.0;806;906;109.3;35;14;1
+Bergbau;F2;Verarbeiter im Radius, KI teilt Lizenz ab min 15;Stahlwerk;4000;280.0;268;308;49.3;61;14;1
+Bergbau;F3;Verarbeiter 12 Felder ausserhalb Radius (+36 %);Stahlwerk;5440;544.0;806;906;118.1;44;17;1
+Bergbau;F4;Rohstoff-Firma im Radius, KI aus;Erzmine;1800;126.0;806;813;11.2;>120;61;1
+Bergbau;F5;Verarbeiter im Radius, kleiner Abnehmermarkt (9 E/min, Dorf 900 Einw.);Stahlwerk;4000;280.0;86;78;1.3;>120;>120;1
+Handel;F1;Verarbeiter im Radius, KI aus (Standard);Schlachthof;2500;175.0;399;437;43.8;56;22;1
+Handel;F2;Verarbeiter im Radius, KI teilt Lizenz ab min 15;Schlachthof;2500;175.0;109;119;15.8;>120;31;1
+Handel;F3;Verarbeiter 12 Felder ausserhalb Radius (+36 %);Schlachthof;3400;340.0;399;437;49.3;62;27;1
+Handel;F4;Rohstoff-Firma im Radius, KI aus;Viehhof;1200;84.0;399;409;12.8;91;32;1
+Handel;F5;Verarbeiter im Radius, kleiner Abnehmermarkt (9 E/min, Dorf 900 Einw.);Schlachthof;2500;175.0;48;34;-8.2;>120;>120;1

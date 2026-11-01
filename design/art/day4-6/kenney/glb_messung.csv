@@ -1,0 +1,19 @@
+kit;datei;tris;primitives;materialien;bilder;x_m;y_m(hoehe);z_m;min_y
+Car Kit;tractor.glb;2044;5;1;1;1.34;1.60;2.20;0.00
+Car Kit;truck-flat.glb;2488;5;1;1;1.50;1.30;2.75;-0.00
+Car Kit;truck.glb;2082;5;1;1;1.50;1.30;2.95;-0.00
+City Kit - Industrial;building-a.glb;2046;1;1;1;2.08;1.47;1.24;0.00
+City Kit - Industrial;building-f.glb;1552;1;1;1;1.79;1.92;1.28;-0.00
+City Kit - Industrial;chimney-large.glb;212;1;1;1;1.00;1.70;1.00;0.00
+City Kit - Industrial;detail-tank.glb;236;1;1;1;0.85;0.42;0.52;0.00
+Nature Kit;rock_largeA.glb;80;2;2;0;0.78;0.26;1.02;-0.05
+Nature Kit;tree_default.glb;114;2;2;0;0.76;1.71;0.65;-0.05
+Nature Kit;tree_pineDefaultA.glb;230;2;2;0;0.53;1.55;0.53;-0.05
+Train Kit;railroad-corner-large.glb;568;1;1;1;4.49;0.10;4.49;-1.00
+Train Kit;railroad-straight.glb;376;1;1;1;1.00;0.10;4.00;-1.00
+Train Kit;train-carriage-coal.glb;1184;4;1;1;1.20;1.65;2.70;-0.00
+Train Kit;train-carriage-lumber.glb;1170;4;1;1;1.10;1.16;2.70;-0.00
+Train Kit;train-carriage-tank.glb;1146;3;1;1;1.39;1.75;2.70;-0.00
+Train Kit;train-diesel-a.glb;1742;3;1;1;1.20;1.60;2.40;-0.00
+Train Kit;train-locomotive-a.glb;1666;6;1;1;1.43;1.66;2.60;-0.00
+Watercraft Pack;ship-cargo-a.glb;1060;4;1;1;3.92;3.38;10.55;0.00

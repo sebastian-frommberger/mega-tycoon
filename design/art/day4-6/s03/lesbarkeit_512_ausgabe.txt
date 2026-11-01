@@ -1,0 +1,24 @@
+Hoehe  Breite  Tiefe  m/px(720p,Mitte)  m/px(1080p)
+ 1000    1377     839    1.08    0.72
+ 2000    2754    1678    2.15    1.43
+ 3000    4132    2517    3.23    2.15
+ 3700    5096    3105    3.98    2.65
+ 4000    5509    3356    4.30    2.87
+ 5000    6886    4195    5.38    3.59
+ 6100    8401    5119    6.56    4.38
+ 7400   10191    6209    7.96    5.31
+Hoehe fuer volle Kartenbreite (70 Grad): 3717.7693298458826
+Hoehe fuer volle Kartentiefe  (70 Grad): 6101.778394082355
+Hoehe fuer volle Karte senkrecht (90 Grad, Tiefe begrenzt): 7033.5421938038335
+
+Objektgroessen in px bei 4000 m / 70 Grad (720p | 1080p):
+  Dorf 15 Felder           34.9 px |   52.3 px
+  Kleinstadt 30            69.7 px |  104.6 px
+  Stadt 50                116.2 px |  174.3 px
+  Fabrik St.1 8 Felder     18.6 px |   27.9 px
+  Fabrik St.4 15           34.9 px |   52.3 px
+  Farmfeld 30              69.7 px |  104.6 px
+  Gleis 0,5 Feld            1.2 px |    1.7 px
+  Strasse 1 Feld            2.3 px |    3.5 px
+  Zug 20 Felder            46.5 px |   69.7 px
+  Lkw 1 Feld                2.3 px |    3.5 px

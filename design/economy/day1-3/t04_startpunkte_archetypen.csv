@@ -1,0 +1,5 @@
+Archetyp;Start_Einwohner;Naechste_Stufe_A_Hoechstversorgung;Naechste_Stufe_B_nur_Gueter
+Agrar (Dorf);900;Dorf>Kleinstadt: 6 min;Dorf>Kleinstadt: 6 min
+Bergbau (Kleinstadt);2500;Kleinstadt>Stadt: 36 min;Kleinstadt>Stadt: 39 min
+Hafen (Kleinstadt);3200;Kleinstadt>Stadt: 23 min;Kleinstadt>Stadt: 26 min
+Handel (Stadt);12000;-;-

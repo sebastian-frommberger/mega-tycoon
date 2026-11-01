@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 130" width="520" height="130">
+<title>Statusformen v1 (S-05): Kreis = Hinweis (ok: hohler Ring), Dreieck = Warnung, Achteck = Kritisch</title>
+<rect width="520" height="130" fill="#8F997D"/>
+<g id="ok_ring"><circle cx="60" cy="56" r="40" fill="none" stroke="#F0F0F0" stroke-width="2"/><circle cx="60" cy="56" r="37" fill="none" stroke="#14161A" stroke-width="3"/><circle cx="60" cy="56" r="34" fill="none" stroke="#E6EAED" stroke-width="4"/></g>
+<g id="hinweis_kreis"><circle cx="190" cy="56" r="41.5" fill="none" stroke="#F0F0F0" stroke-width="2"/><circle cx="190" cy="56" r="39" fill="#3D8FE0" stroke="#14161A" stroke-width="3"/><rect x="186.4" y="54" width="7.2" height="22" fill="#FFFFFF"/><rect x="186.4" y="37" width="7.2" height="7" fill="#FFFFFF"/></g>
+<g id="warnung_dreieck"><polygon points="320.00,13.00 360.85,82.66 279.15,82.66" fill="none" stroke="#F0F0F0" stroke-width="2" stroke-linejoin="round"/><polygon points="320.00,17.00 357.05,80.18 282.95,80.18" fill="#FFD43B" stroke="#14161A" stroke-width="3" stroke-linejoin="round"/><rect x="316.4" y="40" width="7.2" height="19" fill="#14161A"/><rect x="316.4" y="64" width="7.2" height="7" fill="#14161A"/></g>
+<g id="kritisch_achteck"><polygon points="488.34,71.88 465.88,94.34 434.12,94.34 411.66,71.88 411.66,40.12 434.12,17.66 465.88,17.66 488.34,40.12" fill="none" stroke="#F0F0F0" stroke-width="2" stroke-linejoin="round"/><polygon points="486.03,70.92 464.92,92.03 435.08,92.03 413.97,70.92 413.97,41.08 435.08,19.97 464.92,19.97 486.03,41.08" fill="#C8372D" stroke="#14161A" stroke-width="3" stroke-linejoin="round"/><rect x="430" y="51" width="40" height="10" fill="#FFFFFF"/></g>
+<g font-family="sans-serif" font-size="11" fill="#14161A" text-anchor="middle">
+<text x="60" y="122">ok (hohler Ring)</text><text x="190" y="122">Hinweis</text><text x="320" y="122">Warnung</text><text x="450" y="122">Kritisch</text></g>
+</svg>

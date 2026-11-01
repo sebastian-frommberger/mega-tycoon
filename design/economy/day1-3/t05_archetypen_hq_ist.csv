@@ -1,0 +1,5 @@
+Archetyp;Stadt;Startkapital_hq;Rohstoff;K_R;Lizenz_R_je30min;Verarbeiter;K_V;Lizenz_V_je30min;Lizenz_3x_Summe;Startpaket_S0;Strasse;Lkw;hq_Kapital_in_K_V;hq_Kapital_in_S0;Verhaeltnis_3Lizenzen_zu_1Kauf
+Agrar;Dorf 900 Einw. (Fluss/Ebene);30000;Getreidefarm;1000;70.0;Muehle;2000;140.0;350.0;1367;567;2;15.0;21.9;0.175
+Hafen;Kleinstadt 3.200 Einw. (Kueste);25000;Holzfaeller;1000;70.0;Saegewerk;2000;140.0;350.0;1460;660;2;12.5;17.1;0.175
+Bergbau;Kleinstadt 2.500 Einw. (Gebirge);25000;Erzmine;1800;126.0;Stahlwerk;4000;280.0;686.0;1664;864;2;6.2;15.0;0.172
+Handel;Stadt 12.000 Einw. (Fluss+Kreuzung);20000;Viehhof;1200;84.0;Schlachthof;2500;175.0;434.0;1325;525;2;8.0;15.1;0.174

@@ -1,0 +1,35 @@
+# Palette v1 FINAL (S-05, Sophie, 20.11.2026). Format wie farbcheck.py (Daniel): name,#RRGGBB,gruppe
+# Aenderung zu day1-3/sophie/s05/palette_v1.csv: Ghost-Gruppe nach D10 (Weiss = baubar, Rot schraffiert = nicht baubar, kein Ghost-Blau, kein Ghost-Gelb).
+# Status/Schweregrad (ein System, Daniels F4): Kreis=Hinweis, Dreieck=Warnung/Engpass, Achteck=Kritisch/blockiert
+hinweis_blau,#3D8FE0,status
+warnung_gelb,#FFD43B,status
+kritisch_rot,#C8372D,status
+ok_ring,#E6EAED,ok
+# Bau-Ghost (D10): Fuellung halbtransparent (Alpha 0,35), Kontur 2 px, zusaetzlich 1,5 px dunkler Saum #14161A unter der Kontur
+ghost_baubar_weiss,#FFFFFF,ghost
+ghost_nicht_baubar_rot,#C8372D,ghost
+# Netzfarben
+spieler_orange,#FF7A00,netz
+ki1_schiefer,#44546A,netz
+ki2_violettgrau,#7A5C99,netz
+ki3_hellgrau,#B9C0C7,netz
+# Gelaende (Saettigung <= 35 %)
+gras,#8F997D,terrain
+wald,#5F7355,terrain
+feld_ocker,#B7AB7F,terrain
+wasser,#6F8FA3,terrain
+fels,#8C8A82,terrain
+stadtflaeche,#CBBFA8,terrain
+strasse,#5C5C5E,terrain
+# Umrisse und UI
+outline_dunkel,#14161A,outline
+outline_hell,#F0F0F0,outline
+bg_panel,#2B2B2B,ui
+# Gueterfamilien: weiter ENTWURF (S-05b), nicht Teil von v1 final
+gut_agrar,#E8C14F,gueter_entwurf
+gut_tier_nahrung,#C7473A,gueter_entwurf
+gut_holz,#5C4029,gueter_entwurf
+gut_erz_stahl,#7088A6,gueter_entwurf
+gut_oel_chemie,#704C9E,gueter_entwurf
+gut_energie,#2CC6D6,gueter_entwurf
+gut_konsum,#F2F2F2,gueter_entwurf

@@ -1,0 +1,31 @@
+# Palette v1 (S-05, Sophie). Format wie farbcheck.py (Daniel): name,#RRGGBB,gruppe
+# Status/Schweregrad: Fuellfarben der Marker (Kreis=Hinweis, Dreieck=Warnung, Achteck=Kritisch)
+hinweis_blau,#3D8FE0,status
+warnung_gelb,#FFD43B,status
+kritisch_rot,#C8372D,status
+# Netzfarben: Spieler (Default Signalorange) und drei gedeckte KI-Netze
+spieler_orange,#FF7A00,netz
+ki1_schiefer,#44546A,netz
+ki2_violettgrau,#7A5C99,netz
+ki3_hellgrau,#B9C0C7,netz
+# Gelaende (Saettigung <= 35 %)
+gras,#8F997D,terrain
+wald,#5F7355,terrain
+feld_ocker,#B7AB7F,terrain
+wasser,#6F8FA3,terrain
+fels,#8C8A82,terrain
+stadtflaeche,#CBBFA8,terrain
+strasse,#5C5C5E,terrain
+# Umrisse und UI (UI-Werte aus Aylins Mini-Entwurf uebernommen)
+outline_dunkel,#14161A,outline
+outline_hell,#F0F0F0,outline
+ok_ring,#E6EAED,ok
+bg_panel,#2B2B2B,ui
+# Gueterfamilien: ENTWURF fuer S-05b, wartet auf Tobias' Gueterliste
+gut_agrar,#E8C14F,gueter_entwurf
+gut_tier_nahrung,#C7473A,gueter_entwurf
+gut_holz,#5C4029,gueter_entwurf
+gut_erz_stahl,#7088A6,gueter_entwurf
+gut_oel_chemie,#704C9E,gueter_entwurf
+gut_energie,#2CC6D6,gueter_entwurf
+gut_konsum,#F2F2F2,gueter_entwurf

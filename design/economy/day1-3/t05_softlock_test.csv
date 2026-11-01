@@ -1,0 +1,5 @@
+Archetyp;Startkapital_knapp;Kauf_Verarbeiter_min0;t_Linie_voll;Bargeld_min10;Bargeld_min60;Bargeld_min90;Einnahme_stufe2_ab_min
+Agrar;3000;1;14;315;44996;73691;14
+Hafen;3000;1;>90;140;-930;-1600;nie
+Bergbau;5000;1;>90;-64;-1190;-1916;nie
+Handel;3500;1;5;2633;24414;37449;5

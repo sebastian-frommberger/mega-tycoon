@@ -1,0 +1,19 @@
+modell;faktor;x_m;y_m;z_m (Godot-AABB nach Skalierung)
+truck;3.4;5.10;4.42;10.03
+truck-flat;3.4;5.10;4.42;9.33
+tractor;3.4;4.56;5.45;7.49
+train-locomotive-a;3.7;5.29;6.14;9.62
+train-diesel-a;3.7;4.44;5.91;8.88
+train-carriage-coal;3.7;4.44;6.09;9.99
+train-carriage-lumber;3.7;4.07;4.29;9.99
+train-carriage-tank;3.7;5.13;6.48;9.99
+railroad-straight;3.7;3.70;0.37;14.80
+railroad-corner-large;3.7;16.60;0.37;16.60
+building-a;10.0;20.84;14.70;12.42
+building-f;10.0;17.90;19.25;12.80
+chimney-large;10.0;10.00;17.00;10.00
+detail-tank;10.0;8.48;4.15;5.15
+tree_default;8.0;6.04;13.66;5.23
+tree_pineDefaultA;8.0;4.26;12.37;4.26
+rock_largeA;8.0;6.28;2.08;8.12
+ship-cargo-a;10.0;39.17;33.80;105.49

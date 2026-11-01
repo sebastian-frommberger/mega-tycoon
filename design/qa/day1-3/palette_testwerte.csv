@@ -1,0 +1,8 @@
+# ACHTUNG: Testwerte nur zur Pruefung des Skripts (generisches Ampel-Rot/Gelb/Blau). NICHT die Palette des Teams.
+# Echte Werte kommen aus Sophies Palette v1 / Aylins Schweregrad-Farben (S-05). Format: name,#hex,gruppe
+kritisch,#D32F2F,schweregrad
+warnung,#F9A825,schweregrad
+hinweis,#1976D2,schweregrad
+ok,#2E7D32,status
+engpass,#F9A825,status
+blockiert,#D32F2F,status

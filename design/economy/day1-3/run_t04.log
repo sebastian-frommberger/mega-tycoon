@@ -1,0 +1,53 @@
+{'Variante': 'A: W = 0,6/0,25/0,15', 'Szenario': 'S0 Hoechstversorgung (G=1, P=1, J=1)', 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'A: W = 0,6/0,25/0,15', 'Szenario': 'S1 gut abgedeckt (G=1, P=0,7, J=0,6)', 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'A: W = 0,6/0,25/0,15', 'Szenario': 'S2 nur Gueter (G=1, P=0, J=0)', 'Dorf_Klein_min': 45, 'Abw_12_pct': 275.0, 'Klein_Stadt_min': 323, 'Abw_80_pct': 303.8, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'A: W = 0,6/0,25/0,15', 'Szenario': 'S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2)', 'Dorf_Klein_min': 45, 'Abw_12_pct': 275.0, 'Klein_Stadt_min': 323, 'Abw_80_pct': 303.8, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'A: W = 0,6/0,25/0,15', 'Szenario': 'S4 Personenspieler (G=0,5, P=1, J=1)', 'Dorf_Klein_min': 45, 'Abw_12_pct': 275.0, 'Klein_Stadt_min': 323, 'Abw_80_pct': 303.8, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'A-stetig: W wie A, Rate linear 0,5-0,8', 'Szenario': 'S0 Hoechstversorgung (G=1, P=1, J=1)', 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'A-stetig: W wie A, Rate linear 0,5-0,8', 'Szenario': 'S1 gut abgedeckt (G=1, P=0,7, J=0,6)', 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'A-stetig: W wie A, Rate linear 0,5-0,8', 'Szenario': 'S2 nur Gueter (G=1, P=0, J=0)', 'Dorf_Klein_min': 23, 'Abw_12_pct': 91.7, 'Klein_Stadt_min': 162, 'Abw_80_pct': 102.5, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'A-stetig: W wie A, Rate linear 0,5-0,8', 'Szenario': 'S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2)', 'Dorf_Klein_min': 14, 'Abw_12_pct': 16.7, 'Klein_Stadt_min': 98, 'Abw_80_pct': 22.5, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'A-stetig: W wie A, Rate linear 0,5-0,8', 'Szenario': 'S4 Personenspieler (G=0,5, P=1, J=1)', 'Dorf_Klein_min': 15, 'Abw_12_pct': 25.0, 'Klein_Stadt_min': 109, 'Abw_80_pct': 36.2, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'B: Personen als Bonus (r0=0.018, Bonus +25 %)', 'Szenario': 'S0 Hoechstversorgung (G=1, P=1, J=1)', 'Dorf_Klein_min': 11, 'Abw_12_pct': -8.3, 'Klein_Stadt_min': 72, 'Abw_80_pct': -10.0, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'B: Personen als Bonus (r0=0.018, Bonus +25 %)', 'Szenario': 'S1 gut abgedeckt (G=1, P=0,7, J=0,6)', 'Dorf_Klein_min': 11, 'Abw_12_pct': -8.3, 'Klein_Stadt_min': 78, 'Abw_80_pct': -2.5, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'B: Personen als Bonus (r0=0.018, Bonus +25 %)', 'Szenario': 'S2 nur Gueter (G=1, P=0, J=0)', 'Dorf_Klein_min': 13, 'Abw_12_pct': 8.3, 'Klein_Stadt_min': 90, 'Abw_80_pct': 12.5, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'B: Personen als Bonus (r0=0.018, Bonus +25 %)', 'Szenario': 'S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2)', 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 84, 'Abw_80_pct': 5.0, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'B: Personen als Bonus (r0=0.018, Bonus +25 %)', 'Szenario': 'S4 Personenspieler (G=0,5, P=1, J=1)', 'Dorf_Klein_min': 40, 'Abw_12_pct': 233.3, 'Klein_Stadt_min': 287, 'Abw_80_pct': 258.8, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %)', 'Szenario': 'S0 Hoechstversorgung (G=1, P=1, J=1)', 'Dorf_Klein_min': 10, 'Abw_12_pct': -16.7, 'Klein_Stadt_min': 65, 'Abw_80_pct': -18.8, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %)', 'Szenario': 'S1 gut abgedeckt (G=1, P=0,7, J=0,6)', 'Dorf_Klein_min': 10, 'Abw_12_pct': -16.7, 'Klein_Stadt_min': 70, 'Abw_80_pct': -12.5, 'Ziele_im_Rahmen_15pct': 'nein'}
+{'Variante': 'B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %)', 'Szenario': 'S2 nur Gueter (G=1, P=0, J=0)', 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %)', 'Szenario': 'S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2)', 'Dorf_Klein_min': 11, 'Abw_12_pct': -8.3, 'Klein_Stadt_min': 75, 'Abw_80_pct': -6.2, 'Ziele_im_Rahmen_15pct': 'ja'}
+{'Variante': 'B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %)', 'Szenario': 'S4 Personenspieler (G=0,5, P=1, J=1)', 'Dorf_Klein_min': 36, 'Abw_12_pct': 200.0, 'Klein_Stadt_min': 259, 'Abw_80_pct': 223.8, 'Ziele_im_Rahmen_15pct': 'nein'}
+Kalibrierung B: (12.5, 0.018, 0.25, (0.25, -12.5))
+Tor/Anlauf:
+{'Szenario': 'S0', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 0, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S0', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 1, 'Dorf_Klein_min': 13, 'Abw_12_pct': 8.3, 'Klein_Stadt_min': 82, 'Abw_80_pct': 2.5}
+{'Szenario': 'S0', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 2, 'Dorf_Klein_min': 14, 'Abw_12_pct': 16.7, 'Klein_Stadt_min': 83, 'Abw_80_pct': 3.8}
+{'Szenario': 'S0', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 3, 'Dorf_Klein_min': 15, 'Abw_12_pct': 25.0, 'Klein_Stadt_min': 84, 'Abw_80_pct': 5.0}
+{'Szenario': 'S0', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 5, 'Dorf_Klein_min': 17, 'Abw_12_pct': 41.7, 'Klein_Stadt_min': 86, 'Abw_80_pct': 7.5}
+{'Szenario': 'S0', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 8, 'Dorf_Klein_min': 20, 'Abw_12_pct': 66.7, 'Klein_Stadt_min': 89, 'Abw_80_pct': 11.2}
+{'Szenario': 'S0', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 0, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S0', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 3, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 82, 'Abw_80_pct': 2.5}
+{'Szenario': 'S0', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 6, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 82, 'Abw_80_pct': 2.5}
+{'Szenario': 'S0', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 10, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 83, 'Abw_80_pct': 3.8}
+{'Szenario': 'S0', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 15, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 83, 'Abw_80_pct': 3.8}
+{'Szenario': 'S0', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 0, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S0', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 2, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S0', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 4, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S0', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 8, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S1', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 0, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S1', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 1, 'Dorf_Klein_min': 13, 'Abw_12_pct': 8.3, 'Klein_Stadt_min': 82, 'Abw_80_pct': 2.5}
+{'Szenario': 'S1', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 2, 'Dorf_Klein_min': 14, 'Abw_12_pct': 16.7, 'Klein_Stadt_min': 83, 'Abw_80_pct': 3.8}
+{'Szenario': 'S1', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 3, 'Dorf_Klein_min': 15, 'Abw_12_pct': 25.0, 'Klein_Stadt_min': 84, 'Abw_80_pct': 5.0}
+{'Szenario': 'S1', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 5, 'Dorf_Klein_min': 17, 'Abw_12_pct': 41.7, 'Klein_Stadt_min': 86, 'Abw_80_pct': 7.5}
+{'Szenario': 'S1', 'Variante': 'Tor-Wartezeit je Tor (min)', 'Wert': 8, 'Dorf_Klein_min': 20, 'Abw_12_pct': 66.7, 'Klein_Stadt_min': 89, 'Abw_80_pct': 11.2}
+{'Szenario': 'S1', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 0, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S1', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 3, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 83, 'Abw_80_pct': 3.8}
+{'Szenario': 'S1', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 6, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 85, 'Abw_80_pct': 6.2}
+{'Szenario': 'S1', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 10, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 87, 'Abw_80_pct': 8.8}
+{'Szenario': 'S1', 'Variante': 'Anlauf neue Kategorie 25->100 % in (min)', 'Wert': 15, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 89, 'Abw_80_pct': 11.2}
+{'Szenario': 'S1', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 0, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S1', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 2, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S1', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 4, 'Dorf_Klein_min': 12, 'Abw_12_pct': 0.0, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+{'Szenario': 'S1', 'Variante': 'Versorgung hinkt Bedarf um (min)', 'Wert': 8, 'Dorf_Klein_min': 14, 'Abw_12_pct': 16.7, 'Klein_Stadt_min': 81, 'Abw_80_pct': 1.2}
+Saettigung Optimum: {'Versorgung_pct': 100, 'F_saett': 1.0, 'Ertrag_rel_zum_Bedarf': 1.0}

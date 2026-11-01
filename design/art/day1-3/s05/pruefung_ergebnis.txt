@@ -1,0 +1,107 @@
+S-05 Pruefung Palette v1 - gerechnet, NICHT an Personen geprueft
+Selbsttest CIEDE2000/Matrizen: True
+
+1. Saettigung Gelaende (HSV-S, Grenze 0.35)
+   gras           #8F997D  S=0.18  ok
+   wald           #5F7355  S=0.26  ok
+   feld_ocker     #B7AB7F  S=0.31  ok
+   wasser         #6F8FA3  S=0.32  ok
+   fels           #8C8A82  S=0.07  ok
+   stadtflaeche   #CBBFA8  S=0.17  ok
+   strasse        #5C5C5E  S=0.02  ok
+
+2. Paar-Abstaende CIEDE2000, Grenze 10 (QA-Richtwert Daniel, Annahme)
+   Gruppe status
+   hinweis_blau       warnung_gelb        59.1  63.8  60.0  44.4  21.5  
+   hinweis_blau       kritisch_rot        48.3  52.4  50.0  74.6  11.7  
+   warnung_gelb       kritisch_rot        51.5  30.4  42.9  35.2  32.7  
+   Gruppe netz
+   spieler_orange     ki1_schiefer        49.9  55.0  45.0  47.6  30.5  
+   spieler_orange     ki2_violettgrau     49.0  54.8  51.1  29.7  20.3  
+   spieler_orange     ki3_hellgrau        34.6  33.8  34.0  36.1   8.7  nur Graustufen < 10 (Form/Muster muss tragen)
+   ki1_schiefer       ki2_violettgrau     16.3  10.7  10.9  26.6   8.0  nur Graustufen < 10 (Form/Muster muss tragen)
+   ki1_schiefer       ki3_hellgrau        39.8  40.4  38.9  39.6  39.0  
+   ki2_violettgrau    ki3_hellgrau        33.1  31.2  32.9  33.1  28.6  
+   Gruppe gueter_entwurf
+   gut_agrar          gut_tier_nahrung    43.8  24.1  34.7  29.5  26.3  
+   gut_agrar          gut_holz            50.8  49.4  50.9  47.7  47.4  
+   gut_agrar          gut_erz_stahl       48.5  47.2  44.9  41.7  18.8  
+   gut_agrar          gut_oel_chemie      67.4  63.6  63.6  38.9  35.0  
+   gut_agrar          gut_energie         42.4  45.3  39.3  47.7   4.5  nur Graustufen < 10 (Form/Muster muss tragen)
+   gut_agrar          gut_konsum          27.6  27.2  28.8  23.2  10.2  
+   gut_tier_nahrung   gut_holz            25.0  21.3  11.3  23.4  15.9  
+   gut_tier_nahrung   gut_erz_stahl       38.4  37.7  34.7  48.4   7.8  nur Graustufen < 10 (Form/Muster muss tragen)
+   gut_tier_nahrung   gut_oel_chemie      35.5  48.3  41.4  28.3   7.6  nur Graustufen < 10 (Form/Muster muss tragen)
+   gut_tier_nahrung   gut_energie         57.0  42.7  42.8  68.9  22.0  
+   gut_tier_nahrung   gut_konsum          44.3  38.3  45.9  45.5  36.0  
+   gut_holz           gut_erz_stahl       36.6  37.1  37.9  47.5  24.0  
+   gut_holz           gut_oel_chemie      36.2  38.5  38.4  16.6   8.4  nur Graustufen < 10 (Form/Muster muss tragen)
+   gut_holz           gut_energie         55.9  51.0  54.1  63.2  43.3  
+   gut_holz           gut_konsum          57.9  56.5  59.3  58.7  55.8  
+   gut_erz_stahl      gut_oel_chemie      21.5  16.9  19.8  31.2  15.8  
+   gut_erz_stahl      gut_energie         23.8  13.3  16.1  19.8  14.4  
+   gut_erz_stahl      gut_konsum          31.6  32.3  30.4  32.2  28.7  
+   gut_oel_chemie     gut_energie         48.1  29.8  35.7  48.7  30.9  
+   gut_oel_chemie     gut_konsum          50.6  49.0  49.5  45.2  44.2  
+   gut_energie        gut_konsum          27.2  22.4  16.0  27.6  14.7  
+   Spalten: Normal / Deuteranopie / Protanopie / Tritanopie / Graustufen
+
+   Marker (Status) auf Spielernetz Signalorange - Marker liegt oft auf der Linie:
+   hinweis_blau       spieler_orange      51.5  60.0  54.5  70.3   6.9
+   warnung_gelb       spieler_orange      29.7  12.4  19.6  22.6  14.8
+   kritisch_rot       spieler_orange      25.6  19.0  23.7  14.9  18.5
+
+3. WCAG-Kontrast (Normalsicht; Richtwert 3:1 fuer Symbole, 4.5:1 fuer Text)
+   Marker-Fuellung gegen dunklen Umriss #14161A und hellen Umriss #F0F0F0:
+   hinweis_blau     dunkel 5.4:1   hell 3.0:1   bg_panel 4.2:1
+   warnung_gelb     dunkel 12.7:1   hell 1.3:1   bg_panel 9.9:1
+   kritisch_rot     dunkel 3.5:1   hell 4.6:1   bg_panel 2.7:1
+   ok_ring          dunkel 15.0:1   hell 1.1:1   bg_panel 11.7:1
+   Dunkler Umriss (Karte) gegen Gelaende:
+   gras           6.1:1
+   wald           3.5:1
+   feld_ocker     7.9:1
+   wasser         5.3:1
+   fels           5.2:1
+   stadtflaeche   10.0:1
+   strasse        2.7:1
+   Marker-Aufbau Dunkelring 2 px + heller Halo 1 px: wirksam ist der kontrastreichere Ring (>= 3:1 gefordert):
+   gras           dunkel 6.1  hell 2.6  -> max 6.1:1  ok
+   wald           dunkel 3.5  hell 4.5  -> max 4.5:1  ok
+   feld_ocker     dunkel 7.9  hell 2.0  -> max 7.9:1  ok
+   wasser         dunkel 5.3  hell 3.0  -> max 5.3:1  ok
+   fels           dunkel 5.2  hell 3.0  -> max 5.2:1  ok
+   stadtflaeche   dunkel 10.0  hell 1.6  -> max 10.0:1  ok
+   strasse        dunkel 2.7  hell 5.9  -> max 5.9:1  ok
+   Heller Umriss (UI-Panel #2B2B2B) gegen Panel: 12.4:1
+   Glyph im Marker: weiss #FFFFFF auf rot 5.2:1, auf blau 3.4:1; dunkel #14161A auf gelb 12.7:1
+   Marker-Fuellung gegen Gelaende (ohne Umriss, zeigt warum der Umriss Pflicht ist):
+   hinweis_blau     gras 1.1  wald 1.5  feld_ 1.5  wasse 1.0  fels 1.0  stadt 1.9  stras 2.0
+   warnung_gelb     gras 2.1  wald 3.6  feld_ 1.6  wasse 2.4  fels 2.4  stadt 1.3  stras 4.7
+   kritisch_rot     gras 1.7  wald 1.0  feld_ 2.3  wasse 1.5  fels 1.5  stadt 2.9  stras 1.3
+
+   Kontrast nach CVD-Simulation (Marker gegen dunklen Umriss, Minimum ueber Modi)
+   hinweis_blau     min 5.0:1
+   warnung_gelb     min 11.7:1
+   kritisch_rot     min 2.6:1
+
+4. Formunterschied (Geometrie, nicht Wahrnehmung): Achteck (Umkreis = Kreis) vs. Kreis
+   Max. radiale Abweichung Achteck/Kreis = r*(1-cos 22.5 Grad) = 0.076*r; Flaechenunterschied 10.0 %
+   Durchmesser px | max. Abweichung in px | Bewertung
+               12 |                  0.46 | Form allein reicht NICHT (<1 px)
+               16 |                  0.61 | Form allein reicht NICHT (<1 px)
+               20 |                  0.76 | Form allein reicht NICHT (<1 px)
+               24 |                  0.91 | Form allein reicht NICHT (<1 px)
+               26 |                  0.99 | Form allein reicht NICHT (<1 px)
+               32 |                  1.22 | Form sichtbar (>=1 px), mit Glyph sicher
+               48 |                  1.83 | Form sichtbar (>=1 px), mit Glyph sicher
+   Folge: Achteck vs. Kreis unter ca. 26 px Durchmesser nur mit Glyph (Balken im Achteck) unterscheidbar.
+   Kreis/Achteck gegen Dreieck: Ecken weit ueber 1 px ab ca. 12 px.
+
+5. Netzfarben gegen Gelaende (Linien muessen auf der Karte stehen): min. CIEDE2000 ueber Farbmodi / Graustufen
+   (Dunkler Linien-Saum 'Casing' = outline_dunkel 1.5 px gedacht; Kontrast des Saums gegen Gelaende siehe Punkt 3)
+   spieler_orange   gras 18/3!  wald 21/19  feld_ 15/3!  wasse 38/7!  fels 24/7!  stadt 21/9!  stras 34/26
+   ki1_schiefer     gras 28/26  wald 11/10!  feld_ 43/34  wasse 21/22  fels 25/21  stadt 44/39  stras 10/3!
+   ki2_violettgrau  gras 23/17  wald 21/2!  feld_ 25/23  wasse 14/13  fels 16/13  stadt 30/29  stras 12/5!
+   ki3_hellgrau     gras 13/12  wald 27/27  feld_ 19/5!  wasse 16/16  fels 18/16  stadt 14/0!  stras 34/35
+   ('!' = unter 10 in mindestens einem Modus ohne Saum; mit Saum traegt der Kontrast des Saums)

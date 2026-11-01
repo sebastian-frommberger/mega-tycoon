@@ -1,0 +1,21 @@
+Variante;Szenario;Dorf_Klein_min;Abw_12_pct;Klein_Stadt_min;Abw_80_pct;Ziele_im_Rahmen_15pct
+A: W = 0,6/0,25/0,15;S0 Hoechstversorgung (G=1, P=1, J=1);12;0.0;81;1.2;ja
+A: W = 0,6/0,25/0,15;S1 gut abgedeckt (G=1, P=0,7, J=0,6);12;0.0;81;1.2;ja
+A: W = 0,6/0,25/0,15;S2 nur Gueter (G=1, P=0, J=0);45;275.0;323;303.8;nein
+A: W = 0,6/0,25/0,15;S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2);45;275.0;323;303.8;nein
+A: W = 0,6/0,25/0,15;S4 Personenspieler (G=0,5, P=1, J=1);45;275.0;323;303.8;nein
+A-stetig: W wie A, Rate linear 0,5-0,8;S0 Hoechstversorgung (G=1, P=1, J=1);12;0.0;81;1.2;ja
+A-stetig: W wie A, Rate linear 0,5-0,8;S1 gut abgedeckt (G=1, P=0,7, J=0,6);12;0.0;81;1.2;ja
+A-stetig: W wie A, Rate linear 0,5-0,8;S2 nur Gueter (G=1, P=0, J=0);23;91.7;162;102.5;nein
+A-stetig: W wie A, Rate linear 0,5-0,8;S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2);14;16.7;98;22.5;nein
+A-stetig: W wie A, Rate linear 0,5-0,8;S4 Personenspieler (G=0,5, P=1, J=1);15;25.0;109;36.2;nein
+B: Personen als Bonus (r0=0.018, Bonus +25 %);S0 Hoechstversorgung (G=1, P=1, J=1);11;-8.3;72;-10.0;ja
+B: Personen als Bonus (r0=0.018, Bonus +25 %);S1 gut abgedeckt (G=1, P=0,7, J=0,6);11;-8.3;78;-2.5;ja
+B: Personen als Bonus (r0=0.018, Bonus +25 %);S2 nur Gueter (G=1, P=0, J=0);13;8.3;90;12.5;ja
+B: Personen als Bonus (r0=0.018, Bonus +25 %);S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2);12;0.0;84;5.0;ja
+B: Personen als Bonus (r0=0.018, Bonus +25 %);S4 Personenspieler (G=0,5, P=1, J=1);40;233.3;287;258.8;nein
+B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %);S0 Hoechstversorgung (G=1, P=1, J=1);10;-16.7;65;-18.8;nein
+B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %);S1 gut abgedeckt (G=1, P=0,7, J=0,6);10;-16.7;70;-12.5;nein
+B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %);S2 nur Gueter (G=1, P=0, J=0);12;0.0;81;1.2;ja
+B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %);S3 Gueter + Bus Zentrum (G=1, P=0,4, J=0,2);11;-8.3;75;-6.2;ja
+B0: Personen als Bonus, ungeeicht (r0=0,020, Bonus +25 %);S4 Personenspieler (G=0,5, P=1, J=1);36;200.0;259;223.8;nein

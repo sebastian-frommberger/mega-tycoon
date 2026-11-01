@@ -1,0 +1,14 @@
+# D10 Ghost-Weiss-Pruefung (Daniel). Kandidaten fuer "Ghost weiss = baubar": reines Weiss und Aylins UI-Weiss #F0F0F0 (kein Hex von Aylin/Sophie fuer den Ghost festgelegt, Annahme).
+# Gegenfarben: Konsum-Weiss #F2F2F2 (Gueter-Entwurf), Stadtflaeche und alle Gelaendefarben aus palette_v1.csv, dazu outline_hell und ok_ring.
+ghost_weiss_FFFFFF,#FFFFFF,ghost
+ghost_weiss_F0F0F0,#F0F0F0,ghost
+gut_konsum,#F2F2F2,ghost
+stadtflaeche,#CBBFA8,ghost
+ok_ring,#E6EAED,ghost
+outline_hell,#F0F0F0,ghost
+gras,#8F997D,ghost
+wald,#5F7355,ghost
+feld_ocker,#B7AB7F,ghost
+wasser,#6F8FA3,ghost
+fels,#8C8A82,ghost
+strasse,#5C5C5E,ghost

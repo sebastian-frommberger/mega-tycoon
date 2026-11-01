@@ -1,0 +1,10 @@
+# S-05 Ghost-Pruefung nach D10 (Weiss = baubar). Gruppe "ghost": alle Farben, neben denen der Ghost liegen kann. Format wie farbcheck.py
+ghost_weiss,#FFFFFF,ghost
+gut_konsum,#F2F2F2,ghost
+outline_hell,#F0F0F0,ghost
+ok_ring,#E6EAED,ghost
+stadtflaeche,#CBBFA8,ghost
+feld_ocker,#B7AB7F,ghost
+ki3_hellgrau,#B9C0C7,ghost
+hinweis_blau,#3D8FE0,ghost
+ghost_rot_schraffur,#C8372D,ghost

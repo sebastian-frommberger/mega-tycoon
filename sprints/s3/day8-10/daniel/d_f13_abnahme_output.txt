@@ -1,0 +1,72 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+  OK   Setup: Mühle + Farm gekauft
+-- D1 Drag über Fluss MIT Brücke (gerade, Reihe y=85, x 74..86; Wasser x 78..81)
+  OK   Brücke 4 Felder erlaubt, Plan ok (10585 $, davon Wasser 7666 $)
+  OK   Wasserfeld = 6x Feldpreis am selben Ort (1979, Land wäre 329)
+  OK   Brücke gebaut
+  OK   Abbuchung = Plansumme (10585 = 10585)
+  OK   Pfadsuche: Brückenfeld befahrbar
+  OK   Brücke abgerissen: +3833.0 = 50 % von 7666
+  INFO Rest der Strecke abgerissen, Netto Bau+Abriss gesamt: -5292.5 $
+  OK   Brücke bauen + komplett abreißen: Netto Verlust
+-- D2 Drag über Fluss OHNE Brücke
+  OK   Diagonal über Fluss (12x6): abgelehnt
+  OK     nichts gebaut, Geld unverändert (alles oder nichts)
+  OK   Ziel mitten im Fluss (kein Land am Ende): abgelehnt
+  OK   Start im Fluss: abgelehnt
+  OK   Reine 45°-Diagonale über Fluss: abgelehnt
+  OK     Geld nach allen Ablehnungen unverändert
+  OK   Fixture: Brücke 9 Felder abgelehnt ('Wasser ohne Brücke: Brücke zu lang (max. 8 Felder)')
+  OK   Fixture: Brücke 8 Felder (Grenze) erlaubt
+  OK   16 Felder Wasser in einem Zug abgelehnt ('Wasser ohne Brücke: Brücke zu lang (max. 8 Felder)')
+  INFO Zug 1 endet im Wasser (letztes Brückenfeld x=107): gebaut=false
+  OK   Umgehung der 8-Felder-Grenze durch Kettenbau ab Brückenfeld nicht möglich (ok=false 'Wasser ohne Brücke: Brückenkopf braucht Land an beiden Enden')
+-- D3 Drag über Stadtgebiet Kornfeld (Straße y=100, x 35..46; Häuser y=101)
+  OK   Entlang Stadtstraße ok ()
+  INFO Neue Felder entlang der Stadtstraße: 2 (Rest vorhandene Stadtstraße kostenlos), Summe 46 $
+  OK   Quer durch Häuserzeile: abgelehnt ('Gebäude im Weg: Kornfeld')
+  OK     Quer-Drag: nichts gebaut, 0 $
+  OK   Gleis auf Stadtstraße: Plan ok, 0 $ (0 $)
+  INFO Gleis durch Stadtstraße: rails enthält Feld=false, Zug-Pfadsuche befahrbar=true, Geld Δ=0.0
+  FAIL Plan 'vorhanden' und Gleisnetz stimmen überein (Gleis auf Stadtstraße: Stadtstraße ist für Züge gratis befahrbar, aber unsichtbar als Gleis)
+  OK   Abriss-Rechteck über Stadt: Stadt unversehrt
+  OK     Erstattung nur für eigene Felder (+217.0)
+-- D4 Geldgrenze genau erreicht
+  OK   Straße: Geld == Kosten (6976 $): gebaut, Rest 0
+  OK     Geld == Kosten-0,5: abgelehnt, Geld unverändert
+  OK     Geld == Kosten+0,5: gebaut, Rest 0,5 (0.50)
+  OK   Gleis: Geld == Kosten (27919 $): gebaut, Rest 0
+  OK     Geld == Kosten-0,5: abgelehnt, Geld unverändert
+  OK     Geld == Kosten+0,5: gebaut, Rest 0,5 (0.50)
+  INFO Geld 0, Strecke komplett vorhanden (0 $ Kosten): Drag liefert true
+  OK   Brücke: Geld == Kosten (10585 $): gebaut, Rest 0
+-- D5 Abriss unter Fahrzeug
+  OK   Vorbedingung: Straße Farm->Mühle
+  OK   Lkw-Linie aktiv
+  OK   Gemischtes Rechteck: Linienfelder (10) bleiben, Pfad intakt
+  OK     Abzweig (7 Felder) abgerissen, +35.0 $
+  OK     Linie findet weiterhin Weg Farm->Mühle
+  OK   30 Schritte: nie Abriss auf dem Feld unter dem Fahrzeug
+  OK   Zug-Linie: Gleis unter dem Zug nicht abreißbar
+  INFO Feld (27, 117) hatte auch Straße: true (Straße ohne Lkw-Nutzung ist abreißbar: false)
+  FAIL Es gibt eine Funktion, um eine Linie zu entfernen (Meldung sagt 'erst Linie entfernen')
+-- D6 Kosten Außerhalb des Einflusses
+  OK   Innerhalb Einfluss: 10 $ pro Straßenfeld (10)
+  OK   Feldpreis = 10*(1+0.8*d), nie fallend: d=13.2:115$, d=16.8:144$, d=20.9:177$, d=25.5:214$, d=30.4:253$, d=35.5:294$, d=40.8:336$, d=46.2:379$, d=51.7:423$, d=57.0:465$
+  OK   Weite Strecke: Summe 14874 $ = Einzelpreise, 21 Außerhalb-Felder gezählt
+  OK   Cursor-Text zeigt Plansumme: 'Straße: 21 Felder  14874 $'
+  INFO Kein Berg im Einflussbereich zum Messen
+-- D7 Geschlossener Kreis mit Einflusswechsel (Preis sinkt nach Kauf)
+  INFO Hoher Preis 2710 $, nach Kauf 944 $, Erstattung 1355.0, Neubau 944.0
+  OK   Kreis Bau->Preis sinkt->Abriss->Neubau x20->Abriss: Netto Verlust (12467.0 $, Kauf der Farm separat)
+-- D8 Fuzz: 400 zufällige Drags (Straße/Gleis/Abriss), Geldinvarianten
+  OK   400 Drags: 0 Verstöße (Abbuchung = Plan, abgelehnt = 0 $, Geld nie negativ)
+  OK   Gesamt erstattet 184100.0 <= 50 % von gesamt bezahlt 381452.0
+-- D9 Randfälle
+  OK   Ziel außerhalb der Karte: abgelehnt, 0 $
+  OK   Ein-Feld-Drag (Start=Ziel) baut 1 Feld
+  OK   Ein-Feld-Abriss erstattet
+  INFO Geld negativ (-5): Plan ok=false
+
+Daniel F-13: 50 Prüfungen, 2 Fehler

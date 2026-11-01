@@ -1,0 +1,46 @@
+del Mutationen 275 erkannt 194 NICHT erkannt 81
+    meta/quelle_text
+    meta/etikett_text
+    zeit/tick_ms
+    zeit/periode_ticks
+    zeit/spielmonat_ticks
+    hq/archetyp_mining_im_slice_flag
+    kauf/buy_price_stufe_mult_flag
+    kauf/buy_unlock_milestone_id
+    ertrag/origin_stamp/enabled_flag
+    ertrag/origin_stamp/persists_in_warehouse_flag
+    zeitfaktor/f_time_semantik_modus
+    saettigung/basket_by_stage/0/stage_id
+    saettigung/basket_by_stage/1/stage_id
+    saettigung/basket_by_stage/2/stage_id
+    wachstum/growth_variant_id
+    wachstum/growth_hi_factor_promille
+    wachstum/growth_low_factor_promille
+    wachstum/stage_threshold_kleinstadt_anzahl
+    wachstum/stage_threshold_stadt_anzahl
+    wachstum/stage_threshold_metropole_anzahl
+    wachstum/ziel_dorf_kleinstadt_max_ticks
+    wachstum/ziel_kleinstadt_stadt_max_ticks
+    fabrik/factory_throughput_l3_einheiten_pro_periode
+    fabrik/factory_throughput_l4_einheiten_pro_periode
+    meilensteine/ms_1a/bedingung_id
+    meilensteine/ms_1a/belohnung_id
+    meilensteine/ms_1b/bedingung_id
+    meilensteine/ms_1b/belohnung_id
+    meilensteine/ms_2/bedingung_id
+    meilensteine/ms_2/belohnung_id
+    meilensteine/ms_3/bedingung_id
+    meilensteine/ms_3/belohnung_id
+    meilensteine/ms_4/bedingung_id
+    meilensteine/ms_4/belohnung_id
+    meilensteine/ms_5/bedingung_id
+    meilensteine/ms_5/belohnung_id
+    meilensteine/ms_5b/bedingung_id
+    meilensteine/ms_5b/belohnung_id
+    meilensteine/ms_6/bedingung_id
+    meilensteine/ms_6/belohnung_id
+neg Mutationen 173 erkannt 172 NICHT erkannt 1
+    wachstum/growth_neg_factor_promille_signed
+float Mutationen 137 erkannt 137 NICHT erkannt 0
+Anteils-Keys (share/discount/cap/gate) auf 1500 Promille (150 %): 10 Mutationen, nicht erkannt: 6
+['licence_shared_output_share_promille', 'skill_bonus_cap_promille', 'growth_bonus_cap_promille', 'gate_halt_share_promille', 'gate_min_supply_promille', 'production_mult_cap_promille']

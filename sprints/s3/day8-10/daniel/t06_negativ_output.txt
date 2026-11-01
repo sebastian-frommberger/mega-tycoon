@@ -1,0 +1,17 @@
+Fall                                                                   auto(jsonschema) | fallback
+N1 negativer Preis: hq/start_capital_agrar_cent = -450000              erkannt | erkannt   /hq/start_capital_agrar_cent: -450000 is less than the minimum of 0
+N2 negativer Preis: kauf/buy_price_base_min_cent = -1                  erkannt | erkannt   /kauf/buy_price_base_min_cent: -1 is less than the minimum of 0
+N3 fehlender Key: hq/start_capital_mining_cent entfernt                erkannt | erkannt   slice_checks abgebrochen, Struktur unvollstaendig: KeyError 'start_capital_mining_cent'
+N4 fehlender Key: lizenz/licence_duration_ticks entfernt               erkannt | erkannt   slice_checks abgebrochen, Struktur unvollstaendig: KeyError 'licence_duration_ticks'
+N5 Float statt Cent: start_capital_agrar_cent = 4500.5                 erkannt | erkannt   /hq/start_capital_agrar_cent: 4500.5 is not of type 'integer'
+N6 Float 1.0 statt Ganzzahl: licence_cost_share_promille = 100.0       erkannt | erkannt   economy_slice/lizenz/licence_cost_share_promille: Gleitkommazahl 100.0 verboten
+N7 String statt Zahl: start_capital_agrar_cent = "450000"              erkannt | erkannt   /hq/start_capital_agrar_cent: '450000' is not of type 'integer'
+N8 null statt Zahl: start_capital_trade_cent = null                    erkannt | erkannt   /hq/start_capital_trade_cent: None is not of type 'integer'
+N9 Ueberlauf >2^53: start_capital_agrar_cent = 9007199254740992        erkannt | erkannt   /hq/start_capital_agrar_cent: 9007199254740992 is greater than the maximum of 900719925474
+N10 Promille ueber 1000: licence_cost_share_promille = 1500            erkannt | erkannt   Konsistenz slice/constants: licence_cost_share 1500 != 100
+N11 Tippfehler-Key: hq_found_cost_dollar zusaetzlich                   erkannt | erkannt   /hq/hq_found_cost_dollar: 0 is not valid under any of the given schemas
+N12 Flag als String: licence_auto_renew_flag = "true"                  erkannt | erkannt   /lizenz/licence_auto_renew_flag: 'true' is not of type 'boolean'
+N13 Ticks negativ: licence_duration_ticks = -18000                     erkannt | erkannt   /lizenz/licence_duration_ticks: -18000 is less than the minimum of 0
+N14 Kaputtes JSON (fehlende Klammer)                                   erkannt | erkannt   
+N15 NaN-Literal als Wert                                               erkannt | erkannt   /hq/start_capital_agrar_cent: nan is not of type 'integer'
+N16 Doppelter Key (zweiter gewinnt)                                    erkannt | erkannt   /hq/start_capital_agrar_cent: -1 is less than the minimum of 0

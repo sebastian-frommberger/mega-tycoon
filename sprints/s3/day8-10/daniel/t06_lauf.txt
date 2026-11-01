@@ -1,0 +1,6 @@
+[jsonschema] goods.json gegen goods.schema.json: OK
+[jsonschema] vehicles.json gegen vehicles.schema.json: OK
+[jsonschema] economy_constants.json gegen economy_constants.schema.json: OK
+[jsonschema] economy_slice.json gegen economy_slice.schema.json: OK
+[querbezuege+rechenprobe+slice+abgleich]: OK
+ERGEBNIS: gueltig, Exit 0

@@ -1,0 +1,91 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+== F-06 Smoke-Test, Godot 4.7.2-stable (official) ==
+    [OK] Main-Scene res://f06/f06_main.tscn lädt
+F-06 Testbuild, Session T1_20261101-145249, Tester T1, Reihenfolge ["F1", "F2", "F3"]
+Klick-Log: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/klicklog_T1_20261101-145249.csv
+Session/Replay: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/session_T1_20261101-145249.json
+Meldungen
+    [OK] 3 Meldungen erzeugt (3)
+    [OK] Reihenfolge T1 = F1, F2, F3 (["F1", "F2", "F3"])
+    [OK] keine Vertragsfehler beim Erzeugen
+  F1 Meldung 1: Zug 4 steht seit 2:05 min · bei Strecke Mühlbach–Kornfeld
+    [OK] F1 Titel T_STEHT
+    [OK] F1 ausgelöst: Meldung offen (Z2)
+      1 Zug 4 steht seit 2:05 min  [T_STEHT FAHRZEUG#4 -> (200000,0)]
+      2 Wartet am Signal 13: Abschnitt 12 ist besetzt  [R_SIGNAL SIGNAL#3 -> (200000,0)]
+      3 Zug 2 besetzt Abschnitt 12 und fährt entgegen  [R_HALTER_GEGEN FAHRZEUG#2 -> (200000,0)]
+      4 WURZEL Mühlbach–Kornfeld hat nur ein Gleis (40 Felder)  [W_EINGLEISIG URSACHE#1 -> (200000,0)]
+    [OK] F1 validate() leer
+    [OK] F1 4 Zeilen (Soll 4)
+    [OK] F1 letzte Zeile = Wurzel W_EINGLEISIG
+    [OK] F1 Sprungziel Wurzelzeile = root_pos (D9)
+    [OK] F1 Texte ohne Platzhalter, <= 60 Zeichen
+    [OK] F1 Titel 'Zug 4 steht seit 2:05 min' == Zeile 1 'Zug 4 steht seit 2:05 min' nach 600 Ticks
+    [OK] F1 Ort + Abschnitte der Kette auf der Karte beschriftet (fehlt: [])
+    [OK] F1 beim Öffnen: Kamera an Zeile 1 ((266.6667, 0.0))
+    [OK] F1 Zeilenklick: Kamera zentriert auf Wurzel-Ort, Zoom 3.0
+    [OK] F1 Kontur an der Wurzel, Zeile 4 gewählt (Z3)
+    [OK] F1 Zurück zur Übersicht -> Z1
+  F2 Meldung 2: Zug 5 steht seit 3:06 min · bei Kreuzung Südfeld
+    [OK] F2 Titel T_STEHT
+    [OK] F2 ausgelöst: Meldung offen (Z2)
+      1 Zug 5 steht seit 3:06 min  [T_STEHT FAHRZEUG#5 -> (1050000,-100000)]
+      2 Zug 5 wartet auf Zug 8, der Abschnitt 32 besetzt  [R_WARTET_ZUG FAHRZEUG#5 -> (1050000,-100000)]
+      3 Zug 8 wartet auf Zug 6, der Abschnitt 33 besetzt  [R_WARTET_ZUG FAHRZEUG#8 -> (1050000,100000)]
+      4 Zug 6 wartet auf Zug 9, der Abschnitt 34 besetzt  [R_WARTET_ZUG FAHRZEUG#6 -> (850000,100000)]
+      5 Zug 9 wartet auf Zug 5, der Abschnitt 31 besetzt  [R_WARTET_ZUG FAHRZEUG#9 -> (850000,-100000)]
+      6 WURZEL Alle 4 warten aufeinander, keiner kann zuerst fahren  [W_KREIS URSACHE#8 -> (950000,0)]
+    [OK] F2 validate() leer
+    [OK] F2 6 Zeilen (Soll 6)
+    [OK] F2 letzte Zeile = Wurzel W_KREIS
+    [OK] F2 Sprungziel Wurzelzeile = root_pos (D9)
+    [OK] F2 Texte ohne Platzhalter, <= 60 Zeichen
+    [OK] F2 Titel 'Zug 5 steht seit 3:06 min' == Zeile 1 'Zug 5 steht seit 3:06 min' nach 600 Ticks
+    [OK] F2 Ort + Abschnitte der Kette auf der Karte beschriftet (fehlt: [])
+    [OK] F2 beim Öffnen: Kamera an Zeile 1 ((1116.667, -100.0))
+    [OK] F2 Zeilenklick: Kamera zentriert auf Wurzel-Ort, Zoom 3.0
+    [OK] F2 Kontur an der Wurzel, Zeile 6 gewählt (Z3)
+    [OK] F2 Zurück zur Übersicht -> Z1
+  F3 Meldung 3: Zug 10 steht seit 4:12 min · bei Hafen-Ost
+    [OK] F3 Titel T_STEHT
+    [OK] F3 ausgelöst: Meldung offen (Z2)
+      1 Zug 10 steht seit 4:12 min  [T_STEHT FAHRZEUG#10 -> (0,450000)]
+      2 Wartet am Signal 21: Abschnitt 21 ist besetzt  [R_SIGNAL SIGNAL#7 -> (0,450000)]
+      3 Zug 7 besetzt Abschnitt 21  [R_HALTER FAHRZEUG#7 -> (200000,450000)]
+      4 Zug 7 wartet in Hafen-Ost auf Ladung (3 von 40)  [R_LADUNG LAGER#301 -> (200000,450000)]
+      5 WURZEL Hafen-Ost bekommt zu wenig Ware: nur 1 Lkw liefert  [W_ZULIEFERUNG URSACHE#301 -> (200000,450000)]
+    [OK] F3 validate() leer
+    [OK] F3 5 Zeilen (Soll 5)
+    [OK] F3 letzte Zeile = Wurzel W_ZULIEFERUNG
+    [OK] F3 Sprungziel Wurzelzeile = root_pos (D9)
+    [OK] F3 Texte ohne Platzhalter, <= 60 Zeichen
+    [OK] F3 Titel 'Zug 10 steht seit 4:12 min' == Zeile 1 'Zug 10 steht seit 4:12 min' nach 600 Ticks
+    [OK] F3 Ort + Abschnitte der Kette auf der Karte beschriftet (fehlt: [])
+    [OK] F3 beim Öffnen: Kamera an Zeile 1 ((66.66666, 450.0))
+    [OK] F3 Zeilenklick: Kamera zentriert auf Wurzel-Ort, Zoom 3.0
+    [OK] F3 Kontur an der Wurzel, Zeile 5 gewählt (Z3)
+    [OK] F3 Zurück zur Übersicht -> Z1
+Karte: Strecke Mühlbach–Kornfeld | Kreuzung Südfeld | Hafen-Ost | Abschnitt 11 | Abschnitt 12 | Abschnitt 13 | Abschnitt 21 | Abschnitt 22 | Abschnitt 23/24 | Abschnitt 31 | Abschnitt 32 | Abschnitt 33 | Abschnitt 34 | Abschnitt 41 | Abschnitt 42 | Abschnitt 43 | Abschnitt 44
+    [OK] geschlossene Meldungen: Titel = aktuelle Standzeit (laufend)
+Sonstige Klicks
+3000 Ticks
+    [OK] alle 3 Fehler bestehen über 3000 Ticks, Ketten gültig (Abweichungen 0)
+    [OK] Kontrollzüge 11/12 ohne Meldung (0 Fehlalarme)
+    [OK] genau 2 Deadlock-Ereignisse (F1, F2): 2
+    Tick jetzt 6254, F3 fuell_ist 9
+Klick-Log
+    [OK] Klick-Log vorhanden: /root/.local/share/godot/app_userdata/Mega Tycoon F-06 Testbuild/smoke/klicklog_T1_20261101-145249.csv
+    [OK] Kopfzeile nach Aylin Abschnitt 5
+    Ereignisse: {"feed_ausgeklappt":1,"feed_eingeklappt":1,"klick_sonstige":1,"meldung_geoeffnet":3,"meldung_geschlossen":3,"session_ende":1,"session_start":1,"sprung_zurueck":3,"zeile_klick":15}
+    [OK] jede Zeile 8 Spalten, unix_ms 13-stellig
+    [OK] 3x meldung_geoeffnet (t_klick)
+    [OK] 15x zeile_klick (4+6+5)
+    [OK] klick_sonstige, feed_eingeklappt, sprung_zurueck geloggt
+    [OK] keine vertragsfehler-Zeile
+Session/Replay
+    [OK] Session-Datei vorhanden
+    [OK] Session-Datei abgeschlossen, Prüfsumme Start eingetragen
+    [OK] Replay: neu gebaute Welt hat dieselbe Start-Prüfsumme
+    [OK] Replay: Prüfsumme am Ende (Tick 6254) identisch
+SMOKE: ALLE PRUEFPUNKTE GRUEN (Exit 0)

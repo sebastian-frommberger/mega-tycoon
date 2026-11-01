@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mega-tycoon/goods.schema.json",
+  "title": "Gueter (goods.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "gueter"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "gueter": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "kategorie", "preis_cent_pro_einheit_feld", "epoche", "massengut"],
+        "properties": {
+          "id": { "$ref": "common.schema.json#/$defs/id" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "kategorie": { "enum": ["rohstoff", "nahrung", "bau", "werkzeug", "energie", "zwischenprodukt"] },
+          "preis_cent_pro_einheit_feld": {
+            "$ref": "common.schema.json#/$defs/cent",
+            "description": "P_gut: Cent je Einheit und Feld Luftlinie (tobias.md: 0,40 $ -> 40)"
+          },
+          "epoche": { "$ref": "common.schema.json#/$defs/epoche" },
+          "massengut": { "type": "boolean" },
+          "frische_verfall_ticks": {
+            "$ref": "common.schema.json#/$defs/ticks_pos",
+            "description": "Nur Frischegut: Ticks bis der Wert auf frische_rest_promille faellt"
+          },
+          "frische_rest_promille": { "$ref": "common.schema.json#/$defs/promille" },
+          "substitut_fuer": {
+            "type": "array",
+            "items": { "$ref": "common.schema.json#/$defs/id" },
+            "uniqueItems": true,
+            "description": "Gueter derselben Kategorie, die dieses Gut im Warenkorb ersetzt (Mehl/Fleisch)"
+          }
+        },
+        "dependentRequired": { "frische_verfall_ticks": ["frische_rest_promille"] }
+      }
+    }
+  }
+}

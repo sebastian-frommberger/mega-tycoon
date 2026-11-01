@@ -145,6 +145,36 @@ func _run() -> void:
 		await shot("hover_%s" % st["id"])
 	ok(hov_ok == 8, "M1 echte Mausbewegung über Stadtmitte zeigt Vorschau + Ring bei %d von 8 Städten (max. %d Frames bis Panel)" % [hov_ok, max_frames])
 	ok(occl.is_empty(), "M2 keine Stadtmitte liegt unter Panel/Kopfleiste/Werkzeugleiste in der Startansicht %s" % str(occl))
+	# ---- 2b) Ring-Animation nur bei Wechsel der angezeigten Stadt (Bastis Bug: Ring animierte beim Wegfahren erneut)
+	await _fresh()
+	hq = m.hq
+	hq.reduced_motion = false
+	var pa := city_scr("haberau")
+	var pb := city_scr("mittelfurt")
+	var pe := Vector2(700, 200)
+	await move_to(pa)
+	ok(hq.shown == m.by_id["haberau"] and hq.hover_ring.visible, "M3a Hover A zeigt Ring A")
+	await click_at(pa)
+	await create_timer(hq.RING_SEC + 0.2).timeout
+	var an0: int = hq.ring_anims
+	var sc0: Vector3 = hq.hover_ring.scale
+	await move_to(pe)
+	await create_timer(0.15).timeout
+	ok(hq.ring_anims == an0 and hq.hover_ring.visible and hq.shown == m.by_id["haberau"] and hq.hover_ring.scale.is_equal_approx(sc0),
+		"M3b Gewählt A, Maus weg: Ring A bleibt ruhig, keine neue Animation (%d -> %d)" % [an0, hq.ring_anims])
+	await move_to(pb)
+	ok(hq.shown == m.by_id["mittelfurt"] and hq.ring_anims == an0 + 1 and hq.selected == m.by_id["haberau"], "M3c Hover B zeigt Ring B (Vorschau, Wahl bleibt A), genau eine Animation")
+	await create_timer(hq.RING_SEC + 0.2).timeout
+	var an1: int = hq.ring_anims
+	await move_to(pe)
+	await create_timer(0.1).timeout
+	ok(hq.shown == m.by_id["haberau"] and hq.ring_anims == an1 and hq.hover_ring.scale.x >= hq.radius_of(m.by_id["haberau"]) - 0.01, "M3d Von B weg: Ring A kehrt ohne Animation zurück (%d -> %d)" % [an1, hq.ring_anims])
+	await create_timer(hq.RING_SEC + 0.2).timeout
+	var an2: int = hq.ring_anims
+	await move_to(pa)
+	await move_to(pe)
+	await create_timer(0.1).timeout
+	ok(hq.ring_anims == an2 and hq.shown == m.by_id["haberau"], "M3e Hover über gewählte A und weg: keine Animation (%d -> %d)" % [an2, hq.ring_anims])
 	# ---- 2) Klick-Ablauf mit echten Klicks inkl. Wechsel, Esc, Abbruch
 	var clicks := 0
 	await click_at(city_scr("haberau"))

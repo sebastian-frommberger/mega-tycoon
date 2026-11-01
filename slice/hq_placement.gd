@@ -53,6 +53,8 @@ var ghost: Node3D
 var hq_building: Node3D
 var dist_labels: Array = []
 var _ring_tw: Tween
+var _ring_city = null            # Stadt, deren Hover-Ring gerade steht; Animation nur bei Wechsel
+var ring_anims := 0              # Messwert/Test: gestartete Einblend-Animationen
 
 
 func setup(main: Node) -> void:
@@ -463,6 +465,7 @@ func _hide_preview() -> void:
 	shown = null
 	panel.visible = false
 	hover_ring.visible = false
+	_ring_city = null
 	for l in dist_labels:
 		l.visible = false
 
@@ -652,16 +655,21 @@ func _set_hq(city) -> void:
 func _show_ring(city) -> void:
 	var r := float(radius_of(city))
 	hover_ring.position = city.center() + Vector3(0, 0.1, 0)
+	var same: bool = _ring_city == city and hover_ring.visible
+	var zurueck: bool = city == selected and _ring_city != null and hover_ring.visible   # Rückkehr zur gewählten Stadt: ohne Animation
 	hover_ring.visible = true
-	if _ring_tw != null and _ring_tw.is_running():
-		_ring_tw.kill()
-	var full := Vector3(r, 0.05, r)
-	if reduced_motion or not hover_ring.is_inside_tree():
-		hover_ring.scale = full
-	else:
-		hover_ring.scale = Vector3(r * 0.2, 0.05, r * 0.2)
-		_ring_tw = hover_ring.create_tween()
-		_ring_tw.tween_property(hover_ring, "scale", full, RING_SEC).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_ring_city = city
+	if not same:
+		if _ring_tw != null and _ring_tw.is_running():
+			_ring_tw.kill()
+		var full := Vector3(r, 0.05, r)
+		if reduced_motion or zurueck or not hover_ring.is_inside_tree():
+			hover_ring.scale = full
+		else:
+			ring_anims += 1
+			hover_ring.scale = Vector3(r * 0.2, 0.05, r * 0.2)
+			_ring_tw = hover_ring.create_tween()
+			_ring_tw.tween_property(hover_ring, "scale", full, RING_SEC).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	# Industrien im Ring: Luftlinie in Feldern (Rest bleibt ohne Marke)
 	var n := 0
 	for b in m.buildings:

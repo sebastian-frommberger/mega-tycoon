@@ -68,6 +68,7 @@ var lic_auto_renew := false
 var lic_events: Array = []    # B-xx S7: [{site, cent, ok}] je Verlängerung/Ablauf; main leert die Liste (Toast)
 var lic_required := false
 var free_licences_start := 0
+var free_in_radius_only := false           # S7 T-15: Gratis-Lizenz nur im HQ-Radius (lizenz.licence_free_only_in_radius_flag)
 var warehouse_cap := 0
 var warehouse_yield := 0
 var stamp_persists := true
@@ -235,6 +236,7 @@ func load_from(slice_path: String, consts_path: String) -> bool:
 	lic_auto_renew = _need(slice, "lizenz.licence_auto_renew_flag")
 	lic_required = _need(slice, "lizenz.licence_required_to_load_flag")
 	free_licences_start = _need(slice, "hq.free_licence_count_anzahl")
+	free_in_radius_only = bool(slice.get("lizenz", {}).get("licence_free_only_in_radius_flag", false))
 	warehouse_cap = _need(slice, "lager.warehouse_capacity_einheiten")
 	warehouse_yield = _need(slice, "lager.warehouse_yield_cent")
 	speed_stufen = _need(slice, "genre_standard.game_speed_stufen")
@@ -558,7 +560,7 @@ func licence_quote(site: int, with_yield: bool = true) -> Dictionary:
 	if not company_started:
 		return {"ok": false, "fehler": "keine_firma"}
 	var cost := _licence_cost(site)
-	var gratis := free_licences_left > 0
+	var gratis := free_licences_left > 0 and (not free_in_radius_only or _felder(s_x[site] - hq_x, s_y[site] - hq_y) <= hq_radius_felder)
 	var y := _licence_yield_month(site) if with_yield else {"cent": -1, "ziel": "", "felder": -1, "quelle": "nicht berechnet"}
 	return {
 		"ok": true, "industrie_id": i_ids[s_def[site]], "kosten_cent": cost, "gratis": gratis,

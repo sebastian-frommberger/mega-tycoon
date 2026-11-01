@@ -1,0 +1,46 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+== H) F-20 HQ-Platzierung: Hover, Ghost, Gründen, Abbruch, Umsetzen-Regel (echte Eingabeereignisse)
+MAP_LOAD_MS 187.7 READY_MS 230.9 MISSING_IDS 0
+  OK   H1 Start auf der Karte: Platzierungsmodus, Zeit pausiert (Tick 0, Tempo 0), kein Werkzeug
+  OK   H2 Kopfleiste zeigt vor der Gründung das Startkapital 6.000 $
+  OK   H3 kein Archetyp mehr in main.gd/economy.gd (start_game, ARCH, start_company entfernt), ein Kapital-Key
+     Kohlberg   Kette im Radius 6 Zeilen, OK, 12 ms bis Panel
+     Lindach    Wagnis: kein Rohstoff im Radius 6 Zeilen, OK, 6 ms bis Panel
+     Weidenau   Wagnis: kein Rohstoff im Radius 6 Zeilen, OK, 6 ms bis Panel
+     Seehafen   Wagnis: kein Rohstoff im Radius 6 Zeilen, OK, 7 ms bis Panel
+     Eichwald   Wagnis: kein Rohstoff im Radius 6 Zeilen, OK, 6 ms bis Panel
+     Mittelfurt Kette im Radius 6 Zeilen, OK, 6 ms bis Panel
+     Steinbach  Wagnis: kein Rohstoff im Radius 6 Zeilen, OK, 7 ms bis Panel
+     Haberau    Kette im Radius 5 Zeilen, OK, 6 ms bis Panel
+  OK   H4 8 von 8 Städten zeigen die Vorschau (8), Quelle "T-14b Tobias (Modellrechnung, Lizenzfaktor wie Spiel S6 B-1), erzeugt aus slice_map.json md5 48278cd3a0c2adb8be81634ee17c29f4 und economy_slice.json durch tools/hq_vorschau_gen.py"
+  OK   H5 Vorschau ≤ 6 Zeilen (max 6), Panel ≤ 380 px (max 380 px), rechts angedockt
+  OK   H6 Vorschau nach Hover in ≤ 150 ms (+ 1 Frame): max 12 ms (Sandbox)
+  OK   H7 Kontrast aller Panel-Texte ≥ 4,5:1 (min 5.20) []
+  OK   H8 Zustände Icon + Text: Wagnis-Städte Dreieck „warn“ ohne Rot, Kette = Kreis „ok“
+  OK   H9 Ring wächst in 0.35 s auf Radius 45 (Start 11.1, nach 0,42 s 45.0)
+  OK   H10 Reduced Motion: Ring sofort voll (55.0)
+  OK   H11 vor dem Klick kein Ghost, Knopf „HQ hier gründen“ inaktiv
+  OK   H12 Klick wählt Mittelfurt (Wechsel von Haberau): Ghost am Stadtrand (19.0 Felder vom Zentrum)
+  OK   H13 ohne Hover zeigt das Panel die Wahl, Primärknopf aktiv: "HQ hier gründen / 6.000 $ Startkapital"
+  OK   H14 Esc hebt die Wahl auf (kein Ghost, keine Firma)
+  OK   H15 kein Modal und keine zentrierte Fläche im Platzierungsmodus
+  OK   H16 „HQ hier gründen“ (echter Klick): Firma in Mittelfurt, Kasse 6.000 $, 2 Gratis-Lkw, Radius 45, Zeit läuft
+  OK   H17 Gründung in 4 Klicks ab Kartenstart (inkl. Wechsel und Esc-Probe, ≤ 5)
+  OK   H18 Toast „HQ in Mittelfurt gegründet. Umsetzen kostenlos bis zur ersten Lizenz, höchstens noch 2:00 min.“, HQ-Gebäude (Hook _spawn_hq_building) und Ring stehen
+  OK   H19 Meilensteine aus der Startkette, Index 1 = erste Lizenz (M1b, U-02b): Lizenz für eine Getreidefarm kaufen
+  OK   H20 Ring-Label „Umsetzen möglich, noch 2:00“
+  OK   H21 Klick auf den Ring: Umsetzen-Modus, Uhr und Zähler stehen (Tick 0, noch 2:00)
+  OK   H22 Esc bricht ab: „Umsetzen abgebrochen. HQ bleibt in Mittelfurt.“
+  OK   H23 Klick auf den Toast startet das Umsetzen
+  OK   H24 Knopf im Umsetzen-Modus: "HQ hierher umsetzen / kostenlos"
+  OK   H25 Umsetzen nach Haberau kostenlos (Kasse 6.000 $), Radius 55: „HQ nach Haberau umgesetzt. Noch 2:00 Umsetzen frei.“
+  OK   H26 Gratislizenz zählt: HQ fest, „Erste Lizenz erworben. HQ in Haberau ist jetzt fest.“
+  OK   H27 nach Festlegung kein Umsetzen per Ring, kein Ring-Label
+MAP_LOAD_MS 255.6 READY_MS 290.9 MISSING_IDS 0
+  OK   H28 Wagnis-Standort Seehafen gründbar (kein Sperren)
+  OK   H29 2 min Spielzeit: „Umsetzen noch 20 s“ bei 20 s, bei 1199 Ticks noch frei, danach fest: „HQ in Seehafen ist jetzt fest.“
+  OK   H30 Meilenstein-Ziele archetyp-unabhängig für 8/8 Städte (Kohlberg: kohle_1 → kraftwerk_1, M3 stahl_1 → werkzeug_1)
+
+
+30/30 Abnahmeprüfungen OK, Laufzeit 1.9 s (Sandbox)

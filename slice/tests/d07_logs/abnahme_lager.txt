@@ -1,0 +1,61 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+== D) Lager-Bug (B-xx): Bestand ≤ Kapazität, keine Einheiten aus dem Nichts, 20 Läufe mit seed_stock, dazu regulärer Lauf
+MAP_LOAD_MS 283.7 READY_MS 327.4 MISSING_IDS 0
+MAP_LOAD_MS 280.3 READY_MS 301.9 MISSING_IDS 0
+     Lauf  0 (soa): Start 201/126, Lkw 3, max Bestand 200 (Grenze 201), Summe 327 -> 327 OK
+MAP_LOAD_MS 259.9 READY_MS 304.1 MISSING_IDS 0
+     Lauf  1 (alt): Start 117/61, Lkw 6, max Bestand 117 (Grenze 200), Summe 178 -> 178 OK
+MAP_LOAD_MS 151.4 READY_MS 199.7 MISSING_IDS 0
+     Lauf  2 (soa): Start 0/153, Lkw 2, max Bestand 153 (Grenze 200), Summe 153 -> 153 OK
+MAP_LOAD_MS 233.0 READY_MS 255.5 MISSING_IDS 0
+     Lauf  3 (alt): Start 65/142, Lkw 2, max Bestand 142 (Grenze 200), Summe 207 -> 207 OK
+MAP_LOAD_MS 256.2 READY_MS 278.7 MISSING_IDS 0
+     Lauf  4 (soa): Start 98/259, Lkw 4, max Bestand 239 (Grenze 259), Summe 357 -> 357 OK
+MAP_LOAD_MS 181.2 READY_MS 235.0 MISSING_IDS 0
+     Lauf  5 (alt): Start 206/156, Lkw 5, max Bestand 200 (Grenze 206), Summe 362 -> 362 OK
+MAP_LOAD_MS 304.8 READY_MS 333.6 MISSING_IDS 0
+BANKROTT tick=1773 kasse=-23
+     Lauf  6 (soa): Start 190/53, Lkw 7, max Bestand 180 (Grenze 200), Summe 243 -> 243 OK
+MAP_LOAD_MS 254.4 READY_MS 293.8 MISSING_IDS 0
+BANKROTT tick=2387 kasse=-76
+     Lauf  7 (alt): Start 278/87, Lkw 6, max Bestand 238 (Grenze 278), Summe 365 -> 365 OK
+MAP_LOAD_MS 348.4 READY_MS 373.9 MISSING_IDS 0
+     Lauf  8 (soa): Start 190/144, Lkw 3, max Bestand 200 (Grenze 200), Summe 334 -> 334 OK
+MAP_LOAD_MS 303.9 READY_MS 352.6 MISSING_IDS 0
+     Lauf  9 (alt): Start 11/72, Lkw 2, max Bestand 72 (Grenze 200), Summe 83 -> 83 OK
+MAP_LOAD_MS 284.8 READY_MS 336.4 MISSING_IDS 0
+BANKROTT tick=1757 kasse=-47
+     Lauf 10 (soa): Start 120/228, Lkw 7, max Bestand 200 (Grenze 228), Summe 348 -> 348 OK
+MAP_LOAD_MS 290.7 READY_MS 353.6 MISSING_IDS 0
+     Lauf 11 (alt): Start 276/16, Lkw 2, max Bestand 266 (Grenze 276), Summe 292 -> 292 OK
+MAP_LOAD_MS 291.4 READY_MS 331.1 MISSING_IDS 0
+     Lauf 12 (soa): Start 154/96, Lkw 5, max Bestand 200 (Grenze 200), Summe 250 -> 250 OK
+MAP_LOAD_MS 315.4 READY_MS 389.7 MISSING_IDS 0
+     Lauf 13 (alt): Start 16/58, Lkw 6, max Bestand 54 (Grenze 200), Summe 74 -> 74 OK
+MAP_LOAD_MS 368.7 READY_MS 423.1 MISSING_IDS 0
+BANKROTT tick=1750 kasse=-66
+     Lauf 14 (soa): Start 110/224, Lkw 7, max Bestand 200 (Grenze 224), Summe 334 -> 334 OK
+MAP_LOAD_MS 378.1 READY_MS 416.4 MISSING_IDS 0
+     Lauf 15 (alt): Start 227/77, Lkw 5, max Bestand 200 (Grenze 227), Summe 304 -> 304 OK
+MAP_LOAD_MS 292.5 READY_MS 330.3 MISSING_IDS 0
+     Lauf 16 (soa): Start 223/151, Lkw 4, max Bestand 203 (Grenze 223), Summe 374 -> 374 OK
+MAP_LOAD_MS 287.8 READY_MS 324.8 MISSING_IDS 0
+     Lauf 17 (alt): Start 117/211, Lkw 3, max Bestand 201 (Grenze 211), Summe 328 -> 328 OK
+MAP_LOAD_MS 252.5 READY_MS 287.9 MISSING_IDS 0
+     Lauf 18 (soa): Start 210/181, Lkw 3, max Bestand 200 (Grenze 210), Summe 391 -> 391 OK
+MAP_LOAD_MS 295.0 READY_MS 340.5 MISSING_IDS 0
+     Lauf 19 (alt): Start 140/225, Lkw 5, max Bestand 215 (Grenze 225), Summe 365 -> 365 OK
+  OK   D1 20/20 Läufe: Bestand ≤ max(Kapazität 200, Startbestand), nie negativ, Summe der Einheiten erhalten (20 OK, höchster 266)
+MAP_LOAD_MS 286.0 READY_MS 328.0 MISSING_IDS 0
+     D2 farm (380, 335) corridor (384, 339) road1: <null>
+BANKROTT tick=4451 kasse=-66
+     D2 Aufbau: Straßen true/true, Linien 4, Lieferungen 126
+  OK   D2 reguläres Spiel ohne seed_stock: 4 Linien, Lagerbestand max 133 (>0, ≤ Kapazität 200) nach 20 Spielminuten
+
+
+2/2 Abnahmeprüfungen OK, Laufzeit 10.1 s (Sandbox)
+WARNING: 121 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 5 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

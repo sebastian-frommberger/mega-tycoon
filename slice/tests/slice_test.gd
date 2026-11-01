@@ -258,6 +258,9 @@ func _run() -> void:
 	ok(dem_ok and n_dorf > 0, "Nachfrage je Stadt = EW × Satz × Stufen-Multiplikator (Dorf ×2, Kleinstadt ×1), %d Dorf-Standort(e)" % n_dorf)
 	var q: Dictionary = m.licence_quote(m.by_id["kohle_1"])
 	ok(q.get("ok", false) and q["gratis"], "Lizenz-Angebot Kohlemine: %s, Ertrag %s/Monat bis %s" % [m.money_str(q["kosten_cent"]), m.money_str(q["ertrag_pro_monat_cent"]), q["ertrag_ziel_id"]])
+	var qf: Dictionary = m.licence_quote(m.by_id["farm_3"])
+	var nur_radius: bool = bool(m.eco.slice["lizenz"].get("licence_free_only_in_radius_flag", false))
+	ok(qf.get("ok", false) and qf["gratis"] == (not nur_radius), "S7 T-15: Gratis-Lizenz nur im HQ-Radius (Flag %s): Getreidefarm 3 weit außerhalb kostet %s, gratis: %s" % [str(nur_radius), m.money_str(qf["kosten_cent"]), str(qf["gratis"])])
 	m.set_speed(8)
 	ok(m.speed == 8, "8× erlaubt bei ≤ 5.000 Fahrzeugen")
 	ok(not m.licence_quote(m.by_id["kraftwerk_1"]).get("ok", true), "Kraftwerk (Abnehmer) braucht keine Lizenz")
@@ -428,6 +431,12 @@ func _section7() -> void:
 	_new_main()
 	m.place_hq("haberau")
 	var k: Dictionary = m.eco.slice["kredit"]
+	# S7 T-15: Kreditsperre (credit_available_from_ticks): erst sperren pruefen, dann bis zur Freigabe vorspulen
+	var k_unlock: int = int(k["credit_available_from_ticks"])
+	if k_unlock > 0:
+		ok(m.ui_credit_borrow() == 0 and m.credit.loan_cent == 0 and m.credit_buttons[0].disabled, "S7 T-15: Kredit vor Tick %d gesperrt ([+] gesperrt)" % k_unlock)
+		m.run_ticks(k_unlock)
+		m._update_hud(0)
 	var c0: int = m.eco.cash_cent
 	var got := 0
 	var n_ok := 0

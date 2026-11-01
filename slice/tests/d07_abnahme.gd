@@ -398,6 +398,10 @@ func _kredit() -> void:
 	m.place_hq("haberau")
 	var k: Dictionary = m.eco.slice["kredit"]
 	var lim: int = int(k["credit_limit_cent"])
+	var unlock: int = int(k["credit_available_from_ticks"])      # S7 T-15: Kreditsperre, Tests laufen nach der Freigabe
+	var gesperrt: bool = m.ui_credit_borrow() == 0 and m.credit.loan_cent == 0
+	ok(unlock == 0 or gesperrt, "B0 (S7 T-15) vor Tick %d ist der Kredit aus dem JSON gesperrt" % unlock)
+	m.run_ticks(unlock)
 	var c0: int = m.eco.cash_cent
 	var got := 0
 	for i in 12:
@@ -420,6 +424,7 @@ func _kredit() -> void:
 	ok(cr3.borrow(es, 0) == 0, "B5 credit_active_in_slice_flag=false sperrt den Kredit")
 	_new_main()
 	m.place_hq("haberau")
+	m.run_ticks(unlock)
 	for i in 4:
 		m.ui_credit_borrow()
 	var cash_a: int = m.eco.cash_cent
@@ -430,6 +435,7 @@ func _kredit() -> void:
 	for fall in 20:
 		_new_main("soa")
 		m.place_hq("haberau" if fall % 2 == 0 else "kohlberg")
+		m.run_ticks(unlock)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 7000 + fall
 		var start_cash: int = m.eco.cash_cent
@@ -453,6 +459,7 @@ func _kredit() -> void:
 	ok(viol == 0, "B7 20 Kreislauf-Fälle × 150 Aktionen: Kasse == Start + Kredit - Zins in jedem Schritt, Kredit in [0, Rahmen] in 500-$-Schritten, kein Gewinn nach Volltilgung (Verstöße: %d)" % viol)
 	_new_main()
 	m.place_hq("haberau")
+	m.run_ticks(unlock)
 	m.ui_credit_borrow()
 	m.eco.cash_cent = 499
 	var cb: int = m.eco.cash_cent
@@ -460,7 +467,7 @@ func _kredit() -> void:
 	# B10 zinsfreies Fenster
 	_new_main()
 	m.place_hq("haberau")
-	m.run_ticks(1)
+	m.run_ticks(unlock + 1)
 	for i in 4:
 		m.ui_credit_borrow()
 	var t_before: int = m.shim.tick_count
@@ -476,6 +483,7 @@ func _kredit() -> void:
 	# B11 Gegenrichtung
 	_new_main()
 	m.place_hq("haberau")
+	m.run_ticks(unlock)
 	m.run_ticks(m.periode_ticks - 1 - (m.shim.tick_count % m.periode_ticks))
 	m.ui_credit_borrow()
 	m.run_ticks(2)
@@ -485,6 +493,7 @@ func _kredit() -> void:
 	_new_main()
 	m.place_hq("haberau")
 	ok(m.credit.loan_cent == 0 and m.credit.interest_paid == 0, "B12 neue Instanz startet mit Kredit 0")
+	m.run_ticks(unlock)
 	m.ui_credit_borrow()
 	m.eco.cash_cent = 0
 	m.run_ticks(m.periode_ticks)
@@ -492,6 +501,7 @@ func _kredit() -> void:
 	_new_main()
 	await frames(3)
 	m.place_hq("haberau")
+	m.run_ticks(unlock)
 	await frames(5)
 	var plus: Button = m.credit_buttons[0]
 	var minus: Button = m.credit_buttons[1]

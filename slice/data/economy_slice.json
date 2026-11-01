@@ -15,7 +15,7 @@
   },
   "lizenz": {
     "licence_cost_share_promille": 100, "licence_auto_renew_flag": true, "licence_duration_ticks": 18000,
-    "licence_discount_in_radius_promille": 300, "licence_surcharge_per_field_promille": 30,
+    "licence_discount_in_radius_promille": 300, "licence_surcharge_per_field_promille": 120, "licence_free_only_in_radius_flag": true,
     "licence_shared_max_anzahl": 2, "licence_shared_output_share_promille": 500, "licence_exclusive_mult_promille": 2500,
     "licence_required_to_load_flag": true
   },
@@ -28,7 +28,7 @@
     "works_margin_promille": 150, "company_upkeep_per_level_cent_pro_periode": 2000
   },
   "kredit": {
-    "credit_limit_cent": 200000, "credit_step_cent": 50000, "credit_available_from_ticks": 0, "credit_interest_promille_pro_periode": 10,
+    "credit_limit_cent": 200000, "credit_step_cent": 50000, "credit_available_from_ticks": 7200, "credit_interest_promille_pro_periode": 30,
     "credit_blocks_company_buy_flag": true,
     "credit_allowed_minus_ids": ["strasse", "fahrzeuge", "lager", "lizenz_verlaengerung"],
     "credit_blocked_ids": ["firmenkauf", "firmenausbau", "hq_ausbau"],

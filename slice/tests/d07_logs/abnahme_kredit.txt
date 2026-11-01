@@ -1,0 +1,54 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+== B) F-19 Kredit: Aufnehmen/Tilgen, Obergrenze, Zins aus JSON, Kreislauf ohne Geld-Exploit
+MAP_LOAD_MS 185.2 READY_MS 227.2 MISSING_IDS 0
+  OK   B0 (S7 T-15) vor Tick 7200 ist der Kredit aus dem JSON gesperrt
+  OK   B1 Obergrenze 2.000 $ aus JSON hart: 12 Versuche, Kredit 2.000 $
+  OK   B2 weiterer Versuch über Rahmen gibt 0
+  OK   B3 Limit 3.000 $ und Zins 25 ‰ aus abweichendem JSON übernommen (Zins je Periode 1250 ¢)
+  OK   B4 credit_available_from_ticks respektiert (99 gesperrt, 100 frei)
+  OK   B5 credit_active_in_slice_flag=false sperrt den Kredit
+MAP_LOAD_MS 173.7 READY_MS 195.0 MISSING_IDS 0
+  OK   B6 3 Perioden Zins 180 $ abgebucht (erwartet 180 $), Kasse -180 $
+MAP_LOAD_MS 269.8 READY_MS 311.0 MISSING_IDS 0
+MAP_LOAD_MS 207.0 READY_MS 241.2 MISSING_IDS 0
+MAP_LOAD_MS 190.1 READY_MS 223.2 MISSING_IDS 0
+MAP_LOAD_MS 312.2 READY_MS 354.0 MISSING_IDS 0
+MAP_LOAD_MS 315.9 READY_MS 359.2 MISSING_IDS 0
+MAP_LOAD_MS 292.9 READY_MS 321.5 MISSING_IDS 0
+MAP_LOAD_MS 171.9 READY_MS 200.1 MISSING_IDS 0
+MAP_LOAD_MS 154.6 READY_MS 178.4 MISSING_IDS 0
+MAP_LOAD_MS 301.0 READY_MS 344.1 MISSING_IDS 0
+MAP_LOAD_MS 260.6 READY_MS 291.2 MISSING_IDS 0
+MAP_LOAD_MS 375.2 READY_MS 459.6 MISSING_IDS 0
+MAP_LOAD_MS 367.6 READY_MS 400.6 MISSING_IDS 0
+MAP_LOAD_MS 250.6 READY_MS 306.4 MISSING_IDS 0
+MAP_LOAD_MS 333.7 READY_MS 416.8 MISSING_IDS 0
+MAP_LOAD_MS 477.4 READY_MS 564.0 MISSING_IDS 0
+MAP_LOAD_MS 220.8 READY_MS 254.9 MISSING_IDS 0
+MAP_LOAD_MS 241.1 READY_MS 267.8 MISSING_IDS 0
+MAP_LOAD_MS 159.1 READY_MS 185.7 MISSING_IDS 0
+MAP_LOAD_MS 165.7 READY_MS 190.3 MISSING_IDS 0
+MAP_LOAD_MS 183.1 READY_MS 210.0 MISSING_IDS 0
+  OK   B7 20 Kreislauf-Fälle × 150 Aktionen: Kasse == Start + Kredit - Zins in jedem Schritt, Kredit in [0, Rahmen] in 500-$-Schritten, kein Gewinn nach Volltilgung (Verstöße: 0)
+MAP_LOAD_MS 165.8 READY_MS 196.3 MISSING_IDS 0
+  OK   B8 Tilgen mit 4,99 $ Kasse abgelehnt, Kasse unverändert
+MAP_LOAD_MS 170.1 READY_MS 196.7 MISSING_IDS 0
+     Kredit ab Tick 7201 bis Tilgung kurz vor Periodenende, Zins gezahlt: 5970 ¢
+  OK   B10 Zinsfenster geprüft (zinsfrei möglich: false)
+MAP_LOAD_MS 279.4 READY_MS 318.4 MISSING_IDS 0
+  NOTE B11 Volle Periodenzins (0 $) für ca. 1 Tick Kredit (Gegenstück zu B10, ärgerlich, kein Exploit).
+  OK   B11 Gegenrichtung geprüft: Zins nach Aufnahme 1 Tick vor Periodenende 3 ¢
+MAP_LOAD_MS 164.7 READY_MS 192.1 MISSING_IDS 0
+  OK   B12 neue Instanz startet mit Kredit 0
+BANKROTT tick=7800 kasse=-1500
+  OK   B13 Kasse 0 $ + offener Kredit: Zins macht Kasse negativ -> Bankrott
+MAP_LOAD_MS 185.9 READY_MS 219.9 MISSING_IDS 0
+  OK   B14 echter Klick auf [+] im HUD: +500 $ (Kredit 500 $)
+  OK   B15 echter Klick auf [-]: Kredit 0, Kasse wieder 6.000 $
+  OK   B16 [+] im Viewport und ≥ 24 px Klickfläche ((30.15451, 30.15451))
+  OK   B17 Tooltip [+]: "Kredit aufnehmen: +500 $"
+
+  · B11 Volle Periodenzins (0 $) für ca. 1 Tick Kredit (Gegenstück zu B10, ärgerlich, kein Exploit).
+
+17/17 Abnahmeprüfungen OK, Laufzeit 12.6 s (Sandbox)

@@ -1,0 +1,6 @@
+slice_test (soa) Exit 0: 74/74 Prüfungen OK, Laufzeit 11.3 s (Sandbox)
+slice_test (alt) Exit 0: 74/74 Prüfungen OK, Laufzeit 11.4 s (Sandbox)
+parity_test      Exit 0: 8/8 Paritätsprüfungen OK
+s11_test         Exit 0: 16/16 Prüfungen OK
+SCRIPT ERROR Zeilen: 0
+Screenshots: 4 Dateien in /home/claude/mega-tycoon/slice/../d07_shots

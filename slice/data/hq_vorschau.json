@@ -43,7 +43,7 @@
         "Nächste Lizenzen: Farm 81, Mühle 139, Kohle 284 Felder."
       ],
       "groesse": "Dorf, 550 Einwohner, Nachfrage 11 E/min",
-      "lizenzfaktor": "Lizenzfaktor x1,78 (Farm, 81 Felder)",
+      "lizenzfaktor": "Lizenzfaktor x4,12 (Farm, 81 Felder)",
       "gelaende": "Fluss 101 Felder entfernt; Gebirge nördlich, 3 % des Radius: Gleis dort x3",
       "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
     },
@@ -54,7 +54,7 @@
         "Nächste Lizenzen: Mühle 170, Kohle 182, Farm 197 Felder."
       ],
       "groesse": "Dorf, 600 Einwohner, Nachfrage 12 E/min",
-      "lizenzfaktor": "Lizenzfaktor x4,45 (Mühle, 170 Felder)",
+      "lizenzfaktor": "Lizenzfaktor x14,80 (Mühle, 170 Felder)",
       "gelaende": "Fluss 14 Felder entfernt; Wald 4 %",
       "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
     },
@@ -65,7 +65,7 @@
         "Nächste Lizenzen: Erzmine 139, Stahlwerk 142, Kohle 166 Felder."
       ],
       "groesse": "Dorf, 500 Einwohner, Nachfrage 10 E/min",
-      "lizenzfaktor": "Lizenzfaktor x3,52 (Erzmine, 139 Felder)",
+      "lizenzfaktor": "Lizenzfaktor x11,08 (Erzmine, 139 Felder)",
       "gelaende": "Wald 9 %; kein Fluss und kein Gebirge im Radius",
       "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
     },
@@ -76,7 +76,7 @@
         "Nächste Lizenzen: Stahlwerk 199, Erzmine 204, Kohle 219 Felder."
       ],
       "groesse": "Dorf, 700 Einwohner, Nachfrage 14 E/min",
-      "lizenzfaktor": "Lizenzfaktor x5,32 (Stahlwerk, 199 Felder)",
+      "lizenzfaktor": "Lizenzfaktor x18,28 (Stahlwerk, 199 Felder)",
       "gelaende": "Wald 8 %; kein Fluss und kein Gebirge im Radius",
       "hinweis": "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
     },
@@ -87,7 +87,7 @@
         "Nächste Lizenzen: Mühle 198, Farm 204, Stahlwerk 259 Felder."
       ],
       "groesse": "Kleinstadt, 3.200 Einwohner, Nachfrage 32 E/min",
-      "lizenzfaktor": "Lizenzfaktor x5,44 (Mühle, 198 Felder)",
+      "lizenzfaktor": "Lizenzfaktor x18,76 (Mühle, 198 Felder)",
       "gelaende": "Küste: Meer 33 % des Radius, Hafen im Slice nicht verfügbar",
       "hinweis": "Im Slice nicht balanciert."
     }

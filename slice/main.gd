@@ -74,6 +74,13 @@ static var core_override := ""
 ## W-01 (S7): Welt "slice" (Default) oder "s7". Umschalten: --welt=s7, ProjectSettings mega_tycoon/welt oder
 ## vor dem Laden Main.world_override = "s7" (Reihenfolge siehe world/welt.gd).
 static var world_override := ""
+## Startmenü (start_menu.gd, Basti S7): "" = direkt (Tests, Bench, wie bisher), "neu" = HQ frei platzieren,
+## "beispiel" = laufendes Beispielnetz (world/beispielnetz.gd). Tests laden main.tscn direkt und sehen kein Menü.
+static var start_mode := ""
+const START_MENU := "res://start_menu.tscn"
+const Beispielnetz := preload("res://world/beispielnetz.gd")
+var beispiel_report := {}           # Testspur: {"fehler", "ids"}
+var toast_log: Array = []           # Testspur: alle Toast-Texte
 var welt := WorldSel.DEFAULT
 var world_s7 = null                 # S7World, nur bei welt == "s7"
 var industry_markers = null         # W-05: world/industry_markers.gd, nur bei welt == "s7"
@@ -273,10 +280,16 @@ func _ready() -> void:
 	print("MAP_LOAD_MS %.1f READY_MS %.1f MISSING_IDS %d" % [load_ms, ready_ms, map_missing_ids.size()])
 	for n in map_missing_ids:
 		print("  FEHLENDE ID: ", n)
+	if start_mode == "beispiel" and not _bench_requested():
+		_start_beispiel.call_deferred()
 	if _bench_requested():
 		bench = Bench.new()
 		add_child(bench)
 		bench.start(self)
+
+
+func _start_beispiel() -> void:
+	beispiel_report = Beispielnetz.build(self)
 
 
 func _bench_requested() -> bool:
@@ -1061,6 +1074,12 @@ func _setup_hud() -> void:
 			h.add_child(_credit_chip())
 		# U-03 U4: Zeile „Skillpunkt gespart“ raus aus der Kopfleiste (Clipping bei 1600 px), Toast bei M1b (_complete).
 	h.add_child(Kit.spacer())
+	if start_mode == "beispiel":     # Startmenü: zurück ins Menü (nur im Beispielnetz, Platz zwischen Uhr und Tempo)
+		var rb := Kit.button("Neu starten", "ButtonTempo", "", func(): get_tree().change_scene_to_file(START_MENU))
+		rb.name = "NeuStarten"
+		rb.tooltip_text = "Zurück ins Startmenü"
+		rb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(rb)
 	var seg := Kit.hbox(4)      # U-02b: Label „TEMPO“ entfällt (U-02-Spec Fix 2), Platz für die Skillpunkt-Zeile
 	h.add_child(seg)
 	for s in [0, 1, 2, 4, 8]:
@@ -1570,6 +1589,8 @@ func time_str(ticks: int) -> String:
 
 
 func _toast(text: String, seconds := 4.0) -> void:
+	if toast_log.size() < 1000:
+		toast_log.append(text)
 	toast_label.text = Kit.txt(text)
 	# lange Meldungen umbrechen, kurze einzeilig (Breite nach Schrift gemessen)
 	var f: Font = toast_label.get_theme_font("font")
@@ -2103,7 +2124,7 @@ func _refresh_milestones() -> void:
 		next_step_label.text = Kit.txt(milestones[next]["hint"])
 		milestone_targets = milestones[next]["t"]
 	else:
-		next_step_label.text = "Alle Ziele erreicht. Weiter: zweite Kette oder Mittelfurt beliefern."
+		next_step_label.text = Beispielnetz.HINWEIS if start_mode == "beispiel" else "Alle Ziele erreicht. Weiter: zweite Kette oder Mittelfurt beliefern."
 		milestone_targets = []
 	_update_goal_markers()
 

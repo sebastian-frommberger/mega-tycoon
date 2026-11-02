@@ -334,10 +334,18 @@ func _process(_dt: float) -> void:
 		var r := Rect2(pc.x - uw * 0.5, base - uh, uw, uh)
 		var placed := false
 		var side := _side_px(e, cam, pc.x)
-		for i in 6 * (MAX_STEPS + 1):
-			var d := (i / 6) * STEP_PX
+		# Zuerst die 6 Plätze an der Flächenkante; ist die Fläche größer als das Bild (Nahzoom, Kante außerhalb),
+		# danach am Standortpunkt selbst (unter/über pc), damit der Name nah nicht verschwindet.
+		var n_edge := 6 * (MAX_STEPS + 1)
+		for i in n_edge + 2 * (MAX_STEPS + 1):
+			var kind := i % 6 if i < n_edge else 6 + (i - n_edge) % 2
+			var d := ((i / 6) if i < n_edge else ((i - n_edge) / 2)) * STEP_PX
 			var cand: Rect2
-			match i % 6:
+			match kind:
+				6:          # am Standortpunkt, darunter
+					cand = Rect2(pc.x - uw * 0.5, pc.y + GAP_PX + d, uw, uh)
+				7:          # am Standortpunkt, darüber
+					cand = Rect2(pc.x - uw * 0.5, pc.y - GAP_PX - uh - d, uw, uh)
 				0:          # über der Fläche, dann weiter nach oben
 					cand = Rect2(pc.x - uw * 0.5, base - uh - d, uw, uh)
 				1:          # unter der Fläche
@@ -348,7 +356,7 @@ func _process(_dt: float) -> void:
 					cand = Rect2(side.x - GAP_PX - uw - d, pc.y - uh * 0.5, uw, uh)
 				4:          # rechts, nach oben versetzt
 					cand = Rect2(side.y + GAP_PX, pc.y - uh * 0.5 - d, uw, uh)
-				_:          # links, nach oben versetzt
+				5:          # links, nach oben versetzt
 					cand = Rect2(side.x - GAP_PX - uw, pc.y - uh * 0.5 - d, uw, uh)
 			var hit := not Rect2(Vector2.ZERO, vp).encloses(cand)
 			for h in hud:                   # HUD-Panels und Leisten zählen als belegt (sonst ausgeblendet)
@@ -361,7 +369,7 @@ func _process(_dt: float) -> void:
 					break
 			if not hit:
 				r = cand
-				shift = d + (i % 6) * 1000.0      # Debug: Kandidat (0 oben, 1 unten, 2/4 rechts, 3/5 links) × 1000 + Abstand px
+				shift = d + kind * 1000.0      # Debug: Kandidat (0 oben, 1 unten, 2/4 rechts, 3/5 links, 6/7 Standort) × 1000 + Abstand px
 				placed = true
 				break
 		if not placed:

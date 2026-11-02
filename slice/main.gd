@@ -2043,7 +2043,11 @@ func _ns_hint(ms: Dictionary) -> String:
 				var pr := _ns_lic(a)
 				parts.append("Lizenz für %s kaufen%s" % [a.display_name, (" (%s)" % pr) if pr != "" else ""])
 			if not _ns_connected(a, b):
-				parts.append("Straße bis %s bauen (ca. %s)" % [b.display_name, money_str(_ns_road_cost(a, b))])
+				var pl := plan_track(a.anchor(), b.anchor(), false)
+				if not pl["ok"] and int(pl["total"]) <= eco.cash_cent:   # echter Baugrund (Fluss diagonal, Stadtseite, Hang), nicht Geld
+					parts.append("Straße bis %s bauen (direkt nicht baubar: %s)" % [b.display_name, str(pl["reason"]).trim_suffix(".")])
+				else:
+					parts.append("Straße bis %s bauen (ca. %s)" % [b.display_name, money_str(int(pl["total"]))])
 			if not _ns_has_line(a, b):
 				var far := absi(a.anchor().x - b.anchor().x) + absi(a.anchor().y - b.anchor().y) > 60
 				parts.append("Linie %s → %s einrichten%s" % [a.display_name, b.display_name, " (weite Strecke: ein Zug lohnt sich)" if far else ""])

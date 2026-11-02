@@ -265,7 +265,12 @@ func _u8(w: String) -> void:
 	ok(m.next_step_label.text.contains(src.display_name) and m.next_step_label.text.contains("Lizenz " + price),
 		"[%s] U8 Start: Lizenz-Hinweis mit Preis: „%s“" % [w, m.next_step_label.text])
 	var h6: String = ms[6]["hint"]
-	ok(h6.contains("Lizenz für %s kaufen (" % f.display_name) and h6.contains("Straße bis %s bauen (ca. " % t.display_name)
+	# ehrlich: direkt baubar -> Preis; sonst Grund aus der Bauvorschau (gleiche Planung wie beim Ziehen)
+	var pl6: Dictionary = m.plan_track(f.anchor(), t.anchor(), false)
+	var road6: String = ("Straße bis %s bauen (ca. %s)" % [t.display_name, m.money_str(int(pl6["total"]))]) if pl6["ok"] else \
+		("Straße bis %s bauen (direkt nicht baubar: %s)" % [t.display_name, str(pl6["reason"]).trim_suffix(".")])
+	ok(h6.contains(road6), "[%s] U8 M3 Straßenteil ehrlich (%s): „%s“" % [w, "direkt baubar" if pl6["ok"] else "direkt nicht baubar", h6])
+	ok(h6.contains("Lizenz für %s kaufen (" % f.display_name)
 		and h6.contains("ein Zug lohnt sich") == (absi(f.anchor().x - t.anchor().x) + absi(f.anchor().y - t.anchor().y) > 60),
 		"[%s] U8 M3 offen: „%s“" % [w, h6])
 	m.ui_buy_licence(src)
@@ -287,13 +292,28 @@ func _u8(w: String) -> void:
 	m.ui_buy_licence(f)
 	h6 = m.milestones[6]["hint"]
 	ok(not h6.contains("Lizenz für") and h6.contains("Straße bis"), "[%s] U8 M3 nach Lizenz %s: „%s“" % [w, f.display_name, h6])
-	var built: bool = m.build_track(f.anchor(), t.anchor(), false)
-	if not built:      # Diagonale über Wasser o. Ä.: über die Mitte bauen
-		var mid := Vector2i(f.anchor().x, t.anchor().y)
-		built = m.build_track(f.anchor(), mid, false) and m.build_track(mid, t.anchor(), false)
+	var built := _build_route(f.anchor(), t.anchor())
 	h6 = m.milestones[6]["hint"]
 	ok(built and not h6.contains("Straße bis") and h6.contains("Linie %s → %s einrichten" % [f.display_name, t.display_name]),
 		"[%s] U8 M3 nach Straße: „%s“" % [w, h6])
 	m.create_line(f, t, "truck")
 	h6 = m.milestones[6]["hint"]
 	ok(h6.contains("läuft"), "[%s] U8 M3 nach Linie: „%s“" % [w, h6])
+
+
+## Baubaren Straßenweg a -> c suchen und bauen: direkt, über ein Eckfeld, sonst über einen Zwischenpunkt außerhalb
+## von Städten (±70 Felder, Schritt 5). Baut nur, wenn beide Teilstücke laut Bauvorschau baubar sind.
+func _build_route(a: Vector2i, c: Vector2i) -> bool:
+	if m.plan_track(a, c, false)["ok"]:
+		return m.build_track(a, c, false)
+	var vias: Array = [Vector2i(a.x, c.y), Vector2i(c.x, a.y)]
+	for dx in range(-70, 71, 5):
+		for dy in range(-70, 71, 5):
+			vias.append(c + Vector2i(dx, dy))
+	for p in vias:
+		if not m._in_grid(p) or m.cell_to_building.has(p) or m._city_of(p) != null:
+			continue
+		if m.plan_track(a, p, false)["ok"] and m.plan_track(p, c, false)["ok"]:
+			print("  INFO Straße über Zwischenpunkt ", p)
+			return m.build_track(a, p, false) and m.build_track(p, c, false)
+	return false

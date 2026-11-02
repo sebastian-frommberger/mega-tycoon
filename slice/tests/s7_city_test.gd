@@ -182,12 +182,7 @@ func _run() -> void:
 	ok(formula_ok and demand_s7.size() == m.map_data["staedte"].size(), "S7: Nachfrage je Stadt = Einwohner × Satz × Stufenfaktor (%d Städte)" % demand_s7.size())
 	m.free()
 	var s = _boot("slice")
-	var same := true
-	for b in s.buildings:
-		if b.kind == s.Building.Kind.CITY and demand_s7.get(b.map_id, -1) != s.eco.city_demand(b.site):
-			same = false
-			print("     %s: S7 %d / Slice %d" % [b.map_id, demand_s7.get(b.map_id, -1), s.eco.city_demand(b.site)])
-	ok(same, "Nachfrage S7 = Slice für alle Städte (%s)" % str(demand_s7))
+	# Hinweis (S7 Block B): Die S7-Welt hat eine eigene Karte (andere Städte), ein Vergleich der Nachfrage mit dem Slice entfällt.
 	ok(s.city_gen == null, "Slice: kein Stadtgenerator (bitgleich)")
 	s.free()
 	MainScript.world_override = ""

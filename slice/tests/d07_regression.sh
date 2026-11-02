@@ -76,6 +76,16 @@ else
   record "s7_u03 / u03_play" 1 "xvfb-run fehlt"
 fi
 
+# --- 2c4) S7 Block C (Mira): W-05 Industrie-Lesbarkeit (Signalfläche + Plakette + Name, 4 km per Projektion, Status) + U8
+if command -v xvfb-run >/dev/null 2>&1; then
+  xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_industrie_test.gd > "$LOGS/s7_industrie.txt" 2>&1; r=$?
+  e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_industrie.txt"); [ "$e" -gt 0 ] && r=1
+  fl=$(grep "^  FAIL" "$LOGS/s7_industrie.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
+  record "s7_industrie (W-05 Fläche+Icon+Name, 4 km ≥ 24 px, kein Überlappen, Status, U8; xvfb)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_industrie.txt") ${fl:+ -- FAIL: $fl}"
+else
+  record "s7_industrie" 1 "xvfb-run fehlt"
+fi
+
 # --- 2d) D-08: HQ-Platzierung mit echter Maus (X-Zeiger über warp_mouse, echte Projektion Bildschirm -> Feld). Braucht xvfb-run.
 if command -v xvfb-run >/dev/null 2>&1; then
   D08_NOSHOT=1 xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/d08_maus.gd -- "$LOGS" > "$LOGS/d08_maus.txt" 2>&1; r=$?

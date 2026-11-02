@@ -25,6 +25,7 @@ const WorldSel := preload("res://world/welt.gd")       # W-01 (S7): Weltauswahl 
 const S7World := preload("res://world/s7_world.gd")    # W-01: Hooks der S7-Welt (nur bei --welt=s7)
 const RoadTiles := preload("res://world/road_tiles.gd")  # W-04 (S7): Kenney-Kacheln mit Autotile (nur bei --welt=s7)
 const BauS7 := preload("res://world/bau_s7.gd")          # W-04: Hang-Preis/Steigungssperre (nur bei --welt=s7)
+const IndustryMarkers := preload("res://world/industry_markers.gd")   # W-05 (S7): Signalfläche + Plakette + Status
 const FT := preload("res://ui/fehlertexte.gd")           # U-03 (S7): Fehlertexte nach Aylins Liste
 const BankrottWarnung := preload("res://ui/bankrott_warnung.gd")   # U-03: Vorwarnung >= 60 s vor 0 $
 const ThemeBuilder := preload("res://ui/theme/theme_builder.gd")
@@ -74,6 +75,7 @@ static var core_override := ""
 static var world_override := ""
 var welt := WorldSel.DEFAULT
 var world_s7 = null                 # S7World, nur bei welt == "s7"
+var industry_markers = null         # W-05: world/industry_markers.gd, nur bei welt == "s7"
 var road_tiles = null               # W-04: RoadTiles, nur bei welt == "s7" (Slice: Quader wie bisher)
 var bk_warn = BankrottWarnung.new() # U-03: Kassenprognose + größter Verlustposten
 var m_pro_feld := WorldSel.m_pro_feld(WorldSel.DEFAULT)   # nur Darstellung/Text, Sim bleibt in Feldern
@@ -259,6 +261,10 @@ func _ready() -> void:
 	render_batch.name = "RenderBatch"
 	add_child(render_batch)
 	_setup_ui()
+	if world_s7 != null:
+		industry_markers = IndustryMarkers.new()   # W-05: Signalflächen, Plaketten (nach UI: braucht Kamera, HUD, Labels)
+		add_child(industry_markers)
+		industry_markers.setup(self)
 	Engine.physics_ticks_per_second = int(1000 / tick_ms)
 	ready_ms = (Time.get_ticks_usec() - t0) / 1000.0
 	print("MAP_LOAD_MS %.1f READY_MS %.1f MISSING_IDS %d" % [load_ms, ready_ms, map_missing_ids.size()])
@@ -1132,7 +1138,7 @@ func _place_map_labels() -> void:
 			marks.append(mr.grow(4.0))
 	for b in buildings:
 		var l: Label3D = b.label
-		if not l.visible:
+		if not l.visible or (industry_markers != null and industry_markers.owns(b)):   # W-05: S7-Industrien setzt industry_markers
 			continue
 		var c: Vector3 = b.position
 		if cam.is_position_behind(c):
@@ -1188,7 +1194,7 @@ func hide_labels_under_goal_markers() -> void:
 	var kscale := get_viewport().get_visible_rect().size.y / 900.0 * 560.0
 	for b in buildings:
 		var l: Label3D = b.label
-		if not l.visible or cam.is_position_behind(b.position):
+		if not l.visible or cam.is_position_behind(b.position) or (industry_markers != null and industry_markers.owns(b)):
 			continue
 		var k := l.pixel_size * kscale
 		var pc := cam.unproject_position(b.position)
@@ -1863,9 +1869,9 @@ func _init_milestones(A: Dictionary) -> void:
 	milestones = [
 		{"text": "Firma gegründet (HQ %s)" % hq_city.display_name, "done": true, "hint": "", "t": []},
 		{"text": "Lizenz für %s %s kaufen" % [_article_acc(ms_src_typ), st] if ms_src_typ != "" else "Lizenz für %s kaufen" % src,
-			"done": false, "t": [A["src"]],
+			"done": false, "t": [A["src"]], "dyn": "lic", "alt": alt,
 			"hint": "Am nächsten: %s (gelber Pfeil). Klick darauf, dann im Panel auf „Lizenz kaufen“.%s" % [src, alt]},
-		{"text": "Straße %s → %s bauen" % [st, pt], "done": false, "t": [A["src"], A["proc"]],
+		{"text": "Straße %s → %s bauen" % [st, pt], "done": false, "t": [A["src"], A["proc"]], "dyn": "road",
 			"hint": "Taste [1] Straße: Maustaste auf %s drücken, bis %s ziehen, loslassen. Wasser nur gerade queren (Brücke)." % [src, proc]},
 		{"text": "Lkw-Linie %s → %s" % [st, pt], "done": false, "t": [A["src"], A["proc"]],
 			"hint": "Taste [4] Lkw-Linie: erst %s, dann %s anklicken." % [src, proc]},
@@ -1873,8 +1879,9 @@ func _init_milestones(A: Dictionary) -> void:
 			"hint": "Der Lkw lädt und fährt los. Schneller: Tempo 2× oder 4× (Tempo-Knöpfe: oben rechts)."},
 		{"text": "3 Lieferungen mit Ertrag", "done": false, "t": [A["proc"]],
 			"hint": "Mehr Lkw: dieselbe Linie mit [4] noch einmal setzen. Gewinn je Linie: Liste links, unter Linien."},
-		{"text": "Endprodukt an einen Abnehmer (M3)", "done": false, "t": [A["m3_from"], A["m3_to"]], "hint": A["m3_text"]},
+		{"text": "Endprodukt an einen Abnehmer (M3)", "done": false, "t": [A["m3_from"], A["m3_to"]], "hint": A["m3_text"], "dyn": "m3"},
 	]
+	_ns_key = ""
 	_refresh_milestones()
 
 
@@ -1942,6 +1949,95 @@ func _check_milestones() -> void:
 				_complete(3)
 	if deliveries_profit >= 3:
 		_complete(5)
+	_refresh_next_step()
+
+
+# ---------------------------------------------------------------- U8 (U-03, S7 Block C): „Nächster Schritt“ live
+## Aylins U8: nur offene Teile, mit Preis („Straße bis Mittelfurt bauen (ca. 1.300 $)“). Die Hinweise der Ziele mit
+## "dyn" werden aus dem Spielzustand gebaut und neu gerechnet, sobald sich Lizenzen, Netz oder Linien ändern
+## (Aufruf am Ende von _check_milestones: nach Lizenzkauf, Bau, Linie und im Tick). Beide Welten.
+var _ns_key := ""
+
+
+func _ns_state_key() -> String:
+	var lic := ""
+	for b in buildings:
+		if b.site >= 0 and b.is_industry():
+			lic += "1" if eco.licence_valid(b.site) else "0"
+	return "%d|%d|%d|%s" % [roads.size(), rails.size(), vehicles.size(), lic]
+
+
+func _refresh_next_step() -> void:
+	if milestones.is_empty():
+		return
+	var k := _ns_state_key()
+	if k == _ns_key:
+		return
+	_ns_key = k
+	_refresh_milestones()
+
+
+func _ns_price(cent: int) -> String:
+	return "gratis" if cent == 0 else money_str(cent)
+
+
+## Lizenzpreis als Text ("" = nicht lizenzierbar/keine Firma).
+func _ns_lic(b) -> String:
+	var q := licence_quote(b)
+	return _ns_price(int(q["zu_zahlen_cent"])) if q.get("ok", false) else ""
+
+
+## Baukosten nur der noch fehlenden Felder: dieselbe Planung wie beim Ziehen (plan_track: gerade + 45°, Stadtanschluss
+## Z-01, Brücke, Hang), vorhandene Felder kosten nichts.
+func _ns_road_cost(a, b) -> int:
+	return int(plan_track(a.anchor(), b.anchor(), false)["total"])
+
+
+func _ns_connected(a, b) -> bool:
+	return not astar_road.get_id_path(a.anchor(), b.anchor()).is_empty() or not astar_rail.get_id_path(a.anchor(), b.anchor()).is_empty()
+
+
+func _ns_has_line(a, b) -> bool:
+	for v in vehicles:
+		if v.src == a and v.dst == b:
+			return true
+	return false
+
+
+func _ns_hint(ms: Dictionary) -> String:
+	var t: Array = ms["t"]
+	var a = by_id.get(t[0], null)
+	var b = by_id.get(t[t.size() - 1], null)
+	if a == null or b == null:
+		return ms["hint"]
+	match ms["dyn"]:
+		"lic":
+			var pr := _ns_lic(a)
+			return "Am nächsten: %s (gelber Pfeil)%s. Klick darauf, dann im Panel auf „Lizenz kaufen“.%s" % [a.display_name,
+				(", Lizenz " + pr) if pr != "" else "", ms["alt"]]
+		"road":
+			if _ns_connected(a, b):
+				return "%s und %s sind verbunden. Weiter mit Taste [4] Lkw-Linie." % [a.display_name, b.display_name]
+			var pl := plan_track(a.anchor(), b.anchor(), false)
+			var why := ""
+			if not pl["ok"] and int(pl["total"]) <= eco.cash_cent:      # echter Bau-Grund (Wasser-Diagonale, Gebäude …), nicht Geld
+				why = " Direkt geht es nicht: " + str(pl["reason"])
+			return "Taste [1] Straße: Maustaste auf %s drücken, bis %s ziehen, loslassen (ca. %s). Wasser nur gerade queren (Brücke).%s" % [
+				a.display_name, b.display_name, money_str(int(pl["total"])), why]
+		"m3":
+			var parts: Array[String] = []
+			if a.site >= 0 and a.is_industry() and not eco.licence_valid(a.site):
+				var pr := _ns_lic(a)
+				parts.append("Lizenz für %s kaufen%s" % [a.display_name, (" (%s)" % pr) if pr != "" else ""])
+			if not _ns_connected(a, b):
+				parts.append("Straße bis %s bauen (ca. %s)" % [b.display_name, money_str(_ns_road_cost(a, b))])
+			if not _ns_has_line(a, b):
+				var far := absi(a.anchor().x - b.anchor().x) + absi(a.anchor().y - b.anchor().y) > 60
+				parts.append("Linie %s → %s einrichten%s" % [a.display_name, b.display_name, " (weite Strecke: ein Zug lohnt sich)" if far else ""])
+			if parts.is_empty():
+				return "Linie %s → %s läuft. Warten, bis die Ware bei %s ankommt." % [a.display_name, b.display_name, b.display_name]
+			return ", ".join(parts) + "."
+	return ms["hint"]
 
 
 func _refresh_milestones() -> void:
@@ -1969,6 +2065,9 @@ func _refresh_milestones() -> void:
 		else:
 			l.theme_type_variation = ""
 	ms_count_label.text = "%d / %d" % [done, milestones.size()]
+	for m in milestones:          # U8: offene Ziele mit Live-Hinweis (nur offene Teile, mit Preis)
+		if m.has("dyn") and not m["done"]:
+			m["hint"] = _ns_hint(m)
 	if next >= 0:
 		next_step_label.text = Kit.txt(milestones[next]["hint"])
 		milestone_targets = milestones[next]["t"]

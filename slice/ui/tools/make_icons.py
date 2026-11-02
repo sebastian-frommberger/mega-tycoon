@@ -8,7 +8,7 @@ import sys, os, math
 from PIL import Image, ImageDraw, ImageFont
 
 S = 400  # Zeichenflaeche, Ausgabe 100
-OUT = sys.argv[1] if len(sys.argv) > 1 else "."
+OUT = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "."
 W = (255, 255, 255, 255)
 T = (0, 0, 0, 0)
 BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -174,8 +174,80 @@ def uhr():
     save(im, "uhr")
 
 
+# ---- W-05 S7 (Mira, Sprint 7 Block C): Industrie-Icons fuer die Weltmarker (world/industry_markers.gd)
+def muehle():
+    im, d = canvas()
+    d.polygon([(165, 190), (235, 190), (270, 385), (130, 385)], fill=W)       # Turm
+    d.rounded_rectangle((182, 310, 218, 385), 10, fill=T)                       # Tuer
+    cx, cy = 200, 165
+    for k in range(4):                                                          # 4 Fluegel, diagonal
+        a = math.radians(45 + 90 * k)
+        ux, uy = math.cos(a), math.sin(a)
+        vx, vy = -uy, ux
+        p = lambda r, w: (cx + ux * r + vx * w, cy + uy * r + vy * w)
+        d.polygon([p(10, -14), p(165, -14), p(165, 14), p(10, 14)], fill=W)     # Rute
+        d.polygon([p(55, 14), p(165, 14), p(165, 62), p(55, 62)], fill=W)       # Blatt
+    d.ellipse((cx - 26, cy - 26, cx + 26, cy + 26), fill=W)
+    save(im, "muehle")
+
+
+def blitz():
+    im, d = canvas()
+    d.polygon([(235, 20), (90, 230), (190, 230), (150, 380), (310, 160), (210, 160), (260, 20)], fill=W)
+    save(im, "blitz")
+
+
+def axt():
+    im, d = canvas()
+    g = Image.new("RGBA", (S, S), T)
+    gd = ImageDraw.Draw(g)
+    gd.rounded_rectangle((220, 40, 256, 390), 16, fill=W)                       # Stiel
+    gd.polygon([(226, 70), (120, 40), (70, 60), (60, 150), (70, 240), (120, 260), (226, 200)], fill=W)   # Blatt links
+    gd.ellipse((40, 40, 110, 260), fill=W)                                      # Schneide rund
+    g = g.rotate(-20, center=(200, 200), resample=Image.BICUBIC)
+    im.alpha_composite(g)
+    save(im, "axt")
+
+
+def stahl():
+    im, d = canvas()
+    d.rectangle((60, 60, 340, 120), fill=W)                                     # Doppel-T-Traeger
+    d.rectangle((170, 120, 230, 280), fill=W)
+    d.rectangle((60, 280, 340, 340), fill=W)
+    save(im, "stahl")
+
+
+def werkzeug():
+    im, d = canvas()
+    g = Image.new("RGBA", (S, S), T)
+    gd = ImageDraw.Draw(g)
+    gd.rounded_rectangle((175, 130, 225, 380), 22, fill=W)                      # Griff
+    gd.ellipse((110, 20, 290, 200), fill=W)                                     # Maulschluessel-Kopf
+    gd.rectangle((170, 10, 230, 110), fill=T)                                   # Maul
+    g = g.rotate(-40, center=(200, 200), resample=Image.BICUBIC)
+    im.alpha_composite(g)
+    save(im, "werkzeug")
+
+
+def erz():
+    im, d = canvas()
+    d.polygon([(200, 30), (330, 130), (290, 360), (110, 360), (70, 130)], fill=W)   # Erzbrocken
+    d.line([(200, 30), (200, 200), (110, 360)], fill=T, width=18)
+    d.line([(200, 200), (330, 130)], fill=T, width=18)
+    d.line([(200, 200), (290, 360)], fill=T, width=14)
+    save(im, "erz")
+
+
+S7_ICONS = (muehle, blitz, axt, stahl, werkzeug, erz)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
+    if "--nur-s7" in sys.argv:          # W-05: nur die neuen Industrie-Icons, Bestand bleibt bytegleich
+        for f in S7_ICONS:
+            f()
+        print("ok s7", len(S7_ICONS))
+        sys.exit(0)
     for f in (geld, lkw, zug, lizenz, fabrik, stadt, lager, strasse, gleis, weizen, spitzhacke, uhr):
         f()
     print("ok", len(os.listdir(OUT)))

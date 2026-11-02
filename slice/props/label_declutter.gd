@@ -26,7 +26,14 @@ func _process(_dt: float) -> void:
 			items.append(b)
 	items.sort_custom(func(a, c): return (a.kind == 2) and (c.kind != 2))      # Kind.CITY = 2, stabil genug für 2 Klassen
 	var taken: Array[Rect2] = []
+	# W-05 (S7): Industrien mit Plakette (world/industry_markers.gd, Priorität 99) sind dort schon als Einheit
+	# Plakette + Name entzerrt (gleiches Verfahren, Städte zuerst); hier nur noch belegt. Slice: industry_markers = null.
+	var mk = m.get("industry_markers")
+	if mk != null:
+		taken.append_array(mk.icon_rects())
 	for b in items:
+		if mk != null and mk.owns(b):
+			continue
 		var l: Label3D = b.label
 		var k := l.pixel_size * kscale
 		var pc := cam.unproject_position(b.position)

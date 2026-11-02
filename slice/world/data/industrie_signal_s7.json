@@ -1,0 +1,31 @@
+{
+ "stand": "W-05 S7 Block C (Mira Lenz), Regel S-08 (data/palette_s08.json)",
+ "regel": "Signalflaeche bestanden, wenn max(Fuellung, Saum) >= 3:1 gegen das Terrain UND Fuellung >= 3:1 gegen den Saum (fuellung und fuellung2 einzeln). Saum 'dunkel' = palette saum #0F1720, 'hell' = creme (nur fuer dunkle Fuellungen, die selbst >= 3:1 gegen Gras haben). Blockierender Kern bleibt der Sim-Footprint, die Flaeche ist nicht blockierende Bodentextur (Streitprotokoll W-05).",
+ "lod": {
+  "icon_px_fern": 34,
+  "icon_px_nah": 22,
+  "fern_ab_m": 1500,
+  "nah_bis_m": 600,
+  "aus_unter_m": 400,
+  "alpha_nah": 0.6,
+  "label_px_s7": 0.00072
+ },
+ "saum": {"px": 2.5, "min_m": 6.0, "dunkel": [15, 23, 32], "hell": [244, 235, 214]},
+ "y_lift_felder": 0.02,
+ "muster_m": 25.0,
+ "typen": {
+  "getreidefarm":   {"groesse_m": 300, "fuellung": [236, 200, 76],  "fuellung2": [156, 108, 50], "muster": "streifen", "saum": "dunkel", "icon": "farm",     "lesart": "Felder gelb/braun"},
+  "muehle":         {"groesse_m": 150, "fuellung": [238, 236, 228], "fuellung2": [196, 192, 182], "muster": "flaeche",  "saum": "dunkel", "icon": "muehle",   "lesart": "Hof hell (Mehl)"},
+  "holzfaeller":    {"groesse_m": 220, "fuellung": [222, 170, 112], "fuellung2": [176, 124, 72],  "muster": "bretter",  "saum": "dunkel", "icon": "holz",     "lesart": "Holzlager hell"},
+  "kohlemine":      {"groesse_m": 240, "fuellung": [38, 36, 38],    "fuellung2": [60, 56, 56],    "muster": "flecken",  "saum": "hell",   "icon": "mine",     "lesart": "Halde dunkel"},
+  "erzmine":        {"groesse_m": 220, "fuellung": [190, 96, 62],   "fuellung2": [168, 84, 54],   "muster": "flecken",  "saum": "dunkel", "icon": "erz",      "lesart": "Halde rostrot"},
+  "kraftwerk":      {"groesse_m": 200, "fuellung": [168, 170, 178], "fuellung2": [128, 130, 140], "muster": "flaeche",  "saum": "dunkel", "icon": "kraftwerk","lesart": "Beton grau"},
+  "stahlwerk":      {"groesse_m": 260, "fuellung": [120, 138, 168], "fuellung2": [94, 108, 134],  "muster": "streifen", "saum": "dunkel", "icon": "stahl",    "lesart": "Werksgelaende stahlblau"},
+  "werkzeugfabrik": {"groesse_m": 180, "fuellung": [104, 172, 178], "fuellung2": [76, 136, 142],  "muster": "flaeche",  "saum": "dunkel", "icon": "werkzeug", "lesart": "Werkshof petrol"}
+ },
+ "status": {
+  "ja":   "Lizenz aktiv: runde gruene Plakette mit Haken (status_ok, Kreis = ok nach A-07)",
+  "nein": "ohne Lizenz: eckige graue Plakette mit Schloss (Quadrat = gesperrt)",
+  "frei": "keine Lizenz noetig (z. B. Holzfaeller ohne Oekonomie): keine Plakette"
+ }
+}

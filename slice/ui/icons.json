@@ -3,6 +3,12 @@
  "regel": "Weisse Silhouette 100x100, im Spiel per modulate eingefaerbt (Tinte auf Papier, Creme auf Holz, Bernstein fuer Aktion). Quelle k_ = Kenney Game Icons (CC0, unveraendert), c_ = eigene Ergaenzung im Kenney-Stil (ui/tools/make_icons.py), weil das Pack kein Geld, Lkw, Zug, Fabrik, Lizenz usw. enthaelt.",
  "pfad": "res://ui/assets/icons/",
  "icons": {
+  "muehle":      {"datei": "c_muehle.png",      "quelle": "eigen",  "verwendung": "W-05 S7 Weltmarker Muehle"},
+  "kraftwerk":   {"datei": "c_blitz.png",       "quelle": "eigen",  "verwendung": "W-05 S7 Weltmarker Kraftwerk"},
+  "holz":        {"datei": "c_axt.png",         "quelle": "eigen",  "verwendung": "W-05 S7 Weltmarker Holzfaeller"},
+  "stahl":       {"datei": "c_stahl.png",       "quelle": "eigen",  "verwendung": "W-05 S7 Weltmarker Stahlwerk"},
+  "werkzeug":    {"datei": "c_werkzeug.png",    "quelle": "eigen",  "verwendung": "W-05 S7 Weltmarker Werkzeugfabrik"},
+  "erz":         {"datei": "c_erz.png",         "quelle": "eigen",  "verwendung": "W-05 S7 Weltmarker Erzmine"},
   "geld":        {"datei": "c_geld.png",        "quelle": "eigen",  "verwendung": "Kasse, Preise"},
   "einnahmen":   {"datei": "k_arrowUp.png",     "quelle": "kenney", "verwendung": "HUD Einnahmen"},
   "kosten":      {"datei": "k_arrowDown.png",   "quelle": "kenney", "verwendung": "HUD Kosten/min"},

@@ -1,0 +1,3159 @@
+{
+ "zweck": "Welt-Regelwerk v1 (Design Sprint Welt, Phase 3): Skalen, Ortsklassen, Stadtmodell, Verteilung, Landschaft, Wasser, Asset-Mapping, Startjahr- und Schwierigkeits-Hebel. Ladbar durch world_gen.py, world_validate.py, city_gen.gd, Import-Skript (W-03/W-05/W-06, S8).",
+ "status": "v1, Phase 3, entschieden durch PO (Jonas) am 02.11.2026. Werte mit kenn 'annahme' gelten bis Bastis Antwort (13_fragen_an_basti.md F1-F6) bzw. bis zur Messung im Prototyp (14_prototyp_plan.md).",
+ "schema_version": 2,
+ "meta": {
+  "titel": "Welt-Regelwerk v1",
+  "autor": "Jonas (PO) mit Art Director, Technical Artist, Stadt-/Level-Designer, Lena, Tobias, Aylin, Sophie, Felix, Daniel",
+  "stand": "v1, 02.11.2026",
+  "verbraucher": "tools/world_gen.py, tools/world_validate.py, world/city_gen.gd (spaeter, W-03/W-05/W-06)",
+  "dokumente": [
+   "12_welt_regelwerk_v1.md",
+   "11_streitprotokoll.md",
+   "13_fragen_an_basti.md",
+   "14_prototyp_plan.md",
+   "phase2/01_skalen.md",
+   "phase2/02_designprinzipien.md",
+   "phase2/03_welt_prinzipien.md",
+   "phase2/04_schwierigkeit.md",
+   "phase2/05_stadtmodell.md",
+   "phase2/06_verteilung.md",
+   "phase2/08_landschaft.md",
+   "phase2/09_wasser_shader.md",
+   "phase2/10_asset_mapping.md",
+   "phase2/10_import_faktoren.json"
+  ],
+  "einheit": {
+   "m_pro_feld": 25,
+   "felder_pro_km": 40,
+   "konvention": "wie rules_s7: Laengen als Felder mit _m daneben oder reine Meter (_m), halbe Meter als Dezimeter (_dm, z. B. 125 = 12,5 m), Anteile/Faktoren in Promille, Gewichte in Promille, keine Floats (F-09). Abstaende Zentrum zu Zentrum, Luftlinie. Shader-Floats als Tausendstel (_milli) oder Hex-Farbe."
+  },
+  "kennzeichnung": "q = Quelle, u = ungefaehr/Fachwissen, a = Annahme (Skizze), po = PO-Entscheidung, annahme = PO-Annahme bis Basti/Messung, m = gemessen",
+  "ersetzt": "rules_s7.staedte, rules_s7.r7_abstand_gleicher_typ, Teile von industrie_typen.*.abstand_naechste_stadt (siehe verteilung)",
+  "unveraendert": "Oekonomie (economy_slice.json): Nachfrage, Wachstum, Stufenschwellen 1000/5000/20000, Ketten-Bander Nah"
+ },
+ "entscheidungen": {
+  "K1": {
+   "thema": "Siedlungszahl, Nachfrage, Label",
+   "beschluss": "Hierarchie B+: 1-2 Kleinstaedte (Ziel 2), 2-3 Marktflecken, 12-16 Doerfer, 6-12 Kulisse-Weiler; Umland-Modell; Label = Ort-EW, Tooltip = Einzugsgebiet; T-15 nicht neu kalibrieren, Stichprobe",
+   "status": "annahme",
+   "frage": "F1"
+  },
+  "K2": {
+   "thema": "Stahl-Abnehmer 1820",
+   "beschluss": "Kein Kartenrand-Markt in v1. Montankette endet an der Manufaktur (Werkzeug-Slot, rolle abnehmer). Stadt-Korb 'stahl' pruefen (keine Gueter-Kategorie 'stahl')",
+   "status": "entschieden"
+  },
+  "K3": {
+   "thema": "Gleis-Steigung",
+   "beschluss": "hart 60 Promille, Fallback 80 bei < 18/20 Seeds; Kosten ueber bestehende Hangregel; Tempoabschlag S8-Kandidat",
+   "status": "annahme"
+  },
+  "K4": {
+   "thema": "Fahrzeugtempo",
+   "beschluss": "Sim-Tempo bleibt (150/250 m/s); Darstellung im Prototyp mit Vergleichsschalter",
+   "status": "an_basti",
+   "frage": "F4"
+  },
+  "K5": {
+   "thema": "R7 und Erz",
+   "beschluss": "abgestuft 1,2/3/4 km; Erz 0,75-3 km, >= 1 Erzfleck <= 2 km zu einem Stahlwerk; AR3 nur fuer Muehle",
+   "status": "entschieden"
+  },
+  "K6": {
+   "thema": "Terrain",
+   "beschluss": "Bodenkarte (Weg A), Profil ds_v2 + Massiv -15 %, Schneelinie 1000 m, Plateaus nach Ortsform",
+   "status": "entschieden"
+  },
+  "K7": {
+   "thema": "Wasser",
+   "beschluss": "opaker prozeduraler Shader (09), Bach 4-6 m + Gehoelzsaum + Fernlinie, Uferboeschung 40 m, Farbe teal-verschoben (A/B)",
+   "status": "entschieden"
+  },
+  "K8": {
+   "thema": "Strasse",
+   "beschluss": "Sim-Kante bleibt, Bild = durchgehendes Spline-Band, Knotenstuecke an Kreuzungen, Bruecke = Sim-Brueckenfelder, Stadt-KI nur hinzufuegen",
+   "status": "entschieden"
+  },
+  "K9": {
+   "thema": "Weitere",
+   "beschluss": "Dorfformen nach Gelaende mit Regionsgewicht; Kohle/Erz getrennte Flecken; Deko-Weiler in Randlandschaft; unversorgte Orte: Annahme S7-Verhalten",
+   "status": "annahme",
+   "frage": "F2"
+  },
+  "K10": {
+   "thema": "Kenney-Raster vs Skalen (Lok, Haus L)",
+   "beschluss": "Lok Laengsfaktor z 1,13 -> 7,6 m; Haus L Traufe 9,5-12 m",
+   "status": "entschieden"
+  },
+  "K11": {
+   "thema": "Kraftwerk-Slot 1820",
+   "beschluss": "Kalkofen/Ziegelei statt Koehlerei",
+   "status": "annahme"
+  },
+  "K12": {
+   "thema": "Bachnetz",
+   "beschluss": "Generator bekommt 4-8 Baeche + 1-2 Nebenfluesse; Muehle <= 200 m Wasser",
+   "status": "entschieden"
+  },
+  "K13": {
+   "thema": "AR3 vs knappe Kohle",
+   "beschluss": "siehe K5",
+   "status": "entschieden"
+  },
+  "K14": {
+   "thema": "Sim-Footprint Industrie",
+   "beschluss": "Sim-Footprint bleibt (S7), Bild fuellt mit Werksgelaende; Footprint je Typ aus Skalen D erst W-05",
+   "status": "entschieden"
+  },
+  "K15": {
+   "thema": "Gebirgsanteil",
+   "beschluss": "Massiv-1-Radius 2,8-3,4 km, Gebirge innen <= 20 % (Ziel 15 %), Massivrand verrauscht",
+   "status": "annahme"
+  },
+  "K16": {
+   "thema": "Datenwidersprueche 01/03/05/06/07",
+   "beschluss": "siehe 12_welt_regelwerk_v1.md Abschnitt 12",
+   "status": "entschieden"
+  },
+  "K17": {
+   "thema": "Wald real",
+   "beschluss": "Baeume 1,0; Fernsicht Waldboden + Kronentupfen; Deckel 120k Tris Uebersicht",
+   "status": "entschieden"
+  },
+  "K18": {
+   "thema": "Marktflecken-Nachfrageknick",
+   "beschluss": "unveraendert, an Tobias S8",
+   "status": "entschieden"
+  },
+  "K19": {
+   "thema": "Startjahr vs Schwierigkeit",
+   "beschluss": "zwei getrennte Optionen",
+   "status": "entschieden"
+  },
+  "K20": {
+   "thema": "Abgleich Transport Fever 3",
+   "beschluss": "bestaetigt Skalen, Labels, neutrale Industrie, Wasserlook; uebernommen: Wald-Wiesen-Mosaik, Biomverlauf Gebirge, Schilder mit Bedarf; Seen an Basti",
+   "status": "annahme",
+   "frage": "F5"
+  }
+ },
+ "prinzipien": {
+  "P1": "Verhaeltnis vor Groesse: feste Verhaeltnisse V1-V9, keine Vergroesserungsfaktoren, nur oberes Realband",
+  "P2": "Zeichen statt Massstab: Icon, Name, Linie mit Mindestbreite im Bildraum; Geometrie bleibt real (E1)",
+  "P3": "Gewachsen, nicht konstruiert: historische Ortsformen, kein Raster ausser Bahnhofsviertel",
+  "P4": "Landschaft dominiert: Siedlungsflaeche < 3 %, >= 90 % Acker/Wiese/Wald/Wasser in der Uebersicht",
+  "P5": "Gelaende ist Spielelement: jeder Ort/jede Industrie hat einen Lagegrund; Strecken > 2 km haben eine Gelaendeentscheidung",
+  "P6": "Belebt im Detail, ruhig im Ganzen: kein leerer Block bei 40 m, keine Rauschflecken bei 5 km",
+  "P7": "Epoche ist ein Parameter: startjahr aendert Daten, keinen Code",
+  "nie": [
+   "Objekt vergroessern (ausser Fahrzeuge <= 1,2x)",
+   "Gebaeude einfaerben",
+   "Raster/gleiche Bloecke (ausser Bahnhofsviertel)",
+   "Ort ohne Lagegrund",
+   "Modernes ohne Epochenfreigabe",
+   "1820 eine Industrie groesser als das Dorf daneben"
+  ]
+ },
+ "skalen": {
+  "m_pro_feld": 25,
+  "toleranz_promille": 250,
+  "fahrzeug_max_promille_real": 1200,
+  "fahrzeug_min_promille_real": 900,
+  "fahrzeug_toleranz_nicht_addieren": true,
+  "ueberhoehung_promille": {
+   "fahrzeug_max": 1200,
+   "haus": 1000,
+   "industrie": 1000,
+   "baum": 1000,
+   "wasser": 1000,
+   "weg": 1000,
+   "landmarke": 1000
+  },
+  "regel_lesbarkeit": "oberes Ende des Realbands statt Faktor (G2); Fernsicht ueber Zeichen (P2)",
+  "gebaeude_m": {
+   "haus_s_kate": {
+    "b": 8,
+    "t": 6,
+    "h": [
+     6,
+     7
+    ],
+    "ew": [
+     4,
+     6
+    ],
+    "kenn": "u"
+   },
+   "haus_m": {
+    "b": 12,
+    "t": 9,
+    "h": [
+     9,
+     11
+    ],
+    "ew": [
+     6,
+     10
+    ],
+    "kenn": "u"
+   },
+   "hofstelle": {
+    "b": 25,
+    "t": 25,
+    "felder_promille": 1000,
+    "kenn": "u"
+   },
+   "scheune": {
+    "b": 18,
+    "t": 10,
+    "h": [
+     8,
+     10
+    ],
+    "kenn": "u"
+   },
+   "haus_l": {
+    "b": 12,
+    "t": 14,
+    "traufe_dm": [
+     95,
+     120
+    ],
+    "first_dm": [
+     125,
+     150
+    ],
+    "ew": [
+     12,
+     20
+    ],
+    "kenn": "po K10 (Kenney 3 Module = 9 m + Sockel)"
+   },
+   "haus_xl": {
+    "b": 16,
+    "t": 12,
+    "h": [
+     16,
+     18
+    ],
+    "ew": [
+     25,
+     40
+    ],
+    "ab_jahr": 1840,
+    "kenn": "u"
+   },
+   "kirche_dorf": {
+    "b": 20,
+    "t": 10,
+    "turm": 30,
+    "kenn": "u"
+   },
+   "kirche_stadt": {
+    "b": 35,
+    "t": 15,
+    "turm": [
+     45,
+     55
+    ],
+    "kenn": "u"
+   },
+   "marktplatz": {
+    "min": [
+     40,
+     60
+    ],
+    "max": [
+     60,
+     80
+    ],
+    "kenn": "a"
+   },
+   "bahnhof": {
+    "b": 30,
+    "t": 12,
+    "h": 10,
+    "bahnsteig": [
+     110,
+     4
+    ],
+    "kenn": "u"
+   }
+  },
+  "wege_dm": {
+   "feldweg": 35,
+   "dorfstrasse": 60,
+   "ortsdurchfahrt_max": 100,
+   "gasse": 50,
+   "chaussee_fahrbahn": 60,
+   "chaussee_trasse": 110,
+   "gleis_bettung": 40,
+   "gleis_trasse": 70,
+   "gleis_zweigleisig": 90,
+   "kurvenradius_m": {
+    "dorfstrasse": 25,
+    "chaussee": 50,
+    "gleis": 100
+   },
+   "steigung_promille": {
+    "chaussee_generator_max": 50,
+    "strasse_hart": 200,
+    "gleis_hart": 60,
+    "gleis_fallback": 80,
+    "gleis_kenn": "annahme K3",
+    "strasse_kenn": "q world_s7_meta"
+   }
+  },
+  "fahrzeuge_dm": {
+   "pferd": {
+    "l": 30,
+    "b": 8,
+    "real_l": [
+     24,
+     28
+    ],
+    "kenn": "u"
+   },
+   "fuhrwerk_2_pferde": {
+    "l": 95,
+    "b": 22,
+    "real_l": [
+     80,
+     90
+    ],
+    "ersetzt": "lkw",
+    "kenn": "u"
+   },
+   "postkutsche_4_pferde": {
+    "l": 125,
+    "b": 22,
+    "real_l": [
+     100,
+     120
+    ],
+    "ersetzt": "bus",
+    "kenn": "u"
+   },
+   "dampflok": {
+    "l": 76,
+    "b": 37,
+    "h": 43,
+    "real_l": [
+     76,
+     76
+    ],
+    "kenn": "po K10 (Laengsfaktor)"
+   },
+   "tender": {
+    "l": 48,
+    "real_l": [
+     40,
+     40
+    ],
+    "kenn": "u"
+   },
+   "personenwagen": {
+    "l": 69,
+    "real_l": [
+     57,
+     57
+    ],
+    "kenn": "q"
+   },
+   "gueterwagen": {
+    "l": 69,
+    "real_l": [
+     50,
+     60
+    ],
+    "kenn": "u"
+   },
+   "zug_lok_tender_8_wagen": {
+    "l": 676,
+    "felder_promille": 2700,
+    "kenn": "abgeleitet"
+   },
+   "raddampfer": {
+    "l": 500,
+    "b": 120,
+    "nur_fluss_breite_min_m": 50,
+    "kenn": "u"
+   },
+   "kahn": {
+    "l": 280,
+    "b": 50,
+    "kenn": "u"
+   }
+  },
+  "industrie_m": {
+   "gutshof": {
+    "haupt": [
+     40,
+     40
+    ],
+    "landmarke_h": [
+     12,
+     15
+    ],
+    "gelaende_m": [
+     150,
+     300
+    ],
+    "signal": "Getreideschlaege"
+   },
+   "wassermuehle": {
+    "haupt": [
+     12,
+     12
+    ],
+    "rad_d": 5,
+    "gelaende_m": [
+     50,
+     150
+    ],
+    "signal": "Graben, Wehr, Teich"
+   },
+   "windmuehle": {
+    "haupt_d": 8,
+    "landmarke_h": [
+     20,
+     25
+    ],
+    "fluegel_d": 20,
+    "gelaende_m": [
+     25,
+     25
+    ]
+   },
+   "grube_stollen": {
+    "haupt": [
+     15,
+     10
+    ],
+    "landmarke_h": [
+     10,
+     15
+    ],
+    "gelaende_m": [
+     75,
+     125
+    ],
+    "signal": "Halde d 30-60 m"
+   },
+   "tiefbauzeche": {
+    "haupt": [
+     30,
+     15
+    ],
+    "landmarke_h": [
+     25,
+     35
+    ],
+    "gelaende_m": [
+     150,
+     250
+    ],
+    "ab_jahr": 1840
+   },
+   "eisenhuette": {
+    "haupt": [
+     25,
+     12
+    ],
+    "ofen": [
+     10,
+     10
+    ],
+    "landmarke_h": [
+     15,
+     20
+    ],
+    "gelaende_m": [
+     150,
+     250
+    ]
+   },
+   "hammerwerk": {
+    "haupt": [
+     20,
+     12
+    ],
+    "landmarke_h": [
+     12,
+     15
+    ],
+    "gelaende_m": [
+     50,
+     75
+    ]
+   },
+   "manufaktur": {
+    "haupt": [
+     40,
+     12
+    ],
+    "landmarke_h": [
+     14,
+     16
+    ],
+    "gelaende_m": [
+     75,
+     100
+    ]
+   },
+   "kalkofen_ziegelei": {
+    "haupt": [
+     15,
+     10
+    ],
+    "ofen_h": [
+     8,
+     12
+    ],
+    "gelaende_m": [
+     50,
+     100
+    ],
+    "signal": "Kalkhalde, Ziegelstapel",
+    "kenn": "annahme K11"
+   },
+   "saegemuehle": {
+    "haupt": [
+     25,
+     10
+    ],
+    "landmarke_h": [
+     8,
+     10
+    ],
+    "gelaende_m": [
+     50,
+     75
+    ]
+   },
+   "lager": {
+    "haupt": [
+     25,
+     12
+    ],
+    "landmarke_h": 12,
+    "gelaende_m": [
+     25,
+     50
+    ]
+   },
+   "regel_v7": "Hauptgebaeude <= 4x Grundflaeche Haus M (1820)",
+   "farbe": "nur Icon, Name, Plakette, optional Wimpel; Gebaeude und Gelaende neutral"
+  },
+  "wasser_m": {
+   "muehlgraben": 3,
+   "bach": [
+    4,
+    6
+   ],
+   "bach_saum_je_seite": [
+    10,
+    20
+   ],
+   "nebenfluss": [
+    15,
+    25
+   ],
+   "fluss": [
+    60,
+    100
+   ],
+   "fluss_band": [
+    60,
+    120
+   ],
+   "strom": "nicht im Standard 1820 (K20/F5)",
+   "dorfteich": [
+    15,
+    30
+   ],
+   "muehlteich": [
+    50,
+    150
+   ],
+   "see_optional": [
+    300,
+    800
+   ],
+   "aue_faktor_breite": [
+    5,
+    20
+   ]
+  },
+  "bruecken": {
+   "brueckenfelder": "ceil(wasserbreite/25) + 1 Rampe je Seite",
+   "bach": "im Feld, kein Brueckenfeld",
+   "stein_bogen_m": 15,
+   "holz_joch_m": 8,
+   "max_felder": 8,
+   "viadukt_ab_jahr": 1840
+  },
+  "baeume_m": {
+   "laub": [
+    15,
+    25
+   ],
+   "obst": [
+    6,
+    8
+   ],
+   "nadel": [
+    20,
+    30
+   ]
+  },
+  "verhaeltnisse": {
+   "V1": "Haus M : Dorfstrasse : Fuhrwerk = 12 : 6 : 9,5",
+   "V2": "Strasse : Fahrzeugbreite >= 2,5 : 1",
+   "V3": "Feld : Haus M = 25 : 12 (Hofstelle = 1 Feld)",
+   "V4": "Lok + Tender : Haus M ~ 1 : 1 (Lok nie > 1,5 Haeuser)",
+   "V5": "Zug : Bahnsteig = 68 : 110",
+   "V6": "Kirchturm : Traufe Haus M >= 3 : 1 (bis 1840)",
+   "V7": "Industrie-Hauptgebaeude : Haus M <= 4 : 1 (1820)",
+   "V8": "Fluss : Haus M = 5-8 Hauslaengen",
+   "V9": "Abstand Dorf-Dorf : Dorfdurchmesser >= 5 : 1"
+  },
+  "fernsicht": {
+   "zeichen_ab_m": 2000,
+   "linie_min_px": 2,
+   "bach_linie_ab_m": 1000,
+   "fahrzeug_icon_ab_m": 2000,
+   "label_hierarchie": {
+    "kleinstadt": "immer",
+    "marktflecken": "immer",
+    "dorf": "kamera_unter_3000_m",
+    "weiler": "nie"
+   },
+   "kenn": "po (E1: Lesbarkeit aus Icon, Name, Farbe, Zoom)"
+  }
+ },
+ "startjahr": 1820,
+ "startjahr_hebel": {
+  "hinweis": "E4: Startjahr waehlbar. Je Eintrag gilt der groesste Schluessel <= startjahr. Werte ueberschreiben die Grundwerte. Ort-EW-Baender aus 03_welt_prinzipien Abschnitt 4 (Art Director).",
+  "stufen": {
+   "1820": {
+    "ort_ew": {
+     "dorf": [
+      150,
+      350
+     ],
+     "marktflecken": [
+      800,
+      1300
+     ],
+     "kleinstadt": [
+      2000,
+      4000
+     ]
+    },
+    "stadt_anzahl": {
+     "min": 0,
+     "max": 0
+    },
+    "kleinstadt_anzahl": {
+     "min": 1,
+     "max": 2,
+     "ziel": 2,
+     "kenn": "annahme K1/F1"
+    },
+    "mauer_erhalten_promille": 700,
+    "ringstrasse": false,
+    "haustypen_frei": [
+     "kate",
+     "bauernhof",
+     "grosshof",
+     "handwerkerhaus",
+     "buergerhaus"
+    ],
+    "bahn_moeglich": false,
+    "industrie_frei_extra": [],
+    "kenn": "u",
+    "kraftwerk_darstellung": "kalkofen_ziegelei",
+    "start_chaussee": 1,
+    "startkapital_cent": 600000
+   },
+   "1835": {
+    "bahn_moeglich": true,
+    "kenn": "q (Adler 1835)"
+   },
+   "1840": {
+    "ort_ew": {
+     "dorf": [
+      180,
+      400
+     ],
+     "marktflecken": [
+      1000,
+      1800
+     ],
+     "kleinstadt": [
+      3000,
+      6000
+     ]
+    },
+    "stadt_anzahl": {
+     "min": 0,
+     "max": 0
+    },
+    "mauer_erhalten_promille": 400,
+    "ringstrasse": true,
+    "haustypen_frei": [
+     "kate",
+     "bauernhof",
+     "grosshof",
+     "handwerkerhaus",
+     "buergerhaus",
+     "mietshaus"
+    ],
+    "kenn": "u"
+   },
+   "1860": {
+    "ort_ew": {
+     "dorf": [
+      200,
+      450
+     ],
+     "marktflecken": [
+      1200,
+      2500
+     ],
+     "kleinstadt": [
+      4000,
+      8000
+     ],
+     "stadt": [
+      10000,
+      10000
+     ]
+    },
+    "stadt_anzahl": {
+     "min": 0,
+     "max": 1
+    },
+    "kleinstadt_anzahl": {
+     "min": 1,
+     "max": 2
+    },
+    "mauer_erhalten_promille": 150,
+    "industrie_frei_extra": [
+     "oel"
+    ],
+    "kenn": "u"
+   }
+  },
+  "spielzeit_gilt": "Freischaltungen nach Jahr (mietshaus, ringstrasse, bahn) gelten auch, wenn das Spieljahr die Schwelle waehrend des Spiels erreicht.",
+  "option": "eigene Startmenue-Option neben Schwierigkeit (K19)"
+ },
+ "haustypen": {
+  "kate": {
+   "stufe": "S",
+   "grundriss_m": [
+    8,
+    6
+   ],
+   "geschosse": 1,
+   "first_m": [
+    6,
+    7
+   ],
+   "ew": {
+    "min": 4,
+    "max": 6,
+    "mittel": 5
+   },
+   "parzelle_dm": [
+    125,
+    250
+   ],
+   "felder_promille": 500,
+   "ab_klasse": "weiler",
+   "upgrade_zu": "handwerkerhaus",
+   "kenn": "u"
+  },
+  "bauernhof": {
+   "stufe": "M_dorf",
+   "grundriss_m": [
+    12,
+    9
+   ],
+   "nebengebaeude": [
+    "scheune_18x10"
+   ],
+   "geschosse_promille": 1500,
+   "first_m": [
+    9,
+    11
+   ],
+   "ew": {
+    "min": 6,
+    "max": 10,
+    "mittel": 8
+   },
+   "parzelle_dm": [
+    250,
+    250
+   ],
+   "felder_promille": 1000,
+   "ab_klasse": "weiler",
+   "upgrade_zu": "grosshof",
+   "teilung_zu": [
+    "handwerkerhaus",
+    "handwerkerhaus"
+   ],
+   "kenn": "u"
+  },
+  "grosshof": {
+   "stufe": "L_dorf",
+   "grundriss_m": [
+    12,
+    9
+   ],
+   "nebengebaeude": [
+    "scheune_18x10",
+    "stall_12x8"
+   ],
+   "geschosse": 2,
+   "first_m": [
+    11,
+    11
+   ],
+   "ew": {
+    "min": 10,
+    "max": 14,
+    "mittel": 12
+   },
+   "parzelle_dm": [
+    375,
+    375
+   ],
+   "felder_promille": 2250,
+   "ab_klasse": "dorf",
+   "kenn": "u"
+  },
+  "handwerkerhaus": {
+   "stufe": "M",
+   "grundriss_m": [
+    9,
+    12
+   ],
+   "geschosse": 2,
+   "first_m": [
+    9,
+    11
+   ],
+   "ew": {
+    "min": 6,
+    "max": 9,
+    "mittel": 7
+   },
+   "parzelle_dm": [
+    125,
+    250
+   ],
+   "felder_promille": 500,
+   "ab_klasse": "dorf",
+   "upgrade_zu": "buergerhaus",
+   "kenn": "u"
+  },
+  "buergerhaus": {
+   "stufe": "L",
+   "grundriss_m": [
+    12,
+    14
+   ],
+   "geschosse": 3,
+   "traufe_m": 12,
+   "first_m": [
+    15,
+    15
+   ],
+   "ew": {
+    "min": 12,
+    "max": 20,
+    "mittel": 14
+   },
+   "parzelle_dm": [
+    125,
+    375
+   ],
+   "felder_promille": 750,
+   "ab_klasse": "marktflecken",
+   "upgrade_zu": "mietshaus",
+   "kenn": "u"
+  },
+  "mietshaus": {
+   "stufe": "XL",
+   "grundriss_m": [
+    16,
+    12
+   ],
+   "hinterhaus_m": [
+    8,
+    10
+   ],
+   "geschosse": 4,
+   "first_m": [
+    16,
+    18
+   ],
+   "ew": {
+    "min": 25,
+    "max": 40,
+    "mittel": 30
+   },
+   "parzelle_dm": [
+    160,
+    400
+   ],
+   "felder_promille": 1000,
+   "ab_klasse": "kleinstadt",
+   "ab_ort_ew": 4000,
+   "ab_jahr": 1840,
+   "kenn": "u"
+  },
+  "kirche_dorf": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    20,
+    10
+   ],
+   "turm_m": 30,
+   "ew": {
+    "mittel": 0
+   },
+   "parzelle_dm": [
+    375,
+    375
+   ],
+   "ab_klasse": "dorf",
+   "ueberhoehung_promille": 1000,
+   "kenn": "u, 01_skalen"
+  },
+  "kirche_stadt": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    35,
+    15
+   ],
+   "turm_m": [
+    45,
+    55
+   ],
+   "ew": {
+    "mittel": 0
+   },
+   "parzelle_dm": [
+    625,
+    500
+   ],
+   "ab_klasse": "kleinstadt",
+   "ueberhoehung_promille": 1000,
+   "kenn": "u, 01_skalen"
+  },
+  "kapelle": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    10,
+    7
+   ],
+   "turm_m": 12,
+   "ew": {
+    "mittel": 0
+   },
+   "parzelle_m": [
+    15,
+    15
+   ],
+   "ab_klasse": "weiler",
+   "anteil_weiler_promille": 333,
+   "kenn": "a"
+  },
+  "pfarrhaus": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    12,
+    10
+   ],
+   "geschosse": 2,
+   "ew": {
+    "mittel": 5
+   },
+   "parzelle_m": [
+    25,
+    30
+   ],
+   "ab_klasse": "dorf",
+   "kenn": "u"
+  },
+  "gasthaus": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    14,
+    12
+   ],
+   "geschosse": 2,
+   "ew": {
+    "mittel": 7
+   },
+   "parzelle_m": [
+    25,
+    35
+   ],
+   "ab_klasse": "dorf",
+   "lage": "hauptkreuzung_oder_anger",
+   "kenn": "u"
+  },
+  "schmiede": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    9,
+    7
+   ],
+   "geschosse": 1,
+   "ew": {
+    "mittel": 5
+   },
+   "parzelle_m": [
+    15,
+    20
+   ],
+   "ab_klasse": "dorf",
+   "lage": "ortseingang_oder_anger",
+   "kenn": "u"
+  },
+  "schule": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    12,
+    9
+   ],
+   "geschosse": 1,
+   "ew": {
+    "mittel": 2
+   },
+   "parzelle_m": [
+    20,
+    25
+   ],
+   "ab_klasse": "dorf",
+   "ab_ort_ew": 250,
+   "kenn": "a"
+  },
+  "rathaus": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    16,
+    12
+   ],
+   "geschosse": 3,
+   "ew": {
+    "mittel": 2
+   },
+   "parzelle_m": [
+    18,
+    25
+   ],
+   "ab_klasse": "marktflecken",
+   "lage": "marktplatz",
+   "kenn": "u"
+  },
+  "speicher": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    20,
+    12
+   ],
+   "geschosse": 3,
+   "ew": {
+    "mittel": 0
+   },
+   "parzelle_m": [
+    25,
+    30
+   ],
+   "ab_klasse": "marktflecken",
+   "kenn": "u"
+  },
+  "stadttor": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    8,
+    8
+   ],
+   "turm_m": 18,
+   "ew": {
+    "mittel": 0
+   },
+   "ab_klasse": "kleinstadt",
+   "nur_wenn": "mauer_erhalten",
+   "kenn": "u"
+  },
+  "bahnhof": {
+   "stufe": "sonder",
+   "grundriss_m": [
+    30,
+    12
+   ],
+   "geschosse": 2,
+   "bahnsteig_m": 110,
+   "ew": {
+    "mittel": 3
+   },
+   "parzelle_m": [
+    40,
+    150
+   ],
+   "nur_durch_spieler": true,
+   "ab_jahr": 1835,
+   "kenn": "q"
+  },
+  "nebengebaeude": {
+   "stufe": "neben",
+   "varianten_m": [
+    [
+     18,
+     10
+    ],
+    [
+     12,
+     8
+    ],
+    [
+     6,
+     4
+    ]
+   ],
+   "ew": {
+    "mittel": 0
+   },
+   "kenn": "u"
+  }
+ },
+ "ew_je_wohnhaus_mittel": {
+  "weiler": 7,
+  "dorf": 7,
+  "marktflecken": 9,
+  "kleinstadt": 11,
+  "stadt": 14,
+  "kenn": "a"
+ },
+ "ortsklassen": {
+  "weiler": {
+   "ort_ew": {
+    "min": 20,
+    "max": 60
+   },
+   "umland_ew": null,
+   "sim_knoten": false,
+   "sim_stufe": null,
+   "gebaeude_haupt": {
+    "min": 4,
+    "max": 10
+   },
+   "radius_m": {
+    "min": 40,
+    "max": 75
+   },
+   "formen": {
+    "weiler": 1000
+   },
+   "anzahl_start": {
+    "min": 6,
+    "max": 12
+   },
+   "stadt_ki": false,
+   "label_uebersicht": false,
+   "kenn": "u",
+   "randlandschaft_deko": {
+    "aktiv": true,
+    "nur_proxy": true,
+    "label": false,
+    "anzahl_je_km2_promille": 150,
+    "kenn": "po K9c"
+   }
+  },
+  "dorf": {
+   "ort_ew": {
+    "min": 150,
+    "max": 350
+   },
+   "umland_ew": {
+    "min": 250,
+    "max": 550
+   },
+   "sim_knoten": true,
+   "sim_stufe": "dorf",
+   "sim_ew": {
+    "min": 400,
+    "max": 900
+   },
+   "gebaeude_haupt": {
+    "min": 25,
+    "max": 56
+   },
+   "sonderbauten": {
+    "min": 3,
+    "max": 6
+   },
+   "radius_m": {
+    "min": 125,
+    "max": 200
+   },
+   "strassendorf_laenge_m": {
+    "min": 400,
+    "max": 800
+   },
+   "dichte_ew_je_ha": {
+    "min": 25,
+    "max": 40
+   },
+   "wohnmix_promille": {
+    "kate": 300,
+    "bauernhof": 600,
+    "handwerkerhaus": 100
+   },
+   "formen": {
+    "haufendorf": 500,
+    "strassendorf": 250,
+    "angerdorf": 150,
+    "weiler": 100,
+    "regionsgewicht": {
+     "aktiv": true,
+     "dominante_form_bonus_promille": 300,
+     "kenn": "po K9a"
+    }
+   },
+   "anzahl_start": {
+    "min": 12,
+    "max": 16
+   },
+   "anzahl_ist_obergrenze": true,
+   "stadt_ki": true,
+   "kenn": "u"
+  },
+  "marktflecken": {
+   "ort_ew": {
+    "min": 800,
+    "max": 1300
+   },
+   "ab_ort_ew": 800,
+   "umland_ew": {
+    "min": 400,
+    "max": 600
+   },
+   "sim_knoten": true,
+   "sim_stufe": "kleinstadt",
+   "sim_ew": {
+    "min": 1200,
+    "max": 1900
+   },
+   "gebaeude_haupt": {
+    "min": 100,
+    "max": 165
+   },
+   "sonderbauten": {
+    "min": 8,
+    "max": 12
+   },
+   "radius_m": {
+    "min": 175,
+    "max": 250
+   },
+   "dichte_ew_je_ha": {
+    "min": 60,
+    "max": 100
+   },
+   "marktplatz_m": {
+    "min": [
+     40,
+     60
+    ],
+    "max": [
+     60,
+     80
+    ]
+   },
+   "formen": {
+    "haufendorf_markt": 1000
+   },
+   "anzahl_start": {
+    "min": 2,
+    "max": 3
+   },
+   "stadt_ki": true,
+   "kenn": "u"
+  },
+  "kleinstadt": {
+   "ort_ew": {
+    "min": 2000,
+    "max": 4000
+   },
+   "ab_ort_ew": 2000,
+   "umland_ew": {
+    "min": 400,
+    "max": 700
+   },
+   "sim_knoten": true,
+   "sim_stufe": "kleinstadt",
+   "sim_ew": {
+    "min": 2400,
+    "max": 4700
+   },
+   "gebaeude_haupt": {
+    "min": 195,
+    "max": 380
+   },
+   "sonderbauten": {
+    "min": 12,
+    "max": 18
+   },
+   "kern_radius_m": {
+    "min": 200,
+    "max": 300
+   },
+   "gesamt_radius_m": {
+    "min": 350,
+    "max": 450
+   },
+   "vorstadt_laenge_m": {
+    "min": 150,
+    "max": 400
+   },
+   "tore": {
+    "min": 2,
+    "max": 4
+   },
+   "dichte_ew_je_ha": {
+    "kern_min": 120,
+    "kern_max": 200,
+    "vorstadt": 40
+   },
+   "formen": {
+    "mauerkern_vorstaedte": 1000
+   },
+   "anzahl_start": {
+    "min": 1,
+    "max": 2,
+    "ziel": 2,
+    "bedingung": "kleinstadt_kleinstadt >= 7 km und Gelaende traegt, sonst 1",
+    "kenn": "annahme K1/F1"
+   },
+   "stadt_ki": true,
+   "kenn": "u"
+  },
+  "stadt": {
+   "ort_ew": {
+    "min": 10000,
+    "max": 20000
+   },
+   "ab_ort_ew": 10000,
+   "umland_ew": {
+    "min": 500,
+    "max": 1000
+   },
+   "sim_knoten": true,
+   "sim_stufe": "stadt_oder_metropole",
+   "sim_ew": {
+    "min": 10500,
+    "max": 21000
+   },
+   "gebaeude_haupt": {
+    "min": 900,
+    "max": 1500
+   },
+   "sonderbauten": {
+    "min": 20,
+    "max": 30
+   },
+   "gesamt_radius_m": {
+    "min": 600,
+    "max": 900
+   },
+   "dichte_ew_je_ha": {
+    "kern_min": 150,
+    "kern_max": 250
+   },
+   "nur_durch_wachstum_oder_startjahr": true,
+   "formen": {
+    "altstadt_ring_vorstaedte": 1000
+   },
+   "anzahl_start": "startjahr_hebel.stadt_anzahl",
+   "stadt_ki": true,
+   "kenn": "u"
+  }
+ },
+ "umland_modell": {
+  "sim_ew": "ort_ew + umland_ew",
+  "umland_fest_ab_generierung": true,
+  "wachstum_nur_ort": true,
+  "umland_sichtbar_min_promille": 300,
+  "umland_sichtbar_als": [
+   "weiler",
+   "einzelhof"
+  ],
+  "einzelhof_ew": {
+   "min": 6,
+   "max": 12
+  },
+  "gemarkung": "voronoi_der_knoten",
+  "kenn": "po K1"
+ },
+ "dorfformen": {
+  "gemeinsam": {
+   "wege": "astar_feldmitten_dann_glaetten",
+   "astar_kosten_promille": {
+    "basis": 1000,
+    "je_steigung_promille": 8000,
+    "je_richtungswechsel": 3000
+   },
+   "breite_dm": {
+    "dorfstrasse": 60,
+    "ortsdurchfahrt_max": 100,
+    "gasse": 50,
+    "feldweg": 35,
+    "marktstrasse": [
+     150,
+     250
+    ]
+   },
+   "sim": "kante_zwischen_feldmitten_8_richtungen (01_skalen)",
+   "bild": "geglaettete_kurve, ortsstrasse_abweichung_max_grad 20, max_m 8",
+   "kurvenradius_dorfstrasse_m_min": 25,
+   "parzellen_unterraster_dm": 125,
+   "jitter_m": 2,
+   "ruecksprung_m": [
+    2,
+    8
+   ],
+   "winkel_jitter_grad": 8,
+   "etter_ring_m": [
+    30,
+    60
+   ],
+   "rng": "PCG(hash(welt_seed, ort_id, 'form'))",
+   "kenn": "a"
+  },
+  "haufendorf": {
+   "ausfallwege": {
+    "min": 2,
+    "max": 4
+   },
+   "ausfallweg_laenge_r_promille": [
+    1000,
+    1400
+   ],
+   "richtung_rauschen_grad": 15,
+   "gassen": {
+    "min": 1,
+    "max": 3
+   },
+   "gasse_lage_r_promille": [
+    400,
+    800
+   ],
+   "gasse_laenge_m": [
+    60,
+    150
+   ],
+   "gasse_max_steigung_promille": 80,
+   "hof_poisson_dmin_m": 25,
+   "hof_band_m": 35,
+   "hofstelle_felder_promille": 1000,
+   "annahme": "1 - (d_kern/r)^2",
+   "luecken_promille": [
+    100,
+    200
+   ],
+   "kirche": "hoechster_punkt_r60",
+   "lage_eignung": [
+    "ebene",
+    "kreuzung"
+   ]
+  },
+  "strassendorf": {
+   "achse_laenge_m": [
+    400,
+    800
+   ],
+   "hof_breite_dm": [
+    250,
+    375
+   ],
+   "hof_tiefe_dm": [
+    250,
+    500
+   ],
+   "hausstellung": "giebel_zur_strasse_scheune_quer",
+   "hufe_breite_m": [
+    25,
+    50
+   ],
+   "kirche_lage_promille": [
+    400,
+    600
+   ],
+   "luecken_promille": [
+    100,
+    200
+   ],
+   "abstand_haus_m": [
+    6,
+    20
+   ],
+   "lage_eignung": [
+    "talboden",
+    "bach",
+    "landstrasse"
+   ]
+  },
+  "angerdorf": {
+   "anger_laenge_m": [
+    150,
+    350
+   ],
+   "anger_breite_m": [
+    40,
+    100
+   ],
+   "hoefe": {
+    "min": 12,
+    "max": 30
+   },
+   "hausstellung": "traufe_zur_strasse",
+   "auf_anger": [
+    "kirche",
+    "teich_wenn_wasser_200m",
+    "schmiede",
+    "linde"
+   ],
+   "ringweg_dm": 35,
+   "lage_eignung": [
+    "mulde",
+    "wasser"
+   ],
+   "kenn": "q (en.wikipedia Angerdorf)"
+  },
+  "weiler": {
+   "hoefe": {
+    "min": 4,
+    "max": 10
+   },
+   "hof_abstand_m": [
+    25,
+    45
+   ],
+   "radius_m": [
+    40,
+    75
+   ],
+   "zufahrt_dm": 35,
+   "kapelle_promille": 333,
+   "statisch": true,
+   "lage_eignung": [
+    "hang_bis_12_prozent",
+    "waldrand",
+    "talende"
+   ]
+  },
+  "kleinstadt_kern": {
+   "mauer_oval_r_m": [
+    200,
+    300
+   ],
+   "gasse_dm": 50,
+   "gassen_abstand_m": [
+    30,
+    60
+   ],
+   "gassen_abstand_jitter_promille": 300,
+   "gassen_winkel_jitter_grad": 15,
+   "parzelle_front_m": [
+    8,
+    12
+   ],
+   "geschlossen": true,
+   "raster_verboten": true
+  },
+  "bahnhofsviertel": {
+   "ab_ort_ew": 3000,
+   "nur_mit_spieler_bahnhof": true,
+   "max_bloecke": [
+    2,
+    3
+   ],
+   "block_m": [
+    60,
+    80
+   ],
+   "achse": "bahnlinie",
+   "raster_erlaubt": true
+  }
+ },
+ "wachstum": {
+  "rate": "unveraendert aus economy (wachstum.band), hier nur Verteilung",
+  "ort_ew_soll": "sim_ew - umland_ew",
+  "takt_ticks": 600,
+  "aktionen_je_monat": {
+   "ew_je_aktion": 8,
+   "min": 0,
+   "max_formel": "1 + ort_ew_soll / 500"
+  },
+  "max_orte_je_tick": 1,
+  "reihenfolge": [
+   "luecke",
+   "upgrade",
+   "teilung",
+   "vorstadt",
+   "gasse",
+   "platz"
+  ],
+  "haus_ruhe_monate": 3,
+  "geruest_monate": 1,
+  "sichtbarkeit_garantie": "jede positive Rate erzeugt im selben Monat >= 1 Aktion",
+  "schrumpfen": "leerstand_statt_abriss",
+  "schwellen": {
+   "kate_zu_handwerkerhaus": {
+    "ort_ew_min": 300,
+    "strasse_min_m": 6,
+    "ew_plus": 2
+   },
+   "bauernhof_zu_grosshof": {
+    "ort_ew_min": 250,
+    "nachbar_abstand_min_m": 30,
+    "ew_plus": 4
+   },
+   "handwerkerhaus_zu_buergerhaus": {
+    "ort_ew_min": 1000,
+    "lage": "kern_r_promille_700",
+    "ew_plus": 7
+   },
+   "buergerhaus_zu_mietshaus": {
+    "ort_ew_min": 4000,
+    "ab_jahr": 1840,
+    "lage": "kern_oder_bahnhofsviertel",
+    "ew_plus": 16
+   },
+   "teilung_hof_im_kern": {
+    "ort_ew_min": 1000
+   },
+   "gasse": {
+    "kern_fuellgrad_min_promille": 850,
+    "upgrade_kandidaten_max_promille": 100,
+    "max_je_spieljahr": {
+     "dorf": 1,
+     "marktflecken": 1,
+     "kleinstadt": 2,
+     "stadt": 2
+    },
+    "laenge_m": [
+     60,
+     150
+    ],
+    "abzweig_grad": [
+     60,
+     120
+    ],
+    "anschluss_max_m": 80
+   },
+   "vorstadt": {
+    "schritt_m": 25,
+    "stopp": "halbe_mindestluecke_zum_nachbarn"
+   },
+   "klasse_dorf_zu_marktflecken": {
+    "ort_ew_min": 800,
+    "aktion": "marktplatz_rathaus_gasthaus"
+   },
+   "klasse_marktflecken_zu_kleinstadt": {
+    "ort_ew_min": 2000,
+    "aktion": "marktstrasse_tore_deko"
+   },
+   "klasse_kleinstadt_zu_stadt": {
+    "ort_ew_min": 10000,
+    "aktion": "ringstrasse_wenn_jahr_1840"
+   },
+   "sim_stufen_entkoppelt": "Sim-Stufen 1000/5000/20000 (economy) aendern nur Warenkorb und Nachfrage, kein Bildwechsel",
+   "bahnhofstrasse": {
+    "spieler_bahnhof_max_m": 400,
+    "ort_ew_min": 1500
+   }
+  },
+  "kenn": "a; Ort-Baender aus 03, Sim-Stufen q (economy_slice wachstum)",
+  "ohne_versorgung": {
+   "annahme": "S7-Band unveraendert (< 300 Promille Versorgung: -45 bp/Monat, Leerstand statt Abriss)",
+   "empfehlung_f2": "nicht unter Start-EW schrumpfen, Wachstum nur mit Versorgung",
+   "kenn": "an_basti F2"
+  }
+ },
+ "stadt_ki": {
+  "je_ort": true,
+  "rng": "PCG(hash(welt_seed, ort_id, spielmonat))",
+  "gewichte_promille": {
+   "vorstadt_richtung_mit_spieleranschluss": 3000,
+   "upgrade_im_haltestellenradius": 2000,
+   "sonst": 1000
+  },
+  "haltestellen_radius_felder": {
+   "bus": 5,
+   "bahnhof": 10,
+   "kenn": "q genre_standard"
+  },
+  "strassen": {
+   "nur_hinzufuegen": true,
+   "gleis_kreuzen": false,
+   "anschluss_spielerstrasse": "nur_ueber_kreuzung",
+   "sim": "city_streets zellen"
+  },
+  "instanz_puffer_promille": 300,
+  "kenn": "a"
+ },
+ "belebung": {
+  "je_hofstelle": {
+   "nebengebaeude": [
+    1,
+    2
+   ],
+   "hofset": 1,
+   "zaun_segmente": [
+    6,
+    20
+   ],
+   "zaun_segment_m": 3,
+   "baeume": [
+    1,
+    3
+   ],
+   "boden": [
+    "hof_lehm",
+    "garten",
+    "obstwiese"
+   ]
+  },
+  "sichtweite_m": {
+   "haus_detail": 1400,
+   "nebengebaeude_detail": 1000,
+   "hofset_zaun": 600,
+   "baeume": 1800,
+   "proxy_ab": 1110
+  },
+  "kachel_m": {
+   "detail": 400,
+   "proxy": 3200
+  },
+  "palette_haeuser_je_ort_max": 8,
+  "hofsets_gemergt": 4,
+  "baum_anteil_max_promille": 600,
+  "perf_gate": {
+   "uebersicht_tris_max": 1000000,
+   "uebersicht_dc_max": 300,
+   "nah_tris_max": 2900000,
+   "kenn": "q review_retro"
+  },
+  "perf_schaetzung_uebersicht": {
+   "proxy_gebaeude": 2800,
+   "tris": 68000,
+   "dc": 64,
+   "kenn": "a"
+  },
+  "kenn": "a"
+ },
+ "nachfrage_bruecke": {
+  "formel": "sim_ew * demand_per_100 / 100 * demand_mult (economy.gd city_demand), unveraendert",
+  "beispiel_einheiten_je_monat": {
+   "dorf_650": 13,
+   "marktflecken_1550": 15,
+   "kleinstadt_3500": 35,
+   "kleinstadt_sim_stadt_6000": 60
+  },
+  "hinweis": "Montankette 1820 endet an der Manufaktur (werkzeugfabrik, rolle abnehmer, economy_slice). Stadt-Korb 'stahl' trifft keine Gueter-Kategorie (stahl = zwischenprodukt): pruefen Felix/Tobias S8. Marktflecken verliert an der Stufe 1000 den Dorf-Multiplikator (an Tobias S8, K18).",
+  "kenn": "q economy_slice.json saettigung",
+  "kartenrand_markt": {
+   "aktiv": false,
+   "kenn": "po K2"
+  }
+ },
+ "verteilung": {
+  "randabstand": {
+   "knoten": {
+    "felder": 40,
+    "m": 1000
+   },
+   "weiler": {
+    "felder": 16,
+    "m": 400
+   },
+   "industrie": {
+    "felder": 40,
+    "m": 1000
+   },
+   "randlandschaft_deko_orte": "offen (Frage an Basti)"
+  },
+  "mindestabstand_zentrum": {
+   "weiler_jeder": {
+    "felder": 24,
+    "m": 600
+   },
+   "dorf_dorf": {
+    "felder": 64,
+    "m": 1600
+   },
+   "dorf_dorf_v9_durchmesser_faktor_promille": 5000,
+   "dorf_marktflecken": {
+    "felder": 100,
+    "m": 2500
+   },
+   "dorf_kleinstadt": {
+    "felder": 100,
+    "m": 2500
+   },
+   "dorf_stadt": {
+    "felder": 120,
+    "m": 3000
+   },
+   "marktflecken_marktflecken": {
+    "felder": 200,
+    "m": 5000
+   },
+   "kleinstadt_marktflecken": {
+    "felder": 160,
+    "m": 4000
+   },
+   "kleinstadt_kleinstadt": {
+    "felder": 280,
+    "m": 7000
+   },
+   "stadt_marktflecken": {
+    "felder": 200,
+    "m": 5000
+   },
+   "stadt_kleinstadt": {
+    "felder": 240,
+    "m": 6000
+   },
+   "stadt_stadt": {
+    "felder": 320,
+    "m": 8000
+   },
+   "kenn": "real u (ref 1a), gestreckt a"
+  },
+  "dorf_max_zu_zentralem_ort": {
+   "felder": 240,
+   "m": 6000
+  },
+  "mindestluecke_endausbau": {
+   "ort_ort_m": 800,
+   "weiler_ort_m": 400,
+   "endausbau_radius_faktor_promille": 1600
+  },
+  "eignung_promille": {
+   "wasser_100_400m": 300,
+   "furt": 250,
+   "kreuzung_talwege": 200,
+   "talrand": 150,
+   "sued_osthang_bonus": 50,
+   "ebene": 100,
+   "aue_direkt": -400,
+   "steil_ueber_80_promille": -500,
+   "waldinneres": -200,
+   "gebirge": "ausgeschlossen",
+   "raster_felder": 4,
+   "hochwasserfrei_m": 3
+  },
+  "platzierung": {
+   "zentrale_orte": "best_candidate",
+   "kandidaten_k": 30,
+   "eignung_min_promille": 600,
+   "rauschen_promille": 100,
+   "doerfer": "bridson_poisson_paarweise_dmin",
+   "annahme_p": "eignung/1000",
+   "saettigen": false,
+   "weiler_eignung_min_promille": 300,
+   "relaxation": false,
+   "nachbarschaft": "gabriel_graph",
+   "ausfallweg_ansatz_m": [
+    200,
+    500
+   ]
+  },
+  "clark_evans_promille": {
+   "orte": [
+    1000,
+    1600
+   ],
+   "industrien": [
+    900,
+    1500
+   ]
+  },
+  "erfuellbarkeit_ziel": {
+   "seeds": 20,
+   "ohne_verstoss_min": 18
+  }
+ },
+ "industrie_ebenen": {
+  "rohstoff": {
+   "getreidefarm": {
+    "anzahl": [
+     5,
+     8
+    ],
+    "lage": [
+     "ebene",
+     "aue"
+    ],
+    "ortsrand_abstand_m": [
+     300,
+     3000
+    ]
+   },
+   "kohlemine": {
+    "anzahl": [
+     2,
+     3
+    ],
+    "lage": [
+     "lagerstaette_kohle"
+    ],
+    "ortsrand_abstand_min_m": 500,
+    "relief_min_m_in_500m": 60
+   },
+   "erzmine": {
+    "anzahl": [
+     1,
+     2
+    ],
+    "lage": [
+     "lagerstaette_erz"
+    ],
+    "ortsrand_abstand_min_m": 500,
+    "relief_min_m_in_500m": 60,
+    "abstand_kohle_fleck_min_m": 750,
+    "mind_ein_fleck_max_m_zu_stahlwerk": 2000
+   },
+   "holzfaeller": {
+    "anzahl": [
+     3,
+     5
+    ],
+    "aktiv_ab": "S8",
+    "lage": [
+     "nutzwald"
+    ],
+    "ortsrand_abstand_min_m": 300
+   },
+   "vieh": {
+    "anzahl": [
+     0,
+     0
+    ],
+    "lage": [
+     "hang_30_120_promille"
+    ],
+    "hinweis": "Hebel, spaeter"
+   },
+   "oel": {
+    "anzahl": [
+     0,
+     0
+    ],
+    "ab_jahr": 1860
+   }
+  },
+  "veredelung": {
+   "muehle": {
+    "anzahl": [
+     3,
+     5
+    ],
+    "wasser_max_m": 200,
+    "ortsrand_abstand_m": [
+     100,
+     1500
+    ],
+    "wasser": "bach_oder_fluss"
+   },
+   "stahlwerk": {
+    "anzahl": [
+     2,
+     3
+    ],
+    "wasser_max_m": 400,
+    "ortsrand_abstand_m": [
+     500,
+     3000
+    ],
+    "darstellung_1820": "eisenhuette_hammerwerk"
+   },
+   "kraftwerk": {
+    "anzahl": [
+     2,
+     3
+    ],
+    "ortsrand_abstand_m": [
+     500,
+     3000
+    ],
+    "darstellung_1820": "kalkofen_ziegelei",
+    "kenn": "annahme K11 (Koehlerei verbraucht Holz, nicht Kohle)"
+   }
+  },
+  "produktion": {
+   "werkzeugfabrik": {
+    "anzahl": [
+     1,
+     3
+    ],
+    "max_je_zentralem_ort": 1,
+    "ab_klasse": "marktflecken",
+    "ortsrand_abstand_m": [
+     150,
+     1500
+    ],
+    "nie_im_kern": true,
+    "darstellung_1820": "manufaktur"
+   }
+  },
+  "lagerstaetten": {
+   "bergflanken_je_seed": [
+    1,
+    2
+   ],
+   "kohle": {
+    "anzahl": [
+     2,
+     3
+    ],
+    "radius_m": [
+     300,
+     600
+    ]
+   },
+   "erz": {
+    "anzahl": [
+     1,
+     2
+    ],
+    "radius_m": [
+     300,
+     600
+    ]
+   },
+   "anteil_gebirgsfuss_max_promille": 200,
+   "kohle_erz_getrennt_min_m": 750,
+   "gleiches_massiv_erlaubt": true
+  },
+  "nutzwald": {
+   "flaeche_min_km2": 1,
+   "hang_max_promille": 120,
+   "anteil_waelder_promille": [
+    300,
+    500
+   ]
+  },
+  "gleicher_typ_mindestabstand": {
+   "rohstoff": {
+    "felder": 48,
+    "m": 1200
+   },
+   "veredelung": {
+    "felder": 120,
+    "m": 3000
+   },
+   "produktion": {
+    "felder": 160,
+    "m": 4000
+   },
+   "ersetzt": "rules_s7 R7 (160 Felder fuer alle)"
+  },
+  "kanten": {
+   "getreidefarm_muehle": {
+    "nah": {
+     "felder_min": 18,
+     "felder_max": 30,
+     "m_min": 450,
+     "m_max": 750
+    },
+    "fern": {
+     "felder_min": 30,
+     "felder_max": 80,
+     "m_min": 750,
+     "m_max": 2000
+    },
+    "fern_quelle_pflicht": true,
+    "quellen_min": 2
+   },
+   "kohlemine_stahlwerk": {
+    "nah": {
+     "felder_min": 15,
+     "felder_max": 30,
+     "m_min": 375,
+     "m_max": 750
+    },
+    "fern": {
+     "felder_min": 30,
+     "felder_max": 80,
+     "m_min": 750,
+     "m_max": 2000
+    }
+   },
+   "erzmine_stahlwerk": {
+    "nah": null,
+    "fern": {
+     "felder_min": 30,
+     "felder_max": 120,
+     "m_min": 750,
+     "m_max": 3000
+    },
+    "hinweis": "Erz aus Nahband geloest (Anti-Revier)"
+   },
+   "kohlemine_kraftwerk": {
+    "nah": {
+     "felder_min": 18,
+     "felder_max": 30,
+     "m_min": 450,
+     "m_max": 750
+    },
+    "fern": {
+     "felder_min": 30,
+     "felder_max": 80,
+     "m_min": 750,
+     "m_max": 2000
+    }
+   },
+   "stahlwerk_werkzeugfabrik": {
+    "nah": {
+     "felder_min": 30,
+     "felder_max": 80,
+     "m_min": 750,
+     "m_max": 2000
+    }
+   },
+   "muehle_ort": {
+    "nah": {
+     "felder_min": 40,
+     "felder_max": 130,
+     "m_min": 1000,
+     "m_max": 3250
+    }
+   },
+   "werkzeugfabrik_ort": {
+    "nah": {
+     "felder_min": 30,
+     "felder_max": 260,
+     "m_min": 750,
+     "m_max": 6500
+    }
+   }
+  },
+  "kenn": "Nahbaender q rules_s7 ketten_baender; Rest a",
+  "sim_footprint": {
+   "bleibt_s7": true,
+   "bild": "Werksgelaende mit echtem Inhalt",
+   "je_typ_ab": "W-05",
+   "kenn": "po K14"
+  }
+ },
+ "anti_revier": {
+  "AR1": {
+   "kreis": {
+    "felder": 60,
+    "m": 1500
+   },
+   "industrien_max": 3,
+   "volle_kette_verboten": true
+  },
+  "AR2": {
+   "kongruenz_toleranz_promille": 200
+  },
+  "AR3": {
+   "richtungen_min": 2,
+   "winkel_min_grad": 60,
+   "gilt_fuer": [
+    "muehle"
+   ],
+   "montan": "erz und kohle aus verschiedenen Richtungen genuegt",
+   "ausnahme": [
+    "kraftwerk"
+   ],
+   "kenn": "po K13"
+  },
+  "AR4": {
+   "abnehmer_min": 2,
+   "radius": {
+    "felder": 100,
+    "m": 2500
+   },
+   "anteil_rohstoffe_min_promille": 700
+  },
+  "AR5": {
+   "clark_evans_promille": [
+    900,
+    1500
+   ]
+  },
+  "AR6": {
+   "knoten_max_zu_industrie": {
+    "felder": 120,
+    "m": 3000
+   },
+   "kachel_km": 4,
+   "ausnahme_gebirge_wasser_promille": 600
+  },
+  "AR7": {
+   "mine_relief_min_m": 60,
+   "muehle_wasser_max_m": 200,
+   "farm_umfeld_max_promille": 30
+  },
+  "kenn": "a (gegen Daniel M1/M2)"
+ },
+ "validator": {
+  "gleiche_funktion_wie_spiel": [
+   "bau_s7.steigung_pct",
+   "s7_world.bruecken_hoehe"
+  ],
+  "grenzwerte": {
+   "strasse_steigung_max_promille": 200,
+   "gleis_steigung_max_promille": 60,
+   "bruecke_max_felder": 8,
+   "kenn": "Strasse/Bruecke q world_s7_meta; Gleis annahme K3 (S7 120)",
+   "gleis_steigung_fallback_promille": 80
+  },
+  "regeln": [
+   {
+    "id": "V-E1",
+    "pruefung": "Pflicht-Kettenkante per Strasse",
+    "zwischenpunkte_max": 2,
+    "umweg_max_promille": 1600
+   },
+   {
+    "id": "V-E2",
+    "pruefung": "je Montangruppe >= 1 Kette als Gleis",
+    "umweg_max_promille": 2000
+   },
+   {
+    "id": "V-E3",
+    "pruefung": "Knotennetz zusammenhaengend per Land",
+    "umweg_max_promille": 1500,
+    "querungen_je_fluss_min": 2
+   },
+   {
+    "id": "V-E4",
+    "pruefung": "Fluss-Spalten gerade querbar",
+    "anteil_min_promille": 800
+   },
+   {
+    "id": "V-E5",
+    "pruefung": "Industrie-Zufahrt",
+    "seiten_min": 2,
+    "steigung_max_promille": 120,
+    "laenge_felder": 3
+   },
+   {
+    "id": "V-E6",
+    "pruefung": "Ortsanschluss Z-01",
+    "richtungen_min": 2,
+    "steigung_max_promille": 120
+   },
+   {
+    "id": "V-E7",
+    "pruefung": "Startkette Agrar je Knoten",
+    "radius": {
+     "felder": 100,
+     "m": 2500
+    },
+    "anteil_knoten_min_promille": 600,
+    "hq_vorschau_gleiche_funktion": true
+   },
+   {
+    "id": "V-V1",
+    "pruefung": "Mindestabstaende, Randabstand, Mindestluecke"
+   },
+   {
+    "id": "V-V2",
+    "pruefung": "Dorf <= 240 Felder zu zentralem Ort"
+   },
+   {
+    "id": "V-V3",
+    "pruefung": "Clark-Evans und AR1-AR7"
+   },
+   {
+    "id": "V-L1",
+    "pruefung": "Reliefstufen-Anteile innen (statt Huegelquote)",
+    "ersetzt_ab": "Prototyp-Abnahme",
+    "uebergang": "Huegel in der Flaeche >= 100 Promille bleibt bis dahin"
+   },
+   {
+    "id": "V-L2",
+    "pruefung": "Fluss: max Querschnitt <= 6, Median 3-5, gerade querbar >= 850 Promille"
+   },
+   {
+    "id": "V-L3",
+    "pruefung": "Baeche 4-8, jede Muehle <= 200 m Wasser"
+   }
+  ],
+  "astar": {
+   "generator": "grob_4x4",
+   "validator": "fein_1x1"
+  }
+ },
+ "label": {
+  "zeigt": "ort_ew (sichtbare Haeuser)",
+  "tooltip": "einzugsgebiet = sim_ew (ort + umland), Nachfrage",
+  "inhalt": [
+   "name",
+   "ort_ew",
+   "trendpfeil",
+   "bedarf_icons_max_3"
+  ],
+  "hierarchie": {
+   "kleinstadt": "immer",
+   "marktflecken": "immer",
+   "dorf": "kamera_unter_3000_m",
+   "weiler": "nie"
+  },
+  "kenn": "po K1/K20 (TF3: Schild mit Name, EW, Trend, Bedarf)"
+ },
+ "kalibrierung": {
+  "t15_neu_kalibrieren": false,
+  "stichprobe": {
+   "bots_seeds": 3,
+   "laeufe_je_seed": 3,
+   "bankrott_band_promille": [
+    150,
+    180
+   ],
+   "toleranz_promille": 30
+  },
+  "falls_ausserhalb": "nur demand_per_100 oder Dorfzahl +2 anpassen, nicht Ortsgroessen",
+  "erwartung_sim_ew_summe": {
+   "min": 12000,
+   "typ": 20000,
+   "max": 29500,
+   "s7": 36250
+  },
+  "erwartung_ort_ew_summe": {
+   "typ": 12100,
+   "real_band": [
+    10000,
+    16000
+   ]
+  },
+  "kenn": "po K1"
+ },
+ "fahrzeugtempo": {
+  "sim_felder_je_tick_promille": {
+   "fuhrwerk": 600,
+   "lok": 1000,
+   "schiff": 400
+  },
+  "m_je_s_bei_1x": {
+   "fuhrwerk": 150,
+   "lok": 250,
+   "schiff": 100
+  },
+  "raffung_gegen_real": {
+   "fuhrwerk": "ca. 100x",
+   "lok": "ca. 32x"
+  },
+  "darstellung": "wie Sim (Genre-Standard)",
+  "zoomabhaengiges_spieltempo": "Option, offen F4",
+  "animation": "Gangart Pferd/Rad nach Tempo gedeckelt",
+  "kenn": "an_basti K4/F4"
+ },
+ "strasse_gleis_bild": {
+  "sim": "Kante zwischen Feldmitten, 8 Richtungen (S7)",
+  "bild": "durchgehendes Spline-Band durch geglaettete Feldmitten, keine Kacheln",
+  "kreuzung": "eigenes Knotenstueck (Junction-Mesh) je Kreuzungstyp",
+  "ortsstrasse_abweichung": {
+   "grad_max": 20,
+   "m_max": 8
+  },
+  "bruecke": "Sim-Brueckenfelder; Band laeuft ueber Brueckenmesh",
+  "spielernetz": "gleiche Glaettung, Sim unveraendert (W-04b)",
+  "stadt_ki": "nur hinzufuegen, nie Gleis kreuzen, Anschluss an Spielerstrasse nur ueber Kreuzung",
+  "kenn": "po K8"
+ },
+ "landschaft": {
+  "relief_profil": "ds_v2",
+  "relief_parameter": {
+   "grat": "summe",
+   "grat_drehung_grad": 31,
+   "massiv1": {
+    "wellenlaenge_m": 2600,
+    "oktaven": 4,
+    "gain_promille": 420,
+    "exponent_promille": 1350,
+    "radius_m": [
+     2800,
+     3400
+    ],
+    "radius_kenn": "annahme K15 (S7 3300-4000)"
+   },
+   "massiv2": {
+    "wellenlaenge_m": 2000,
+    "oktaven": 4,
+    "gain_promille": 420,
+    "exponent_promille": 1300
+   },
+   "rand": {
+    "wellenlaenge_m": 3000,
+    "oktaven": 4,
+    "gain_promille": 420
+   },
+   "massiv_rand_rauschen_promille": 250,
+   "detail_amp_dm": 10,
+   "zonen": {
+    "wellenlaenge_m": 6000,
+    "ebene_amp_m": 4,
+    "huegel_amp_m": 42,
+    "kuppen_wellenlaenge_m": 900,
+    "kuppen_amp_m": 14
+   },
+   "tal": {
+    "flach_bis_m": 700,
+    "uebergang_bis_m": 2000
+   },
+   "sockel_m": 150,
+   "hoechster_punkt_min_m": 800,
+   "kenn": "m 08 (ds_v2), Massiv-Radius annahme"
+  },
+  "reliefstufen_ziel_promille_innen": {
+   "ebene": [
+    200,
+    300
+   ],
+   "huegelland": [
+    300,
+    400
+   ],
+   "mittelgebirge": [
+    150,
+    200
+   ],
+   "gebirge": [
+    0,
+    200
+   ],
+   "gebirge_zielwert": 150,
+   "kein_gebiet_ohne_stufenwechsel_m": 3000,
+   "vorland_min_m": 1000,
+   "gemessen_ds_v2": {
+    "ebene": 205,
+    "huegelland": 296,
+    "mittelgebirge": 184,
+    "gebirge": 316
+   }
+  },
+  "stadtplateau": {
+   "form": "folgt Ortsform, Terrassen quer zum Gefaelle",
+   "radius_rauschen_promille": 200,
+   "nur_kern": true,
+   "kreisring_verboten": true,
+   "kenn": "po K6"
+  },
+  "boden": {
+   "umsetzung": "bodenkarte_textur_512_rgba8 (R Acker, G Heide, B Sumpf, A Wald); Rest prozedural",
+   "fallback": "vertexfarben, falls iGPU-Messung im Prototyp > 0,3 ms",
+   "klassen": {
+    "wiese": {
+     "hex": "#73945C",
+     "anteil_ds_v2_promille": 387
+    },
+    "auenboden": {
+     "hex": "#7D9959",
+     "anteil_ds_v2_promille": 74
+    },
+    "sumpf": {
+     "hex": "#5F7352",
+     "anteil_ds_v2_promille": 7
+    },
+    "acker_hell": {
+     "hex": "#C2A866",
+     "anteil_ds_v2_promille": 46
+    },
+    "acker_dunkel": {
+     "hex": "#8F7350",
+     "anteil_ds_v2_promille": 44
+    },
+    "heide": {
+     "hex": "#8C8462",
+     "anteil_ds_v2_promille": 23
+    },
+    "waldboden": {
+     "hex": "#55734A",
+     "anteil_ds_v2_promille": 301
+    },
+    "schotter": {
+     "hex": "#A39D90",
+     "anteil_ds_v2_promille": 32
+    },
+    "fels": {
+     "hex": "#807361",
+     "anteil_ds_v2_promille": 73
+    },
+    "schnee": {
+     "hex": "#F2F2F7",
+     "anteil_ds_v2_promille": 2
+    },
+    "ufer": {
+     "hex": "#6B7054",
+     "anteil_ds_v2_promille": 4
+    },
+    "wasser": {
+     "hex": "#345F7E",
+     "anteil_ds_v2_promille": 7
+    }
+   },
+   "schneelinie_m": 1000,
+   "schnee_neigung_max_promille": 550,
+   "bergheide_guertel_m": [
+    750,
+    1000
+   ],
+   "mosaik": {
+    "waldfleck_m": [
+     100,
+     800
+    ],
+    "feldgehoelz_je_km2": [
+     3,
+     8
+    ],
+    "hecken_an_feldrainen": true,
+    "kenn": "annahme K20 (TF3)"
+   },
+   "acker": {
+    "guertel_ortsradien": 4,
+    "guertel_max_m": 1600,
+    "gewann_m": [
+     200,
+     125
+    ],
+    "hell_promille": 550,
+    "nicht_in_aue": true,
+    "haengt_an": "hofstellen, nicht am Ortsmittelpunkt"
+   },
+   "kontrast_min": "3:1 Saum oder Marker (S-08)"
+  },
+  "wald": {
+   "baeume_je_feld": {
+    "laubwald": [
+     6,
+     8
+    ],
+    "waldrand": [
+     3,
+     4
+    ],
+    "bergwald": [
+     8,
+     10
+    ],
+    "aue_promille": 500,
+    "wiese_promille": 100,
+    "heide_promille": 300,
+    "sumpf": 1,
+    "schotter_promille": 200
+   },
+   "ufergehoelz_je_m": 10,
+   "allee_chaussee_je_m": 12,
+   "fernsicht_ab_m": 2500,
+   "fernsicht": "Waldboden + Kronentupfen im Terrain-Shader",
+   "deckel": {
+    "uebersicht_baum_tris_max": 120000,
+    "nah_baeume_max": 6000,
+    "chunk_felder": 64,
+    "gartenbaeume_je_gebaeude_promille": 1200,
+    "baum_anteil_ort_tris_max_promille": 600
+   },
+   "kenn": "m/a 08, po K17"
+  },
+  "wasser": {
+   "fluss": {
+    "breite_m": [
+     60,
+     100
+    ],
+    "halbe_breite_basis_m": [
+     30,
+     34
+    ],
+    "zuwachs_m": 16,
+    "rauschen_m": 3,
+    "maeander_wellenlaenge_faktor_breite": [
+     11,
+     15
+    ],
+    "maeander_amplitude_m": [
+     90,
+     140
+    ],
+    "modulation_promille": [
+     250,
+     1000
+    ],
+    "rinne_unter_pegel_dm": 35,
+    "uferboeschung_m": 40,
+    "uferboeschung_kenn": "po K7 (S7 22 m, gegen Uferzacken)"
+   },
+   "baeche": {
+    "anzahl": [
+     4,
+     8
+    ],
+    "breite_m": [
+     4,
+     6
+    ],
+    "lage": "Tiefenlinien, muenden in Fluss",
+    "sim": "blockiert nicht",
+    "kenn": "po K12"
+   },
+   "nebenfluss": {
+    "anzahl": [
+     1,
+     2
+    ],
+    "breite_m": [
+     15,
+     25
+    ],
+    "rinne_dm": 15,
+    "brueckenfelder": 1,
+    "kenn": "po K12"
+   },
+   "teiche": {
+    "dorfteich_m": [
+     15,
+     30
+    ],
+    "muehlteich_m": [
+     50,
+     150
+    ],
+    "eigenes_mesh_unter_felder": 3,
+    "raster_m": 5
+   },
+   "seen": {
+    "anzahl": [
+     0,
+     2
+    ],
+    "durchmesser_m": [
+     300,
+     800
+    ],
+    "lage": "Huegelland/Gebirgsfuss",
+    "kenn": "annahme bis F5"
+   },
+   "aue": {
+    "breite_faktor": [
+     5,
+     20
+    ],
+    "spanne_max_m": 5,
+    "kein_acker": true,
+    "muehle_aue_band_m": [
+     0,
+     1000
+    ]
+   },
+   "strom": false
+  }
+ },
+ "wasser_shader": {
+  "datei": "world/water.gdshader (aus phase2/code_ws_c)",
+  "render": "opak, Compatibility, keine Tiefen-/Screen-Textur, eigenes Mesh auf Gelaende-Knotenraster",
+  "uniforms": {
+   "c_flach": "#55909C",
+   "c_tief": "#345F7E",
+   "c_tief_variante_b": "#2F6E7C",
+   "c_ufer": "#6B7054",
+   "c_himmel": "SKY_HORIZON",
+   "m_pro_einheit": 25,
+   "tiefe_skala_milli": 8000,
+   "tiefe_voll_milli": 2500,
+   "tiefe_voll_variante_b_milli": 3500,
+   "ufer_breite_milli": 350,
+   "ufer_breite_bach_milli": 250,
+   "saum_staerke_milli": 100,
+   "wellen_skala_milli_je_m": 100,
+   "wellen_staerke_milli": 550,
+   "fliess_periode_milli_s": 8000,
+   "fresnel_staerke_milli": 550,
+   "fresnel_basis_milli": 40,
+   "rauheit_milli": 300,
+   "specular_milli": 350
+  },
+  "varianten": {
+   "teich": {
+    "fluss_vektor": 0,
+    "wellen_faktor_milli": 450
+   },
+   "bach": {
+    "band_m": 5,
+    "tiefe_quer_dm": [
+     0,
+     8,
+     0
+    ]
+   }
+  },
+  "builder": {
+   "pegel": "tiefster Knoten 6er-Umkreis + 3,5 m, 3x geglaettet",
+   "uferring_felder": 2,
+   "fliess_m_je_s_milli": 600
+  },
+  "kosten_m": {
+   "dc_uebersicht_plus": 3,
+   "tris_uebersicht_plus": 7240,
+   "alu_je_pixel": 200,
+   "texturzugriffe": 0
+  },
+  "flowmap_spaeter": "wellen_grad() 1:1 durch Normal-Map-Zugriff ersetzbar (Sophie), nicht in v1",
+  "variante_b_kenn": "annahme K20: teal-verschoben, breiterer Flachwasserverlauf; A/B im Rundgang, Kontrast 3:1 neu messen"
+ },
+ "asset_mapping": {
+  "quelle": "phase2/10_import_faktoren.json (vollstaendig), hier Kurzform",
+  "regeln": {
+   "R1": "Faktor je Rolle, nicht je Kit",
+   "R2": "Bezugsachse = kleinste Toleranz",
+   "R3": "Quer-/Laengsfaktor nur Fahrzeuge und Bruecken, max +-35 %",
+   "R4": "1 Prefab = 1 Mesh, MultiMesh",
+   "R5": "Fernproxy ab 1400 m",
+   "R6": "Pivot normieren"
+  },
+  "kits_erlaubt": [
+   "Fantasy Town Kit",
+   "Nature Kit",
+   "Train Kit",
+   "Survival Kit",
+   "Graveyard Kit",
+   "Castle Kit",
+   "Prototype Kit",
+   "Watercraft Pack",
+   "Pirate Kit"
+  ],
+  "kits_verboten": [
+   "Retro Fantasy Kit",
+   "City Kit *",
+   "Car Kit",
+   "Hexagon Kit (Gebaeude)"
+  ],
+  "fremdpaletten_umfaerben": [
+   "Castle Kit",
+   "Graveyard Kit",
+   "Pirate Kit"
+  ],
+  "prefabs_welle1": [
+   "kate",
+   "bauernhof",
+   "handwerkerhaus",
+   "buergerhaus",
+   "kirche_dorf",
+   "gasthaus",
+   "schmiede"
+  ],
+  "zukauf": {
+   "quaternius_farm_animals": "empfohlen (Pferd), Basti besorgt",
+   "medieval_village": "erst Stilprobe"
+  },
+  "rollen": {
+   "haus_s_modul": {
+    "kit": "Fantasy Town Kit",
+    "modell": "wall-wood",
+    "faktor_szene_1e4": 1200,
+    "ziel_dm": 30,
+    "bezugsachse": "y"
+   },
+   "haus_m_modul": {
+    "kit": "Fantasy Town Kit",
+    "modell": "wall",
+    "faktor_szene_1e4": 1200,
+    "ziel_dm": 30,
+    "bezugsachse": "y"
+   },
+   "dach_hoch": {
+    "kit": "Fantasy Town Kit",
+    "modell": "roof-high",
+    "faktor_szene_1e4": 1200,
+    "ziel_dm": 30,
+    "bezugsachse": "z"
+   },
+   "windmuehle_fluegel": {
+    "kit": "Fantasy Town Kit",
+    "modell": "windmill",
+    "faktor_szene_1e4": 2570,
+    "ziel_dm": 200,
+    "bezugsachse": "y"
+   },
+   "wassermuehle_rad": {
+    "kit": "Fantasy Town Kit",
+    "modell": "watermill",
+    "faktor_szene_1e4": 1112,
+    "ziel_dm": 50,
+    "bezugsachse": "y"
+   },
+   "fuhrwerk_wagen": {
+    "kit": "Fantasy Town Kit",
+    "modell": "cart",
+    "faktor_szene_1e4": 1493,
+    "ziel_dm": 50,
+    "bezugsachse": "z",
+    "querfaktor_x_1e4": 6500
+   },
+   "kutsche_wagen": {
+    "kit": "Fantasy Town Kit",
+    "modell": "cart-high",
+    "faktor_szene_1e4": 1583,
+    "ziel_dm": 55,
+    "bezugsachse": "z",
+    "querfaktor_x_1e4": 6500
+   },
+   "pferd": {
+    "kit": "Prototype Kit",
+    "modell": "animal-horse",
+    "faktor_szene_1e4": 1152,
+    "ziel_dm": 29,
+    "bezugsachse": "x"
+   },
+   "dampflok": {
+    "kit": "Train Kit",
+    "modell": "train-locomotive-a",
+    "faktor_szene_1e4": 1037,
+    "ziel_dm": 43,
+    "bezugsachse": "y",
+    "laengsfaktor_z_1e4": 11300,
+    "hinweis": "po K10: Laenge 6,7 -> 7,6 m (sonst 0,88x real < 0,9)"
+   },
+   "tender": {
+    "kit": "Train Kit",
+    "modell": "train-carriage-coal",
+    "faktor_szene_1e4": 711,
+    "ziel_dm": 48,
+    "bezugsachse": "z"
+   },
+   "gueterwagen": {
+    "kit": "Train Kit",
+    "modell": "train-carriage-coal",
+    "faktor_szene_1e4": 1022,
+    "ziel_dm": 69,
+    "bezugsachse": "z"
+   },
+   "personenwagen": {
+    "kit": "Train Kit",
+    "modell": "train-carriage-box",
+    "faktor_szene_1e4": 1022,
+    "ziel_dm": 69,
+    "bezugsachse": "z"
+   },
+   "gleis": {
+    "kit": "Train Kit",
+    "modell": "railroad-straight",
+    "faktor_szene_1e4": 1040,
+    "ziel_dm": 26,
+    "bezugsachse": "x"
+   },
+   "laubbaum": {
+    "kit": "Nature Kit",
+    "modell": "tree_default",
+    "faktor_szene_1e4": 4215,
+    "ziel_dm": 180,
+    "bezugsachse": "y"
+   },
+   "eiche": {
+    "kit": "Nature Kit",
+    "modell": "tree_oak",
+    "faktor_szene_1e4": 6525,
+    "ziel_dm": 200,
+    "bezugsachse": "y"
+   },
+   "nadelbaum": {
+    "kit": "Nature Kit",
+    "modell": "tree_pineDefaultA",
+    "faktor_szene_1e4": 6468,
+    "ziel_dm": 250,
+    "bezugsachse": "y"
+   },
+   "nadelbaum_schlank": {
+    "kit": "Nature Kit",
+    "modell": "tree_pineTallA",
+    "faktor_szene_1e4": 7320,
+    "ziel_dm": 280,
+    "bezugsachse": "y"
+   },
+   "obstbaum": {
+    "kit": "Fantasy Town Kit",
+    "modell": "tree",
+    "faktor_szene_1e4": 1160,
+    "ziel_dm": 70,
+    "bezugsachse": "y"
+   },
+   "busch": {
+    "kit": "Nature Kit",
+    "modell": "plant_bushLarge",
+    "faktor_szene_1e4": 3292,
+    "ziel_dm": 20,
+    "bezugsachse": "y"
+   },
+   "findling": {
+    "kit": "Nature Kit",
+    "modell": "rock_largeA",
+    "faktor_szene_1e4": 1182,
+    "ziel_dm": 30,
+    "bezugsachse": "z"
+   },
+   "felsnadel": {
+    "kit": "Nature Kit",
+    "modell": "rock_tallA",
+    "faktor_szene_1e4": 4016,
+    "ziel_dm": 100,
+    "bezugsachse": "y"
+   },
+   "felsgruppe": {
+    "kit": "Pirate Kit",
+    "modell": "rocks-a",
+    "faktor_szene_1e4": 939,
+    "ziel_dm": 120,
+    "bezugsachse": "x"
+   },
+   "klippe": {
+    "kit": "Nature Kit",
+    "modell": "cliff_block_stone",
+    "faktor_szene_1e4": 4000,
+    "ziel_dm": 100,
+    "bezugsachse": "y"
+   },
+   "bruecke_bach": {
+    "kit": "Nature Kit",
+    "modell": "bridge_stoneRound",
+    "faktor_szene_1e4": 3077,
+    "ziel_dm": 80,
+    "bezugsachse": "z"
+   },
+   "bruecke_fluss_bogen": {
+    "kit": "Castle Kit",
+    "modell": "bridge-straight-pillar",
+    "faktor_szene_1e4": 6452,
+    "ziel_dm": 150,
+    "bezugsachse": "z",
+    "querfaktor_x_1e4": 4700
+   },
+   "bruecke_holz": {
+    "kit": "Nature Kit",
+    "modell": "bridge_wood",
+    "faktor_szene_1e4": 3077,
+    "ziel_dm": 80,
+    "bezugsachse": "z"
+   },
+   "zaun_latte": {
+    "kit": "Fantasy Town Kit",
+    "modell": "fence",
+    "faktor_szene_1e4": 1158,
+    "ziel_dm": 11,
+    "bezugsachse": "y"
+   },
+   "zaun_feld": {
+    "kit": "Nature Kit",
+    "modell": "fence_simple",
+    "faktor_szene_1e4": 1275,
+    "ziel_dm": 11,
+    "bezugsachse": "y"
+   },
+   "trockenmauer": {
+    "kit": "Graveyard Kit",
+    "modell": "stone-wall",
+    "faktor_szene_1e4": 717,
+    "ziel_dm": 13,
+    "bezugsachse": "y"
+   },
+   "heuhaufen": {
+    "kit": "Graveyard Kit",
+    "modell": "hay-bale",
+    "faktor_szene_1e4": 1054,
+    "ziel_dm": 16,
+    "bezugsachse": "x"
+   },
+   "holzstapel": {
+    "kit": "Nature Kit",
+    "modell": "log_stack",
+    "faktor_szene_1e4": 2254,
+    "ziel_dm": 40,
+    "bezugsachse": "z"
+   },
+   "fass": {
+    "kit": "Survival Kit",
+    "modell": "barrel",
+    "faktor_szene_1e4": 1047,
+    "ziel_dm": 9,
+    "bezugsachse": "y"
+   },
+   "amboss": {
+    "kit": "Survival Kit",
+    "modell": "workbench-anvil",
+    "faktor_szene_1e4": 991,
+    "ziel_dm": 8,
+    "bezugsachse": "x"
+   },
+   "passant": {
+    "kit": "Graveyard Kit",
+    "modell": "character-keeper",
+    "faktor_szene_1e4": 812,
+    "ziel_dm": 18,
+    "bezugsachse": "y"
+   },
+   "getreide": {
+    "kit": "Nature Kit",
+    "modell": "crops_wheatStageB",
+    "faktor_szene_1e4": 1047,
+    "ziel_dm": 14,
+    "bezugsachse": "y"
+   },
+   "brunnen": {
+    "kit": "Fantasy Town Kit",
+    "modell": "fountain-round",
+    "faktor_szene_1e4": 1200,
+    "ziel_dm": 60,
+    "bezugsachse": "x"
+   },
+   "laterne": {
+    "kit": "Graveyard Kit",
+    "modell": "lightpost-single",
+    "faktor_szene_1e4": 947,
+    "ziel_dm": 30,
+    "bezugsachse": "y"
+   },
+   "ruderboot": {
+    "kit": "Watercraft Pack",
+    "modell": "boat-row-small",
+    "faktor_szene_1e4": 655,
+    "ziel_dm": 45,
+    "bezugsachse": "x"
+   }
+  }
+ },
+ "schwierigkeit": {
+  "status": "Entscheidung S8 (E5), Welt-Hebel offen F6",
+  "startjahr_getrennt": true,
+  "presets": {
+   "leicht": {
+    "startkapital_cent": 900000,
+    "kredit_cent": 300000,
+    "kredit_ab_min": 6,
+    "zins_bp_je_min": 200,
+    "bankrott_min": 15,
+    "vorwarnung_s": 180,
+    "nachfrage_promille": 1250,
+    "baukosten_promille": 800,
+    "quellen_knapp": 2,
+    "relief_profil": "flach"
+   },
+   "normal": {
+    "startkapital_cent": 600000,
+    "kredit_cent": 200000,
+    "kredit_ab_min": 12,
+    "zins_bp_je_min": 300,
+    "bankrott_min": 10,
+    "vorwarnung_s": 90,
+    "nachfrage_promille": 1000,
+    "baukosten_promille": 1000,
+    "quellen_knapp": [
+     1,
+     2
+    ],
+    "relief_profil": "ds_v2"
+   },
+   "schwer": {
+    "startkapital_cent": 450000,
+    "kredit_cent": 150000,
+    "kredit_ab_min": 12,
+    "zins_bp_je_min": 400,
+    "bankrott_min": 7,
+    "vorwarnung_s": 60,
+    "nachfrage_promille": 800,
+    "baukosten_promille": 1250,
+    "quellen_knapp": 1,
+    "relief_profil": "bewegt"
+   }
+  },
+  "welt_hebel_erlaubt": [
+   "quellen_knapp",
+   "relief_profil"
+  ],
+  "kein_hebel": [
+   "siedlungsdichte",
+   "startjahr",
+   "skalen"
+  ],
+  "fehlertexte_mit_loesung": "immer",
+  "abnahme": "Ziel-Bankrottquote je Stufe im Bot-Lauf: leicht <= 50, normal 150-180, schwer 300-400 Promille",
+  "kenn": "u 04, po K19"
+ },
+ "referenz_tf3": {
+  "bestaetigt": [
+   "kleine Orte in grosser Landschaft (296/538 EW = ca. 40-120 Gebaeude)",
+   "Schild mit Name, EW, Trend, Bedarf",
+   "Industrie kompakt und neutral, nur Plakette farbig",
+   "Fahrzeuge real gross (Kesselwagen 9,6 m, Lok + 2 Wagen 26 m), Menschen winzig",
+   "Strassen geschwungen, Ortsstrassen schmal",
+   "Wasser ruhig, Tiefenverlauf, heller Ufersaum",
+   "Schneespitze nur am hoechsten Gipfel",
+   "Fahrzeug-Verfuegbarkeit nach Baujahr (passt zu startjahr als Daten)",
+   "Mehrfachquellen je Fabrik"
+  ],
+  "uebernommen": [
+   "Wald-Wiesen-Mosaik",
+   "Bergheide-Guertel",
+   "Schild mit Bedarf-Icons",
+   "Wasser Variante B (A/B)",
+   "HQ-Wachstumsbonus als Annahme"
+  ],
+  "widerspricht": [
+   "Seen/Buchten (bei uns Fluss + Teiche) -> F5",
+   "Wald bis an die Haeuser (bei uns Acker-/Gartenguertel 1820)",
+   "Fahrzeuge fahren nahe Echtzeit (48 km/h), Kalender gerafft; bei uns Fahrzeuge gerafft -> F4"
+  ],
+  "nur_vermerkt_s8": [
+   "Lieferketten als Pfeilbaender ueber der Karte (UI)",
+   "Auftraege mit Belohnung/Strafe/Frist",
+   "Buerger mit Wohnen/Einkaufen/Arbeit, Laerm/Verschmutzung"
+  ],
+  "kenn": "e (Bildeindruck tf3_01-09)"
+ },
+ "hq": {
+  "platzierung": "frei (D22), Sonderbau mit Garten und Zaun, zaehlt nicht zur Ort-EW",
+  "darstellung_1820": "Kontor/Handelshaus 16x12 m, 2-3 Geschosse, Hofmauer",
+  "wachstumsbonus_naechster_ort": {
+   "aktiv": true,
+   "rate_promille": 1050,
+   "nur_bei_positiver_rate": true,
+   "innerhalb_zuschlag_max": true,
+   "stadt_ki_richtungsgewicht_promille": 1500,
+   "kenn": "annahme (TF3 tf3_08 +5 %), keine Pflicht; Abnahme Tobias S8"
+  }
+ },
+ "spaetere_kopplungen": {
+  "status": "nicht Teil des Sprints, S8-Konzept Lena/Tobias",
+  "punkte": [
+   "Arbeitskraefte: Orte stellen Arbeiter fuer Industrie (Radius statt Zahlenpflege)",
+   "Energie: Kraftwerk versorgt Industrie und Stadt (Slice-Zahlen: Radius 25 Felder, +25 %)",
+   "Wohnen/Einkaufen/Arbeit mit Wegezeiten, Laerm/Verschmutzung (TF3 tf3_05/06)",
+   "Lieferketten-Pfeilbaender im UI (tf3_09)",
+   "Auftraege mit Belohnung/Strafe (tf3_09)"
+  ],
+  "welt_vorbereitung": "Gemarkung (Voronoi) und Haltestellen-Radius aus dem Stadtmodell sind die Andockpunkte"
+ },
+ "offene_fragen_an_basti": [
+  "F1 Siedlungs-Hierarchie",
+  "F2 Wachstum ohne Versorgung",
+  "F3 Spielhorizont/Stadtgroesse",
+  "F4 Fahrzeugtempo",
+  "F5 Seen/Landschaftstyp",
+  "F6 Schwierigkeit veraendert Welt"
+ ]
+}

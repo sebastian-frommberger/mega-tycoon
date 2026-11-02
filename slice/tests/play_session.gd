@@ -53,7 +53,9 @@ func pause(sec: float) -> void:
 # ------------------------------------------------------------------ Maus / Tasten (echte Eingaben)
 
 func scr_cell(c: Vector2i) -> Vector2:
-	return m.cam.unproject_position(Vector3(c.x + 0.5, 0.0, c.y + 0.5))
+	# D-09 (Daniel): S7-Gelände: Feldmitte auf Geländehöhe projizieren (vorher y=0 -> Maus traf erhöhte Felder nicht)
+	var y := 0.0 if m.world_s7 == null else float(m.world_s7.hoehe_szene(c.x + 0.5, c.y + 0.5))
+	return m.cam.unproject_position(Vector3(c.x + 0.5, y, c.y + 0.5))
 
 
 func move_to(p: Vector2) -> void:
@@ -534,6 +536,19 @@ func cmd(line: String) -> String:
 			return ""
 		"list":
 			list_wanted = true
+			return ""
+		"shot":
+			# D-09 (Daniel, nur Arbeitskopie): Zwischenbild <name>.png bei aktueller Kamera, danach 3D wieder wie vorher
+			if n < 2: return "shot <name>"
+			var was3d := root.disable_3d
+			root.disable_3d = false
+			for i in 3:
+				m._render_vehicles()
+				await frames(2)
+			await frames(6)
+			await pause(0.5)
+			root.get_viewport().get_texture().get_image().save_png(out_dir.path_join(w[1] + ".png"))
+			root.disable_3d = was3d
 			return ""
 		"esc":
 			await key(KEY_ESCAPE)

@@ -4,3 +4,5 @@
 - Ziele prüfen den Industrietyp, nicht das Einzelobjekt (Mira, B-xx 2); der Pfeil zeigt auf das nächste Objekt.
 - km-Texte nur in der S7-Welt; der Slice bleibt bitgleich.
 - "Parität 10/10" im Backlog meint die 10 Seeds der Abnahme-Parität (d07 --only=parity, 12 Prüfungen) – kein eigener Test nötig.
+- Block B: Felix-2 bündelt Straßen/Gleise/Lager statt Fahrzeuge (die waren schon MultiMesh) – angenommen. 5.000-Lkw-Übersicht 4.068 → 482 Draw Calls.
+- Bankrott-Vorwarnung darf mit Posten-Name bis 130 Zeichen lang sein (Aylins 90 gilt für Texte ohne Namen).

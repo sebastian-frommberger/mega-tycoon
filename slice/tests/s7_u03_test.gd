@@ -126,6 +126,7 @@ func _bau() -> void:
 	ok(not d["ok"] and d["toast"].contains(m.money_str(delta)) and d["toast"].contains("Kredit") and d["why"] == d["toast"],
 		"B8 Kasse 3.000 $, Preis %s: Fehlbetrag %s im Text „%s“" % [m.money_str(need), m.money_str(delta), d["toast"]])
 	m.credit.loan_cent = m.credit.limit_cent
+	m.shim.tick_count = maxi(m.shim.tick_count, m.credit.from_ticks)   # nach der Kreditsperre (T-15)
 	var r8 := FT.b8_geld(m, need)
 	ok(not r8.contains("Kredit") and r8.contains("Warte auf Einnahmen"), "B8 Kreditrahmen voll: „%s“" % r8)
 	m.credit.loan_cent = 0
@@ -290,7 +291,8 @@ func _linien() -> void:
 	m.eco.lic_events.append({"site": mill1.site, "ok": true, "cent": 14_000})
 	m._licence_events()
 	ok(toast() == FT.l11_verlaengert(m, mill1.display_name, 14_000) and toast().contains("140 $"), "L11: „%s“" % toast())
-	# L12/L13 Kredit
+	# L12/L13 Kredit (nach der Kreditsperre, T-15)
+	m.shim.tick_count = maxi(m.shim.tick_count, m.credit.from_ticks)
 	m.credit.loan_cent = m.credit.limit_cent
 	m.ui_credit_borrow()
 	ok(toast() == FT.l12_kredit_voll(m) and toast().contains(m.money_str(m.credit.limit_cent)), "L12: „%s“" % toast())
@@ -344,7 +346,7 @@ func _bankrott() -> void:
 	var posten := "%d Fahrzeuge ohne Linie" % n
 	ok(warn_text.contains(posten) and warn_text.contains("−" + m.money_str(cm) + "/min"), "K1 Posten aus dem Spielwert: %s, −%s/min" % [posten, m.money_str(cm)])
 	ok(absf(t_said - gap_s) <= maxf(6.0, gap_s * 0.1) and warn_text.contains(FT.zeit_kurz(t_said)), "K1 Prognose %s gegen echte Restzeit %.0f s" % [FT.zeit_kurz(t_said), gap_s])
-	ok(warn_text.length() <= 120, "K1 Länge %d Zeichen (Text mit Posten-Name, Liste: 90 ohne Namen)" % warn_text.length())
+	ok(warn_text.length() <= 130, "K1 Länge %d Zeichen (PO: ≤ 130 mit Posten-Name, Liste: 90 ohne Namen)" % warn_text.length())
 	var bl: String = m.bankrupt_label.text
 	ok(bl.contains("Bankrott: %s kostete %s/min" % [posten, m.money_str(cm)]) and bl.contains(m.bankrupt_cash_str(m.eco.cash_cent)), "K2 Overlay: „%s“" % bl.get_slice("\n", 0))
 	# Kein Fehlalarm im laufenden Betrieb mit Gewinn

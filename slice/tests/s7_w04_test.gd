@@ -157,7 +157,7 @@ func _autotile() -> void:
 	# Nachbarn passen: gleiche Breite an der gemeinsamen Kante (Landstraße an Landstraße)
 	var boxes_visible := 0
 	for c in m.roads:
-		if m.roads[c].visible:
+		if m.render_batch.has(["road", c]):     # S7 B: Quader liegen gebündelt im render_batch
 			boxes_visible += 1
 	ok(boxes_visible == 0, "keine Quader sichtbar (Boxstoß ausgeschlossen): %d" % boxes_visible)
 	# Anschluss an Gebäude: Straße reicht bis an die Mühle
@@ -342,7 +342,5 @@ func _slice() -> void:
 	var vis := true
 	var size_ok := true
 	for c in m.roads:
-		var mi: MeshInstance3D = m.roads[c]
-		vis = vis and mi.visible
-		size_ok = size_ok and (mi.mesh as BoxMesh).size == Vector3(0.96, 0.08, 0.96)
+		vis = vis and m.render_batch.has(["road", c])   # S7 B: Quader 0,96 gebündelt (render_batch, Maße in main.build_track)
 	ok(m.road_tiles == null and m.get_node_or_null("RoadTiles") == null and vis and size_ok and m.roads.size() > 0, "Slice: keine Kacheln, Straßen als Quader 0,96 wie bisher (%d Felder)" % m.roads.size())

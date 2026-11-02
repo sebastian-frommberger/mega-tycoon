@@ -1126,7 +1126,7 @@ func _place_map_labels() -> void:
 	if cam == null or ui_root == null:
 		return
 	var vp := get_viewport().get_visible_rect().size
-	var kscale := vp.y / 900.0 * 560.0       # Bildschirm-px je Label-Einheit = pixel_size * kscale (gemessen bei 900 px Höhe)
+	var kscale := label_kscale()             # Bildschirm-px je Label-Einheit = pixel_size * kscale (gemessen bei 900 px Höhe)
 	var hud: Array[Rect2] = []
 	_collect_hud_rects(ui_root, 0, hud)
 	# U-02b: Zielpfeile haben Vorrang vor Beschriftungen (Spec: Überlappung -> niedrigere Priorität ausblenden).
@@ -1159,15 +1159,19 @@ func _place_map_labels() -> void:
 			continue
 		var pc := cam.unproject_position(c)
 		var bottom := pc.y
-		if b.custom_cells.is_empty():
+		if world_s7 != null and b.kind == Building.Kind.CITY:
+			# H1 (Daniel, S7): Stadtname mittig auf dem Stadtzentrum (Gelände-Höhe aus b.position). Unter der Stadt
+			# landete er bei 1–2 km großen Städten 100–350 px südlich, über dem Nachbarort.
+			bottom = pc.y - l.text.split("\n").size() * l.font_size * l.pixel_size * kscale * 1.4 * 0.5 - 5.0
+		elif b.custom_cells.is_empty():
 			for dx in [0.0, 1.0]:
 				for dz in [0.0, 1.0]:
-					var corner := Vector3(b.cell.x + b.footprint.x * dx, 0.0, b.cell.y + b.footprint.y * dz)
+					var corner := Vector3(b.cell.x + b.footprint.x * dx, c.y, b.cell.y + b.footprint.y * dz)   # H1: Höhe wie b.position (Slice 0)
 					if not cam.is_position_behind(corner):
 						bottom = maxf(bottom, cam.unproject_position(corner).y)
 		else:          # Stadt: nur die bebauten Zellen zählen, nicht das ganze 9x9-Rechteck
 			for cc in b.custom_cells:
-				var corner := Vector3(cc.x + 0.5, 0.0, cc.y + 1.0)
+				var corner := Vector3(cc.x + 0.5, c.y, cc.y + 1.0)
 				if not cam.is_position_behind(corner):
 					bottom = maxf(bottom, cam.unproject_position(corner).y)
 		var k := l.pixel_size * kscale
@@ -1201,10 +1205,20 @@ func _place_map_labels() -> void:
 ## B-6: Zielpfeil hat Vorrang. Läuft am Ende von _place_map_labels und noch einmal nach props/label_declutter.gd
 ## (process_priority 100), weil der Declutter Labels nach unten verschiebt und sie sonst wieder unter den Pfeil geraten.
 ## Rechteck aus dem aktuellen Label-Offset (oberer Textrand = pc.y - offset.y * k, wie im Declutter).
+## Bildschirm-px je Label-Einheit (Label3D fixed_size: px = pixel_size × font_size × vp_h / (2·tan(fov/2))).
+## Gemessen 560 bei 900 px und FOV 75 (Slice, unverändert). H1 (S7): die S7-Kamera hat FOV 50 – ohne den Faktor
+## rechneten Platzierung und Declutter mit 1,65× zu kleinen Labels (Überlappungen, Namen neben der Stadt).
+func label_kscale() -> float:
+	var k := get_viewport().get_visible_rect().size.y / 900.0 * 560.0
+	if cam != null and not is_equal_approx(cam.fov, 75.0):
+		k *= tan(deg_to_rad(37.5)) / tan(deg_to_rad(cam.fov) * 0.5)
+	return k
+
+
 func hide_labels_under_goal_markers() -> void:
 	if cam == null or _goal_mark_rects.is_empty():
 		return
-	var kscale := get_viewport().get_visible_rect().size.y / 900.0 * 560.0
+	var kscale := label_kscale()
 	for b in buildings:
 		var l: Label3D = b.label
 		if not l.visible or cam.is_position_behind(b.position) or (industry_markers != null and industry_markers.owns(b)):
@@ -2117,7 +2131,7 @@ func _update_goal_markers() -> void:
 		fill.material_override = mat_marker
 		fill.rotation_degrees = Vector3(0, 0, 180)
 		root.add_child(fill)
-		root.position = b.center() + Vector3(0, b.height + 4.0, 0)
+		root.position = b.center() + Vector3(0, b.position.y + b.height + 4.0, 0)    # H1: auf dem Gelände (Slice: y 0)
 		root.set_meta("base_y", root.position.y)
 		add_child(root)
 		goal_markers.append(root)
@@ -2361,6 +2375,10 @@ func _dock_reason(p: Dictionary, d: Dictionary, city) -> void:
 		return
 	var r: String = p["reason"]
 	if r.begins_with("Es fehlen") or r.contains("steht im Weg") or r.contains("liegt im Weg"):
+		return
+	# M4 (Daniel): Hat der Anschluss einen Randweg geplant und scheitert der am Gelände (zu steil, Brücke, Kartenrand),
+	# ist das die Ursache – mit deren Lösung. „Andere Seite“ nur, wenn es gar keinen Randweg zur Stadt gibt.
+	if r != "" and d.get("street", Vector2i(-1, -1)) != Vector2i(-1, -1):
 		return
 	p["reason"] = FT.s2_nicht_anschliessbar(city.display_name)
 	for it in p["items"]:

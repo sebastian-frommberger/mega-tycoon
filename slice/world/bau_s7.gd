@@ -72,7 +72,7 @@ static func apply(m, cells: Array, items: Array) -> Dictionary:
 		smax = maxf(smax, st[i])
 		if st[i] > lim:
 			it["state"] = "bad"
-			it["reason"] = FT.b11_zu_steil(st[i], lim)
+			it["reason"] = FT.b11_zu_steil_fluss(st[i], lim) if _am_fluss(m, cells, i) else FT.b11_zu_steil(st[i], lim)
 			continue
 		var f := faktor_pm(m, st[i])
 		if f > 1000:
@@ -81,3 +81,11 @@ static func apply(m, cells: Array, items: Array) -> Dictionary:
 			it["cost"] = c2
 			fmax = maxi(fmax, f)
 	return {"faktor_pm": fmax, "extra": extra, "max_pct": smax}
+
+
+## M4: steiles Feld ist Teil einer Flussquerung (selbst Wasser oder Pfad-Nachbar Wasser).
+static func _am_fluss(m, cells: Array, i: int) -> bool:
+	for j in [i - 1, i, i + 1]:
+		if j >= 0 and j < cells.size() and m._in_grid(cells[j]) and m.terrain_at(cells[j]) == 1:      # main.Terrain.WATER
+			return true
+	return false

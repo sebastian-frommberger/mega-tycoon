@@ -652,15 +652,15 @@ func _set_hq(city) -> void:
 		hq_building.free()
 	hq_building = _spawn_hq_building(city)
 	var r := float(m.eco.hq_radius_felder)
-	hq_ring.position = city.center() + Vector3(0, 0.08, 0)
+	hq_ring.position = city.center() + Vector3(0, city.position.y + 0.08, 0)    # H1: S7 Gelände (Slice y 0)
 	hq_ring.scale = Vector3(r, 0.05, r)
 	hq_ring.visible = true
-	ring_label.position = city.center() + Vector3(0, 0.5, -r - 5.0)   # knapp außerhalb des Rings, Linie kreuzt den Text nicht
+	ring_label.position = city.center() + Vector3(0, city.position.y + 0.5, -r - 5.0)   # knapp außerhalb des Rings, Linie kreuzt den Text nicht
 
 
 func _show_ring(city) -> void:
 	var r := float(radius_of(city))
-	hover_ring.position = city.center() + Vector3(0, 0.1, 0)
+	hover_ring.position = city.center() + Vector3(0, city.position.y + 0.1, 0)
 	var same: bool = _ring_city == city and hover_ring.visible
 	var zurueck: bool = city == selected and _ring_city != null and hover_ring.visible   # Rückkehr zur gewählten Stadt: ohne Animation
 	hover_ring.visible = true
@@ -699,7 +699,7 @@ func _show_ring(city) -> void:
 			dist_labels.append(l)
 		var lab: Label3D = dist_labels[n]
 		lab.text = "%s · %s" % [b.display_name, m.dist_str(d)]      # U-03 U2: Name + volle Einheit statt „25 F.“
-		lab.position = b.center() + Vector3(0, b.height + 2.4, 0)
+		lab.position = b.center() + Vector3(0, b.position.y + b.height + 2.4, 0)
 		lab.visible = true
 		n += 1
 	for i in range(n, dist_labels.size()):

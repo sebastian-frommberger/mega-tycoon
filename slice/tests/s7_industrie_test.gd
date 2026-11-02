@@ -15,6 +15,7 @@ const MAIN := "res://main.tscn"
 const MainScript := preload("res://main.gd")
 const Welt := preload("res://world/welt.gd")
 const Markers := preload("res://world/industry_markers.gd")
+const Building := preload("res://building.gd")
 
 var m: Node
 var fails := 0
@@ -61,6 +62,8 @@ func _run() -> void:
 	_fresh("s7")
 	_welt()
 	await _lesbarkeit()
+	await _stadtlabels()
+	_m4()
 	await _lod_status()
 	_fresh("slice")
 	ok(m.industry_markers == null and m.get_node_or_null("IndustryMarkers") == null, "Slice: keine Industrie-Marker (unverändert)")
@@ -142,7 +145,7 @@ func _welt() -> void:
 func _rects() -> Array:
 	var out := []
 	var mk = m.industry_markers
-	var kscale := root.get_viewport().get_visible_rect().size.y / 900.0 * 560.0
+	var kscale: float = m.label_kscale()
 	for b in m.buildings:
 		var l: Label3D = b.label
 		if not l.visible or m.cam.is_position_behind(b.position) or l.modulate.a <= 0.02:
@@ -317,3 +320,58 @@ func _build_route(a: Vector2i, c: Vector2i) -> bool:
 			print("  INFO Straße über Zwischenpunkt ", p)
 			return m.build_track(a, p, false) and m.build_track(p, c, false)
 	return false
+
+
+# ---------------------------------------------------------------- H1 (Daniel): Stadtnamen an der richtigen Stadt
+
+## Projiziertes Rechteck der Stadtzellen (Gelände-Höhe aus b.position.y) – die „Stadt-Bounding-Box“ auf dem Bildschirm.
+func _city_box(b) -> Rect2:
+	var r := Rect2()
+	var first := true
+	for cc in b.custom_cells:
+		var p := Vector3(cc.x + 0.5, b.position.y, cc.y + 0.5)
+		if m.cam.is_position_behind(p):
+			continue
+		var q: Vector2 = m.cam.unproject_position(p)
+		r = Rect2(q, Vector2.ZERO) if first else r.expand(q)
+		first = false
+	return r
+
+
+## Jedes sichtbare Stadtlabel liegt mit seiner Mitte in der projizierten Stadtfläche (oder ≤ 40 px vom Zentrum),
+## keine Überlappung von Stadt-/Industrielabels und Plaketten. Zoom 9/14/26 (geklemmt auf 5,6 km) auf der geladenen Karte.
+func _stadtlabels() -> void:
+	var kscale: float = m.label_kscale()
+	for view in [[Vector2(255, 195), 9.0], [Vector2(255, 195), 14.0], [Vector2(255, 195), 26.0], [Vector2(m.GRID * 0.5, m.GRID * 0.5), 9.0],
+			[Vector2(160, 330), 6.0]]:
+		m.focus(view[0], view[1])
+		await _frames(4)
+		var bad := []
+		var n := 0
+		for b in m.buildings:
+			if b.kind != Building.Kind.CITY or not b.label.visible or m.cam.is_position_behind(b.position):
+				continue
+			n += 1
+			var lr: Rect2 = m.industry_markers.label_rect(b, m.cam, kscale)
+			var mid := lr.get_center()
+			var ctr: Vector2 = m.cam.unproject_position(b.position)
+			if not (_city_box(b).grow(2.0).has_point(mid) or mid.distance_to(ctr) <= 40.0):
+				bad.append("%s %.0f px vom Zentrum" % [b.map_id, mid.distance_to(ctr)])
+		var ov := _overlaps()
+		ok(bad.is_empty() and n >= 3, "H1 Stadtlabels an ihrer Stadt (%s, Zoom %.1f→%.2f, %d Städte): %s" % [str(view[0]), view[1], m.zoom, n, str(bad)])
+		ok(ov.is_empty(), "H1 keine Label-Überlappung (%s, Zoom %.1f): %s" % [str(view[0]), view[1], str(ov)])
+
+
+## M4 (Daniel): scheitert der Stadtanschluss am Gelände (steile Brückenrampe, Fluss), nennt die Meldung diese Ursache
+## mit Lösung – nicht „andere Seite der Stadt“. Nach Felix' Brückenfix darf die Querung auch einfach baubar sein.
+func _m4() -> void:
+	if not (m.by_id.has("muehle_1") and m.by_id.has("wiesental")):
+		return
+	var pl: Dictionary = m.plan_track(m.by_id["muehle_1"].anchor(), m.by_id["wiesental"].anchor(), false)
+	var r: String = pl["reason"]
+	ok(pl["ok"] or (r != "" and not r.contains("nicht anschließbar")), "M4 Mühle 1 → Wiesental: %s" % ("baubar" if pl["ok"] else r))
+	var fluss := false
+	for it in pl["items"]:
+		if it["state"] == "bad" and str(it["reason"]).begins_with("Zu steil an der Brücke"):
+			fluss = true
+	ok(pl["ok"] or not r.begins_with("Zu steil") or fluss == r.begins_with("Zu steil an der Brücke"), "M4 steile Rampe an der Brücke heißt so (%s)" % r)

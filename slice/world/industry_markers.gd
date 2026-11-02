@@ -63,6 +63,7 @@ func setup(main) -> void:
 		by_b[b] = e
 		_set_status(e)
 		b.label.pixel_size = float(cfg["lod"]["label_px_s7"])      # Name aus 4 km lesbar (~16 px statt ~14 px)
+	fit_label_sizes()
 	_mat_surf = StandardMaterial3D.new()
 	_mat_surf.vertex_color_use_as_albedo = true
 	_mat_surf.roughness = 1.0
@@ -79,6 +80,22 @@ func setup(main) -> void:
 	add_child(saum_mi)
 	rebuild_surfaces()
 	_update_saum(true)
+
+
+## H1: Label-Größen auf die gemeinten Bildschirm-px bringen (Werte sind für FOV 75 gewählt, die S7-Kamera hat
+## FOV 50 und zeigte Namen 1,65× größer). Städte und Industrien; einmal nach setup (FOV ist fest).
+var _fov_fitted := false
+
+func fit_label_sizes() -> void:
+	if _fov_fitted or m.cam == null:
+		return
+	_fov_fitted = true
+	var f: float = tan(deg_to_rad(m.cam.fov) * 0.5) / tan(deg_to_rad(37.5))
+	if is_equal_approx(f, 1.0):
+		return
+	for b in m.buildings:
+		if b.kind == Building.Kind.CITY or by_b.has(b):
+			b.label.pixel_size *= f
 
 
 # ---------------------------------------------------------------- (1) Signalflächen
@@ -292,7 +309,7 @@ func _process(_dt: float) -> void:
 		return
 	_update_saum()
 	var vp := get_viewport().get_visible_rect().size
-	var kscale := vp.y / 900.0 * 560.0
+	var kscale: float = m.label_kscale()      # H1: FOV-korrigiert (S7-Kamera FOV 50)
 	var lod := lod_for(m.world_s7.camera_distance_m(m))
 	var hud: Array[Rect2] = []
 	m._collect_hud_rects(m.ui_root, 0, hud)
@@ -315,7 +332,7 @@ func _process(_dt: float) -> void:
 		var sp: Sprite3D = e["sprite"]
 		var b = e["b"]
 		var l: Label3D = b.label
-		var p: Vector3 = b.position + Vector3(0, ground_y(b.position.x, b.position.z), 0)
+		var p: Vector3 = b.position          # H1: building.gd setzt y schon aufs Gelände (vorher doppelt addiert)
 		e["rect"] = Rect2()
 		if cam.is_position_behind(p) or (not icon_on and not l.visible):
 			sp.visible = false

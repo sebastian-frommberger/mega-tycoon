@@ -18,7 +18,7 @@ func _process(_dt: float) -> void:
 	if cam == null or list == null:
 		return
 	var vp := get_viewport().get_visible_rect().size
-	var kscale := vp.y / 900.0 * 560.0
+	var kscale: float = m.label_kscale() if m.has_method("label_kscale") else vp.y / 900.0 * 560.0   # H1: FOV-korrigiert
 	var items: Array = []
 	for b in list:
 		var l: Label3D = b.label

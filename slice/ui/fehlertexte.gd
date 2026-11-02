@@ -80,6 +80,11 @@ static func b11_zu_steil(pct: float, max_pct: float) -> String:
 	return "Zu steil: %d %% Steigung, erlaubt %d %%. Führe die Strecke am Hang entlang." % [int(round(pct)), int(round(max_pct))]
 
 
+## B11 an einer Flussquerung (S7, M4 Daniel): Rampe Ufer↔Brücke zu steil – die Lösung ist eine andere Querstelle.
+static func b11_zu_steil_fluss(pct: float, max_pct: float) -> String:
+	return "Zu steil an der Brücke: %d %% (erlaubt %d %%). Quere den Fluss, wo beide Ufer flach sind." % [int(round(pct)), int(round(max_pct))]
+
+
 ## B12 (S7, Hinweis): Hang-Faktor in Promille (1000 = flach) und Gesamtpreis.
 static func b12_hang(m, faktor_pm: int, total: int) -> String:
 	return "Hang: Bau ×%s teurer. Gesamt %s." % [faktor_str(faktor_pm), m.money_str(total)]

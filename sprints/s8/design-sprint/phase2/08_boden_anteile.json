@@ -1,0 +1,98 @@
+{
+ "wiese": {
+  "hex": "#73945C",
+  "anteil_pct": 38.7,
+  "anteil_vorher_pct": 83.5,
+  "kontrast_saum": 5.26,
+  "kontrast_marker": 2.12,
+  "ok_3zu1": true
+ },
+ "auenboden": {
+  "hex": "#7D9959",
+  "anteil_pct": 7.4,
+  "anteil_vorher_pct": 6.2,
+  "kontrast_saum": 5.65,
+  "kontrast_marker": 1.98,
+  "ok_3zu1": true
+ },
+ "sumpf": {
+  "hex": "#5F7352",
+  "anteil_pct": 0.7,
+  "anteil_vorher_pct": 0.0,
+  "kontrast_saum": 3.49,
+  "kontrast_marker": 3.2,
+  "ok_3zu1": true
+ },
+ "acker_hell": {
+  "hex": "#C2A866",
+  "anteil_pct": 4.6,
+  "anteil_vorher_pct": 0.0,
+  "kontrast_saum": 7.81,
+  "kontrast_marker": 1.43,
+  "ok_3zu1": true
+ },
+ "acker_dunkel": {
+  "hex": "#8F7350",
+  "anteil_pct": 4.4,
+  "anteil_vorher_pct": 0.0,
+  "kontrast_saum": 4.07,
+  "kontrast_marker": 2.74,
+  "ok_3zu1": true
+ },
+ "heide": {
+  "hex": "#8C8462",
+  "anteil_pct": 2.3,
+  "anteil_vorher_pct": 0.0,
+  "kontrast_saum": 4.81,
+  "kontrast_marker": 2.32,
+  "ok_3zu1": true
+ },
+ "waldboden": {
+  "hex": "#55734A",
+  "anteil_pct": 30.1,
+  "anteil_vorher_pct": 0.0,
+  "kontrast_saum": 3.38,
+  "kontrast_marker": 3.3,
+  "ok_3zu1": true
+ },
+ "schotter": {
+  "hex": "#A39D90",
+  "anteil_pct": 3.2,
+  "anteil_vorher_pct": 0.0,
+  "kontrast_saum": 6.69,
+  "kontrast_marker": 1.67,
+  "ok_3zu1": true
+ },
+ "fels": {
+  "hex": "#807361",
+  "anteil_pct": 7.3,
+  "anteil_vorher_pct": 5.0,
+  "kontrast_saum": 3.9,
+  "kontrast_marker": 2.86,
+  "ok_3zu1": true
+ },
+ "schnee": {
+  "hex": "#F2F2F7",
+  "anteil_pct": 0.2,
+  "anteil_vorher_pct": 4.6,
+  "kontrast_saum": 16.17,
+  "kontrast_marker": 1.45,
+  "ok_3zu1": true
+ },
+ "ufer": {
+  "hex": "#6B7054",
+  "anteil_pct": 0.4,
+  "anteil_vorher_pct": 0.0,
+  "kontrast_saum": 3.5,
+  "kontrast_marker": 3.19,
+  "ok_3zu1": true
+ },
+ "wasser": {
+  "hex": "#345F7E",
+  "anteil_pct": 0.7,
+  "anteil_vorher_pct": 0.7,
+  "kontrast_saum": 2.65,
+  "kontrast_marker": 4.21,
+  "ok_3zu1": true
+ }
+}

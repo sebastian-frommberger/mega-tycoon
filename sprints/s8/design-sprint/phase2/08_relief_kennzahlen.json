@@ -1,0 +1,145 @@
+{
+ "s7": {
+  "hoehe_min_m": 29.4,
+  "hoehe_max_m": 1082.7,
+  "neigung_anteil_pct": {
+   "<2%": 19.5,
+   "2-6%": 20.9,
+   "6-15%": 16.0,
+   "15-30%": 21.8,
+   "30-60%": 15.1,
+   ">60%": 6.6
+  },
+  "gebirge_felder_pct": 18.0,
+  "gebirge_neigung_median_pm": 476,
+  "gebirge_neigung_p90_pm": 911,
+  "gebirge_kleinform_std_m": 18.14,
+  "hochpunkte_225m": 82,
+  "hochpunkte_markant": 9,
+  "gebirge_kruemmungswechsel_je_km": 7.35,
+  "reliefstufen_pct_innen": {
+   "ebene": 16.0,
+   "huegelland": 35.6,
+   "mittelgebirge": 19.1,
+   "gebirge": 29.3
+  },
+  "huegel_validator_pct": 26.9,
+  "fluss_achse": "we",
+  "fluss_querschnitt_felder": {
+   "min": 1,
+   "median": 2.0,
+   "max": 3
+  },
+  "fluss_wasserfelder": 1101,
+  "aue_felder_pct": 4.7,
+  "querschnitte_gerade_querbar_pct": 87.9,
+  "staedte": 12,
+  "industrien": 21,
+  "flachland_spanne500m_p10_p50_p90_m": [
+   11.6,
+   39.3,
+   293.4
+  ]
+ },
+ "ds_gebirge": {
+  "hoehe_min_m": 29.4,
+  "hoehe_max_m": 1122.9,
+  "neigung_anteil_pct": {
+   "<2%": 20.7,
+   "2-6%": 19.0,
+   "6-15%": 17.4,
+   "15-30%": 20.4,
+   "30-60%": 16.2,
+   ">60%": 6.3
+  },
+  "gebirge_felder_pct": 17.3,
+  "gebirge_neigung_median_pm": 488,
+  "gebirge_neigung_p90_pm": 894,
+  "gebirge_kleinform_std_m": 17.02,
+  "hochpunkte_225m": 36,
+  "hochpunkte_markant": 8,
+  "gebirge_kruemmungswechsel_je_km": 3.67,
+  "reliefstufen_pct_innen": {
+   "ebene": 14.1,
+   "huegelland": 37.2,
+   "mittelgebirge": 18.6,
+   "gebirge": 30.1
+  },
+  "huegel_validator_pct": 25.4,
+  "fluss_achse": "we",
+  "fluss_querschnitt_felder": {
+   "min": 1,
+   "median": 2.0,
+   "max": 3
+  },
+  "fluss_wasserfelder": 1101,
+  "aue_felder_pct": 4.6,
+  "querschnitte_gerade_querbar_pct": 100.0,
+  "staedte": 12,
+  "industrien": 21,
+  "flachland_spanne500m_p10_p50_p90_m": [
+   11.8,
+   41.3,
+   297.3
+  ]
+ },
+ "ds_v2": {
+  "hoehe_min_m": 29.4,
+  "hoehe_max_m": 1120.8,
+  "neigung_anteil_pct": {
+   "<2%": 27.4,
+   "2-6%": 10.0,
+   "6-15%": 17.0,
+   "15-30%": 21.4,
+   "30-60%": 17.8,
+   ">60%": 6.3
+  },
+  "gebirge_felder_pct": 17.5,
+  "gebirge_neigung_median_pm": 487,
+  "gebirge_neigung_p90_pm": 888,
+  "gebirge_kleinform_std_m": 17.01,
+  "hochpunkte_225m": 29,
+  "hochpunkte_markant": 9,
+  "gebirge_kruemmungswechsel_je_km": 3.66,
+  "reliefstufen_pct_innen": {
+   "ebene": 20.5,
+   "huegelland": 29.6,
+   "mittelgebirge": 18.4,
+   "gebirge": 31.6
+  },
+  "huegel_validator_pct": 13.8,
+  "fluss_achse": "we",
+  "fluss_querschnitt_felder": {
+   "min": 2,
+   "median": 4.0,
+   "max": 6
+  },
+  "fluss_wasserfelder": 1902,
+  "aue_felder_pct": 6.2,
+  "querschnitte_gerade_querbar_pct": 97.3,
+  "staedte": 13,
+  "industrien": 23,
+  "flachland_spanne500m_p10_p50_p90_m": [
+   5.9,
+   56.2,
+   316.3
+  ]
+ },
+ "_massiv_ausschnitt_felder": {
+  "s7": {
+   "x0": 6,
+   "y0": 29,
+   "n": 160
+  },
+  "ds_gebirge": {
+   "x0": 6,
+   "y0": 29,
+   "n": 160
+  },
+  "ds_v2": {
+   "x0": 6,
+   "y0": 29,
+   "n": 160
+  }
+ }
+}

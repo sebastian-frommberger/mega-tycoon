@@ -1,0 +1,62 @@
+[
+ {
+  "bild": "s7_wasser_nah.png",
+  "dc_mit": 5,
+  "dc_ohne": 3,
+  "ms_flach": 126.15,
+  "ms_ohne": 120.88,
+  "ms_shader": 134.31,
+  "tris_mit": 29960,
+  "tris_ohne": 24576
+ },
+ {
+  "bild": "s7_wasser_mittel.png",
+  "dc_mit": 8,
+  "dc_ohne": 5,
+  "ms_flach": 168.48,
+  "ms_ohne": 171.19,
+  "ms_shader": 168.31,
+  "tris_mit": 46504,
+  "tris_ohne": 40960
+ },
+ {
+  "bild": "s7_wasser_uebersicht.png",
+  "dc_mit": 39,
+  "dc_ohne": 36,
+  "ms_flach": 427.91,
+  "ms_ohne": 443.55,
+  "ms_shader": 400.51,
+  "tris_mit": 300456,
+  "tris_ohne": 294912
+ },
+ {
+  "bild": "s7_wasser_teich.png",
+  "dc_mit": 5,
+  "dc_ohne": 3,
+  "ms_flach": 140.01,
+  "ms_ohne": 133.78,
+  "ms_shader": 136.12,
+  "tris_mit": 29608,
+  "tris_ohne": 24576
+ },
+ {
+  "bild": "s7_wasser_bach.png",
+  "dc_mit": 5,
+  "dc_ohne": 3,
+  "ms_flach": 132.93,
+  "ms_ohne": 136.39,
+  "ms_shader": 132.0,
+  "tris_mit": 29960,
+  "tris_ohne": 24576
+ },
+ {
+  "bild": "s7_wasser_vollbild.png",
+  "dc_mit": 2,
+  "dc_ohne": 1,
+  "ms_flach": 118.88,
+  "ms_ohne": 129.22,
+  "ms_shader": 136.62,
+  "tris_mit": 13064,
+  "tris_ohne": 8192
+ }
+]

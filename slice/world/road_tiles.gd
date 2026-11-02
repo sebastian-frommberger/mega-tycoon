@@ -11,7 +11,15 @@ extends Node3D
 ## (Fahrbahn 7,5 m) für alles, was der Spieler baut.
 ## Gleise: Train Kit, Spur 1,435 m. Gerade/Arm = 1 Stück je halbes Feld, 90°-Kurve = corner-large auf Radius ½ Feld.
 ## Weichen/Kreuzungen fehlen im Kit (S8): T/Kreuzung zeigt die Arme übereinander.
-## Draw Calls: eine MultiMesh je Modell (≤ 9), unabhängig von der Netzgröße.
+## Draw Calls: Gleise/Brücken eine MultiMesh je Modell (kartenweit). Straßenkacheln (D-09, Felix S7 Block D):
+##   - Detail je 800-m-Kachel (CHUNK_T Felder) und Modell, sichtbar bis DETAIL_END_M Kameraabstand zur Kachelmitte
+##     (wie Sophies Häuser, LOD_M 1400 m). Aus der Übersicht (4,3 km) ist kein Detail mehr im Bild.
+##   - Fern-Proxy (zugleich H4 "Millimeterpapier", Sophies Vorschlag): EIN kartenweites MultiMesh flacher Bänder
+##     (2 Dreiecke je Stück), nur die Fahrbahn: PROXY_BREITE × Kachelbreite, ohne Gehwegkanten, dunkler Asphalt-Tint
+##     (PROXY_DUNKEL). Je Feld: Gerade = ein Band über das Feld; Knoten = Mittelquadrat + je offener Seite ein Band bis
+##     zur Feldkante (kein Loch, kein heller Punkt an Kreuzungen). 0,005 Einheiten über der Kachelunterkante, also unter
+##     Fahrbahn (0,01) und Gehweg (0,02): in der Nähe deckt die Kachel es zu, kein Übergang. Häuser/Blockgrund tragen
+##     aus der Ferne die Stadt, das Netz tritt zurück. Brücken bleiben Kachel (kartenweit, immer sichtbar).
 
 const KenneyLoader := preload("res://props/kenney_loader.gd")
 const BauS7 := preload("res://world/bau_s7.gd")
@@ -22,12 +30,21 @@ const DIRS := [[1, Vector2i(0, -1)], [2, Vector2i(1, 0)], [4, Vector2i(0, 1)], [
 const Y_BASE := 0.045             # Fahrbahn-Unterkante über der Ebene (Wasserquader enden bei 0,04)
 const BRIDGE_DECK_NATIVE := 0.52  # Oberkante Brückenkachel in Kenney-Einheiten (road_tiles.json sonder.bruecke)
 const RAIL_BRIDGE_M := 6.0        # Deckbreite unter einem Gleis
+const CHUNK_T := 32               # Felder je Detail-Kachel (800 m), D-09
+const DETAIL_END_M := 1000.0      # Detail bis zu diesem Kameraabstand zur Kachelmitte (H4: ab ~1 km nur Fern-Band, kein
+                                  # Mischbild aus hellen Kacheln und Band im 1,5-km-Blick; Häuser wechseln bei 1,4 km)
+const PROXY_Y := 0.005            # Proxy-Viereck über der Kachelunterkante (Kenney: Fahrbahn 0,01, Gehweg 0,02)
+const PROXY_BREITE := 0.45        # Fern-Band: Anteil der Kachelbreite (Stadt 12 m -> 5,4 m, Landstraße 9,75 m -> 4,4 m)
+const PROXY_DUNKEL := 0.3         # Fern-Tint: Palette stadt_strasse um diesen Anteil abgedunkelt
+const CHUNKED := ["road-straight", "road-end", "road-bend", "road-intersection", "road-crossroad", "road-square"]
 
 var m                              # main.gd
 var cfg: Dictionary = {}           # road_tiles.json "strassen"
 var gcfg: Dictionary = {}          # road_tiles.json "gleise"
 var meshes := {}                   # Modellname -> Mesh
-var mmis := {}                     # Modellname -> MultiMeshInstance3D
+var mmis := {}                     # Modellname -> MultiMeshInstance3D (Gleise, Brücken) bzw. "cx,cy|Modell" (Straßen)
+var proxy_mmi: MultiMeshInstance3D = null
+var proxy_mat: StandardMaterial3D = null
 var links_road := {}               # Feld -> Bits: Anschluss an ein Gebäudefeld (aus dem Bau-Pfad)
 var links_rail := {}
 var counts := {}                   # Modellname -> Instanzen (Tests, Perf)
@@ -123,7 +140,7 @@ func refresh() -> void:
 	if not dirty:
 		return
 	dirty = false
-	var acc := {}
+	var acc := {"_proxy": []}
 	for n in meshes:
 		acc[n] = []
 	pieces.clear()
@@ -136,8 +153,26 @@ func refresh() -> void:
 			_road_cell(c, w_land, acc)
 	for c in m.rails:
 		_rail_cell(c, acc)
+	var by_chunk := {}                 # "cx,cy|Modell" -> Array[Transform3D]
+	var proxy_xf: Array = acc["_proxy"]
 	for n in acc:
-		_commit(n, acc[n])
+		if n == "_proxy":
+			continue
+		if not CHUNKED.has(n):
+			_commit(n, acc[n])
+			continue
+		counts[n] = (acc[n] as Array).size()
+		for xf: Transform3D in acc[n]:
+			var k := "%d,%d|%s" % [floori(xf.origin.x / CHUNK_T), floori(xf.origin.z / CHUNK_T), n]
+			if not by_chunk.has(k):
+				by_chunk[k] = []
+			by_chunk[k].append(xf)
+	for k in mmis:
+		if String(k).contains("|") and not by_chunk.has(k):
+			_commit_chunk(k, [])
+	for k in by_chunk:
+		_commit_chunk(k, by_chunk[k])
+	_commit_proxy(proxy_xf)
 
 
 func _put(acc: Dictionary, key: String, model: String, xf: Transform3D) -> void:
@@ -163,9 +198,16 @@ func _road_cell(c: Vector2i, w_m: float, acc: Dictionary) -> void:
 		_put(acc, key, "road-bridge", _xf(90.0 if ew else 0.0, Vector3(w, sb, 1.004),
 			Vector3(ctr.x, y + 0.02 - BRIDGE_DECK_NATIVE * sb, ctr.z)))
 		return
+	var pw := w * PROXY_BREITE
 	if mask == 5 or mask == 10:
 		_put(acc, key, "road-straight", _xf(90.0 if mask == 5 else 0.0, Vector3(1.004, 1.0, w), ctr))
+		acc["_proxy"].append(_xf(90.0 if mask == 5 else 0.0, Vector3(1.004, 1.0, pw), ctr))
 		return
+	acc["_proxy"].append(_xf(0.0, Vector3(pw, 1.0, pw), ctr))
+	for e in DIRS:
+		if mask & e[0]:
+			var pv: Vector2i = e[1]
+			acc["_proxy"].append(_xf(0.0 if pv.y == 0 else 90.0, Vector3(0.502, 1.0, pw), ctr + Vector3(pv.x, 0, pv.y) * 0.25))
 	var t: Dictionary = cfg["autotile"][str(mask)]
 	_put(acc, key, String(t["modell"]).get_basename(), _xf(float(t["rot_y_grad"]), Vector3(w, 1.0, w), ctr))
 	var arm := (1.0 - w) * 0.5
@@ -203,6 +245,70 @@ func _rail_cell(c: Vector2i, acc: Dictionary) -> void:
 	for e in DIRS:
 		if mask & e[0]:
 			_put(acc, key, "railroad-straight", _xf(rot_for[e[0]], Vector3(gs, gs, 0.5 / 4.0 + 0.0005), ctr))
+
+
+## Detail-Kachel (CHUNK_T² Felder) eines Straßenmodells; MultiMesh relativ zur Kachelmitte, damit Sichtweite und
+## Frustum-Cull je Kachel greifen. Leere Kacheln bleiben als unsichtbarer Knoten stehen (Abriss).
+func _commit_chunk(key: String, xfs: Array) -> void:
+	var model := key.get_slice("|", 1)
+	var mmi: MultiMeshInstance3D = mmis.get(key)
+	if mmi == null:
+		if xfs.is_empty() or meshes.get(model) == null:
+			return
+		var cx := int(key.get_slice("|", 0).get_slice(",", 0))
+		var cz := int(key.get_slice("|", 0).get_slice(",", 1))
+		mmi = MultiMeshInstance3D.new()
+		mmi.name = "Tiles_%s_%d_%d" % [model, cx, cz]
+		mmi.position = Vector3((cx + 0.5) * CHUNK_T, 0.0, (cz + 0.5) * CHUNK_T)
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = DETAIL_END_M / m_pro_feld
+		add_child(mmi)
+		mmis[key] = mmi
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = meshes[model]
+	mm.instance_count = xfs.size()
+	var o := mmi.position
+	for i in xfs.size():
+		var t: Transform3D = xfs[i]
+		mm.set_instance_transform(i, Transform3D(t.basis, t.origin - o))
+	mmi.multimesh = mm
+	mmi.visible = xfs.size() > 0
+
+
+## Fern-Proxy: schmale dunkle Fahrbahnbänder (Transforms aus _road_cell), kartenweit eine MultiMesh (1 Draw Call).
+func _commit_proxy(xfs: Array) -> void:
+	if proxy_mmi == null:
+		if xfs.is_empty():
+			return
+		proxy_mat = StandardMaterial3D.new()
+		proxy_mat.albedo_color = m._bg("stadt_strasse").darkened(PROXY_DUNKEL)
+		proxy_mat.roughness = 1.0
+		proxy_mmi = MultiMeshInstance3D.new()
+		proxy_mmi.name = "Tiles_Fernproxy"
+		proxy_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		proxy_mmi.material_override = proxy_mat
+		add_child(proxy_mmi)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = _proxy_quad()
+	mm.instance_count = xfs.size()
+	for i in xfs.size():
+		mm.set_instance_transform(i, xfs[i])
+	proxy_mmi.multimesh = mm
+	proxy_mmi.visible = xfs.size() > 0
+
+
+static func _proxy_quad() -> ArrayMesh:
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-0.5, PROXY_Y, -0.5), Vector3(0.5, PROXY_Y, -0.5),
+		Vector3(0.5, PROXY_Y, 0.5), Vector3(-0.5, PROXY_Y, 0.5)])
+	arr[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP])
+	arr[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return am
 
 
 func _commit(model: String, xfs: Array) -> void:

@@ -12,17 +12,25 @@ extends SceneTree
 ## umgerechnet in den Spielzoom: zoom = Abstand / (25,6 · m_pro_feld) (Slice: 10 m je Feld, S7: 25 m).
 
 const GATE := 1.10
-const S7_LIMITS := {          # D-09: Perf-Gate S7-Welt (absolut)
-	"uebersicht": {"tris": 1000000, "dc": 300},
+const S7_LIMITS := {          # D-09: Perf-Gate S7-Welt (absolut); "ohne_flotte": nur der Lauf mit 0 Lkw zählt (Jonas)
+	"uebersicht": {"tris": 1000000, "dc": 300, "ohne_flotte": true},
 	"stadt_nah": {"tris": 2900000},
 }
 ## [name, Zielfeld Slice, Abstand m Slice, Zielfeld S7, Abstand m S7]; Abstand >= 99999 = maximaler Zoom
+## S7-Felder (D-09, Felix S7 Block D) aus world/data/world_s7.json (Generator, Seed 7, 512² Felder à 25 m):
+##   uebersicht    (256,256) Kartenmitte, 4,3 km
+##   stadt_nah     Kohlberg (302,146), Stufe "stadt", 10.150 Ew. = größte Stadt der Karte; gemessen der teuerste Stadtblick
+##                 (Vorher 0 Lkw: Kohlberg 1,68 M, Wiesental 154/293 1,67 M, Mittelfurt 308/324 1,40 M), 700 m
+##   stadt_strasse Kohlberg Kern (302,146), 160 m
+##   mine          Kohle/Erz-Revier Mitte: kohle_3 (248,179), erz_3 (231,212), stahl_3, kraftwerk_3; Ziel kohle_3, 420 m
+##   farm          farm_1 Getreide (128,354) bei Haberau/Mühle 1, 900 m
+##   rand_max      Ecke (0,0), maximaler Zoom (5,6 km)
 const VIEWS := [
-	["uebersicht", Vector2(172, 236), 4300.0, Vector2(264, 220), 4300.0],
-	["stadt_nah", Vector2(164, 247), 700.0, Vector2(298, 253), 700.0],
-	["stadt_strasse", Vector2(166, 241), 160.0, Vector2(298, 250), 160.0],
-	["mine", Vector2(182, 199), 420.0, Vector2(176, 174), 420.0],
-	["farm", Vector2(385, 340), 900.0, Vector2(390, 313), 900.0],
+	["uebersicht", Vector2(172, 236), 4300.0, Vector2(256, 256), 4300.0],
+	["stadt_nah", Vector2(164, 247), 700.0, Vector2(302, 146), 700.0],
+	["stadt_strasse", Vector2(166, 241), 160.0, Vector2(302, 146), 160.0],
+	["mine", Vector2(182, 199), 420.0, Vector2(248, 179), 420.0],
+	["farm", Vector2(385, 340), 900.0, Vector2(128, 354), 900.0],
 	["rand_max", Vector2(0, 0), 99999.0, Vector2(0, 0), 99999.0],
 ]
 
@@ -84,9 +92,9 @@ func _measure(v: Array) -> void:
 	var s7 := welt == "s7"
 	var cell: Vector2 = v[3] if s7 else v[1]
 	var d_m: float = v[4] if s7 else v[2]
-	var mpf: float = float(m.map_data["karte"].get("m_pro_feld", 10.0))
+	var mpf: float = m.m_pro_feld          # Welt-Maßstab (world/welt.gd): Slice 10 m, S7 25 m je Feld
 	var z := 26.0 if d_m >= 99999.0 else d_m / (25.6 * mpf)
-	m.focus(cell, clampf(z, 0.4, 26.0))
+	m.focus(cell, clampf(z, m.zoom_min, m.zoom_max))   # Slice 0,4–26 (wie bisher), S7 40 m–5,6 km
 	m.toast_label.text = ""
 	for i in 2:
 		m._render_vehicles()
@@ -142,6 +150,8 @@ func _check() -> int:
 	if welt == "s7":
 		for r in rows:
 			var lim: Dictionary = S7_LIMITS.get(r["view"], {})
+			if lim.get("ohne_flotte", false) and int(r["lkw"]) > 0:
+				continue
 			if lim.has("tris") and r["tris"] > lim["tris"]:
 				print("  FAIL s7 %s Lkw=%d: Dreiecke %d > Budget %d" % [r["view"], r["lkw"], r["tris"], lim["tris"]])
 				fails += 1

@@ -40,6 +40,10 @@ const FOV := 50.0           # SP-03
 const P_NEAR := 36.0        # Neigung nah [°] (SP-03)
 const P_FAR := 62.0         # Neigung fern [°]
 const CAM_MIN_UEBER_BODEN_M := 8.0
+## D-09 (S7 Block D): Schattenreichweite in Metern gedeckelt. main._apply_zoom setzt 1,4 × Abstand (Slice-Formel, in S7
+## bis 8 km); Häuser werden ab 1,4 km Proxy ohne Schatten, Gartenbäume enden bei 1,8 km. Aus der Übersicht liegt der
+## Boden jenseits der Deckelung -> kein Schattenpass (spart ~58 Draw Calls). Nah (≤ 1,8 km Abstand) unverändert.
+const SCHATTEN_MAX_M := 2500.0
 const ENV_KARTE := "MT_S7_KARTE"
 
 var m_pro_feld := Welt.m_pro_feld(WELT)
@@ -112,30 +116,73 @@ func _load() -> void:
 			if y > 0: d = maxf(d, absf(h - hoehe_boden[i - n]))
 			if y < n - 1: d = maxf(d, absf(h - hoehe_boden[i + n]))
 			steigung_pm[i] = int(round(d / m_pro_feld * 1000.0))
-	# Wasserfelder: Bauhöhe = höchstes Landfeld im Umkreis 3 (Brückendeck auf Uferhöhe)
-	hoehe = hoehe_boden.duplicate()
-	for i in n * n:
-		if fluss[i] & 1 == 0:
-			continue
-		var cx := i % n
-		var cy := i / n
-		var best := -1.0e9
-		for dy in range(-3, 4):
-			for dx in range(-3, 4):
-				var x2 := cx + dx
-				var y2 := cy + dy
-				if x2 < 0 or y2 < 0 or x2 >= n or y2 >= n:
-					continue
-				var j := y2 * n + x2
-				if fluss[j] & 1 == 0:
-					best = maxf(best, hoehe_boden[j])
-		hoehe[i] = best if best > -1.0e8 else hoehe_boden[i]
+	# Wasserfelder: Bauhöhe = Brückendeck (H2, S7 Block D). Je Wasserfeld der Lauf in der Zeile (O-W) und in der Spalte
+	# (N-S); das Deck liegt linear zwischen den beiden Uferfeldern des KÜRZEREN Laufs (Gleichstand: O-W). So hält eine
+	# gerade Querung die Rampe |h_Ufer2 - h_Ufer1| / ((Lauf + 1) × 25 m). Ohne zwei Ufer (Kartenrand) bleibt die alte Regel
+	# (höchstes Landfeld im Umkreis 3). Dieselbe Regel rechnet tools/world_validate.py (bruecken_hoehe) für die Erreichbarkeit.
+	hoehe = bruecken_hoehe(hoehe_boden, fluss, n)
 	h_min = 1.0e9
 	h_max = -1.0e9
 	for arr in [knoten, rand]:
 		for v in arr:
 			h_min = minf(h_min, v)
 			h_max = maxf(h_max, v)
+
+
+## H2: Feldhöhen mit Brückendeck auf Wasserfeldern (Regel siehe _load). boden = Feldhöhen (Wasser = Rinnenboden), Meter.
+static func bruecken_hoehe(boden: PackedFloat32Array, fl: PackedByteArray, n: int) -> PackedFloat32Array:
+	var out := boden.duplicate()
+	var dh := PackedFloat32Array()      # Deck aus dem Lauf in der Zeile, NAN = kein Ufer beidseitig
+	var dv := PackedFloat32Array()
+	var rh := PackedInt32Array()
+	var rv := PackedInt32Array()
+	dh.resize(n * n)
+	dv.resize(n * n)
+	rh.resize(n * n)
+	rv.resize(n * n)
+	for axis in 2:                      # 0 = Zeile (O-W), 1 = Spalte (N-S)
+		var deck := dh if axis == 0 else dv
+		var run := rh if axis == 0 else rv
+		for line in n:
+			var t := 0
+			while t < n:
+				var i := line * n + t if axis == 0 else t * n + line
+				if fl[i] & 1 == 0:
+					t += 1
+					continue
+				var s := t
+				while t < n and fl[(line * n + t) if axis == 0 else (t * n + line)] & 1:
+					t += 1
+				var e := t - 1
+				var ln := e - s + 1
+				var ha := NAN
+				var hb := NAN
+				if s > 0 and e < n - 1:
+					ha = boden[(line * n + s - 1) if axis == 0 else ((s - 1) * n + line)]
+					hb = boden[(line * n + e + 1) if axis == 0 else ((e + 1) * n + line)]
+				for q in range(s, e + 1):
+					var j := line * n + q if axis == 0 else q * n + line
+					run[j] = ln
+					deck[j] = ha + (hb - ha) * float(q - s + 1) / float(ln + 1) if not is_nan(ha) else NAN
+	for i in n * n:
+		if fl[i] & 1 == 0:
+			continue
+		var a := dh[i]
+		var b := dv[i]
+		if not is_nan(a) and (is_nan(b) or rh[i] <= rv[i]):
+			out[i] = a
+		elif not is_nan(b):
+			out[i] = b
+		else:                           # Kartenrand: höchstes Landfeld im Umkreis 3 (alte Regel)
+			var cx := i % n
+			var cy := i / n
+			var best := -1.0e9
+			for yy in range(maxi(0, cy - 3), mini(n, cy + 4)):
+				for xx in range(maxi(0, cx - 3), mini(n, cx + 4)):
+					if fl[yy * n + xx] & 1 == 0:
+						best = maxf(best, boden[yy * n + xx])
+			out[i] = best if best > -1.0e8 else boden[i]
+	return out
 
 
 static func _decode_u16(b: PackedByteArray, count: int, scale: float) -> PackedFloat32Array:
@@ -193,6 +240,8 @@ func update_camera(main) -> void:
 		cp.y = gy - rp.y
 	main.cam.position = cp
 	main.cam.rotation = Vector3(-atan2(cp.y, cp.z), 0.0, 0.0)
+	if main.sun != null:
+		main.sun.directional_shadow_max_distance = minf(main.sun.directional_shadow_max_distance, SCHATTEN_MAX_M / m_pro_feld)
 
 
 static func pitch_for(d_m: float) -> float:

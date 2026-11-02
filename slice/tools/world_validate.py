@@ -85,6 +85,39 @@ def run_lengths(mask, axis):
     return out if axis == 1 else out.T
 
 
+def bruecken_hoehe(h, water):
+    """H2 (S7 Block D, Felix), wie world/s7_world.gd bruecken_hoehe: Wasserfeld = Brueckendeck, linear zwischen den beiden
+    Uferfeldern des kuerzeren Laufs (Zeile O-W / Spalte N-S, Gleichstand O-W). Ohne zwei Ufer: hoechstes Landfeld im
+    Umkreis 3 (alte Regel). Rueckgabe: Feldhoehen mit Deck auf Wasserfeldern."""
+    n = h.shape[0]
+    deck = [np.full(h.shape, np.nan), np.full(h.shape, np.nan)]
+    run = [run_lengths(water, 1), run_lengths(water, 0)]
+    for ax in (0, 1):
+        W = water if ax == 0 else water.T
+        H = h if ax == 0 else h.T
+        D = deck[ax] if ax == 0 else deck[ax].T
+        pad = np.zeros((n, n + 2), dtype=np.int8)
+        pad[:, 1:-1] = W
+        dif = np.diff(pad, axis=1)
+        for y in np.flatnonzero(W.any(axis=1)):
+            for s0, e0 in zip(np.flatnonzero(dif[y] == 1), np.flatnonzero(dif[y] == -1)):
+                ln = e0 - s0
+                if s0 > 0 and e0 < n:
+                    a, b = H[y, s0 - 1], H[y, e0]
+                    D[y, s0:e0] = a + (b - a) * (np.arange(1, ln + 1) / float(ln + 1))
+    out = h.copy()
+    a, b = deck
+    use_a = water & ~np.isnan(a) & (np.isnan(b) | (run[0] <= run[1]))
+    use_b = water & ~use_a & ~np.isnan(b)
+    out[use_a] = a[use_a]
+    out[use_b] = b[use_b]
+    for y, x in zip(*np.nonzero(water & ~use_a & ~use_b)):
+        sub = h[max(0, y - 3):y + 4, max(0, x - 3):x + 4][~water[max(0, y - 3):y + 4, max(0, x - 3):x + 4]]
+        if sub.size:
+            out[y, x] = sub.max()
+    return out
+
+
 def label4(mask):
     """4er-Zusammenhangskomponenten: Feld -> Komponente (-1 = nicht in der Maske)."""
     try:
@@ -547,8 +580,21 @@ def validate_data(M, h16, fl, meta, rules, schema_path=None):
     bmax_f = meta["bau"]["bruecke_max_felder"]
     rh = run_lengths(water, 1)
     rv = run_lengths(water, 0)
-    passable = (slope <= smax) & ~water
-    passable |= water & ((rh <= bmax_f) | (rv <= bmax_f))
+    # H2: dieselbe Regel wie das Spiel (s7_world.bruecken_hoehe): Wasserfeld traegt das Brueckendeck, Steigung je Richtung
+    # ueber Land + Deck. Land: max zu 4 Nachbarn; Wasser: Lauf <= Brueckengrenze UND Rampe/Deck in Laufrichtung <= Grenze.
+    hm = bruecken_hoehe(h, water)
+    sh = np.zeros_like(hm)
+    sv = np.zeros_like(hm)
+    dx = np.abs(np.diff(hm, axis=1))
+    dy = np.abs(np.diff(hm, axis=0))
+    sh[:, 1:] = np.maximum(sh[:, 1:], dx)
+    sh[:, :-1] = np.maximum(sh[:, :-1], dx)
+    sv[1:, :] = np.maximum(sv[1:, :], dy)
+    sv[:-1, :] = np.maximum(sv[:-1, :], dy)
+    sh = np.rint(sh / STEP * 1000.0)
+    sv = np.rint(sv / STEP * 1000.0)
+    passable = (np.maximum(sh, sv) <= smax) & ~water
+    passable |= water & (((rh <= bmax_f) & (sh <= smax)) | ((rv <= bmax_f) & (sv <= smax)))
     # Gebaeudefelder sind baubar (werden eben gestempelt), Stadtkerne ebenfalls
     for i in inds:
         passable[max(0, i["y_felder"] - 2):i["y_felder"] + 3, max(0, i["x_felder"] - 2):i["x_felder"] + 3] = True

@@ -5,7 +5,13 @@ S6 Tag 10 (Mira, D-08 B-1, PO-Entscheid Jonas): Lizenzfaktor = genau der Faktor 
   im Radius 1 - licence_discount_in_radius_promille, sonst 1 + licence_surcharge_per_field_promille x (Felder - Radius).
   Felder wie im Spiel: rdiv(isqrt(dx_mm^2 + dy_mm^2), feld_mm) (economy._felder), Radius inklusive.
   Lizenzierbar = Industrie mit ausgang_gut_id in economy_slice.json (wie economy.licence_quote: s_out_good >= 0);
-  Faktorzeile und "Naechste ..."-Liste nennen nur lizenzierbare Industrien. Groessenfaktor ist R2-Kandidat."""
+  Faktorzeile und "Naechste ..."-Liste nennen nur lizenzierbare Industrien. Groessenfaktor ist R2-Kandidat.
+S7 T-15 Teil 2 (Tobias): Der Wagnis-Hinweis ist nicht mehr fest, sondern gerechnet: guenstigste Mehl-Startkette in zwei Bauschritten (Farm-Lizenz +
+  Strasse, dann Muehle-Lizenz + Strasse zur Stadt), Lizenzen nach dem Spiel-Faktor (Gratis-Lizenz nur im Radius, S7 T-15 Teil 1), Strassen
+  Manhattan x Strassenpreis x STRASSE_MARGE (Bruecken/Stadtanschluss, an Steinbach geeicht: Rechnung 4.181 $, Spiel 4.258 $), die Farm-Linie
+  finanziert Schritt 2 (Gewinn je Minute aus Lkw-Zyklus, Luftlinie-Ertrag und FRISCHE_LADEN, abzueglich Lizenz-Verlaengerung der Farm alle 30 min). So warnt die Vorschau nur dort, wo die Messung es hart findet: Steinbach 7/7 bei 5:32 (Kasse
+  24.035 $ nach 45 min, tiefster Stand 2.171 $), Eichwald 7/7 bei 5:32 (8.935 $ nach 25 min), Weidenau mit Farm 2 bleibt bei 206 $ Kasse stehen
+  (Farm-Linie traegt sich nicht). Modellrechnung, Messwerte in notiz tobias.md (Block B)."""
 import hashlib, json, math, os, sys
 
 BASE = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,6 +19,7 @@ DATA = os.path.join(BASE, "data")
 raw = open(os.path.join(DATA, "slice_map.json"), "rb").read()
 M = json.loads(raw)
 E = json.load(open(os.path.join(DATA, "economy_slice.json"), encoding="utf-8"))
+V = json.load(open(os.path.join(DATA, "vehicles.json"), encoding="utf-8"))
 MD5 = hashlib.md5(raw).hexdigest()
 
 RADIUS = {"dorf": E["hq"]["hq_radius_village_felder"], "kleinstadt": E["hq"]["hq_radius_town_felder"], "stadt": E["hq"]["hq_radius_city_felder"]}
@@ -20,6 +27,9 @@ STUFE = {"dorf": "Dorf", "kleinstadt": "Kleinstadt", "stadt": "Stadt"}
 RABATT = E["lizenz"]["licence_discount_in_radius_promille"] / 1000    # 0,30 -> Faktor 0,70
 AUFSCHLAG = E["lizenz"]["licence_surcharge_per_field_promille"] / 1000
 BERG_X = E["bau_kosten"]["berg_faktor_promille"] / 1000
+STRASSE_MARGE = 1.15    # Faktor auf Manhattan-Strassenkosten (Bruecke, Stadtanschluss), geeicht an der Messung Steinbach (siehe Kopf)
+FRISCHE_LADEN = 0.75    # Anteil des Roh-Ertrags der Farm-Linie, der netto ankommt (Ladezeit, Alter der Lose); geeicht an Lena S6: +125 $/min bei Rechnung +199
+STADTRAND = 8           # Felder: Strasse endet am Stadtrand, nicht in der Mitte (Messung Steinbach: 52 statt 60 Felder)
 FLUSS_MAX = 120      # Fluss nur nennen, wenn Mittellinie naeher als so viele Felder an der Stadt (Setzung, wie Lenas Texte)
 WALD_MIN = 3.0       # Wald nur ab diesem Anteil (%) des Radius
 NAME = {"getreidefarm": "Farm", "muehle": "Mühle", "kohlemine": "Kohle", "erzmine": "Erzmine", "kraftwerk": "Kraftwerk",
@@ -129,6 +139,73 @@ def kette_text(c, r, ids, label, extra=""):  # Namen wie Lena: Erz, Stahl, Werkz
     return label + ": " + ", ".join(teile) + " Felder" + extra
 
 
+def lizenz_usd(c, i, gratis_im_radius=True):
+    """Lizenzpreis (USD) der Industrie i fuer HQ c wie economy._licence_cost ohne Groessenfaktor; im Radius ist die erste Lizenz gratis (S7 T-15)."""
+    r = RADIUS[c["stufe"]]
+    dd = felder_spiel(c, IND[i])
+    basis = next(x for x in E["industrien"] if x["id"] == IND[i]["typ"])["kaufpreis_stufe1_cent"] * E["lizenz"]["licence_cost_share_promille"] / 1000 / 100
+    faktor = (1 - RABATT) if dd <= r else 1 + AUFSCHLAG * (dd - r)
+    return basis * faktor
+
+
+def startkette(sid):
+    """Guenstigste Mehl-Startkette (Farm, Muehle, Abnehmerstadt), in zwei Bauschritten wie im Spiel: (1) Farm-Lizenz + Strasse Farm-Muehle,
+    (2) Muehle-Lizenz + Strasse zur Stadt. Die zwei Startlkw sind gratis, die Farmlinie bringt ab Schritt 1 ihren Gewinn. Rueckgabe:
+    dict mit kosten, kosten1, kosten2, t_muehle (Minute, ab der Schritt 2 bezahlbar ist), farm, muehle, stadt."""
+    c = CITY[sid]
+    r = RADIUS[c["stufe"]]
+    cap = E["hq"]["start_capital_cent"] / 100
+    strasse = E["fahrzeug_ref"]["strasse_cent_pro_feld"] / 100
+    farmen = [i for i in IND if IND[i]["typ"] == "getreidefarm"]
+    muehlen = [i for i in IND if IND[i]["typ"] == "muehle"]
+    best = None
+    for f in farmen:
+        for mu in muehlen:
+            for a in CITY.values():
+                lf = 0.0 if felder_spiel(c, IND[f]) <= r else lizenz_usd(c, f)      # erste Lizenz gratis, nur im Radius
+                lm = lizenz_usd(c, mu)
+                m1 = abs(IND[f]["x_felder"] - IND[mu]["x_felder"]) + abs(IND[f]["y_felder"] - IND[mu]["y_felder"])
+                m2 = max(0, abs(IND[mu]["x_felder"] - a["x_felder"]) + abs(IND[mu]["y_felder"] - a["y_felder"]) - STADTRAND)
+                k1 = lf + m1 * strasse * STRASSE_MARGE
+                k2 = lm + m2 * strasse * STRASSE_MARGE
+                cash0 = cap - k1
+                # Gewinn/min der Farm-Linie mit einem Lkw: Menge = min(Quelle, Lkw-Kapazitaet), Ertrag nach Luftlinie, minus Lkw-Fix und Fahrtkosten
+                lkw = next(v for v in V["fahrzeuge"] if v["id"] == E["fahrzeug_ref"]["lkw_id"])
+                weg = m1
+                zyklus = 2 * weg * FELD_MM / lkw["tempo_mm_pro_tick"] / 10 + E["fahrzeug_ref"]["load_ticks"] / 10     # s
+                kap_min = lkw["kapazitaet_einheiten"] * 60 / zyklus
+                fluss = min(next(i for i in E["industrien"] if i["id"] == "getreidefarm")["produktion_l1_einheiten_pro_periode"], kap_min)
+                dl = felder_spiel(IND[f], IND[mu])
+                deff = dl if dl <= E["ertrag"]["dist_knee_felder"] else E["ertrag"]["dist_knee_felder"] + E["ertrag"]["dist_slope_beyond_promille"] / 1000 * (dl - E["ertrag"]["dist_knee_felder"])
+                deff = deff if dl >= E["ertrag"]["dist_min_felder"] else 0
+                brutto = FRISCHE_LADEN * fluss * E["preise"]["price_grain_cent_pro_einheit_feld"] / 100 * deff
+                fahrten = fluss / lkw["kapazitaet_einheiten"]
+                netto = brutto - lkw["fix_cent_pro_periode"] / 100 - fahrten * lkw["variabel_cent_pro_feld"] / 100 * 2 * weg
+                netto -= lf / (E["lizenz"]["licence_duration_ticks"] / 600)      # Auto-Verlaengerung der Farm-Lizenz (alle 30 min voller Preis)
+                t = 0.0 if cash0 >= k2 else ((k2 - cash0) / netto if netto > 0 else float("inf"))
+                key = (k1 > cap, t, k1 + k2)            # erst startbar, dann frueheste Muehle, dann billigste Kette
+                if best is None or key < best[0]:
+                    best = (key, dict(kosten=k1 + k2, kosten1=k1, kosten2=k2, t_muehle=t, netto=netto, farm=f, muehle=mu, stadt=a["id"], startbar=k1 <= cap))
+    return best[1]
+
+
+def wagnis_hinweis(sid):
+    """Ehrlicher Wagnis-Hinweis aus der Startketten-Rechnung (Kosten und Zeit bis die Muehle bezahlbar ist), gemessen an Steinbach und Eichwald."""
+    k = startkette(sid)
+    cap = de(int(E["hq"]["start_capital_cent"] / 100))
+    h = lambda x: de(int(round(x / 100.0)) * 100)
+    if not k["startbar"]:
+        return f"Schon die Farm-Linie ca. {h(k['kosten1'])} $ übersteigt das Startkapital {cap} $. Im Slice nicht spielbar."
+    t = k["t_muehle"]
+    if t == float("inf"):
+        return f"Farm-Linie trägt sich nicht (ca. {r0(k['netto'])} $/min): Mühle nie bezahlbar, Startkette ca. {h(k['kosten'])} $. Im Slice nicht spielbar."
+    if t <= 1:
+        return f"Spielbar, aber teuer: Startkette ca. {h(k['kosten'])} $ von {cap} $, Absatz {CITY[k['stadt']]['name']}."
+    if t <= 8:
+        return f"Spielbar, aber knapp: Startkette ca. {h(k['kosten'])} $ von {cap} $, Mühle ab Minute {r0(t)} bezahlbar."
+    return f"Zäh: Startkette ca. {h(k['kosten'])} $, Mühle erst ab Minute {r0(t)} bezahlbar (Farm-Linie bringt ca. {r0(k['netto'])} $/min)."
+
+
 def bauen(sid):
     c = CITY[sid]
     stufe = c["stufe"]
@@ -175,7 +252,7 @@ def bauen(sid):
         top = sorted(ids.values(), key=d.get)[:3]
         # B-9: "Kein Rohstoff im Radius" steht schon in der Statuszeile (wagnis=true), hier nur die Ziele
         ketten.append("Nächste Lizenzen: " + ", ".join(f"{NAME[IND[i]['typ']]} {r0(d[i])}" for i in top) + " Felder.")
-        hinweis = "Im Slice nicht balanciert." if stufe == "kleinstadt" else "Kette nur über Fernlizenzen erreichbar. Im Slice nicht balanciert."
+        hinweis = wagnis_hinweis(sid)
     # Gelaende
     anteil, ang = gelaende_anteile(c, r)
     fl = min(seg_dist((c["x_felder"], c["y_felder"]), FLUSS[i], FLUSS[i + 1]) for i in range(len(FLUSS) - 1))

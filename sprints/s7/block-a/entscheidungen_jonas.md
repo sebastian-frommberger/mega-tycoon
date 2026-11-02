@@ -6,3 +6,5 @@
 - "Parität 10/10" im Backlog meint die 10 Seeds der Abnahme-Parität (d07 --only=parity, 12 Prüfungen) – kein eigener Test nötig.
 - Block B: Felix-2 bündelt Straßen/Gleise/Lager statt Fahrzeuge (die waren schon MultiMesh) – angenommen. 5.000-Lkw-Übersicht 4.068 → 482 Draw Calls.
 - Bankrott-Vorwarnung darf mit Posten-Name bis 130 Zeichen lang sein (Aylins 90 gilt für Texte ohne Namen).
+- T-15 Teil 2: Lok-Fix 170 $/min, Waggon 6 E → Zug:Lkw im Dauerbetrieb 2,9:1. Das Anfangsfenster (Rohstoffquellen sammeln Bestand schon vor der ersten Lizenz) ist ein Regelfehler, kein Balancing: Fix + Neukalibrierung als S8-Ticket (Felix/Tobias).
+- T-16: Bot mit gefitteten Faktoren je Standort trifft das Modell ±5 Pp – Drift-Wächter, kein Beleg.

@@ -58,6 +58,24 @@ e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_mira.txt")
 fl=$(grep "^  FAIL" "$LOGS/s7_mira.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
 record "s7_mira (Z-01 + B-xx Regression)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_mira.txt") ${fl:+ -- FAIL: $fl}"
 
+# --- 2c3) S7 Block B (Mira): W-04 Kacheln/Autotile/Vorschau (S7) + U-03 Fehlertexte beide Welten + play.sh-Bau-Fehlerfälle
+$G --headless --path . -s res://tests/s7_w04_test.gd > "$LOGS/s7_w04.txt" 2>&1; r=$?
+e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_w04.txt"); [ "$e" -gt 0 ] && r=1
+fl=$(grep "^  FAIL" "$LOGS/s7_w04.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
+record "s7_w04 (Kacheln, Autotile, Brücke, Hang-Preis, Straße:Block)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_w04.txt") ${fl:+ -- FAIL: $fl}"
+if command -v xvfb-run >/dev/null 2>&1; then
+  xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_u03_test.gd > "$LOGS/s7_u03.txt" 2>&1; r=$?
+  e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_u03.txt"); [ "$e" -gt 0 ] && r=1
+  fl=$(grep "^  FAIL" "$LOGS/s7_u03.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
+  record "s7_u03 (Fehlertexte beide Welten, Vorwarnung, Kopfleiste, Linienliste; xvfb)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_u03.txt") ${fl:+ -- FAIL: $fl}"
+  for w in slice s7; do
+    bash tests/u03_play_check.sh "$G" $w "$LOGS/u03_play_$w" > "$LOGS/u03_play_$w.txt" 2>&1; r=$?
+    record "u03_play $w (play.sh alle Bau-Fehlerfälle, 0 stumm)" $r "$(grep '^u03_play' "$LOGS/u03_play_$w.txt")"
+  done
+else
+  record "s7_u03 / u03_play" 1 "xvfb-run fehlt"
+fi
+
 # --- 2d) D-08: HQ-Platzierung mit echter Maus (X-Zeiger über warp_mouse, echte Projektion Bildschirm -> Feld). Braucht xvfb-run.
 if command -v xvfb-run >/dev/null 2>&1; then
   D08_NOSHOT=1 xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/d08_maus.gd -- "$LOGS" > "$LOGS/d08_maus.txt" 2>&1; r=$?
@@ -150,7 +168,8 @@ gp = []
 for f in glob.glob('**/*.gd', recursive=True):
     if f.startswith('tests/'): continue
     for i, l in enumerate(open(f, encoding='utf-8'), 1):
-        if 'globalize_path' in l and ('kenney' in l.lower() or 'append_from_file' in l):
+        code = l.split('#', 1)[0]      # S7 Block B: Kommentar ("kein globalize_path") ist kein Treffer
+        if 'globalize_path' in code and ('kenney' in code.lower() or 'append_from_file' in code):
             gp.append(f"{f}:{i}")
 print("B-2: Kenney-GLB über globalize_path:", gp or "keine")
 if gp: bad.append("b2")

@@ -130,7 +130,7 @@ func _components() -> Control:
 
 
 func _lic_button() -> Button:
-	var b := Kit.price_button("lizenz", "Lizenz · 140 $", "Ertrag ca. 224 $/Monat")
+	var b := Kit.price_button("lizenz", "Lizenz · 140 $", "Ertrag ca. 224 $ je Spielminute")
 	b.custom_minimum_size = Vector2(maxf(290.0, b.custom_minimum_size.x), 62)
 	return b
 

@@ -11,6 +11,7 @@ const Building := preload("res://building.gd")
 const Kit := preload("res://ui/ui_kit.gd")
 const UiFx := preload("res://ui/ui_fx.gd")
 const TB := preload("res://ui/theme/theme_builder.gd")
+const FT := preload("res://ui/fehlertexte.gd")      # U-03 (S7)
 
 const VORSCHAU_PATH := "res://data/hq_vorschau.json"   # T-14b: {"quelle", "staedte": {id: {radius, ketten[], groesse, lizenzfaktor, gelaende, hinweis}}}
 const RING_SEC := 0.35          # Ring-Animation ≤ 0,4 s (F-20), bei Reduced Motion sofort
@@ -387,6 +388,11 @@ func city_at(c: Vector2i):
 	return best
 
 
+## U-03: Radiuszeile aus dem Spielwert über main.dist_str (Slice „Radius 55 Felder“, S7 „Radius 1,38 km“).
+func radius_text(city) -> String:
+	return "Radius %s" % m.dist_str(radius_of(city))
+
+
 func radius_of(city) -> int:
 	return int(m.eco.slice["hq"]["hq_radius_%s_felder" % RADMAP.get(city.city_stage, "village")])
 
@@ -397,10 +403,10 @@ func preview_lines(city_id: String) -> Array:
 	var e: Dictionary = vorschau.get(city_id, {})
 	if e.is_empty():
 		var city = m.by_id[city_id]
-		return [{"icon": "hq", "text": "Radius %d Felder" % radius_of(city)},
+		return [{"icon": "hq", "text": radius_text(city)},
 			{"icon": "stadt", "text": "%s, %d Einwohner" % [m.STAGE_NAMES.get(city.city_stage, ""), city.city_pop]},
 			{"icon": "info", "text": "Keine Vorschau-Daten (T-14b ausstehend)."}]
-	var out: Array = [{"icon": "hq", "text": str(e.get("radius", ""))}]
+	var out: Array = [{"icon": "hq", "text": radius_text(m.by_id[city_id]) if m.by_id.has(city_id) else str(e.get("radius", ""))}]
 	for k in e.get("ketten", []):
 		out.append({"icon": "fabrik", "text": str(k)})
 	out.append({"icon": "stadt", "text": str(e.get("groesse", ""))})
@@ -692,7 +698,7 @@ func _show_ring(city) -> void:
 			m.add_child(l)
 			dist_labels.append(l)
 		var lab: Label3D = dist_labels[n]
-		lab.text = "%d F." % d
+		lab.text = "%s · %s" % [b.display_name, m.dist_str(d)]      # U-03 U2: Name + volle Einheit statt „25 F.“
 		lab.position = b.center() + Vector3(0, b.height + 2.4, 0)
 		lab.visible = true
 		n += 1
@@ -732,7 +738,7 @@ func _update_ring_label() -> void:
 	if not show:
 		return
 	var left := _left_ms()
-	ring_label.text = Kit.txt("Umsetzen noch %d s" % ceili(left / 1000.0) if left <= 20000 else "Umsetzen möglich, noch %s" % _mss(left))
+	ring_label.text = Kit.txt("Umsetzen noch %d s" % ceili(left / 1000.0) if left <= 20000 else FT.u6_ring(_mss(left)))
 
 
 static func _mss(ms: int) -> String:

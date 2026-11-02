@@ -22,6 +22,7 @@ var city_stage := ""
 var city_pop := 0
 var owned := false             # Lager (eigener Bau)
 var licence_marker: MeshInstance3D
+var box_batch = null           # S7 B (Felix 2): main.render_batch; gesetzt = Lager-Quader gebündelt statt eigener MeshInstance3D
 
 const IndustryProps := preload("res://props/industry_props.gd")
 const GREY := Color(0.62, 0.63, 0.66)
@@ -78,6 +79,9 @@ func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_
 
 
 func _add_box(size: Vector3, pos: Vector3, color: Color) -> void:
+	if box_batch != null:        # S7 B: gleiche Optik (Farbe, Schatten an), ein Draw Call je Kachel statt je Teil
+		box_batch.add_box([get_instance_id(), pos], position + pos, size, box_batch.mat_for(color), true)
+		return
 	var mi := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = size

@@ -14,7 +14,7 @@ BG=0
 for a in "$@"; do
   case "$a" in
     --bg) BG=1 ;;
-    --no-shot|--fast|--budget=*) OPTS+=("$a") ;;
+    --no-shot|--fast|--budget=*|--welt=*) OPTS+=("$a") ;;
     *) POS+=("$a") ;;
   esac
 done

@@ -192,6 +192,24 @@ func find_b(token: String):
 	return null
 
 
+## U-03 (S7, Mira): Ziel als Gebäude-ID oder Feld „x,y“ (auch außerhalb der Karte, z. B. 600,335). null = unbekannt.
+func pt(token: String):
+	var t := token.strip_edges()
+	if t.contains(","):
+		var p := t.split(",")
+		if p.size() == 2 and p[0].strip_edges().lstrip("-").is_valid_int() and p[1].strip_edges().lstrip("-").is_valid_int():
+			return Vector2i(int(p[0]), int(p[1]))
+	var b = find_b(t)
+	return b.anchor() if b != null else null
+
+
+## Treffer-Bedingung für point_cell: Feld außerhalb der Karte = Maus zeigt auf die Ebene jenseits des Rands (-1).
+func cell_hit(c: Vector2i) -> Callable:
+	if m._in_grid(c):
+		return func(cc): return cc == c
+	return func(cc): return cc.x < 0
+
+
 func money(c: int) -> String:
 	return m.money_str(c)
 
@@ -284,33 +302,36 @@ func cmd(line: String) -> String:
 			await click_control(m.panel_button)
 			await frames(2)
 			return "" if m.eco.licence_valid(b.site) else "Lizenzkauf ohne Wirkung"
-		"road", "rail":
-			if n < 3: return "%s <id_a> <id_b>" % op
-			var a = find_b(w[1])
-			var b = find_b(w[2])
+		"road", "rail", "demolish":
+			# U-03: Ziele als ID oder Feld „x,y“; demolish = Abriss-Werkzeug über die Fläche a–b ziehen.
+			if n < 3: return "%s <id|x,y> <id|x,y>" % op
+			var a = pt(w[1])
+			var b = pt(w[2])
 			if a == null or b == null: return "Unbekannt: %s / %s" % [w[1], w[2]]
 			if not m.company_started: return "Erst HQ gründen"
 			var rail := op == "rail"
 			var net: Dictionary = m.rails if rail else m.roads
-			var before := net.size()
+			var before: int = net.size() + (m.rails.size() if op == "demolish" else 0)
 			var cash0: int = m.eco.cash_cent
 			await tool_off()
-			await select_tool(m.Tool.RAIL if rail else m.Tool.ROAD)
+			await select_tool(m.Tool.DEMOLISH if op == "demolish" else (m.Tool.RAIL if rail else m.Tool.ROAD))
 			# Drücken auf A, Kamera mitschwenken (wie WASD bei gehaltener Maustaste), auf B loslassen
-			if not await point_cell(a.anchor(), func(cc): return cc == a.anchor()):
-				return "Maus trifft Startfeld %s nicht" % a.display_name
+			if not await point_cell(a, cell_hit(a)):
+				return "Maus trifft Startfeld %s nicht" % w[1]
 			await button_ev(root.get_mouse_position(), true)
 			await frames(2)
 			if not m.dragging: return "Ziehen startet nicht (Werkzeug %d)" % m.tool
-			var ok_b := await point_cell(b.anchor(), func(cc): return cc == b.anchor())
+			var ok_b := await point_cell(b, cell_hit(b))
 			await frames(2)
 			await button_ev(root.get_mouse_position(), false)
 			await frames(2)
 			await tool_off()
-			fit_two(Vector2(a.anchor()), Vector2(b.anchor()))
-			cam_note = "Strecke %s – %s" % [a.display_name, b.display_name]
-			if not ok_b: return "Maus trifft Zielfeld %s nicht" % b.display_name
-			if net.size() == before:
+			fit_two(Vector2(a), Vector2(b))
+			cam_note = "%s %s – %s" % ["Abriss" if op == "demolish" else "Strecke", w[1], w[2]]
+			if not ok_b: return "Maus trifft Zielfeld %s nicht" % w[2]
+			var after: int = net.size() + (m.rails.size() if op == "demolish" else 0)
+			if after == before:
+				if op == "demolish": return "nichts abgerissen"
 				return "nichts gebaut" if m.eco.cash_cent == cash0 else ""
 			return ""
 		"warehouse":
@@ -460,13 +481,13 @@ func cmd(line: String) -> String:
 			cam_note = "Ziehen ab %s" % a.display_name
 			return "" if m.dragging else "Ziehen startet nicht"
 		"drag_to":
-			if n < 2: return "drag_to <id>"
-			var b = find_b(w[1])
+			if n < 2: return "drag_to <id|x,y>"
+			var b = pt(w[1])
 			if b == null: return "Unbekannt: %s" % w[1]
 			if not m.dragging: return "Kein Ziehen aktiv (erst `drag_start`)"
-			if not await point_cell(b.anchor(), func(cc): return cc == b.anchor()): return "Maus trifft Zielfeld %s nicht" % b.display_name
+			if not await point_cell(b, cell_hit(b)): return "Maus trifft Zielfeld %s nicht" % w[1]
 			await frames(2)
-			cam_note = "Ziehen bis %s" % b.display_name
+			cam_note = "Ziehen bis %s" % w[1]
 			return ""
 		"drag_end":
 			if not m.dragging: return "Kein Ziehen aktiv"

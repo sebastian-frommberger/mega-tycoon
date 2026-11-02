@@ -123,6 +123,12 @@ func world_xz(v) -> Vector3:
 	return Vector3(x, atan2(float(_nx[b] - _nx[a]), float(_ny[b] - _ny[a])), z)
 
 
+## S7 B Hook Fahrzeughöhe: von main.set_vehicle_heights gesetzt (Gitter z * h_w + x in Feldern, leer = 0).
+var h_grid := PackedFloat32Array()
+var h_w := 0
+var h_fn := Callable()
+
+
 ## MultiMesh-Puffer füllen (Layout wie main._render_vehicles). Gibt nichts zurück; schreibt in bt/bz/bc.
 func fill_buffers(vehicles: Array, bt: PackedFloat32Array, bz: PackedFloat32Array, bc: PackedFloat32Array,
 		eco, good_colors: Dictionary) -> Array:
@@ -150,6 +156,9 @@ func _fill_range(from: int, to: int, bt: PackedFloat32Array, bz: PackedFloat32Ar
 	var c_k := _c_k
 	var c_train := _c_train
 	var v_lots: Dictionary = eco.v_lots
+	var hg := h_grid
+	var hw := h_w
+	var hfn := h_fn
 	for gi in range(from, to):
 		var is_train: bool = c_train[gi] == 1
 		var k: int = c_k[gi]
@@ -177,13 +186,21 @@ func _fill_range(from: int, to: int, bt: PackedFloat32Array, bz: PackedFloat32Ar
 		if l > 0.0:
 			s = dx / l
 			c = dz / l
+		var h := 0.0          # S7 B Hook Fahrzeughöhe (Terrain), Default 0
+		if hw > 0:
+			var cx := int(x)
+			var cz := int(z)
+			if cx >= 0 and cz >= 0 and cx < hw and cz * hw + cx < hg.size():
+				h = hg[cz * hw + cx]
+		elif hfn.is_valid():
+			h = hfn.call(x, z)
 		if is_train:
 			bz[k] = c; bz[k + 1] = 0.0; bz[k + 2] = s; bz[k + 3] = x
-			bz[k + 4] = 0.0; bz[k + 5] = 1.0; bz[k + 6] = 0.0; bz[k + 7] = 0.35
+			bz[k + 4] = 0.0; bz[k + 5] = 1.0; bz[k + 6] = 0.0; bz[k + 7] = 0.35 + h
 			bz[k + 8] = -s; bz[k + 9] = 0.0; bz[k + 10] = c; bz[k + 11] = z
 		else:
 			bt[k] = c; bt[k + 1] = 0.0; bt[k + 2] = s; bt[k + 3] = x
-			bt[k + 4] = 0.0; bt[k + 5] = 1.0; bt[k + 6] = 0.0; bt[k + 7] = 0.3
+			bt[k + 4] = 0.0; bt[k + 5] = 1.0; bt[k + 6] = 0.0; bt[k + 7] = 0.3 + h
 			bt[k + 8] = -s; bt[k + 9] = 0.0; bt[k + 10] = c; bt[k + 11] = z
 		if v_cargo[i] > 0:
 			var col: Color = Color.WHITE
@@ -191,7 +208,7 @@ func _fill_range(from: int, to: int, bt: PackedFloat32Array, bz: PackedFloat32Ar
 			if not lots.is_empty():
 				col = good_colors.get(eco.g_ids[lots[0][0]], Color.WHITE)
 			bc[kc] = c; bc[kc + 1] = 0.0; bc[kc + 2] = s; bc[kc + 3] = x
-			bc[kc + 4] = 0.0; bc[kc + 5] = 1.0; bc[kc + 6] = 0.0; bc[kc + 7] = 0.75 if not is_train else 0.85
+			bc[kc + 4] = 0.0; bc[kc + 5] = 1.0; bc[kc + 6] = 0.0; bc[kc + 7] = (0.75 if not is_train else 0.85) + h
 			bc[kc + 8] = -s; bc[kc + 9] = 0.0; bc[kc + 10] = c; bc[kc + 11] = z
 			bc[kc + 12] = col.r; bc[kc + 13] = col.g; bc[kc + 14] = col.b; bc[kc + 15] = 1.0
 		else:

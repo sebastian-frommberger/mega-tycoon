@@ -1,8 +1,8 @@
 Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
 == 1) Karte aus slice_map.json
-MAP_LOAD_MS 195.0 READY_MS 251.4 MISSING_IDS 0
-  OK   Karte lädt in 195 ms (Sandbox, Ziel ≤ 3000 ms; _ready gesamt 251 ms)
+MAP_LOAD_MS 212.4 READY_MS 258.1 MISSING_IDS 0
+  OK   Karte lädt in 212 ms (Sandbox, Ziel ≤ 3000 ms; _ready gesamt 258 ms)
   OK   0 fehlende IDs (gefunden: 0) []
   OK   8 Städte, 10 Ökonomie-Industrien (8 + farm_3, muehle_2 aus D22-Vorarbeit), 2 Holz-Kulissen (8/10/2)
   OK   2 Geländetypen: Wasser 7.2 %, Gebirge 13.0 % (je < 40 %)
@@ -17,10 +17,10 @@ MAP_LOAD_MS 195.0 READY_MS 251.4 MISSING_IDS 0
   OK   Gratis-Startlkw aus JSON (Flag true, 2 Lkw)
   OK   Linie ab Farm ohne Lizenz abgelehnt (Laden nur mit Lizenz)
   OK   Knopf sichtbar: "Lizenz kaufen · gratis
-Ertrag ca. 156 $/Monat"
+Ertrag ca. 156 $ je Spielminute"
   OK   1 Klick → Lizenz Farm aktiv (gratis, 1. Lizenz)
   OK   1 Klick → Lizenz Mühle aktiv: "Lizenz kaufen · 140 $
-Ertrag ca. 350 $/Monat"
+Ertrag ca. 350 $ je Spielminute"
      Bau (380, 335)→(352, 335): ok=true, 24 neue Felder, 440 $, 
   OK   Straße Farm 1 → Mühle gebaut (mit Brücke)
   OK   Lkw-Linie Farm 1 → Mühle (28 Felder, Lkw aus Startpaket)
@@ -38,12 +38,12 @@ Ertrag ca. 350 $/Monat"
      Ziel 2 ✔: Straße Getreidefarm → Mühle bauen
      Ziel 3 ✔: Lkw-Linie Getreidefarm → Mühle
      Ziel 4 ✔: Erste Lieferung mit Ertrag
-     Ziel 5 ✔: 3 Lieferungen mit Gewinn
+     Ziel 5 ✔: 3 Lieferungen mit Ertrag
      Ziel 6 ✔: Endprodukt an einen Abnehmer (M3)
   OK   alle 7 Ziele der Liste erreicht
   OK   Ertrag nur beim Endabnehmer (Lagerbuchungen 0 $, Ertrag gesamt 14.550 $)
 == 3) Lager-Pingpong
-MAP_LOAD_MS 222.7 READY_MS 255.8 MISSING_IDS 0
+MAP_LOAD_MS 147.7 READY_MS 169.0 MISSING_IDS 0
   OK   freier Korridor für 2 Lager gefunden bei (200, 300)
   OK   2 Lager gebaut
      Bau (201, 300)→(222, 300): ok=true, 20 neue Felder, 200 $, 
@@ -52,16 +52,16 @@ MAP_LOAD_MS 222.7 READY_MS 255.8 MISSING_IDS 0
   OK   410 Einheiten umgeschlagen in 10 Spielminuten (41 Fahrten)
   OK   Lager-Pingpong bringt 0 $ (Ertrag 0 $)
 == 4) Bankrott: nur Fahrzeuge kaufen, keine Linie
-MAP_LOAD_MS 160.4 READY_MS 187.1 MISSING_IDS 0
+MAP_LOAD_MS 143.7 READY_MS 175.9 MISSING_IDS 0
 BANKROTT tick=1 kasse=-255
   OK   Bankrott tritt ein nach 0:00 Spielzeit (Kasse -2 $)
   OK   Bankrott-Panel sichtbar, Neustart-Knopf
   OK   Simulation steht nach Bankrott
-MAP_LOAD_MS 156.2 READY_MS 184.4 MISSING_IDS 0
+MAP_LOAD_MS 146.3 READY_MS 168.9 MISSING_IDS 0
 BANKROTT tick=6401 kasse=-75
   OK   auch mit 5 Lkw ohne Linie: Bankrott nach 10:40
 == 5) Bergbau-Start und Tempo
-MAP_LOAD_MS 156.9 READY_MS 183.3 MISSING_IDS 0
+MAP_LOAD_MS 148.0 READY_MS 170.2 MISSING_IDS 0
   OK   HQ Kohlberg: 6.000 $, gleiches Kapital und Lkw-Paket wie Haberau (D22)
   OK   Kreditschritt 500 $ aus JSON
   OK   Nachfrage je Stadt = EW × Satz × Stufen-Multiplikator (Dorf ×2, Kleinstadt ×1), 5 Dorf-Standort(e)
@@ -74,9 +74,9 @@ MAP_LOAD_MS 156.9 READY_MS 183.3 MISSING_IDS 0
   OK   Straße Kohlemine → Kraftwerk (Gebirge ×3)
   OK   Bergbau: 59 Lieferungen mit Gewinn, Kasse 5.700 $ → 8.262 $
 == 6) F-15 Kontextpanel + Lizenzkauf, U-01 Theme, B-01 Linie auflösen
-MAP_LOAD_MS 170.2 READY_MS 193.6 MISSING_IDS 0
+MAP_LOAD_MS 151.2 READY_MS 173.2 MISSING_IDS 0
   OK   F-15: Klick öffnet rechts angedocktes Panel, Breite 387 px ≤ 25 % von 1600
-  OK   F-15: Primärknopf mit Preis und Ertrag: "Lizenz kaufen · gratis / Ertrag ca. 156 $/Monat"
+  OK   F-15: Primärknopf mit Preis und Ertrag: "Lizenz kaufen · gratis / Ertrag ca. 156 $ je Spielminute"
   OK   F-15: Lizenz gekauft in 2 Klicks (≤ 3)
   OK   F-15: Zustand mit Fortschrittsbalken: "Lizenz aktiv — noch 30:00 · verlängert sich automatisch" (18000 / 18000)
   OK   F-15: keine zentrierten Modale/Popups sichtbar nach Spielstart ([])
@@ -96,85 +96,16 @@ MAP_LOAD_MS 170.2 READY_MS 193.6 MISSING_IDS 0
 STYLEGUIDE komponenten=12 zustaende_je=4 zellen=48
   OK   U-01: Styleguide 12 Komponenten × 4 Zustände (48 Zellen)
 == 7) B-xx Lager über Kapazität, B-02 Gleis auf Stadtstraße, F-19 Kredit (Kern soa)
-MAP_LOAD_MS 204.8 READY_MS 236.8 MISSING_IDS 0
+MAP_LOAD_MS 148.5 READY_MS 171.0 MISSING_IDS 0
      Bau (201, 300)→(222, 300): ok=true, 20 neue Felder, 200 $, 
   OK   B-xx: Lager über Kapazität nimmt 0 an (Bestand 250 bleibt, Ladung max 10 ≤ 10, Einheiten 350 → 350)
-MAP_LOAD_MS 157.6 READY_MS 182.6 MISSING_IDS 0
-MAP_LOAD_MS 251.4 READY_MS 289.7 MISSING_IDS 0
-MAP_LOAD_MS 172.4 READY_MS 196.7 MISSING_IDS 0
-MAP_LOAD_MS 203.2 READY_MS 238.7 MISSING_IDS 0
+MAP_LOAD_MS 151.8 READY_MS 174.7 MISSING_IDS 0
+MAP_LOAD_MS 162.2 READY_MS 187.5 MISSING_IDS 0
+MAP_LOAD_MS 149.1 READY_MS 172.3 MISSING_IDS 0
+MAP_LOAD_MS 162.4 READY_MS 185.3 MISSING_IDS 0
 BANKROTT tick=1279 kasse=-94
-MAP_LOAD_MS 310.4 READY_MS 353.1 MISSING_IDS 0
-MAP_LOAD_MS 345.9 READY_MS 388.9 MISSING_IDS 0
-MAP_LOAD_MS 370.1 READY_MS 413.5 MISSING_IDS 0
-MAP_LOAD_MS 317.1 READY_MS 361.6 MISSING_IDS 0
+MAP_LOAD_MS 253.8 READY_MS 277.5 MISSING_IDS 0
+MAP_LOAD_MS 179.8 READY_MS 203.0 MISSING_IDS 0
+MAP_LOAD_MS 157.5 READY_MS 181.2 MISSING_IDS 0
+MAP_LOAD_MS 219.9 READY_MS 252.3 MISSING_IDS 0
 BANKROTT tick=1279 kasse=-94
-MAP_LOAD_MS 223.4 READY_MS 259.4 MISSING_IDS 0
-MAP_LOAD_MS 237.9 READY_MS 274.5 MISSING_IDS 0
-MAP_LOAD_MS 153.1 READY_MS 176.7 MISSING_IDS 0
-MAP_LOAD_MS 294.4 READY_MS 340.4 MISSING_IDS 0
-BANKROTT tick=1279 kasse=-94
-MAP_LOAD_MS 182.5 READY_MS 209.0 MISSING_IDS 0
-MAP_LOAD_MS 153.0 READY_MS 177.0 MISSING_IDS 0
-MAP_LOAD_MS 152.4 READY_MS 175.8 MISSING_IDS 0
-MAP_LOAD_MS 151.7 READY_MS 175.7 MISSING_IDS 0
-BANKROTT tick=1279 kasse=-94
-MAP_LOAD_MS 158.2 READY_MS 184.9 MISSING_IDS 0
-MAP_LOAD_MS 164.5 READY_MS 195.7 MISSING_IDS 0
-MAP_LOAD_MS 161.3 READY_MS 201.2 MISSING_IDS 0
-MAP_LOAD_MS 321.1 READY_MS 358.4 MISSING_IDS 0
-BANKROTT tick=1277 kasse=-26
-  OK   B-xx: Lager ≤ Kapazität in 20/20 Läufen (höchster Bestand 200, Kapazität 200)
-MAP_LOAD_MS 261.7 READY_MS 313.0 MISSING_IDS 0
-  OK   B-02: Gleis auf Stadtstraße abgelehnt: "Gleis auf Stadtstraße nicht erlaubt: Gleis um die Stadt herum führen"
-  OK   B-02: Grund steht im Ghost am Cursor ("Gleis auf Stadtstraße nicht erlaubt: Gleis um die Stadt herum führen")
-  OK   B-02: Straße auf Stadtstraße weiterhin „vorhanden“ (0 neue Felder)
-MAP_LOAD_MS 225.9 READY_MS 271.3 MISSING_IDS 0
-  OK   S7 T-15: Kredit vor Tick 7200 gesperrt ([+] gesperrt)
-  OK   F-19: Kredit in 4 Schritten bis zur Obergrenze 2.000 $ aus JSON, Kasse 6.000 $ → 8.000 $
-  OK   F-19: [+] gesperrt am Rahmen, [-] aktiv; HUD zeigt "2.000 $"
-  OK   F-19: Festzins 30 ‰ je Periode: 60 $ nach 1 Spielminute (erwartet 60 $, Kasse −60 $)
-  OK   F-19: vollständig getilgt (2.000 $), Kasse 5.940 $
-  OK   F-19: Tilgen ohne Geld in der Kasse abgelehnt
-  OK   F-19: Kredit im HUD-Kassenfeld, kein Modal
-
-  · Instanz geladen in 722 ms (Sandbox)
-  · Kasse: Start 6.000 $, nach Lizenzen 5.860 $, nach Bau 5.200 $
-  · Linie Mühle→Haberau: Ertrag 9.964 $ − Kosten 2.966 $ = 6.997 $, 59 Lieferungen (Sättigung Dorf 18 E/min)
-  · 30 Spielminuten simuliert in 169 ms (Sandbox)
-  · Lizenz Mühle verlängert: Lizenzkosten gesamt 350 $
-  · Instanz geladen in 257 ms (Sandbox)
-  · Instanz geladen in 190 ms (Sandbox)
-  · Bankrott-Test: 17 Lkw gekauft (davon 2 Startpaket), Kasse danach 0 $, Unterhalt 1.530 $/min
-  · Instanz geladen in 187 ms (Sandbox)
-  · Instanz geladen in 186 ms (Sandbox)
-  · Instanz geladen in 196 ms (Sandbox)
-  · Instanz geladen in 240 ms (Sandbox)
-  · Instanz geladen in 185 ms (Sandbox)
-  · Instanz geladen in 293 ms (Sandbox)
-  · Instanz geladen in 200 ms (Sandbox)
-  · Instanz geladen in 241 ms (Sandbox)
-  · Instanz geladen in 356 ms (Sandbox)
-  · Instanz geladen in 398 ms (Sandbox)
-  · Instanz geladen in 418 ms (Sandbox)
-  · Instanz geladen in 366 ms (Sandbox)
-  · Instanz geladen in 264 ms (Sandbox)
-  · Instanz geladen in 279 ms (Sandbox)
-  · Instanz geladen in 180 ms (Sandbox)
-  · Instanz geladen in 344 ms (Sandbox)
-  · Instanz geladen in 214 ms (Sandbox)
-  · Instanz geladen in 181 ms (Sandbox)
-  · Instanz geladen in 180 ms (Sandbox)
-  · Instanz geladen in 179 ms (Sandbox)
-  · Instanz geladen in 189 ms (Sandbox)
-  · Instanz geladen in 199 ms (Sandbox)
-  · Instanz geladen in 205 ms (Sandbox)
-  · Instanz geladen in 363 ms (Sandbox)
-  · Instanz geladen in 317 ms (Sandbox)
-  · Instanz geladen in 275 ms (Sandbox)
-
-74/74 Prüfungen OK, Laufzeit 11.3 s (Sandbox)
-WARNING: 297 ObjectDB instances were leaked at exit (run with `--verbose` for details).
-   at: cleanup (core/object/object.cpp:2536)
-ERROR: 5 resources still in use at exit (run with --verbose for details).
-   at: clear (core/io/resource.cpp:822)

@@ -1,0 +1,32 @@
+# U-03 (S7, Mira): alle Bau-Fehlerfälle aus Aylins Liste über echte Maus (tools/play.sh). Jede Zeile mit Fehler muss
+# eine Spielmeldung haben (0 stumme Ablehnungen). Prüfung: tests/u03_play_check.sh
+hover haberau
+click haberau
+found_hq
+# B2 Fluss zu breit (14 Felder)
+road 194,471 211,471
+# B1 Brücke diagonal (Aylins Fall Farm 2 -> Mühle 1)
+road farm_2 muehle_1
+# B3 Brückenkopf ohne Land (Ende im Wasser)
+road 375,335 365,335
+# B4 Gebäude im Weg (quer durch Mühle 1)
+road 352,329 352,341
+# B6 Gleis auf Stadtstraße (Haberau Zentrum)
+rail 355,360 355,360
+# B7 außerhalb der Karte (Loslassen jenseits des Rands)
+road farm_1 600,335
+# B8 Kasse reicht nicht (lange Gleisstrecke)
+rail 100,100 300,300
+# B10 Klick ohne Ziehen auf freier Wiese
+road 300,300 300,300
+# Erfolg, danach B9 dieselbe Strecke noch einmal
+road farm_1 muehle_1
+road farm_1 muehle_1
+# B13 Abriss unter einer Linie
+buy_licence farm_1
+truck_line farm_1 muehle_1
+demolish 370,335 368,335
+# B14 Abriss Stadt
+demolish haberau haberau
+# B15 Lager auf Wasser
+warehouse 365 335

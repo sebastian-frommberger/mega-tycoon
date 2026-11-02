@@ -63,7 +63,7 @@ func _z01(src_id: String, city_id: String, hq_city: String, rail: bool) -> void:
 		var p: Dictionary = r["plan"]
 		ok(r["ok"] and connected(s, c, rail), "Z-01 %s %s endet auf Stadt (%s): %s → %s gebaut und verbunden (%d Felder, Grund '%s')" % [
 			kind, dir, city_id, src_id if dir == "hin" else city_id, city_id if dir == "hin" else src_id, p.get("new_count", 0), p.get("reason", "")])
-		ok(r["marker"] and p.get("dock_street", Vector2i(-1, -1)).x >= 0 and r["label"].contains("Anschluss am Stadtrand"),
+		ok(r["marker"] and p.get("dock_street", Vector2i(-1, -1)).x >= 0 and r["label"].contains("Anschluss an ") and r["label"].contains("endet am Stadtrand"),
 			"Z-01 %s %s: Anschlusspunkt in der Vorschau (Marker %s, Feld %s, Label '%s')" % [kind, dir, str(r["marker"]), str(p.get("dock_street")), r["label"].replace("\n", " / ")])
 
 
@@ -97,7 +97,8 @@ func _run() -> void:
 				if str(pb["reason"]).contains("Brücke geht nur geradeaus"):
 					bad = pb["reason"]
 					break
-	ok(bad.contains("zwei Teilen") and bad.contains("Ufer") and not bad.contains("nicht diagonal"), "Brückenmeldung verständlich: '%s'" % bad)
+	# U-03 (S7 Block B): Aylins Text B1 – Ursache (nur geradeaus) + Lösung (bis zum Ufer, dann gerade hinüber)
+	ok(bad.contains("geradeaus") and bad.contains("Ufer") and bad.contains("gerade hinüber") and not bad.contains("nicht diagonal"), "Brückenmeldung verständlich: '%s'" % bad)
 
 	print("== B-xx 1) Klick auf Industrie am HQ-Ring startet kein Umsetzen")
 	for pair in [["mittelfurt", "farm_3"], ["kohlberg", "kohle_1"]]:
@@ -175,7 +176,7 @@ func _run() -> void:
 	m.licence_toasts.clear()
 	m.run_ticks(m.eco.oeko_tick_ticks + 5)
 	var tt: String = m.licence_toasts[0] if not m.licence_toasts.is_empty() else ""
-	ok(tt.contains("Mühle 1 verlängert") and tt.contains(m.money_str(cost)) and m.toast_label.text.contains("verlängert"),
+	ok(tt.contains("Mühle 1: Lizenz verlängert für") and tt.contains(m.money_str(cost)) and m.toast_label.text.contains("verlängert"),
 		"Toast '%s' (Betrag %s, Kasse vorher %s)" % [tt, m.money_str(cost), m.money_str(cash0)])
 	ok(m.eco.licence_valid(mill_site), "Lizenz nach Verlängerung gültig")
 

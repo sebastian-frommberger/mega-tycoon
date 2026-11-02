@@ -37,6 +37,9 @@ IDs zeigt `list` (z. B. `haberau`, `farm_1`, `muehle_1`). Statt der ID geht auch
 | `found_hq` | Klick auf den Knopf „HQ hier gründen“ im Vorschau-Panel – **echte Maus** |
 | `buy_licence <id>` | Klick auf die Industrie, dann auf „Lizenz kaufen“ im Panel – **echte Maus** |
 | `road <a> <b>` / `rail <a> <b>` | Werkzeug „Straße“/„Gleis“ in der Leiste anklicken, Maustaste auf A drücken, zu B ziehen, loslassen – **echte Maus** (Kamera schwenkt beim Ziehen mit, wie WASD) |
+| `demolish <a> <b>` | Werkzeug „Abriss“, Fläche von A bis B ziehen, loslassen – **echte Maus**. Fehler „nichts abgerissen“ + Spielmeldung (U-03, S7) |
+| Ziele als Feld | Bei `road`/`rail`/`demolish`/`drag_to` geht statt der ID auch ein Feld `x,y` (z. B. `road 194,471 211,471`), auch außerhalb der Karte (`600,335`: Maus zeigt über den Kartenrand) |
+| Welt | `tools/play.sh <ordner> --welt=s7` spielt in der S7-Welt (Schalter wird an das Spiel durchgereicht) |
 | `warehouse <x> <y>` | Werkzeug „Lager“, Klick auf Feld x,y (0–511, 2×2, freie Ebene) – **echte Maus**. Felder außerhalb der Karte meldet das Werkzeug als solche; liegt das Feld nicht im Bild, schwenkt die Kamera |
 | `truck_line <a> <b>` / `train_line <a> <b>` | Werkzeug „Lkw“/„Zug“, Klick auf Quelle A, dann Ziel B; kauft ein Fahrzeug – **echte Maus** |
 | `remove_line <a> <b>` | Papierkorb an der Linie in der Linienliste links anklicken (Fahrzeuge verkauft, 50 % zurück) – **echte Maus** |

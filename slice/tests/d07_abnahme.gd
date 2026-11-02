@@ -6,6 +6,7 @@ extends SceneTree
 const MAIN := "res://main.tscn"
 const MainScript := preload("res://main.gd")
 const CreditScript := preload("res://credit.gd")
+const FT_U03 := preload("res://ui/fehlertexte.gd")   # U-03 (S7): Ringlabel-Text U6
 
 var m: Node
 var fails := 0
@@ -873,7 +874,7 @@ func _hq() -> void:
 	ok(m.milestones.size() == 7 and m.milestones[0]["text"].contains("Mittelfurt") and m.milestones[1]["text"].begins_with("Lizenz für") and m.by_id.has(m.milestones[1]["t"][0]), "H19 Meilensteine aus der Startkette, Index 1 = erste Lizenz (M1b, U-02b): %s" % m.milestones[1]["text"])
 	# --- Umsetzen: Ring-Label, Ring-Klick, Uhr steht, Esc
 	await frames(2)
-	ok(hq.ring_label.visible and hq.ring_label.text.begins_with("Umsetzen möglich, noch"), "H20 Ring-Label „%s“" % hq.ring_label.text)
+	ok(hq.ring_label.visible and hq.ring_label.text == FT_U03.u6_ring(hq._mss(hq._left_ms())), "H20 Ring-Label „%s“" % hq.ring_label.text)
 	var ring_cell := Vector2i(int(mf.center().x + m.eco.hq_radius_felder), int(mf.center().z))
 	await world_click(ring_cell)
 	var tk: int = m.shim.tick_count

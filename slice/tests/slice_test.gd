@@ -119,10 +119,10 @@ func _run() -> void:
 	var v_no = line(m.Tool.TRUCK_LINE, farm, mill)
 	ok(v_no == null and m.vehicles.is_empty(), "Linie ab Farm ohne Lizenz abgelehnt (Laden nur mit Lizenz)")
 	m.close_panel()
-	# Lizenz-Knopf: Panel öffnen, Knopf zeigt Preis und Ertrag/Monat, 1 Klick
+	# Lizenz-Knopf: Panel öffnen, Knopf zeigt Preis und Ertrag je Spielminute (U-03 U1), 1 Klick
 	m.open_panel(farm)
 	var btxt: String = m.panel_button.text
-	ok(m.panel_button.visible and btxt.contains("Lizenz kaufen") and btxt.contains("$/Monat"), "Knopf sichtbar: \"%s\"" % btxt)
+	ok(m.panel_button.visible and btxt.contains("Lizenz kaufen") and btxt.contains("$ je Spielminute"), "Knopf sichtbar: \"%s\"" % btxt)
 	m.panel_button.pressed.emit()
 	ok(m.eco.licence_valid(farm.site), "1 Klick → Lizenz Farm aktiv (gratis, 1. Lizenz)")
 	m.open_panel(mill)
@@ -290,7 +290,7 @@ func _run() -> void:
 	ok(m.panel.visible and m.panel.anchor_left == 1.0 and m.panel.anchor_right == 1.0 and pmin.x <= vw * 0.25,
 		"F-15: Klick öffnet rechts angedocktes Panel, Breite %.0f px ≤ 25 %% von %.0f" % [pmin.x, vw])
 	var t6: String = m.panel_button.text
-	ok(m.panel_button.visible and t6.contains("Lizenz kaufen") and t6.contains("$/Monat"), "F-15: Primärknopf mit Preis und Ertrag: \"%s\"" % t6.replace("\n", " / "))
+	ok(m.panel_button.visible and t6.contains("Lizenz kaufen") and t6.contains("$ je Spielminute"), "F-15: Primärknopf mit Preis und Ertrag: \"%s\"" % t6.replace("\n", " / "))
 	m.panel_button.pressed.emit()
 	clicks += 1
 	ok(m.eco.licence_valid(farm6.site) and clicks <= 3, "F-15: Lizenz gekauft in %d Klicks (≤ 3)" % clicks)
@@ -423,9 +423,9 @@ func _section7() -> void:
 	var built: bool = m.end_drag()
 	m._set_tool(m.Tool.NONE)
 	var prd: Dictionary = m.plan_track(st, st, false)
-	ok(not pr["ok"] and pr["items"][0]["state"] == "bad" and str(pr["reason"]).contains("Stadtstraße") and not built and not m.rails.has(st),
+	ok(not pr["ok"] and pr["items"][0]["state"] == "bad" and str(pr["reason"]).contains("nicht durch die Stadt") and not built and not m.rails.has(st),
 		"B-02: Gleis auf Stadtstraße abgelehnt: \"%s\"" % pr["reason"])
-	ok(ghost_vis and ghost_reason.contains("Stadtstraße"), "B-02: Grund steht im Ghost am Cursor (\"%s\")" % ghost_reason)
+	ok(ghost_vis and ghost_reason == pr["reason"], "B-02: Grund steht im Ghost am Cursor (\"%s\")" % ghost_reason)
 	ok(prd["ok"] and prd["new_count"] == 0, "B-02: Straße auf Stadtstraße weiterhin „vorhanden“ (0 neue Felder)")
 	# --- F-19 Kredit
 	_new_main()

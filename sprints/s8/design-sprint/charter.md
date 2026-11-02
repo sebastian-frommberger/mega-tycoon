@@ -44,3 +44,12 @@ Firmenkauf, Skilltree, Energie und Pendler (Konzept liegt bei Lena/Tobias für S
 - Epoche und Assets reißen auseinander → Andeutung genügt (Basti), Platzhalter sind erlaubt.
 - Regelwerk bleibt Papier → der Prototyp ist Pflicht, nicht optional.
 - Tokenlimit → Agenten arbeiten auf Opus/Sonnet, Recherche gezielt (12–20 Quellen), kein Fable.
+
+## Entscheidungen von Basti (02.11., 21:36)
+| # | Entscheidung | Folge |
+|---|---|---|
+| E1 | Nichts wird überzeichnet, alles steht **im Verhältnis zueinander** (Haus : Straße : Fahrzeug : Industrie : Fluss). | Skalen-Tabelle mit festen Verhältnissen. Lesbarkeit kommt aus Icon, Name, Farbe und Zoom, nicht aus Größe. Einzige Toleranz laut Vorschlag: Fahrzeuge höchstens 1,2× real („macht das so mit den Fahrzeugen“). |
+| E2 | Das Wasser bekommt einen **einfachen Shader**, entworfen im Design Sprint. | Technical Artist: Wasser-Shader (Farbe nach Tiefe, Ufer, leichte Bewegung) im Prototyp. Breiten realistisch im Verhältnis, nicht überzeichnet. |
+| E3 | **Siedlungszahl folgt aus den Prinzipien**, nicht aus einer Zahl: Was steht hinter mehr oder weniger Städten? Was heißt das fürs Spiel, für Strecken und Lieferketten? | Welt-Prinzipien beantworten diese Kette vor der Verteilungsregel. |
+| E4 | **Start 1820.** Das Startjahr wird später **wählbar** für Spielende (Option). | Epoche als Datenparameter (Regelwerk bekommt `startjahr`), keine Festverdrahtung. |
+| E5 | Offene Frage (eher nicht Design): wie äußern sich **Schwierigkeitsgrade**? | Kurzes Papier von Tobias/Lena im Sprint (Hebel), Entscheidung in S8. |

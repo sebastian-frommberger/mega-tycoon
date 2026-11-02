@@ -1,0 +1,46 @@
+# Außerordentlicher Design Sprint „Welt“ – Charter (Jonas, Katrin; 02.11.2026)
+
+**Status:** Außerordentliche Session außerhalb der Sprintzählung. Sprint 8 (Firmenkauf, Skilltree, Progression nach M7) folgt danach. Auftraggeber entscheidet am Ende (Entscheider-Rolle wie im Design Sprint).
+
+## Anlass
+Bastis Rundgang durch die S7-Welt (`sprints/s8/feedback_02-11/`): Proportionen, Anordnung, Verteilung, Städte, Gelände und Wasser überzeugen noch nicht. Technik und Look der Bausteine tragen, aber es fehlt ein gemeinsames Regelwerk der Welt.
+
+## Leitplanken von Basti (verbindlich)
+- Wesentlich sind **Proportionen, Anordnung und Verteilung**; Assets sind austauschbar.
+- Epoche als Andeutung: frühes 19. Jahrhundert. Ein Auto darf eine Kutsche oder ein Pferd sein, Häuser müssen nicht streng zeitgetreu sein.
+- Das Asset Pack (Kenney All-in-1) wird systematisch ausgeschöpft; Basti besorgt bei Bedarf ein weiteres Pack.
+- Recherche und Referenzen vor und während des Sprints.
+- Neue Rollen sind einverstanden.
+
+## Rollen
+| Rolle | Neu? | Aufgabe in diesem Sprint |
+|---|---|---|
+| Art Director (Welt) | neu | Design-Prinzipien, Skalen-Tabelle, Look-Regeln der Welt, Abnahme der Prototyp-Szene |
+| Technical Artist (TEAM-02) | neu, schon für S8 vorgesehen | Asset-Audit, Maßstab-Normalisierung, Gelände (Biome, Relief, Wasser), Kachel-/LOD-Regeln |
+| Stadt-/Level-Designer | neu | Stadtmodell (Haustypen, Einwohner je Haus, Wachstum, Stadt-KI), Verteilungs- und Anordnungsregeln |
+| Lena, Tobias, Sophie, Aylin, Felix, Mira, Daniel, Jonas, Katrin | bestehend | Beratung und Gegenprüfung (Spiel- und Wirtschaftsfolgen, UX, Technik, Abnahme) |
+
+## Ablauf (5 Phasen)
+1. **Verstehen:** Recherche (`designsprint/referenzen.md`), Asset-Audit (`asset_audit.md`), Bestandsaufnahme der Proportionen im Spiel. Ergebnis: gemeinsame Faktenbasis.
+2. **Skizzieren:** Skalen-Tabelle (Haus, Straße, Fahrzeug, Industrie, Fluss, Stadtgrößen), Stadtmodell, Landschaftsregeln, Verteilungsregeln als Vorschläge, jeweils mit Gegenposition.
+3. **Entscheiden:** Streitprotokoll, Jonas als PO, Basti entscheidet offene Grundsatzfragen. Ergebnis: **Welt-Regelwerk v1** (Design-Prinzipien, Skalen, Regeln), in Daten (JSON) wo möglich.
+4. **Prototyp:** Eine kleine Prototyp-Welt (z. B. 1 Dorf, 1 Kleinstadt, 2 Industrien, Fluss, Hügel) mit echten Proportionen, Fuhrwerk/Pferd statt Lkw, belebten Blöcken. Messbar gegen die Skalen-Tabelle.
+5. **Test:** Rundgang mit Basti (Aufgabenkarten), Feinschliff, Freigabe für die Umsetzung im Generator (W-03/W-05/W-06) in Sprint 8.
+
+## Ergebnisse (Definition of Done)
+- [ ] Design-Prinzipien (max. 1 Seite): was die Welt ausmacht, was sie nie tut.
+- [ ] Skalen-Tabelle in Metern und Feldern, inklusive bewusster Überhöhung von Spielobjekten (Faktor, Begründung).
+- [ ] Stadtmodell: Haustypen, Einwohner je Haus, Wachstum (Upgrade kleiner → größer), Straßenanlage durch die Stadt, Dorfformen (Haufen-, Straßen-, Angerdorf).
+- [ ] Landschaftsregeln: Relief, Biome/Böden, Wasser (Breiten), Gebirge (Rauschen runter), Flussbreiten und Brücken.
+- [ ] Verteilungsregeln: weniger konstruierte Reviere, mehr Streuung, Abstände zwischen Orten.
+- [ ] Asset-Mapping: Haus-, Fahrzeug-, Industriemodelle je Rolle, Lückenliste, Empfehlung für ein weiteres Pack.
+- [ ] Prototyp-Szene, gemessen gegen die Skalen-Tabelle (kein Objekt außerhalb ±25 %, außer bewusster Überhöhung).
+- [ ] Rundgang mit Basti und seine Freigabe.
+
+## Nicht Teil dieses Sprints
+Firmenkauf, Skilltree, Energie und Pendler (Konzept liegt bei Lena/Tobias für S8), Terrain-LOD (Technik), neue Spielregeln.
+
+## Risiken
+- Epoche und Assets reißen auseinander → Andeutung genügt (Basti), Platzhalter sind erlaubt.
+- Regelwerk bleibt Papier → der Prototyp ist Pflicht, nicht optional.
+- Tokenlimit → Agenten arbeiten auf Opus/Sonnet, Recherche gezielt (12–20 Quellen), kein Fable.

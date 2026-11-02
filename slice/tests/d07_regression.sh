@@ -63,6 +63,12 @@ $G --headless --path . -s res://tests/s7_w04_test.gd > "$LOGS/s7_w04.txt" 2>&1; 
 e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_w04.txt"); [ "$e" -gt 0 ] && r=1
 fl=$(grep "^  FAIL" "$LOGS/s7_w04.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
 record "s7_w04 (Kacheln, Autotile, Brücke, Hang-Preis, Straße:Block)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_w04.txt") ${fl:+ -- FAIL: $fl}"
+# --- 2c4) S7 Block C (Sophie): W-03 Städte im neuen Maßstab (Radius, Ausfransung, Gebäude, Zonen, Leerfläche, Baumanteil,
+# city_streets/Z-01-Erreichbarkeit, Bahnhof, LOD ohne Loch, Nachfrage S7 = Formel = Slice, Slice ohne Generator)
+$G --headless --path . -s res://tests/s7_city_test.gd > "$LOGS/s7_city.txt" 2>&1; r=$?
+e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_city.txt"); [ "$e" -gt 0 ] && r=1
+fl=$(grep "^  FAIL" "$LOGS/s7_city.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
+record "s7_city (W-03 Städte: Radius, Ausfransung, Gebäude, Zonen, Leerfläche, Bäume, Nachfrage)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_city.txt") ${fl:+ -- FAIL: $fl}"
 if command -v xvfb-run >/dev/null 2>&1; then
   xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_u03_test.gd > "$LOGS/s7_u03.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_u03.txt"); [ "$e" -gt 0 ] && r=1

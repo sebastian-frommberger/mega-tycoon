@@ -3,8 +3,8 @@
 hover haberau
 click haberau
 found_hq
-# B2 Fluss zu breit (14 Felder)
-road 194,471 211,471
+# B2 Fluss zu breit (Bucht 43 Felder; W-03: von Zeile 471 nach 474, Seehafen bebaut in S7 beide Ufer in Zeile 471)
+road 184,474 233,474
 # B1 Brücke diagonal (Aylins Fall Farm 2 -> Mühle 1)
 road farm_2 muehle_1
 # B3 Brückenkopf ohne Land (Ende im Wasser)

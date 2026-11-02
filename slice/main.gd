@@ -26,6 +26,7 @@ const S7World := preload("res://world/s7_world.gd")    # W-01: Hooks der S7-Welt
 const RoadTiles := preload("res://world/road_tiles.gd")  # W-04 (S7): Kenney-Kacheln mit Autotile (nur bei --welt=s7)
 const BauS7 := preload("res://world/bau_s7.gd")          # W-04: Hang-Preis/Steigungssperre (nur bei --welt=s7)
 const IndustryMarkers := preload("res://world/industry_markers.gd")   # W-05 (S7): Signalfläche + Plakette + Status
+const CityGen := preload("res://world/city_gen.gd")       # W-03 (S7): Städte im neuen Maßstab (nur bei --welt=s7)
 const FT := preload("res://ui/fehlertexte.gd")           # U-03 (S7): Fehlertexte nach Aylins Liste
 const BankrottWarnung := preload("res://ui/bankrott_warnung.gd")   # U-03: Vorwarnung >= 60 s vor 0 $
 const ThemeBuilder := preload("res://ui/theme/theme_builder.gd")
@@ -77,6 +78,7 @@ var welt := WorldSel.DEFAULT
 var world_s7 = null                 # S7World, nur bei welt == "s7"
 var industry_markers = null         # W-05: world/industry_markers.gd, nur bei welt == "s7"
 var road_tiles = null               # W-04: RoadTiles, nur bei welt == "s7" (Slice: Quader wie bisher)
+var city_gen = null                 # W-03: CityGen, nur bei welt == "s7" (Slice: Quader-Städte wie bisher)
 var bk_warn = BankrottWarnung.new() # U-03: Kassenprognose + größter Verlustposten
 var m_pro_feld := WorldSel.m_pro_feld(WorldSel.DEFAULT)   # nur Darstellung/Text, Sim bleibt in Feldern
 var zoom_min := 0.4
@@ -546,8 +548,13 @@ func _build_map() -> void:
 	_check_ids()
 	_raster_terrain()
 	# Städte
+	if world_s7 != null:
+		city_gen = CityGen.new()      # W-03: Raster, Zonen, Ausfransung, Bahnhof (world/city_gen.gd)
+		city_gen.setup(self)
 	for st in map_data["staedte"]:
 		_build_city(st)
+	if city_gen != null:
+		city_gen.commit()
 	# Industrien
 	var counts := {}
 	for ind in map_data["industrien"]:
@@ -740,6 +747,9 @@ func _build_industry(ind: Dictionary, nm: String) -> void:
 
 
 func _build_city(st: Dictionary) -> void:
+	if city_gen != null:
+		city_gen.build_city(st)       # W-03 (S7): registriert die Stadt wie unten, Nachfrage unverändert
+		return
 	var p_name: String = st["name"]
 	var center := Vector2i(int(st["x_felder"]), int(st["y_felder"]))
 	var pop: int = int(st["einwohner_anzahl"])

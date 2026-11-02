@@ -97,8 +97,9 @@ func _bau() -> void:
 	# B1
 	var d := drag(m.Tool.ROAD, farm2.anchor(), mill1.anchor())
 	ok(not d["ok"] and d["toast"] == FT.b1_bruecke_diagonal() and d["why"] == FT.b1_bruecke_diagonal(), "B1 diagonal: Vorschau + Toast „%s“" % d["toast"])
-	# B2: 14 Felder Wasser (Zahl gegen den Spielwert: gezählte Wasserfelder im Pfad)
-	d = drag(m.Tool.ROAD, Vector2i(194, 471), Vector2i(211, 471))
+	# B2: Bucht > 200 m (Zahl gegen den Spielwert: gezählte Wasserfelder im Pfad). W-03 (Sophie): von Zeile 471 nach 474
+	# verschoben, weil Seehafen in S7 beide Ufer in Zeile 471 bebaut (dort dockt der Plan an die Stadt an).
+	d = drag(m.Tool.ROAD, Vector2i(184, 474), Vector2i(233, 474))
 	var nw := 0
 	for c in d["plan"]["cells"]:
 		if m.terrain_at(c) == m.Terrain.WATER:

@@ -310,8 +310,10 @@ func _vorschau() -> void:
 	# Jede Ablehnung mit Ursache (S7): Vorschau rot + Text
 	var farm2 = m.by_id["farm_2"]
 	var mill1 = m.by_id["muehle_1"]
-	var cases := [[farm2.anchor(), mill1.anchor(), false], [Vector2i(194, 471), Vector2i(211, 471), false], [Vector2i(352, 329), Vector2i(352, 341), false],
+	var cases := [[farm2.anchor(), mill1.anchor(), false], [Vector2i(184, 474), Vector2i(233, 474), false], [Vector2i(352, 329), Vector2i(352, 341), false],
 		[Vector2i(375, 335), Vector2i(365, 335), false], [Vector2i(355, 360), Vector2i(355, 360), true]]
+	# W-03 (Sophie): Fall "Fluss zu breit" von Zeile 471 nach 474 verschoben (Seehafen bebaut jetzt beide Ufer der Bucht
+	# in Zeile 471; dort dockt der Plan an die Stadt an und ist gültig). Gleiche Prüfung: Bucht > 200 m, beide Enden frei.
 	var all_ok := true
 	for cs in cases:
 		m._set_tool(m.Tool.RAIL if cs[2] else m.Tool.ROAD)

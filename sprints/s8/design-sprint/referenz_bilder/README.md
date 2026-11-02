@@ -8,3 +8,4 @@ Nur interne Referenz für Maßstab und Anordnung („wie es einer der neuesten V
 6 `tf3_06` Diesellok mit Kesselwagen, Fahrzeugpanel (48 km/h, Lärm, Verschmutzung, Zustand, Bilanz).
 7 `tf3_07` Fahrzeugkauf: Kesselwagen 1950, Länge 9,6 m, 60 km/h, Filter „Year of Availability“ (Baujahr 1950–2010).
 8 `tf3_08` Hauptquartier: Villa mit Zaun auf Lichtung, „Promotes the nearest town to the capital, Town Growth +5 %“, Workers 24/24, Module konfigurierbar.
+9 `tf3_09` (JPG) Auftrag einer Fabrik: Pfeilbänder zeigen die Zulieferer (Rohstoffe aus mehreren Quellen), Belohnung „2x Einkommen für 5 Jahre“, Strafe bei Scheitern; Landschaft: Wald-Wiesen-Mosaik mit vielen Seen.

@@ -1,0 +1,25 @@
+kit,modelle,format,median_x_u,median_y_u,median_z_u,tris_median,tris_max,referenzobjekt,m_pro_kit_einheit,faktor_auf_spiel_1feld_25m
+City Kit - Suburban,40,GLB,1.27,0.74,0.95,785,2062,Haus 1.3u breit ~0.8u hoch / Strassentile 1u,10,0.40
+City Kit - Commercial,41,GLB,0.84,1.69,0.50,246,5246,Strassentile 1u,10,0.40
+City Kit - Industrial,25,GLB,1.32,1.25,1.28,1162,2422,Strassentile 1u,10,0.40
+City Kit - Roads,95,GLB,1.00,0.08,1.00,112,1636,road-straight 1u = 10 m,10,0.40
+Car Kit,50,GLB,0.99,0.89,1.43,1190,3124,sedan 2.5u = 4.5 m,1.8,0.072
+Train Kit,103,GLB,1.03,1.10,2.70,416,1944,Schwelle 1u = 2.6 m (Normalspur),2.6,0.104
+Fantasy Town Kit,167,GLB,1.00,1.00,1.00,96,1628,Wandmodul 1u = 1 Geschoss ~3 m,3.0,0.12
+Retro Fantasy Kit,105,GLB,1.00,1.00,1.00,64,656,Wandmodul 1u = 3 m (texturiert),3.0,0.12
+Castle Kit,76,GLB,1.00,1.01,1.00,166,1598,Wehrmauer 1.3u ~8 m,6.0,0.24
+Nature Kit,329,GLTF,0.61,0.44,0.56,76,720,Zaun 0.34u ~1.1 m / Zelt 0.56u,3.2,0.128 (Bodentiles: 1.0)
+Nature Kit (Classic),232,GLTF,0.49,0.48,0.48,80,956,wie Nature Kit,3.2,0.128 (Bodentiles: 1.0)
+Survival Kit,80,GLB,0.35,0.28,0.27,124,758,Zaun 0.52u ~1.2 m / Fass 0.34u,2.4,0.096
+Graveyard Kit,91,GLB,0.62,0.67,0.39,256,1141,Figur keeper 0.86u = 1.75 m,2.0,0.08
+Pirate Kit,72,GLB,2.75,2.25,2.75,281,2282,ship-large 13u ~30 m,2.3,0.092
+Watercraft Pack,46,GLB,2.10,2.09,3.42,235,2796,boat-row-small 2.4u ~4 m,1.7,0.068
+Prototype Kit,145,GLB,0.50,0.50,1.00,64,860,animal-horse 1u = 2.4 m,2.4,0.096
+Hexagon Kit,72,GLB,1.00,0.22,1.16,163,1208,unit-house 0.36u = 9 m wenn Hexfeld = 25 m,25,1.0
+Mini Forest,22,GLB,1.00,0.51,0.88,251,847,character-archer 0.82u = 1.75 m,2.1,0.085
+Factory Kit,143,GLB,1.00,0.74,1.00,196,938,Foerderband 1u,-,nur Deko
+Modular Buildings,108,GLB,1.00,0.62,1.00,40,524,Modul 1u (modern),~3,0.12
+Building Kit,79,GLB,0.31,1.58,2.00,72,446,Modul (modern),-,-
+Retro Urban Kit,124,GLB,1.00,0.50,1.00,24,124,Modul (modern),-,-
+Road Pack,294,GLTF,1.00,0.21,1.00,60,460,Strassentile (modern),-,-
+Tower Defense Kit,160,GLB,1.00,0.50,1.00,276,1104,Tile 1u,-,-

@@ -53,3 +53,13 @@ Firmenkauf, Skilltree, Energie und Pendler (Konzept liegt bei Lena/Tobias für S
 | E3 | **Siedlungszahl folgt aus den Prinzipien**, nicht aus einer Zahl: Was steht hinter mehr oder weniger Städten? Was heißt das fürs Spiel, für Strecken und Lieferketten? | Welt-Prinzipien beantworten diese Kette vor der Verteilungsregel. |
 | E4 | **Start 1820.** Das Startjahr wird später **wählbar** für Spielende (Option). | Epoche als Datenparameter (Regelwerk bekommt `startjahr`), keine Festverdrahtung. |
 | E5 | Offene Frage (eher nicht Design): wie äußern sich **Schwierigkeitsgrade**? | Kurzes Papier von Tobias/Lena im Sprint (Hebel), Entscheidung in S8. |
+
+## Entscheidungen von Basti zu den Fragen aus Phase 3 (02.11., 23:06)
+| # | Entscheidung | Folge |
+|---|---|---|
+| E6 | F1 **B**: gestufte Ortsordnung (2 Kleinstädte, Marktflecken, viele Dörfer). | Wie im Regelwerk v1. |
+| E7 | F2 **C**: Orte bleiben ohne Versorgung stabil, wachsen nur mit Versorgung. | Wie im Regelwerk v1. |
+| E8 | F3: Die Partie reicht **bis in die Moderne (heute)**, nicht nur bis 1900. | Epochen-Tabelle bis heute: Gebäudestile, Fahrzeugkategorien, Stadtgrößen bis Großstadt je Epoche; Prototyp bleibt 1820. Kenney City/Car-Kit werden für spätere Epochen interessant. |
+| E9 | F4 **A**, aber mit **Fahrzeug-Easing je Kategorie** (nicht je Modell): Fahrzeuge fahren nicht wie ein Schuhkarton um die Ecke. | Bewegungsprofile je Kategorie (Anfahren, Bremsen, Kurventempo, Wippen); nur Darstellung, Sim bleibt in Feldern. |
+| E10 | F5 **C bzw. je nach Einstellung**: Gewässer, Flüsse und Seen mit **sichtbarer sinnvoller Nutzung**. | Kartentyp/Wasseranteil als Einstellung (Flusstal, Seenplatte, Seenreich); Nutzung sichtbar (Mühle, Fischer, Steg, Fähre, Hafen, Holztrift), Schiffsverkehr als Folgefrage. |
+| E11 | F6 **B** plus Parameter **Konkurrenz** (fehlte). | Schwierigkeitshebel Konkurrenz (Zahl, Stärke der KI-Firmen) in `04_schwierigkeit`. |

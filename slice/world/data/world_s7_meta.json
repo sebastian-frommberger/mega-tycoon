@@ -1,0 +1,39 @@
+{
+ "bau": {
+  "bruecke_max_felder": 8,
+  "kosten_promille_je_steigungs_promille": 15,
+  "steigung_max_promille_gleis": 120,
+  "steigung_max_promille_strasse": 200
+ },
+ "felder": 512,
+ "fluss": {
+  "achse": "we",
+  "breite_max_felder": 3,
+  "gefaelle_promille": 1.4,
+  "maske_bits": {
+   "aue": 2,
+   "rinne": 1
+  },
+  "pegel_einlauf_m": 61.34
+ },
+ "hoehe_max_m": 1082.66,
+ "hoehe_min_m": 29.43,
+ "hoehe_skala_m": 0.05,
+ "knoten": 513,
+ "layout_versuch": 6,
+ "m_pro_feld": 25.0,
+ "md5": {
+  "fluss_s7.u8": "3bc571ab8ca4c9ba56f089b2602acce0",
+  "hoehe_s7.r16": "d9a5f0c2bc5a722a9a9a8876f05b971e",
+  "rand_s7.r16": "5d4db49f0d064d1dcfab3d50eae446d3"
+ },
+ "rand": {
+  "breite_m": 7500.0,
+  "innen_ab_knoten": 75,
+  "knoten": 279,
+  "raster_m": 100.0,
+  "ursprung_m": -7500.0
+ },
+ "seed": 7,
+ "terrain_variante": 0
+}

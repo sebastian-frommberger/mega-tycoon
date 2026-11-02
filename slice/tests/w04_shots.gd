@@ -11,6 +11,7 @@ var m: Node
 
 func _initialize() -> void:
 	MainScript.world_override = "s7"
+	OS.set_environment("MT_S7_KARTE", "slice")   # W-02: Shots an Slice-Koordinaten (S7-Maßstab, flach)
 	m = load("res://main.tscn").instantiate()
 	root.add_child(m)
 	_run.call_deferred()

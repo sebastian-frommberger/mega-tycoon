@@ -7,7 +7,7 @@ W=${2:-slice}
 D=${3:-$(mktemp -d)}
 cd "$(dirname "$0")/.." || exit 2
 mkdir -p "$D"; cp tests/u03_bau_fehler.txt "$D/commands.txt"; rm -f "$D/log.md"
-bash tools/play.sh "$D" "$G" --no-shot --fast --budget=0 --welt=$W > "$D/check_run.txt" 2>&1
+MT_S7_KARTE=slice bash tools/play.sh "$D" "$G" --no-shot --fast --budget=0 --welt=$W > "$D/check_run.txt" 2>&1
 r=$?
 n_err=$(grep -c "^FEHLER Zeile" "$D/run.txt")
 n_silent=$(grep "^FEHLER Zeile" "$D/run.txt" | grep -vc "Spiel meldet")

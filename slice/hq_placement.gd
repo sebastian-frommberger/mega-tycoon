@@ -70,7 +70,7 @@ func setup(main: Node) -> void:
 
 
 func _load_vorschau() -> void:
-	var f := FileAccess.open(VORSCHAU_PATH, FileAccess.READ)
+	var f := FileAccess.open(VORSCHAU_PATH if m.world_s7 == null else m.world_s7.vorschau_path(VORSCHAU_PATH), FileAccess.READ)
 	if f == null:
 		push_warning("hq_vorschau.json fehlt")
 		return

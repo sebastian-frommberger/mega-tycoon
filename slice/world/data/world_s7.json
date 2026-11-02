@@ -1,0 +1,1555 @@
+{
+ "schema_version": 1,
+ "status": {
+  "stand": "entwurf",
+  "stichtag": "2027-02-05",
+  "version": "S7-W06 seed 7",
+  "hinweis": "Erzeugt von tools/world_gen.py (Seed 7) nach rules_s7.json; Karten-Freeze Ende Tag 7 (W-05). Aenderungen nur ueber den Generator."
+ },
+ "karte": {
+  "breite_felder": 512,
+  "hoehe_felder": 512,
+  "feld_mm": 1000,
+  "ursprung": "oben_links",
+  "x_achse": "ost",
+  "y_achse": "sued",
+  "hinweis": "S7: 1 Feld = 25 m Darstellung (m_pro_feld), Sim in Feldern (feld_mm 1000). Hoehe je Feld aus world/data/hoehe_s7.r16, Fluss aus fluss_s7.u8 (siehe world_s7_meta.json)."
+ },
+ "staedte": [
+  {
+   "id": "wiesental",
+   "name": "Wiesental",
+   "stufe": "stadt",
+   "einwohner_anzahl": 10050,
+   "x_felder": 154,
+   "y_felder": 293
+  },
+  {
+   "id": "kohlberg",
+   "name": "Kohlberg",
+   "stufe": "stadt",
+   "einwohner_anzahl": 10150,
+   "x_felder": 302,
+   "y_felder": 146
+  },
+  {
+   "id": "hochstetten",
+   "name": "Hochstetten",
+   "stufe": "kleinstadt",
+   "einwohner_anzahl": 1700,
+   "x_felder": 447,
+   "y_felder": 135
+  },
+  {
+   "id": "lindach",
+   "name": "Lindach",
+   "stufe": "kleinstadt",
+   "einwohner_anzahl": 2300,
+   "x_felder": 150,
+   "y_felder": 441
+  },
+  {
+   "id": "seehafen",
+   "name": "Seehafen",
+   "stufe": "kleinstadt",
+   "einwohner_anzahl": 3750,
+   "x_felder": 458,
+   "y_felder": 264
+  },
+  {
+   "id": "mittelfurt",
+   "name": "Mittelfurt",
+   "stufe": "kleinstadt",
+   "einwohner_anzahl": 4250,
+   "x_felder": 308,
+   "y_felder": 324
+  },
+  {
+   "id": "altenbruck",
+   "name": "Altenbruck",
+   "stufe": "dorf",
+   "einwohner_anzahl": 450,
+   "x_felder": 271,
+   "y_felder": 233
+  },
+  {
+   "id": "weidenau",
+   "name": "Weidenau",
+   "stufe": "dorf",
+   "einwohner_anzahl": 800,
+   "x_felder": 252,
+   "y_felder": 379
+  },
+  {
+   "id": "birkenau",
+   "name": "Birkenau",
+   "stufe": "dorf",
+   "einwohner_anzahl": 750,
+   "x_felder": 387,
+   "y_felder": 150
+  },
+  {
+   "id": "eichwald",
+   "name": "Eichwald",
+   "stufe": "dorf",
+   "einwohner_anzahl": 600,
+   "x_felder": 369,
+   "y_felder": 258
+  },
+  {
+   "id": "haberau",
+   "name": "Haberau",
+   "stufe": "dorf",
+   "einwohner_anzahl": 750,
+   "x_felder": 164,
+   "y_felder": 373
+  },
+  {
+   "id": "rotheim",
+   "name": "Rotheim",
+   "stufe": "dorf",
+   "einwohner_anzahl": 700,
+   "x_felder": 256,
+   "y_felder": 440
+  }
+ ],
+ "industrien": [
+  {
+   "id": "kohle_1",
+   "typ": "kohlemine",
+   "x_felder": 400,
+   "y_felder": 48,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "kohle"
+   ],
+   "kette": "k2k3"
+  },
+  {
+   "id": "erz_1",
+   "typ": "erzmine",
+   "x_felder": 437,
+   "y_felder": 51,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "erz"
+   ],
+   "kette": "k3"
+  },
+  {
+   "id": "stahl_1",
+   "typ": "stahlwerk",
+   "x_felder": 418,
+   "y_felder": 65,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "erz",
+    "kohle"
+   ],
+   "ausgang_gueter": [
+    "stahl"
+   ],
+   "kette": "k3"
+  },
+  {
+   "id": "kraftwerk_1",
+   "typ": "kraftwerk",
+   "x_felder": 402,
+   "y_felder": 71,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "kohle"
+   ],
+   "ausgang_gueter": [],
+   "ausgang_art": "energie",
+   "kette": "k2"
+  },
+  {
+   "id": "kohle_2",
+   "typ": "kohlemine",
+   "x_felder": 49,
+   "y_felder": 452,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "kohle"
+   ],
+   "kette": "k2k3"
+  },
+  {
+   "id": "erz_2",
+   "typ": "erzmine",
+   "x_felder": 44,
+   "y_felder": 412,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "erz"
+   ],
+   "kette": "k3"
+  },
+  {
+   "id": "stahl_2",
+   "typ": "stahlwerk",
+   "x_felder": 66,
+   "y_felder": 429,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "erz",
+    "kohle"
+   ],
+   "ausgang_gueter": [
+    "stahl"
+   ],
+   "kette": "k3"
+  },
+  {
+   "id": "kraftwerk_2",
+   "typ": "kraftwerk",
+   "x_felder": 75,
+   "y_felder": 442,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "kohle"
+   ],
+   "ausgang_gueter": [],
+   "ausgang_art": "energie",
+   "kette": "k2"
+  },
+  {
+   "id": "kohle_3",
+   "typ": "kohlemine",
+   "x_felder": 248,
+   "y_felder": 179,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "kohle"
+   ],
+   "kette": "k2k3"
+  },
+  {
+   "id": "erz_3",
+   "typ": "erzmine",
+   "x_felder": 231,
+   "y_felder": 212,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "erz"
+   ],
+   "kette": "k3"
+  },
+  {
+   "id": "stahl_3",
+   "typ": "stahlwerk",
+   "x_felder": 259,
+   "y_felder": 202,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "erz",
+    "kohle"
+   ],
+   "ausgang_gueter": [
+    "stahl"
+   ],
+   "kette": "k3"
+  },
+  {
+   "id": "kraftwerk_3",
+   "typ": "kraftwerk",
+   "x_felder": 272,
+   "y_felder": 184,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "kohle"
+   ],
+   "ausgang_gueter": [],
+   "ausgang_art": "energie",
+   "kette": "k2"
+  },
+  {
+   "id": "werkzeug_1",
+   "typ": "werkzeugfabrik",
+   "x_felder": 429,
+   "y_felder": 100,
+   "stufe": 1,
+   "rolle": "abnehmer",
+   "im_slice": true,
+   "eingang_gueter": [
+    "stahl"
+   ],
+   "ausgang_gueter": [],
+   "kette": "k3"
+  },
+  {
+   "id": "werkzeug_2",
+   "typ": "werkzeugfabrik",
+   "x_felder": 95,
+   "y_felder": 419,
+   "stufe": 1,
+   "rolle": "abnehmer",
+   "im_slice": true,
+   "eingang_gueter": [
+    "stahl"
+   ],
+   "ausgang_gueter": [],
+   "kette": "k3"
+  },
+  {
+   "id": "werkzeug_3",
+   "typ": "werkzeugfabrik",
+   "x_felder": 298,
+   "y_felder": 204,
+   "stufe": 1,
+   "rolle": "abnehmer",
+   "im_slice": true,
+   "eingang_gueter": [
+    "stahl"
+   ],
+   "ausgang_gueter": [],
+   "kette": "k3"
+  },
+  {
+   "id": "muehle_1",
+   "typ": "muehle",
+   "x_felder": 118,
+   "y_felder": 330,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "getreide"
+   ],
+   "ausgang_gueter": [
+    "mehl"
+   ],
+   "kette": "k1"
+  },
+  {
+   "id": "farm_1",
+   "typ": "getreidefarm",
+   "x_felder": 128,
+   "y_felder": 354,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "getreide"
+   ],
+   "kette": "k1"
+  },
+  {
+   "id": "muehle_2",
+   "typ": "muehle",
+   "x_felder": 459,
+   "y_felder": 219,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "getreide"
+   ],
+   "ausgang_gueter": [
+    "mehl"
+   ],
+   "kette": "k1"
+  },
+  {
+   "id": "farm_2",
+   "typ": "getreidefarm",
+   "x_felder": 439,
+   "y_felder": 223,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "getreide"
+   ],
+   "kette": "k1"
+  },
+  {
+   "id": "muehle_3",
+   "typ": "muehle",
+   "x_felder": 274,
+   "y_felder": 80,
+   "stufe": 1,
+   "rolle": "verarbeiter",
+   "im_slice": true,
+   "eingang_gueter": [
+    "getreide"
+   ],
+   "ausgang_gueter": [
+    "mehl"
+   ],
+   "kette": "k1"
+  },
+  {
+   "id": "farm_3",
+   "typ": "getreidefarm",
+   "x_felder": 288,
+   "y_felder": 62,
+   "stufe": 1,
+   "rolle": "rohstoff",
+   "im_slice": true,
+   "eingang_gueter": [],
+   "ausgang_gueter": [
+    "getreide"
+   ],
+   "kette": "k1"
+  }
+ ],
+ "gelaende": [
+  {
+   "id": "gebirge_1",
+   "typ": "gebirge",
+   "polygon": [
+    [
+     219,
+     122
+    ],
+    [
+     211,
+     158
+    ],
+    [
+     196,
+     193
+    ],
+    [
+     158,
+     204
+    ],
+    [
+     124,
+     218
+    ],
+    [
+     87,
+     210
+    ],
+    [
+     52,
+     194
+    ],
+    [
+     7,
+     170
+    ],
+    [
+     1,
+     122
+    ],
+    [
+     13,
+     76
+    ],
+    [
+     61,
+     58
+    ],
+    [
+     77,
+     7
+    ],
+    [
+     124,
+     0
+    ],
+    [
+     172,
+     6
+    ],
+    [
+     197,
+     49
+    ],
+    [
+     213,
+     85
+    ]
+   ]
+  },
+  {
+   "id": "wald_1",
+   "typ": "wald",
+   "polygon": [
+    [
+     230,
+     222
+    ],
+    [
+     230,
+     231
+    ],
+    [
+     221,
+     233
+    ],
+    [
+     210,
+     232
+    ],
+    [
+     209,
+     222
+    ],
+    [
+     213,
+     214
+    ],
+    [
+     221,
+     208
+    ],
+    [
+     230,
+     212
+    ]
+   ]
+  },
+  {
+   "id": "wald_2",
+   "typ": "wald",
+   "polygon": [
+    [
+     463,
+     440
+    ],
+    [
+     461,
+     446
+    ],
+    [
+     455,
+     446
+    ],
+    [
+     448,
+     446
+    ],
+    [
+     445,
+     440
+    ],
+    [
+     448,
+     433
+    ],
+    [
+     455,
+     429
+    ],
+    [
+     461,
+     433
+    ]
+   ]
+  },
+  {
+   "id": "wald_3",
+   "typ": "wald",
+   "polygon": [
+    [
+     75,
+     458
+    ],
+    [
+     69,
+     465
+    ],
+    [
+     62,
+     471
+    ],
+    [
+     51,
+     468
+    ],
+    [
+     50,
+     458
+    ],
+    [
+     53,
+     449
+    ],
+    [
+     62,
+     444
+    ],
+    [
+     71,
+     448
+    ]
+   ]
+  },
+  {
+   "id": "wald_4",
+   "typ": "wald",
+   "polygon": [
+    [
+     460,
+     350
+    ],
+    [
+     460,
+     362
+    ],
+    [
+     448,
+     365
+    ],
+    [
+     439,
+     358
+    ],
+    [
+     434,
+     350
+    ],
+    [
+     436,
+     338
+    ],
+    [
+     448,
+     332
+    ],
+    [
+     459,
+     338
+    ]
+   ]
+  },
+  {
+   "id": "wald_5",
+   "typ": "wald",
+   "polygon": [
+    [
+     254,
+     197
+    ],
+    [
+     249,
+     206
+    ],
+    [
+     240,
+     209
+    ],
+    [
+     230,
+     206
+    ],
+    [
+     229,
+     197
+    ],
+    [
+     231,
+     188
+    ],
+    [
+     240,
+     185
+    ],
+    [
+     247,
+     189
+    ]
+   ]
+  },
+  {
+   "id": "wald_6",
+   "typ": "wald",
+   "polygon": [
+    [
+     322,
+     49
+    ],
+    [
+     321,
+     57
+    ],
+    [
+     313,
+     57
+    ],
+    [
+     304,
+     57
+    ],
+    [
+     302,
+     49
+    ],
+    [
+     307,
+     43
+    ],
+    [
+     313,
+     40
+    ],
+    [
+     318,
+     43
+    ]
+   ]
+  }
+ ],
+ "fluesse": [
+  {
+   "id": "fluss_1",
+   "name": "Linde",
+   "breite_felder": 3,
+   "linie": [
+    [
+     0,
+     327
+    ],
+    [
+     4,
+     326
+    ],
+    [
+     8,
+     326
+    ],
+    [
+     12,
+     325
+    ],
+    [
+     16,
+     324
+    ],
+    [
+     20,
+     323
+    ],
+    [
+     24,
+     322
+    ],
+    [
+     28,
+     321
+    ],
+    [
+     32,
+     320
+    ],
+    [
+     36,
+     318
+    ],
+    [
+     40,
+     317
+    ],
+    [
+     44,
+     316
+    ],
+    [
+     48,
+     315
+    ],
+    [
+     52,
+     314
+    ],
+    [
+     56,
+     313
+    ],
+    [
+     60,
+     313
+    ],
+    [
+     64,
+     312
+    ],
+    [
+     68,
+     312
+    ],
+    [
+     72,
+     311
+    ],
+    [
+     76,
+     311
+    ],
+    [
+     80,
+     311
+    ],
+    [
+     84,
+     312
+    ],
+    [
+     88,
+     312
+    ],
+    [
+     92,
+     313
+    ],
+    [
+     96,
+     314
+    ],
+    [
+     100,
+     315
+    ],
+    [
+     104,
+     317
+    ],
+    [
+     108,
+     318
+    ],
+    [
+     112,
+     320
+    ],
+    [
+     116,
+     322
+    ],
+    [
+     120,
+     324
+    ],
+    [
+     124,
+     326
+    ],
+    [
+     128,
+     328
+    ],
+    [
+     132,
+     330
+    ],
+    [
+     136,
+     333
+    ],
+    [
+     140,
+     335
+    ],
+    [
+     144,
+     338
+    ],
+    [
+     148,
+     340
+    ],
+    [
+     152,
+     342
+    ],
+    [
+     156,
+     345
+    ],
+    [
+     160,
+     347
+    ],
+    [
+     164,
+     349
+    ],
+    [
+     168,
+     351
+    ],
+    [
+     172,
+     352
+    ],
+    [
+     176,
+     354
+    ],
+    [
+     180,
+     355
+    ],
+    [
+     184,
+     356
+    ],
+    [
+     188,
+     357
+    ],
+    [
+     192,
+     357
+    ],
+    [
+     196,
+     358
+    ],
+    [
+     200,
+     357
+    ],
+    [
+     204,
+     357
+    ],
+    [
+     208,
+     356
+    ],
+    [
+     212,
+     356
+    ],
+    [
+     216,
+     354
+    ],
+    [
+     220,
+     353
+    ],
+    [
+     224,
+     351
+    ],
+    [
+     228,
+     349
+    ],
+    [
+     232,
+     347
+    ],
+    [
+     236,
+     345
+    ],
+    [
+     240,
+     342
+    ],
+    [
+     244,
+     340
+    ],
+    [
+     248,
+     337
+    ],
+    [
+     252,
+     334
+    ],
+    [
+     256,
+     331
+    ],
+    [
+     260,
+     328
+    ],
+    [
+     264,
+     325
+    ],
+    [
+     268,
+     321
+    ],
+    [
+     272,
+     318
+    ],
+    [
+     276,
+     315
+    ],
+    [
+     280,
+     312
+    ],
+    [
+     284,
+     309
+    ],
+    [
+     288,
+     307
+    ],
+    [
+     292,
+     304
+    ],
+    [
+     296,
+     301
+    ],
+    [
+     300,
+     299
+    ],
+    [
+     304,
+     297
+    ],
+    [
+     308,
+     295
+    ],
+    [
+     312,
+     293
+    ],
+    [
+     316,
+     291
+    ],
+    [
+     320,
+     289
+    ],
+    [
+     324,
+     288
+    ],
+    [
+     328,
+     286
+    ],
+    [
+     332,
+     285
+    ],
+    [
+     336,
+     284
+    ],
+    [
+     340,
+     283
+    ],
+    [
+     344,
+     282
+    ],
+    [
+     348,
+     281
+    ],
+    [
+     352,
+     280
+    ],
+    [
+     356,
+     280
+    ],
+    [
+     360,
+     279
+    ],
+    [
+     364,
+     278
+    ],
+    [
+     368,
+     277
+    ],
+    [
+     372,
+     277
+    ],
+    [
+     376,
+     276
+    ],
+    [
+     380,
+     275
+    ],
+    [
+     384,
+     274
+    ],
+    [
+     388,
+     272
+    ],
+    [
+     392,
+     271
+    ],
+    [
+     396,
+     270
+    ],
+    [
+     400,
+     268
+    ],
+    [
+     404,
+     266
+    ],
+    [
+     408,
+     264
+    ],
+    [
+     412,
+     262
+    ],
+    [
+     416,
+     260
+    ],
+    [
+     420,
+     257
+    ],
+    [
+     424,
+     255
+    ],
+    [
+     428,
+     252
+    ],
+    [
+     432,
+     249
+    ],
+    [
+     436,
+     246
+    ],
+    [
+     440,
+     243
+    ],
+    [
+     444,
+     240
+    ],
+    [
+     448,
+     237
+    ],
+    [
+     452,
+     234
+    ],
+    [
+     456,
+     231
+    ],
+    [
+     460,
+     228
+    ],
+    [
+     464,
+     225
+    ],
+    [
+     468,
+     222
+    ],
+    [
+     472,
+     219
+    ],
+    [
+     476,
+     216
+    ],
+    [
+     480,
+     214
+    ],
+    [
+     484,
+     211
+    ],
+    [
+     488,
+     209
+    ],
+    [
+     492,
+     207
+    ],
+    [
+     496,
+     205
+    ],
+    [
+     500,
+     204
+    ],
+    [
+     504,
+     202
+    ],
+    [
+     508,
+     201
+    ]
+   ]
+  }
+ ],
+ "ketten": [
+  {
+   "id": "k1",
+   "name": "Getreide - Muehle - Mehl - Stadt",
+   "im_slice": true,
+   "gueter": [
+    "getreide",
+    "mehl"
+   ],
+   "strecken": [
+    {
+     "von": "farm_1",
+     "nach": "muehle_1",
+     "luftlinie_felder": 26
+    },
+    {
+     "von": "muehle_1",
+     "nach": "wiesental",
+     "luftlinie_felder": 52
+    },
+    {
+     "von": "farm_2",
+     "nach": "muehle_2",
+     "luftlinie_felder": 20
+    },
+    {
+     "von": "muehle_2",
+     "nach": "seehafen",
+     "luftlinie_felder": 45
+    },
+    {
+     "von": "farm_3",
+     "nach": "muehle_3",
+     "luftlinie_felder": 23
+    },
+    {
+     "von": "muehle_3",
+     "nach": "kohlberg",
+     "luftlinie_felder": 72
+    }
+   ]
+  },
+  {
+   "id": "k2",
+   "name": "Kohle - Kraftwerk (Energie-Radius 25)",
+   "im_slice": true,
+   "gueter": [
+    "kohle"
+   ],
+   "strecken": [
+    {
+     "von": "kohle_1",
+     "nach": "kraftwerk_1",
+     "luftlinie_felder": 23
+    },
+    {
+     "von": "kraftwerk_1",
+     "nach": "stahl_1",
+     "luftlinie_felder": 17,
+     "hinweis": "Energie-Radius 25 (L-08 power_radius)"
+    },
+    {
+     "von": "kohle_2",
+     "nach": "kraftwerk_2",
+     "luftlinie_felder": 28
+    },
+    {
+     "von": "kraftwerk_2",
+     "nach": "stahl_2",
+     "luftlinie_felder": 16,
+     "hinweis": "Energie-Radius 25 (L-08 power_radius)"
+    },
+    {
+     "von": "kohle_3",
+     "nach": "kraftwerk_3",
+     "luftlinie_felder": 25
+    },
+    {
+     "von": "kraftwerk_3",
+     "nach": "stahl_3",
+     "luftlinie_felder": 22,
+     "hinweis": "Energie-Radius 25 (L-08 power_radius)"
+    }
+   ]
+  },
+  {
+   "id": "k3",
+   "name": "Erz + Kohle - Stahlwerk - Stahl - Werkzeugfabrik",
+   "im_slice": true,
+   "gueter": [
+    "erz",
+    "kohle",
+    "stahl",
+    "werkzeug"
+   ],
+   "strecken": [
+    {
+     "von": "erz_1",
+     "nach": "stahl_1",
+     "luftlinie_felder": 24
+    },
+    {
+     "von": "kohle_1",
+     "nach": "stahl_1",
+     "luftlinie_felder": 25
+    },
+    {
+     "von": "stahl_1",
+     "nach": "werkzeug_1",
+     "luftlinie_felder": 37
+    },
+    {
+     "von": "werkzeug_1",
+     "nach": "hochstetten",
+     "luftlinie_felder": 39
+    },
+    {
+     "von": "erz_2",
+     "nach": "stahl_2",
+     "luftlinie_felder": 28
+    },
+    {
+     "von": "kohle_2",
+     "nach": "stahl_2",
+     "luftlinie_felder": 29
+    },
+    {
+     "von": "stahl_2",
+     "nach": "werkzeug_2",
+     "luftlinie_felder": 31
+    },
+    {
+     "von": "werkzeug_2",
+     "nach": "lindach",
+     "luftlinie_felder": 59
+    },
+    {
+     "von": "erz_3",
+     "nach": "stahl_3",
+     "luftlinie_felder": 30
+    },
+    {
+     "von": "kohle_3",
+     "nach": "stahl_3",
+     "luftlinie_felder": 25
+    },
+    {
+     "von": "stahl_3",
+     "nach": "werkzeug_3",
+     "luftlinie_felder": 39
+    },
+    {
+     "von": "werkzeug_3",
+     "nach": "kohlberg",
+     "luftlinie_felder": 58
+    }
+   ]
+  }
+ ],
+ "nischen": [
+  {
+   "von": "farm_1",
+   "nach": "muehle_1",
+   "luftlinie_felder": 26,
+   "soll_felder": 25,
+   "hinweis": "Farm -> Muehle: Lkw-Sammeln (<25) und Zug (ab 25) beide vertretbar (L-08 truck_zug_cross_fields)"
+  },
+  {
+   "von": "kohle_1",
+   "nach": "stahl_1",
+   "luftlinie_felder": 25,
+   "soll_felder": 25,
+   "hinweis": "Kohle -> Stahlwerk: Lkw-Sammeln (<25) und Zug (ab 25) beide vertretbar (L-08 truck_zug_cross_fields)"
+  },
+  {
+   "von": "kohle_3",
+   "nach": "stahl_3",
+   "luftlinie_felder": 25,
+   "soll_felder": 25,
+   "hinweis": "Kohle -> Stahlwerk: Lkw-Sammeln (<25) und Zug (ab 25) beide vertretbar (L-08 truck_zug_cross_fields)"
+  }
+ ],
+ "hq_optionen": [
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "wiesental",
+   "im_slice": true,
+   "radius_felder": 45,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "kohlberg",
+   "im_slice": true,
+   "radius_felder": 45,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "hochstetten",
+   "im_slice": true,
+   "radius_felder": 50,
+   "startkette": "k3",
+   "industrien_im_radius": [
+    "werkzeug_1"
+   ],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "lindach",
+   "im_slice": true,
+   "radius_felder": 50,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "agrar",
+   "stadt": "seehafen",
+   "im_slice": true,
+   "radius_felder": 50,
+   "startkette": "k1",
+   "industrien_im_radius": [
+    "farm_2",
+    "muehle_2"
+   ],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "mittelfurt",
+   "im_slice": true,
+   "radius_felder": 50,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "bergbau",
+   "stadt": "altenbruck",
+   "im_slice": true,
+   "radius_felder": 55,
+   "startkette": "k3",
+   "industrien_im_radius": [
+    "erz_3",
+    "kraftwerk_3",
+    "stahl_3",
+    "werkzeug_3"
+   ],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "weidenau",
+   "im_slice": true,
+   "radius_felder": 55,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "birkenau",
+   "im_slice": true,
+   "radius_felder": 55,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "eichwald",
+   "im_slice": true,
+   "radius_felder": 55,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "agrar",
+   "stadt": "haberau",
+   "im_slice": true,
+   "radius_felder": 55,
+   "startkette": "k1",
+   "industrien_im_radius": [
+    "farm_1"
+   ],
+   "bau_quelle": "keine"
+  },
+  {
+   "archetyp": "handelsknoten",
+   "stadt": "rotheim",
+   "im_slice": true,
+   "radius_felder": 55,
+   "startkette": "keine",
+   "industrien_im_radius": [],
+   "bau_quelle": "keine"
+  }
+ ]
+}

@@ -41,6 +41,7 @@ func _fresh(w: String) -> void:
 	if m != null:
 		m.free()
 	MainScript.world_override = w
+	OS.set_environment("MT_S7_KARTE", "slice")   # W-02: Prüfungen an Slice-Koordinaten (S7-Maßstab, flach)
 	m = load(MAIN).instantiate()
 	root.add_child(m)
 	m.place_hq("haberau")

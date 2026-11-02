@@ -254,6 +254,7 @@ func _ready() -> void:
 		world_s7.build_terrain(self)   # W-01: Block A no-op (flache 512²-Ebene), Block B Heightmap
 	_build_map()
 	if world_s7 != null:
+		world_s7.after_map(self)       # W-02: Häuser/Bäume aufs Gelände, Fahrzeughöhe je Feld
 		road_tiles = RoadTiles.new()   # W-04: Stadtstraßen + eigene Strecken als Kacheln
 		road_tiles.setup(self)
 		road_tiles.refresh()
@@ -547,6 +548,8 @@ func _build_map() -> void:
 	_setup_astar(astar_rail)
 	_check_ids()
 	_raster_terrain()
+	if world_s7 != null:
+		world_s7.raster_terrain(self)   # W-02: terrain_at aus Flussmaske + Steigung
 	# Städte
 	if world_s7 != null:
 		city_gen = CityGen.new()      # W-03: Raster, Zonen, Ausfransung, Bahnhof (world/city_gen.gd)
@@ -2190,7 +2193,7 @@ func _mouse_cell() -> Vector2i:
 	var mp := get_viewport().get_mouse_position()
 	var from := cam.project_ray_origin(mp)
 	var dir := cam.project_ray_normal(mp)
-	var hit = Plane(Vector3.UP, 0.0).intersects_ray(from, dir)
+	var hit = Plane(Vector3.UP, 0.0).intersects_ray(from, dir) if world_s7 == null else world_s7.ray_hit(from, dir)
 	if hit == null:
 		return Vector2i(-1, -1)
 	var c := Vector2i(int(floor(hit.x)), int(floor(hit.z)))
@@ -2789,7 +2792,8 @@ func _mouse_off_map() -> bool:
 	if sim_hover_active:
 		return sim_hover != Vector2i(-1, -1)
 	var mp := get_viewport().get_mouse_position()
-	var hit = Plane(Vector3.UP, 0.0).intersects_ray(cam.project_ray_origin(mp), cam.project_ray_normal(mp))
+	var hit = Plane(Vector3.UP, 0.0).intersects_ray(cam.project_ray_origin(mp), cam.project_ray_normal(mp)) if world_s7 == null \
+		else world_s7.ray_hit(cam.project_ray_origin(mp), cam.project_ray_normal(mp))
 	return hit != null
 
 
@@ -2942,6 +2946,8 @@ func _ghost(c: Vector2i, mat: Material) -> void:
 	var bb = cell_to_building.get(c)
 	if bb != null and not city_streets.has(c):
 		lift = minf(bb.height, 3.0) + 0.05
+	if world_s7 != null:
+		lift += world_s7.feld_szene(c)      # W-02: Gelände
 	var saum := MeshInstance3D.new()
 	var sb := BoxMesh.new()
 	sb.size = Vector3(1.0, 0.06, 1.0)
@@ -3483,7 +3489,7 @@ func _process(delta: float) -> void:
 	hover_cell = sim_hover if sim_hover_active else _mouse_cell()
 	hover_marker.visible = hover_cell.x >= 0 and tool != Tool.NONE
 	if hover_marker.visible:
-		hover_marker.position = Vector3(hover_cell.x + 0.5, 0.05, hover_cell.y + 0.5)
+		hover_marker.position = Vector3(hover_cell.x + 0.5, 0.05 + (world_s7.feld_szene(hover_cell) if world_s7 != null else 0.0), hover_cell.y + 0.5)
 
 	var cpm := running_cost_per_period * month_ticks / periode_ticks
 	if not company_started:

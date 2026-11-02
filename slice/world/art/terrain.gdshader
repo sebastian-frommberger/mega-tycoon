@@ -22,9 +22,10 @@ uniform float schnee_breite = 90.0;     // Uebergang
 uniform float schnee_max_hang = 0.55;   // steiler = kein Schnee
 uniform float rauschen_skala = 0.012;   // 1/m
 uniform float rauschen_staerke = 0.05;  // Helligkeitsvariation
-uniform sampler2D fluss_maske : hint_default_black, filter_linear; // optional: R=Rinne (1=Wasser), G=Aue
+uniform sampler2D fluss_maske : hint_default_black, filter_linear, repeat_disable; // optional: R=Rinne (1=Wasser), G=Aue
 uniform vec4 maske_rect = vec4(0.0, 0.0, 1.0, 1.0);                // xy = Welt-Ursprung (x,z), zw = Ausdehnung (m); zw=1 -> aus
 uniform float tiefen_dunkel = 0.28;     // Wasser dunkler je Tiefe unter Spiegel (pro 10 m)
+uniform float m_pro_einheit = 1.0;      // W-02 (Felix): Meter je Szeneneinheit (S7-Welt: 25, 1 Feld = 1,0); Testszene: 1
 
 varying vec3 w_pos;
 varying vec3 w_nrm;
@@ -41,7 +42,7 @@ float vnoise(vec2 p) {
 }
 
 void vertex() {
-	w_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	w_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz * m_pro_einheit;
 	w_nrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 

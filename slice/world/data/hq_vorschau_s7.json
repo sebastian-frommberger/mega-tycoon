@@ -1,0 +1,139 @@
+{
+  "quelle": "W-06 Felix (Modellrechnung wie T-14b/S6 B-1), erzeugt aus world_s7.json md5 795cc089b52363c28b844d233635617b und economy_slice.json durch tools/world_gen.py",
+  "staedte": {
+    "wiesental": {
+      "radius": "Radius 45 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Mühle 52, Farm 66, Erzmine 112 Felder."
+      ],
+      "groesse": "Stadt, 10.050 Einwohner, Nachfrage 101 E/min",
+      "lizenzfaktor": "Lizenzfaktor x1,84 (Mühle, 52 Felder)",
+      "gelaende": "Fluss 43 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "kohlberg": {
+      "radius": "Radius 45 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Kohle 63, Stahlwerk 71, Mühle 72 Felder."
+      ],
+      "groesse": "Stadt, 10.150 Einwohner, Nachfrage 102 E/min (größter Absatz)",
+      "lizenzfaktor": "Lizenzfaktor x3,16 (Kohle, 63 Felder)",
+      "gelaende": "kein Fluss und kein Gebirge im Radius",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "hochstetten": {
+      "radius": "Radius 50 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Kette 3 Erz, Kohle, Stahl, Werkzeug: Werkzeugfabrik 39 Felder. Absatz: die Stadt selbst.",
+        "Nächste Lizenzen: Stahlwerk 76, Erzmine 85, Mühle 85 Felder."
+      ],
+      "groesse": "Kleinstadt, 1.700 Einwohner, Nachfrage 17 E/min",
+      "lizenzfaktor": "Lizenzfaktor x4,12 (Stahlwerk, 76 Felder)",
+      "gelaende": "Fluss 85 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "lindach": {
+      "radius": "Radius 50 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Stahlwerk 85, Farm 90, Kohle 102 Felder."
+      ],
+      "groesse": "Kleinstadt, 2.300 Einwohner, Nachfrage 23 E/min",
+      "lizenzfaktor": "Lizenzfaktor x5,20 (Stahlwerk, 85 Felder)",
+      "gelaende": "Fluss 91 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "seehafen": {
+      "radius": "Radius 50 Felder",
+      "wagnis": false,
+      "ketten": [
+        "Kette 1 Getreide, Mehl: Farm 45, Mühle 45 Felder. Absatz: die Stadt selbst."
+      ],
+      "groesse": "Kleinstadt, 3.750 Einwohner, Nachfrage 38 E/min",
+      "lizenzfaktor": "Lizenzfaktor x0,70 (Farm, im Radius)",
+      "gelaende": "Fluss 28 Felder entfernt",
+      "hinweis": ""
+    },
+    "mittelfurt": {
+      "radius": "Radius 50 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Stahlwerk 131, Erzmine 136, Kohle 157 Felder."
+      ],
+      "groesse": "Kleinstadt, 4.250 Einwohner, Nachfrage 43 E/min",
+      "lizenzfaktor": "Lizenzfaktor x10,72 (Stahlwerk, 131 Felder)",
+      "gelaende": "Fluss 26 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "altenbruck": {
+      "radius": "Radius 55 Felder",
+      "wagnis": false,
+      "ketten": [
+        "Kette 2 Kohle, Kraftwerk: Kraftwerk 49 Felder",
+        "Kette 3 Erz, Kohle, Stahl, Werkzeug: Erz 45, Stahl 33, Werkzeugfabrik 40 Felder. Absatz Kohlberg 92 Felder."
+      ],
+      "groesse": "Dorf, 450 Einwohner, Nachfrage 9 E/min",
+      "lizenzfaktor": "Lizenzfaktor x0,70 (Stahlwerk, im Radius)",
+      "gelaende": "Fluss 72 Felder entfernt; Wald 7 %",
+      "hinweis": ""
+    },
+    "weidenau": {
+      "radius": "Radius 55 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Farm 126, Mühle 143, Erzmine 168 Felder."
+      ],
+      "groesse": "Dorf, 800 Einwohner, Nachfrage 16 E/min",
+      "lizenzfaktor": "Lizenzfaktor x9,52 (Farm, 126 Felder)",
+      "gelaende": "Fluss 38 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "birkenau": {
+      "radius": "Radius 55 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Farm 90, Stahlwerk 90, Mühle 100 Felder."
+      ],
+      "groesse": "Dorf, 750 Einwohner, Nachfrage 15 E/min",
+      "lizenzfaktor": "Lizenzfaktor x5,20 (Farm, 90 Felder)",
+      "gelaende": "Fluss 106 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "eichwald": {
+      "radius": "Radius 55 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Farm 78, Mühle 98, Stahlwerk 123 Felder."
+      ],
+      "groesse": "Dorf, 600 Einwohner, Nachfrage 12 E/min",
+      "lizenzfaktor": "Lizenzfaktor x3,76 (Farm, 78 Felder)",
+      "gelaende": "Fluss 19 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    },
+    "haberau": {
+      "radius": "Radius 55 Felder",
+      "wagnis": false,
+      "ketten": [
+        "Kette 1 Getreide, Mehl: Farm 41 Felder"
+      ],
+      "groesse": "Dorf, 750 Einwohner, Nachfrage 15 E/min",
+      "lizenzfaktor": "Lizenzfaktor x0,70 (Farm, im Radius)",
+      "gelaende": "Fluss 22 Felder entfernt",
+      "hinweis": ""
+    },
+    "rotheim": {
+      "radius": "Radius 55 Felder",
+      "wagnis": true,
+      "ketten": [
+        "Nächste Lizenzen: Farm 154, Mühle 176, Stahlwerk 190 Felder."
+      ],
+      "groesse": "Dorf, 700 Einwohner, Nachfrage 14 E/min",
+      "lizenzfaktor": "Lizenzfaktor x12,88 (Farm, 154 Felder)",
+      "gelaende": "Fluss 94 Felder entfernt",
+      "hinweis": "Kette nur über Fernlizenzen erreichbar. Wagnis-Standort."
+    }
+  }
+}

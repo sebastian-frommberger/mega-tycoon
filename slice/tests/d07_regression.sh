@@ -113,6 +113,13 @@ for mode in default arg; do
   fl=$(grep "^  FAIL" "$LOGS/s7_boot_$mode.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
   record "s7_boot ($mode${a:+: --welt=s7})" $r "$(grep 'Prüfungen OK' "$LOGS/s7_boot_$mode.txt") ${fl:+ -- FAIL: $fl}"
 done
+# --- 2f) S7 W-06/W-02: Suite s7_validator (Generator-Determinismus Default-Seed, Validator world/data, 20 Seeds 0 Verstöße).
+if command -v python3 >/dev/null; then
+  bash tests/s7_validator.sh "$HERE/$LOGS/s7_validator" > "$LOGS/s7_validator.txt" 2>&1; r=$?
+  record "s7_validator (Generator md5, Validator, 20 Seeds)" $r "$(grep '^s7_validator' "$LOGS/s7_validator.txt" | sed 's/^s7_validator //' | tr '\n' ';' | cut -c1-220)"
+else
+  record "s7_validator" 1 "python3 fehlt"
+fi
 # --- 2e) D-09 (S7): Perf-Baseline Slice. Dreiecke/Draw Calls/Objekte an den 6 SP-03-Kameras mit 0 und 5.000 Lkw (Zählwerte,
 # keine Zeiten) gegen tests/perf_s7_baseline_slice.csv. Gate: > +10 % = rot. Neue Baseline bewusst setzen:
 #   tests/perf_s7.gd -- --out=<abs>/tests/perf_s7_baseline_slice.csv (nur nach Absprache mit Daniel, Änderung im Bericht begründen).

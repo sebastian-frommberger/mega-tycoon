@@ -33,6 +33,7 @@ func _fresh(city_id := "haberau", cash := 10_000_000) -> void:
 	if m != null:
 		m.free()
 	MainScript.world_override = welt
+	OS.set_environment("MT_S7_KARTE", "slice")   # W-02: Prüfungen an Slice-Koordinaten (S7-Maßstab, flach)
 	m = load(MAIN).instantiate()
 	root.add_child(m)
 	if OS.get_environment("U03_DEBUG") != "": print("DBG fresh added")

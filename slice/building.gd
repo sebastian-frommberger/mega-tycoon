@@ -38,6 +38,9 @@ func setup(p_kind: int, p_name: String, p_cell: Vector2i, p_size: Vector2i, cap_
 	footprint = p_size
 	height = p_height
 	position = center()
+	var par := get_parent()
+	if par != null and par.get("world_s7") != null:      # W-02 (S7): auf das Gelände (Plateau), Slice: unberührt
+		position.y = par.world_s7.hoehe_szene(position.x, position.z)
 	if kind == Kind.WAREHOUSE:
 		_add_box(Vector3(footprint.x - 0.15, height * 0.7, footprint.y - 0.15), Vector3(0, height * 0.35, 0), GREY.darkened(0.15))
 		_add_box(Vector3(footprint.x - 0.05, height * 0.3, footprint.y * 0.4), Vector3(0, height * 0.85, 0), cap_color)

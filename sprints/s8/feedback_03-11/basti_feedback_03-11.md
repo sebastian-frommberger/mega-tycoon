@@ -33,3 +33,11 @@ Erste Rückmeldung aus dem Rundgang, vom Nutzer aus dem Chat übernommen. Noch n
 
 ## Fehlt noch
 Karte-für-Karte-Tabelle, Antworten auf die fünf Schlussfragen, Screenshots, Freigabe ja/nein.
+
+## Entscheidung Basti (03.11.2026, 23:38): Gewässer je Kartentyp, Erwartungsregel
+- Ein See dieser Größe weckt die Erwartung, ihn nutzen zu können (Fischerei, Handel, Schiff). Wo er nichts bietet, wirkt er unstimmig.
+- Entweder-oder je Karte (Level-Design-Entscheidung, nicht global):
+  - **Breiter Fluss**: nur kleine, angedeutete Seen/Teiche, die keine Bewirtschaftung erwarten lassen.
+  - **Schmaler Fluss, großer See**: der See ist sinnvoll nutzbar.
+- Passt zu: Charter E10 (Gewässer mit Nutzung), Kartentypen Flusstal / Seenplatte / Seenreich (Gewässeranteil 3–5 / 8–12 / 15–25 %), K32 (Seenreich erst mit Fähre/Schiff), V-W2/V-W3 (Nutzung ab 300 m Gewässer oder je 2 km Fluss). Neu ist die Größenschwelle der Erwartung: ab welcher Größe muss ein See nutzbar sein? (Wert offen.)
+- Folge für Ticket T-W1: Der Prototyp liegt zwischen den Typen (breiter Fluss plus mittlerer Fischersee). Entweder Binsensee zur Kulisse verkleinern (Flusstal-Karte) oder mit minimaler Nutzung versehen (z. B. Fischerei als Kette, kostet eine Kette in Ökonomie und Art, nicht geschätzt).

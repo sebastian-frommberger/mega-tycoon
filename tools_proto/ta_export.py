@@ -48,7 +48,12 @@ K = {n: i for i, (n, _) in enumerate(KLASSEN)}
 
 # Teiche: Standorte (Annahmen TA, siehe ta_welle1.md)
 MUEHLTEICH = {"mitte_m": [1612.5, 1150.0], "radius_m": 45.0, "tiefe_m": 2.5, "boeschung_m": 15.0, "rand_min_m": 0.5}
-DORFTEICH = {"mitte_m": [1400.0, 1325.0], "radius_m": 12.5, "tiefe_m": 1.2, "boeschung_m": 6.0, "rand_min_m": 0.3}
+DORFTEICH = {"mitte_m": [1512.0, 818.0], "radius_m": 12.5, "tiefe_m": 1.2, "boeschung_m": 6.0, "rand_min_m": 0.3}   # W2: Stadt-Vorschlag (proto_orte.json gewaesser)
+# W2: S7-Plateaus (Ring glaetten, Plateau bleibt): Name, Plateauhoehe (m), Ringbreite aussen (Knoten), Glaettung sigma (Knoten),
+# Rundung der Plateaukante innen (Knoten). Haberau-Stadtplateau 118 m am Suedrand, Industrie-Plateau farm_2 61 m (Gut Kuppenhof)
+PLATEAUS = [("haberau_118", 118.0, 7.0, 2.6, 2.5), ("farm2_61", 61.0, 4.0, 1.5, 2.0)]
+MAX_DH = 4.0            # m Aenderung je Glaettungsschritt (keine Rinnen zuschuetten)
+SCHUTZ = [((1612.5, 1150.0), 110.0), ((1212.5, 1012.5), 330.0)]   # Muehlteich, See: Gelaende unveraendert
 DORF_PLATZHALTER = {"id": "dorf_platzhalter", "name": "Dorf (Platzhalter TA)", "klasse": "dorf", "x": 1400.0, "z": 1350.0, "r_m": 150.0}
 BACH_BREITE = 5.0
 BACH_RINNE_TIEFE = 1.2
@@ -111,6 +116,7 @@ class Welt:
         h = np.fromfile(os.path.join(quelle, "hoehe_s7.r16"), dtype="<u2").reshape(n, n)
         f = np.fromfile(os.path.join(quelle, "fluss_s7.u8"), dtype=np.uint8).reshape(n - 1, n - 1)
         self.H0 = h[self.r0:self.r0 + self.gh + 1, self.c0:self.c0 + self.gw + 1].astype(np.float64) * SKALA
+        self.plateau_info = self.plateaus_glaetten()
         self.F0 = f[self.r0:self.r0 + self.gh, self.c0:self.c0 + self.gw].copy()
         self.quelle_md5 = {k: md5f(os.path.join(quelle, k)) for k in ("hoehe_s7.r16", "fluss_s7.u8", "world_s7_meta.json")}
         assert self.quelle_md5["hoehe_s7.r16"] == meta["md5"]["hoehe_s7.r16"], "Quelle passt nicht zur Meta"
@@ -122,6 +128,63 @@ class Welt:
         self.Fb = tri_interp(self.H0, I / SUB, J / SUB)
         self.Fb = np.round(self.Fb / SKALA) * SKALA
         self.F = self.Fb.copy()
+
+    # ---------------------------------------------------------------- S7-Plateaus (W2)
+    def plateaus_glaetten(self):
+        """Ringboeschung der S7-Plateaus weich ausrunden (Gauss-Mischung im Ring), Plateauflaeche bleibt; Muehlteich/See geschuetzt.
+        Plateau = zusammenhaengende Knoten mit Hoehe = Plateauhoehe +- 0,06 m (>= 30 Knoten)."""
+        H = self.H0
+        ny, nx = H.shape
+        J, I = np.mgrid[0:ny, 0:nx].astype(np.float64)
+        wx, wz = self.ox + I * M, self.oz + J * M
+        schutz = np.ones(H.shape)
+        for (cx, cz), r in SCHUTZ:
+            schutz *= smoothstep(r, r + 60.0, np.hypot(wx - cx, wz - cz))
+        info = {}
+        alle_kerne = np.zeros(H.shape, bool)
+        kerne = {}
+        for name, lv, B, sig, rin in PLATEAUS:
+            # Plateau = flache Knoten nahe der Plateauhoehe (S7 setzt sie auf +-0,1 m genau, Toleranz 0,3 m)
+            flach = np.abs(H - nd.median_filter(H, size=3, mode="nearest")) < 0.12
+            core = (np.abs(H - lv) < 0.3) & flach
+            lab, n = nd.label(core)
+            if n == 0:
+                continue
+            sizes = nd.sum(core, lab, range(1, n + 1))
+            big = np.isin(lab, 1 + np.where(np.asarray(sizes) >= 30)[0])
+            kerne[name] = big
+            alle_kerne |= nd.binary_opening(big, structure=np.ones((5, 5), bool))   # nur breite Plateauflaechen schuetzen
+        vorher = self._steil(H)
+        for name, lv, B, sig, rin in PLATEAUS:
+            if name not in kerne:
+                continue
+            big = kerne[name]
+            fremd = alle_kerne & ~big
+            d_out = nd.distance_transform_edt(~big)
+            d_in = nd.distance_transform_edt(big)
+            breit = nd.binary_opening(big, structure=np.ones((5, 5), bool))     # schmale Plateauteile (Rinnen) nicht runden
+            w = np.where(big, np.where(breit, smoothstep(rin, 0.0, d_in) * 0.8, 0.0), smoothstep(B, 0.5, d_out))
+            w *= schutz
+            w[fremd] = 0.0                       # anderes Plateau (Gutshof auf 61 m) nicht anheben
+            for _ in range(2):
+                Hs = nd.gaussian_filter(H, sig, mode="nearest")
+                H = H + np.clip((Hs - H) * w, -MAX_DH, MAX_DH)
+            info[name] = {"plateau_knoten": int(big.sum()), "ring_knoten": int(((w > 0.05) & ~big).sum()),
+                          "max_aenderung_m": round(float(np.abs(H - self.H0).max()), 2)}
+        H = np.round(H / SKALA) * SKALA
+        nachher = self._steil(H)
+        info["kern_anteil_ueber_30pct"] = {"vorher": vorher[0], "nachher": nachher[0]}
+        info["kern_max_neigung_pct"] = {"vorher": vorher[1], "nachher": nachher[1]}
+        self.H0 = H
+        return info
+
+    def _steil(self, H):
+        r = self.rand
+        k = H[r:r + 65, r:r + 81]
+        gx = np.abs(np.diff(k, axis=1))[:-1, :] / M
+        gz = np.abs(np.diff(k, axis=0))[:, :-1] / M
+        g = np.hypot(gx, gz)
+        return round(float((g > 0.30).mean() * 100.0), 2), round(float(g.max() * 100.0), 1)
 
     # ---------------------------------------------------------------- Stempel
     def ufer_radius(self, cx, cz, r, staerke, s):
@@ -277,7 +340,12 @@ def main():
                "ufer_rauschen": 0.07, "rausch_phase": 0.0, "schelf_m": 70.0}
     W.stempel_gewaesser(sx, sz, sr, sp, 4.0, 40.0, 0.8, 0.07, 0.0, 70.0)
 
-    # ---------------- Teiche
+    # ---------------- Teiche (W2: Dorfteich aus proto_orte.json gewaesser, falls vorhanden)
+    if a.orte and os.path.exists(a.orte):
+        for g in json.load(open(a.orte)).get("gewaesser", []):
+            if g.get("id") == "dorfteich" and "x" in g:
+                DORFTEICH["mitte_m"] = [float(g["x"]), float(g["z"])]
+                DORFTEICH["radius_m"] = float(g.get("r_m", DORFTEICH["radius_m"]))
     teiche = {}
     for name, T, s in (("muehlteich", MUEHLTEICH, 1.7), ("dorfteich", DORFTEICH, 3.1)):
         cx, cz = T["mitte_m"]
@@ -521,7 +589,7 @@ def main():
                            damm="Nordufer (bachabwaerts), Boeschung >= Pegel + 0,5 m; Bach laeuft durch den Teich",
                            quelle="TA-Annahme: flachster Bachabschnitt (Gefaelle ~1 %), 600 m vom Fluss"),
         "dorfteich": dict(teiche["dorfteich"], flaeche_m2=kz["dorfteich_flaeche_m2"],
-                          quelle="TA-Annahme: Anger des Platzhalter-Dorfs (x 1400, z 1350); Stadt-Rolle darf das Dorf darum legen"),
+                          quelle="W2: Stadt-Vorschlag (proto_orte.json gewaesser.dorfteich, Ende der Bachgasse)"),
         "rauschen_formel": "r_eff = r * (1 + (sin(3t+0.7+s)*0.035 + sin(5t+2.1+1.3s)*0.025 + sin(8t+4.0+0.4s)*0.012) * staerke/0.07), t = atan2(z-cz, x-cx)",
     }
     json.dump(bach, open(os.path.join(a.ziel, "proto_bach.json"), "w"), ensure_ascii=False, indent=1)
@@ -544,6 +612,7 @@ def main():
                   "png": "RGB = Klassenfarbe (sRGB), A = id * 20 + 10", "acker_maske": "0 kein, 1 hell, 2 dunkel",
                   "orte_quelle": orte_quelle},
         "quelle_md5": W.quelle_md5,
+        "plateaus_w2": W.plateau_info,
         "kennzahlen": kz,
         "md5": {f: md5f(os.path.join(a.ziel, f)) for f in files},
     }

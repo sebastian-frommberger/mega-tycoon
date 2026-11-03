@@ -54,7 +54,7 @@ const BUCKEL_M := 0.5
 const RAMPE_STEIGUNG := 0.08         # steilste Rampenstelle (Annahme Felix; strasse_hart 20 %, Generator Chaussee 5 %)
 const KNOTEN_FANG_M := 4.0
 const BRUECKE_RAND_M := 0.8          # Kiesrand zwischen Fahrbahn und Brüstung
-const STUFE_MAX_M := 40.0            # Kante ≤ 1,6 Felder = Treppenstufe
+const STUFE_MAX_M := 55.0            # Kante ≤ 2,2 Felder = Treppenstufe (W2: auch 2:1-Treppen, vorher 40 m)
 const DP_MIN_M := 9.0                # halbe Feldstufe liegt 12,5/√2 = 8,84 m neben der Diagonale (8-m-Regel reicht nicht)
 
 ## Querschnitt je Typ: fahrbahn, trasse (m), radius (m). Werte aus regelwerk (konfig_aus_regelwerk), sonst diese Annahmen.
@@ -62,7 +62,7 @@ var profile := {
 	"chaussee": {"fahrbahn": 6.0, "trasse": 11.0, "radius": 50.0, "graben": true},
 	"dorfstrasse": {"fahrbahn": 6.0, "trasse": 6.0, "radius": 25.0, "graben": false},
 	"gasse": {"fahrbahn": 5.0, "trasse": 5.0, "radius": 10.0, "graben": false},      # Radius Annahme Felix
-	"feldweg": {"fahrbahn": 3.5, "trasse": 3.5, "radius": 15.0, "graben": false},    # Radius Annahme Felix
+	"feldweg": {"fahrbahn": 3.5, "trasse": 3.5, "radius": 25.0, "graben": false},    # Radius Annahme Felix (W2: 25 m, E3)
 	"bruecke": {"fahrbahn": 6.0, "trasse": 6.0, "radius": 25.0, "graben": false},
 }
 var abweichung_max_m := 8.0
@@ -145,6 +145,28 @@ class Fahrlinie extends RefCounted:
 			if d < best:
 				best = d
 				bs = k * DS + t * (DS if k < punkte.size() - 2 else laenge - k * DS)
+		return bs
+
+	## Wie naechstes_s, aber ab Tabellenindex i0 vorwärts; bricht ab, sobald die Linie > 100 m weiter weg ist als das
+	## bisher Beste und 200 m hinter ihm liegt (Anker sind geordnet; spart O(n²) beim Bau, W2 Ladezeit).
+	func naechstes_s_ab(p: Vector3, i0: int) -> float:
+		var best := INF
+		var bs := 0.0
+		var bk := i0
+		var q := Vector2(p.x, p.z)
+		for k in range(maxi(i0, 0), punkte.size() - 1):
+			var a := Vector2(punkte[k].x, punkte[k].z)
+			var b := Vector2(punkte[k + 1].x, punkte[k + 1].z)
+			var ab := b - a
+			var l2 := ab.length_squared()
+			var t := 0.0 if l2 < 1e-9 else clampf((q - a).dot(ab) / l2, 0.0, 1.0)
+			var d := q.distance_squared_to(a + ab * t)
+			if d < best:
+				best = d
+				bk = k
+				bs = k * DS + t * (DS if k < punkte.size() - 2 else laenge - k * DS)
+			elif k > bk + 200 and sqrt(d) > sqrt(best) + 100.0:
+				break
 		return bs
 
 	func sim_auf_s(kante: int, anteil: float) -> float:
@@ -546,8 +568,10 @@ func _bauen_weg(parent: Node3D, i: int, typ: String, geo: PackedVector2Array, ro
 		fl.gier[k] = atan2(b.x - a.x, b.y - a.y)
 	fl.anker = roh
 	fl.anker_s.resize(roh.size())
+	var i_ab := 0
 	for k in roh.size():
-		fl.anker_s[k] = fl.naechstes_s(Vector3(roh[k].x, 0, roh[k].y))
+		fl.anker_s[k] = fl.naechstes_s_ab(Vector3(roh[k].x, 0, roh[k].y), i_ab - 30)
+		i_ab = int(fl.anker_s[k] / Fahrlinie.DS)
 	# Mesh
 	var off: Array
 	var dy: Array
@@ -587,7 +611,15 @@ func _bauen_weg(parent: Node3D, i: int, typ: String, geo: PackedVector2Array, ro
 				if ao > hb:
 					u = signf(o) * 1.1
 			else:
-				y = _hoehe_s(s, p, hoehe_fn, br) + float(dy[q]) * (1.0 - tb)
+				y = _hoehe_s(s, p, hoehe_fn, br)
+				if tb <= 0.0:
+					# W2: Gelände zwischen zwei Querschnitten (TA-Feinraster 5 m) darf nicht über das Band ragen:
+					# Querschnitt auf das Maximum bei ±halbem Abstand zu den Nachbarn heben (Wölbung abdecken).
+					var hv := (gs[mini(k + 1, geo.size() - 1)] - gs[maxi(k - 1, 0)]) * 0.25
+					for e in [-1.0, -0.5, 0.5, 1.0]:
+						var pe: Vector2 = p + d * hv * e
+						y = maxf(y, float(hoehe_fn.call(pe.x, pe.y)) + Y_OFF)
+				y += float(dy[q]) * (1.0 - tb)
 			st.set_uv(Vector2(u, s))
 			st.add_vertex(Vector3(p.x, y, p.y))
 	for k in geo.size() - 1:

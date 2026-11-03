@@ -1,0 +1,16 @@
+bild;schild;stufe;text_zu_platte;platte_zu_umgebung;rand_zu_umgebung;schild_zu_umgebung_max
+1_uebersicht;erlenbach;Fern;13.49;2.96;3.26;3.26
+1_uebersicht;lindenfurt;Fern;13.44;5.01;2.13;5.01
+1_uebersicht;gut_kuppenhof;Fern;9.33;4.38;2.21;4.38
+1_uebersicht;erlenmuehle;Fern;12.19;4.87;1.99;4.87
+2_dorf;erlenbach;Voll;13.44;5.24;1.93;5.24
+4_ohne_modelle;erlenbach;Fern;13.44;2.95;3.26;3.26
+4_ohne_modelle;lindenfurt;Fern;13.44;5.01;2.13;5.01
+4_ohne_modelle;gut_kuppenhof;Fern;9.33;4.38;2.21;4.38
+4_ohne_modelle;erlenmuehle;Fern;12.19;4.87;1.99;4.87
+5_tooltip_dorf;erlenbach;Voll;13.44;5.24;1.93;5.24
+9_see;erlenmuehle;Voll;12.35;5.63;1.48;5.63
+10_mittel;erlenbach;Voll;13.43;5.06;1.98;5.06
+10_mittel;erlenmuehle;Voll;12.35;6.06;1.61;6.06
+11_gutshof_voll;gut_kuppenhof;Voll;9.69;3.79;2.78;3.79
+11_gutshof_voll;erlenmuehle;Voll;12.35;4.71;1.94;4.71

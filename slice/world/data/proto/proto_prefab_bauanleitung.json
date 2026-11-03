@@ -339,7 +339,7 @@
    "faktoren_xyz": [
     1.0,
     1.0,
-    1.13
+    1.3414
    ],
    "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-locomotive-a.glb",
    "kit": "Train Kit",
@@ -347,19 +347,19 @@
    "lokal_vorhanden": false,
    "m_pro_u": 2.592,
    "modell": "train-locomotive-a",
-   "notiz": "Kenney gedrungen (L:B:H 1,6:0,9:1): Bezug Hoehe statt Laenge -> 6,8 x 3,7 x 4,3 m, alles im Band; Laenge auf 9 m wuerde H 5,7 m (x1,55) ergeben",
+   "notiz": "W2 (TA): Bezug Hoehe 4,3 m (2,592 m/u), Laengsfaktor z 1,341 -> 9,04 m; mit Tender 4,76 m = 13,8 m = 1,19 x real 11,6 m",
    "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
    "prefab_ziel": "res://proto/prefabs/dampflok.tres",
    "res_ziel": "res://props/kenney_proto/train/train-locomotive-a.glb",
    "skala_m_pro_u": [
     2.592,
     2.592,
-    2.929
+    3.4769
    ],
    "soll_aabb_m": [
     3.704,
     4.3,
-    7.615
+    9.04
    ],
    "toleranz": {
     "achse": "z",
@@ -1285,9 +1285,9 @@
     2.7
    ],
    "bezugsachse": "z",
-   "faktor_szene_25m": 0.1022,
+   "faktor_szene_25m": 0.1007,
    "faktoren_xyz": [
-    1.0,
+    0.98,
     1.0,
     1.0
    ],
@@ -1295,31 +1295,31 @@
    "kit": "Train Kit",
    "lokal_asset": "",
    "lokal_vorhanden": false,
-   "m_pro_u": 2.556,
+   "m_pro_u": 2.519,
    "modell": "train-carriage-box",
-   "notiz": "Behelf, Fenster als Decal/Farbstreifen",
+   "notiz": "W2 (TA): Kenney-Kasten offen -> Dach + Fensterband als Hilfsmesh; Querfaktor x 2,5 m/u (3,0 m), Hoehe 2,5 m/u",
    "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
    "prefab_ziel": "res://proto/prefabs/personenwagen.tres",
    "res_ziel": "res://props/kenney_proto/train/train-carriage-box.glb",
    "skala_m_pro_u": [
-    2.556,
-    2.556,
-    2.556
+    2.4686,
+    2.519,
+    2.519
    ],
    "soll_aabb_m": [
-    3.067,
-    3.318,
-    6.901
+    2.962,
+    3.27,
+    6.801
    ],
    "toleranz": {
     "achse": "z",
     "band_m": [
-     5.175,
-     8.625
+     5.1,
+     8.5
     ],
     "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
    },
-   "ziel_m": 6.9
+   "ziel_m": 6.8
   },
   "pferd": {
    "bbox_u": [
@@ -1340,7 +1340,7 @@
    "lokal_vorhanden": false,
    "m_pro_u": 2.88,
    "modell": "animal-horse",
-   "notiz": "einziges Pferd, sehr einfach; Laengsachse x",
+   "notiz": "einziges Pferd, sehr einfach; Laengsachse x; W2: y 2,45 m/u (H 2,2 m), Kopf -x -> +90 Grad",
    "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
    "prefab_ziel": "res://proto/prefabs/pferd.tres",
    "res_ziel": "res://props/kenney_proto/prototype/animal-horse.glb",
@@ -1370,10 +1370,10 @@
     0.848,
     2.372
    ],
-   "bezugsachse": "x",
-   "faktor_szene_25m": 0.0655,
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.0759,
    "faktoren_xyz": [
-    1.0,
+    0.55,
     1.0,
     1.0
    ],
@@ -1381,21 +1381,21 @@
    "kit": "Watercraft Pack",
    "lokal_asset": "",
    "lokal_vorhanden": false,
-   "m_pro_u": 1.637,
+   "m_pro_u": 1.897,
    "modell": "boat-row-small",
-   "notiz": "Achse im Spiel pruefen",
+   "notiz": "W2 (TA): Laengsachse ist z (2,372 u), x-Ausdehnung 2,75 u sind die Riemen; Querfaktor 0,55 (Rumpf 1,5 m), y 1,2 m/u",
    "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
    "prefab_ziel": "res://proto/prefabs/ruderboot.tres",
    "res_ziel": "res://props/kenney_proto/watercraft/boat-row-small.glb",
    "skala_m_pro_u": [
-    1.637,
-    1.637,
-    1.637
+    1.0433,
+    1.897,
+    1.897
    ],
    "soll_aabb_m": [
-    4.5,
-    1.388,
-    3.883
+    2.868,
+    1.609,
+    4.5
    ],
    "toleranz": {
     "achse": "x",
@@ -1416,7 +1416,7 @@
    "bezugsachse": "z",
    "faktor_szene_25m": 0.0711,
    "faktoren_xyz": [
-    1.0,
+    1.406,
     1.0,
     1.0
    ],
@@ -1426,29 +1426,29 @@
    "lokal_vorhanden": false,
    "m_pro_u": 1.778,
    "modell": "train-carriage-coal",
-   "notiz": "Hilfsmesh: Kohlewagen auf 4,8 m gekuerzt (nur z)",
+   "notiz": "W2 (TA): x 2,5 / y 2,0 / z 1,763 m/u -> 3,0 x 3,3 x 4,76 m (Breite wie Lok)",
    "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
    "prefab_ziel": "res://proto/prefabs/tender.tres",
    "res_ziel": "res://props/kenney_proto/train/train-carriage-coal.glb",
    "skala_m_pro_u": [
-    1.778,
+    2.4999,
     1.778,
     1.778
    ],
    "soll_aabb_m": [
-    2.134,
+    3.0,
     2.927,
     4.801
    ],
    "toleranz": {
     "achse": "z",
     "band_m": [
-     3.6,
-     6.0
+     3.57,
+     5.95
     ],
     "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
    },
-   "ziel_m": 4.8
+   "ziel_m": 4.76
   },
   "trockenmauer": {
    "bbox_u": [

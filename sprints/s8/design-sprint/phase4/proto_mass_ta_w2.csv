@@ -1,0 +1,83 @@
+Objekt;Soll;Ist;Abw. %;OK;Quelle
+amboss;(kein Soll);0.80;;ja;prefab ProtoPrefabs.amboss | Info: kein Soll im Regelwerk
+bauernhof.lang;12.0 ±25%;12.70;+5.8;ja;prefab ProtoPrefabs.bauernhof | skalen.gebaeude_m/haus_m
+bauernhof.quer;9.0 ±25%;9.90;+10.0;ja;prefab ProtoPrefabs.bauernhof | skalen.gebaeude_m/haus_m
+bauernhof.h;9.0–11.0 ±25%;10.80;+0.0;ja;prefab ProtoPrefabs.bauernhof | skalen.gebaeude_m/haus_m
+brunnen;(kein Soll);6.00;;ja;prefab ProtoPrefabs.brunnen | Info: kein Soll im Regelwerk
+buergerhaus.lang;14.0 ±25%;14.70;+5.0;ja;prefab ProtoPrefabs.buergerhaus | skalen.gebaeude_m/haus_l
+buergerhaus.quer;12.0 ±25%;12.90;+7.5;ja;prefab ProtoPrefabs.buergerhaus | skalen.gebaeude_m/haus_l
+buergerhaus.h;12.5–15.0 ±25%;16.20;+8.0;ja;prefab ProtoPrefabs.buergerhaus | skalen.gebaeude_m/haus_l
+dampflok.l;6.84–9.12 (0.9–1.2×);9.04;+18.9;ja;prefab ProtoPrefabs.dampflok | skalen.fahrzeuge_dm/dampflok.real_l
+eiche.h;15.0–25.0 ±25%;20.00;+0.0;ja;prefab ProtoPrefabs.eiche | skalen.baeume_m/laub
+fass;(kein Soll);0.62;;ja;prefab ProtoPrefabs.fass | Info: kein Soll im Regelwerk
+fischerhuette.lang;8.0 ±25%;8.70;+8.7;ja;prefab ProtoPrefabs.fischerhuette | 16 §5 M14
+fischerhuette.quer;6.0 ±25%;7.00;+16.7;ja;prefab ProtoPrefabs.fischerhuette | 16 §5 M14
+flaeche_garten;(kein Soll);1.00;;ja;prefab ProtoPrefabs.flaeche_garten | Info: kein Soll im Regelwerk
+flaeche_hof;(kein Soll);1.00;;ja;prefab ProtoPrefabs.flaeche_hof | Info: kein Soll im Regelwerk
+flaeche_kirchhof;(kein Soll);1.00;;ja;prefab ProtoPrefabs.flaeche_kirchhof | Info: kein Soll im Regelwerk
+flaeche_marktplatz;(kein Soll);1.00;;ja;prefab ProtoPrefabs.flaeche_marktplatz | Info: kein Soll im Regelwerk
+flaeche_obstwiese;(kein Soll);1.00;;ja;prefab ProtoPrefabs.flaeche_obstwiese | Info: kein Soll im Regelwerk
+fuhrwerk_2_pferde.l;7.20–10.80 (0.9–1.2×);8.94;+5.1;ja;prefab ProtoPrefabs.fuhrwerk_2_pferde | skalen.fahrzeuge_dm/fuhrwerk_2_pferde.real_l
+gasthaus.lang;14.0 ±25%;14.70;+5.0;ja;prefab ProtoPrefabs.gasthaus | haustypen.gasthaus
+gasthaus.quer;12.0 ±25%;12.90;+7.5;ja;prefab ProtoPrefabs.gasthaus | haustypen.gasthaus
+gueterwagen.l;4.50–7.20 (0.9–1.2×);6.90;+25.5;ja;prefab ProtoPrefabs.gueterwagen | skalen.fahrzeuge_dm/gueterwagen.real_l
+gutshof.lang;40.0 ±25%;40.90;+2.3;ja;prefab ProtoPrefabs.gutshof | skalen.industrie_m/gutshof
+gutshof.quer;40.0 ±25%;40.80;+2.0;ja;prefab ProtoPrefabs.gutshof | skalen.industrie_m/gutshof
+gutshof.h;12.0–15.0 ±25%;14.30;+0.0;ja;prefab ProtoPrefabs.gutshof | skalen.industrie_m/gutshof
+handwerkerhaus.lang;12.0 ±25%;12.70;+5.8;ja;prefab ProtoPrefabs.handwerkerhaus | skalen.gebaeude_m/haus_m
+handwerkerhaus.quer;9.0 ±25%;9.90;+10.0;ja;prefab ProtoPrefabs.handwerkerhaus | skalen.gebaeude_m/haus_m
+handwerkerhaus.h;9.0–11.0 ±25%;11.30;+2.7;ja;prefab ProtoPrefabs.handwerkerhaus | skalen.gebaeude_m/haus_m
+heuhaufen;(kein Soll);2.50;;ja;prefab ProtoPrefabs.heuhaufen | Info: kein Soll im Regelwerk
+holzstapel;(kein Soll);4.00;;ja;prefab ProtoPrefabs.holzstapel | Info: kein Soll im Regelwerk
+kate.lang;8.0 ±25%;8.80;+10.0;ja;prefab ProtoPrefabs.kate | skalen.gebaeude_m/haus_s_kate
+kate.quer;6.0 ±25%;7.20;+20.0;ja;prefab ProtoPrefabs.kate | skalen.gebaeude_m/haus_s_kate
+kate.h;6.0–7.0 ±25%;7.50;+7.1;ja;prefab ProtoPrefabs.kate | skalen.gebaeude_m/haus_s_kate
+kirche_dorf.lang;20.0 ±25%;20.70;+3.5;ja;prefab ProtoPrefabs.kirche_dorf | skalen.gebaeude_m/kirche_dorf
+kirche_dorf.quer;10.0 ±25%;10.90;+9.0;ja;prefab ProtoPrefabs.kirche_dorf | skalen.gebaeude_m/kirche_dorf
+kirche_dorf.h;30.0 ±25%;31.30;+4.3;ja;prefab ProtoPrefabs.kirche_dorf | skalen.gebaeude_m/kirche_dorf
+kirche_stadt.lang;35.0 ±25%;35.70;+2.0;ja;prefab ProtoPrefabs.kirche_stadt | skalen.gebaeude_m/kirche_stadt
+kirche_stadt.quer;15.0 ±25%;15.90;+6.0;ja;prefab ProtoPrefabs.kirche_stadt | skalen.gebaeude_m/kirche_stadt
+kirche_stadt.h;45.0–55.0 ±25%;50.80;+0.0;ja;prefab ProtoPrefabs.kirche_stadt | skalen.gebaeude_m/kirche_stadt
+laubbaum.h;15.0–25.0 ±25%;18.00;+0.0;ja;prefab ProtoPrefabs.laubbaum | skalen.baeume_m/laub
+nebengebaeude.lang;18.0 ±25%;18.70;+3.9;ja;prefab ProtoPrefabs.nebengebaeude | haustypen.nebengebaeude.varianten_m[0]
+nebengebaeude.quer;10.0 ±25%;10.90;+9.0;ja;prefab ProtoPrefabs.nebengebaeude | haustypen.nebengebaeude.varianten_m[0]
+netzgestell;(kein Soll);4.00;;ja;prefab ProtoPrefabs.netzgestell | Info: kein Soll im Regelwerk
+obstbaum.h;6.0–8.0 ±25%;7.00;+0.0;ja;prefab ProtoPrefabs.obstbaum | skalen.baeume_m/obst
+passant;(kein Soll);1.65;;ja;prefab ProtoPrefabs.passant | Info: kein Soll im Regelwerk
+personenwagen.l;5.13–6.84 (0.9–1.2×);6.80;+19.3;ja;prefab ProtoPrefabs.personenwagen | skalen.fahrzeuge_dm/personenwagen.real_l
+postkutsche_4_pferde.l;9.00–14.40 (0.9–1.2×);11.84;+7.6;ja;prefab ProtoPrefabs.postkutsche_4_pferde | skalen.fahrzeuge_dm/postkutsche_4_pferde.real_l
+rathaus.lang;16.0 ±25%;16.70;+4.4;ja;prefab ProtoPrefabs.rathaus | haustypen.rathaus
+rathaus.quer;12.0 ±25%;12.90;+7.5;ja;prefab ProtoPrefabs.rathaus | haustypen.rathaus
+ruderboot.l;4.05–5.40 (0.9–1.2×);4.50;+0.0;ja;prefab ProtoPrefabs.ruderboot | epochen.W1.fahrzeuge.ruderboot_dm
+scheune.lang;18.0 ±25%;18.70;+3.9;ja;prefab ProtoPrefabs.scheune | skalen.gebaeude_m/scheune
+scheune.quer;10.0 ±25%;10.90;+9.0;ja;prefab ProtoPrefabs.scheune | skalen.gebaeude_m/scheune
+scheune.h;8.0–10.0 ±25%;9.40;+0.0;ja;prefab ProtoPrefabs.scheune | skalen.gebaeude_m/scheune
+schmiede.lang;9.0 ±25%;9.70;+7.8;ja;prefab ProtoPrefabs.schmiede | haustypen.schmiede
+schmiede.quer;7.0 ±25%;7.90;+12.9;ja;prefab ProtoPrefabs.schmiede | haustypen.schmiede
+speicher.lang;20.0 ±25%;20.70;+3.5;ja;prefab ProtoPrefabs.speicher | haustypen.speicher
+speicher.quer;12.0 ±25%;12.90;+7.5;ja;prefab ProtoPrefabs.speicher | haustypen.speicher
+stadttor.lang;8.0 ±25%;8.70;+8.7;ja;prefab ProtoPrefabs.stadttor | haustypen.stadttor
+stadttor.quer;8.0 ±25%;8.70;+8.7;ja;prefab ProtoPrefabs.stadttor | haustypen.stadttor
+stadttor.h;18.0 ±25%;19.00;+5.6;ja;prefab ProtoPrefabs.stadttor | haustypen.stadttor
+steg.lang;25.0 ±25%;25.00;+0.0;ja;prefab ProtoPrefabs.steg | 16 §5 M14
+steg.quer;2.0 ±25%;2.00;+0.0;ja;prefab ProtoPrefabs.steg | 16 §5 M14
+tender.l;3.60–4.80 (0.9–1.2×);4.76;+19.0;ja;prefab ProtoPrefabs.tender | skalen.fahrzeuge_dm/tender.real_l
+wassermuehle.lang;12.0 ±25%;12.90;+7.5;ja;prefab ProtoPrefabs.wassermuehle | skalen.industrie_m/wassermuehle
+wassermuehle.quer;12.0 ±25%;12.70;+5.8;ja;prefab ProtoPrefabs.wassermuehle | skalen.industrie_m/wassermuehle
+wassermuehle_rad;(kein Soll);5.00;;ja;prefab ProtoPrefabs.wassermuehle_rad | Info: kein Soll im Regelwerk
+zaun_latte;(kein Soll);2.89;;ja;prefab ProtoPrefabs.zaun_latte | Info: kein Soll im Regelwerk
+epoche.bauernhof;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+epoche.buergerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+epoche.handwerkerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+epoche.kate;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+perf.Übersicht.dreiecke;≤ 1000000;181182.00;-81.9;ja;RenderingServer (live)
+perf.Übersicht.draw_calls;≤ 300;83.00;-72.3;ja;RenderingServer (live)
+perf.Dorf.dreiecke;(Info);549184.00;;ja;RenderingServer (live)
+perf.Dorf.draw_calls;(Info);91.00;;ja;RenderingServer (live)
+perf.Markt.dreiecke;≤ 2900000;509388.00;-82.4;ja;RenderingServer (live)
+perf.Fluss.dreiecke;(Info);798582.00;;ja;RenderingServer (live)
+perf.Fluss.draw_calls;(Info);61.00;;ja;RenderingServer (live)
+perf.See.dreiecke;(Info);787550.00;;ja;RenderingServer (live)
+perf.See.draw_calls;(Info);110.00;;ja;RenderingServer (live)
+perf.ladezeit_ms;≤ 3000;1791.99;-40.3;ja;prototyp_welt._ready
+perf.ladezeit_wand_ms;≤ 3000;1884.87;-37.2;ja;instantiate + 1 Frame

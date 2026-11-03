@@ -1,0 +1,66 @@
+{
+ "_meta": {
+  "eigentuemer": "Aylin (Phase 4 Welle 2)",
+  "zweck": "Zusatzdaten fuer proto_schilder.gd, die nicht in proto_orte.json stehen: Umland, Trend, Bedarf, Texte. Ort-EW, Name, Klasse, Position kommen aus proto_orte.json.",
+  "quellen": {
+   "erlenbach": "umland 406 und sim 650 aus proto_vorher_nachher.json (annahmen.umland_ew, sim_ew_start)",
+   "lindenfurt": "Annahme: Ort gesamt 2400 (Klassenband Kleinstadt ab 2000), Umland 550 (Band 400-700, Mitte); im Kern ist nur der Markt-Ausschnitt gebaut (387 EW sichtbar)",
+   "hasenwinkel": "Weiler: kein Sim-Knoten (12_regelwerk ortsklassen.weiler), zaehlt zum Umland"
+  },
+  "trend": "hoch | gleich | runter. Ohne Versorgung bleibt ein Ort stabil (E7), deshalb Start 'gleich'. Felix' Sim-Adapter setzt per ProtoSchilder.setze_trend()",
+  "bedarf_status": "ok = gedeckt (Kreis, gruen), warn = wird gebraucht (Dreieck, amber), bad = fehlt dringend (Quadrat, rot). Form und Farbe, nie Farbe allein (A-07)",
+  "bedarf_regel": "Dorf und Kleinstadt kaufen Kategorie 'nahrung' (economy_slice saettigung.basket_by_stage): Mehl, ersatzweise Fleisch (goods.json substitut_fuer)"
+ },
+ "orte": {
+  "erlenbach": {
+   "form_text": "Haufendorf",
+   "umland_ew": 406,
+   "sim_ew": 650,
+   "trend": "gleich",
+   "bedarf": [
+    {"gut": "mehl", "status": "warn"},
+    {"gut": "fleisch", "status": "warn", "ersatz": true}
+   ]
+  },
+  "lindenfurt": {
+   "form_text": "Kleinstadt (Markt-Ausschnitt)",
+   "ew_gesamt": 2400,
+   "umland_ew": 550,
+   "sim_ew": 2950,
+   "annahme": true,
+   "trend": "gleich",
+   "bedarf": [
+    {"gut": "mehl", "status": "warn"},
+    {"gut": "fleisch", "status": "warn", "ersatz": true}
+   ]
+  },
+  "hasenwinkel": {
+   "form_text": "Weiler",
+   "trend": "gleich",
+   "bedarf": []
+  }
+ },
+ "guete": {
+  "mehl": {"name": "Mehl", "icon": "res://proto/proto_icons/p_mehl.png"},
+  "fleisch": {"name": "Fleisch", "icon": "res://proto/proto_icons/p_fleisch.png"},
+  "getreide": {"name": "Getreide", "icon": "res://ui/assets/icons/c_weizen.png"}
+ },
+ "industrie": {
+  "getreidefarm": {
+   "plakette": "res://ui/assets/industry/getreidefarm_frei.png",
+   "farbe": [236, 200, 76],
+   "saum": [15, 23, 32],
+   "ein": [],
+   "aus": ["getreide"],
+   "tooltip": ["Getreidefarm. Hier wächst das Getreide.", "Es geht auf der Straße zur Mühle."]
+  },
+  "wassermuehle": {
+   "plakette": "res://ui/assets/industry/muehle_frei.png",
+   "farbe": [238, 236, 228],
+   "saum": [15, 23, 32],
+   "ein": ["getreide"],
+   "aus": ["mehl"],
+   "tooltip": ["Wassermühle am Bach. Sie mahlt Getreide zu Mehl.", "Das Mehl geht ins Dorf."]
+  }
+ }
+}

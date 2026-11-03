@@ -187,11 +187,11 @@
    "faktor_szene": 0.1152,
    "masse_m": [
     2.9,
-    2.56,
+    2.18,
     0.9
    ],
    "abweichung_kit_faktor_pct": 20,
-   "notiz": "einziges Pferd, sehr einfach; Laengsachse x"
+   "notiz": "einziges Pferd, sehr einfach; Laengsachse x; W2: y 2,45 m/u (H 2,2 m), Kopf -x -> +90 Grad"
   },
   "dampflok": {
    "kit": "Train Kit",
@@ -210,10 +210,11 @@
    "masse_m": [
     3.7,
     4.3,
-    6.74
+    9.04
    ],
    "abweichung_kit_faktor_pct": 0,
-   "notiz": "Kenney gedrungen (L:B:H 1,6:0,9:1): Bezug Hoehe statt Laenge -> 6,8 x 3,7 x 4,3 m, alles im Band; Laenge auf 9 m wuerde H 5,7 m (x1,55) ergeben"
+   "notiz": "W2 (TA): Bezug Hoehe 4,3 m (2,592 m/u), Laengsfaktor z 1,341 -> 9,04 m; mit Tender 4,76 m = 13,8 m = 1,19 x real 11,6 m",
+   "laengsfaktor_z": 1.341
   },
   "tender": {
    "kit": "Train Kit",
@@ -225,17 +226,18 @@
     2.7
    ],
    "bezugsachse": "z",
-   "ziel_m": 4.8,
+   "ziel_m": 4.76,
    "ziel_quelle": "01 C Tender 4,8",
    "m_pro_u": 1.778,
    "faktor_szene": 0.0711,
    "masse_m": [
-    2.13,
-    2.93,
-    4.8
+    3.0,
+    3.29,
+    4.76
    ],
    "abweichung_kit_faktor_pct": -32,
-   "notiz": "Hilfsmesh: Kohlewagen auf 4,8 m gekuerzt (nur z)"
+   "notiz": "W2 (TA): x 2,5 / y 2,0 / z 1,763 m/u -> 3,0 x 3,3 x 4,76 m (Breite wie Lok)",
+   "querfaktor_x": 1.406
   },
   "gueterwagen": {
    "kit": "Train Kit",
@@ -269,17 +271,18 @@
     2.7
    ],
    "bezugsachse": "z",
-   "ziel_m": 6.9,
-   "ziel_quelle": "01 C Personenwagen 5,74 x 1,2",
-   "m_pro_u": 2.556,
-   "faktor_szene": 0.1022,
+   "ziel_m": 6.8,
+   "ziel_quelle": "po W2: 6,8 m = 1,19 x 5,74 m",
+   "m_pro_u": 2.519,
+   "faktor_szene": 0.1007,
    "masse_m": [
-    3.07,
-    3.32,
-    6.9
+    3.0,
+    3.42,
+    6.8
    ],
    "abweichung_kit_faktor_pct": -2,
-   "notiz": "Behelf, Fenster als Decal/Farbstreifen"
+   "notiz": "W2 (TA): Kenney-Kasten offen -> Dach + Fensterband als Hilfsmesh; Querfaktor x 2,5 m/u (3,0 m), Hoehe 2,5 m/u",
+   "querfaktor_x": 0.98
   },
   "gleis": {
    "kit": "Train Kit",
@@ -841,18 +844,19 @@
     0.848,
     2.372
    ],
-   "bezugsachse": "x",
+   "bezugsachse": "z",
    "ziel_m": 4.5,
    "ziel_quelle": "Ruderboot 4-5",
-   "m_pro_u": 1.637,
-   "faktor_szene": 0.0655,
+   "m_pro_u": 1.897,
+   "faktor_szene": 0.0759,
    "masse_m": [
-    4.5,
-    1.39,
-    3.88
+    2.87,
+    1.02,
+    4.5
    ],
    "abweichung_kit_faktor_pct": -4,
-   "notiz": "Achse im Spiel pruefen"
+   "notiz": "W2 (TA): Laengsachse ist z (2,372 u), x-Ausdehnung 2,75 u sind die Riemen; Querfaktor 0,55 (Rumpf 1,5 m), y 1,2 m/u",
+   "querfaktor_x": 0.55
   }
  }
 }

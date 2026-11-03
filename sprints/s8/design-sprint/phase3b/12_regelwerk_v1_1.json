@@ -457,14 +457,14 @@
     "kenn": "u"
    },
    "dampflok": {
-    "l": 76,
+    "l": 90,
     "b": 37,
     "h": 43,
     "real_l": [
      76,
      76
     ],
-    "kenn": "po K10 (Laengsfaktor)"
+    "kenn": "po K10 (Laengsfaktor); W2: Lok 9,04 m + Tender 4,76 m = 13,8 m = 1,19 x real 11,6 m (TA-Auftrag W2)"
    },
    "tender": {
     "l": 48,
@@ -475,12 +475,12 @@
     "kenn": "u"
    },
    "personenwagen": {
-    "l": 69,
+    "l": 68,
     "real_l": [
      57,
      57
     ],
-    "kenn": "q"
+    "kenn": "q; po W2: 6,8 m = 1,19 x real 5,74 m"
    },
    "gueterwagen": {
     "l": 69,
@@ -491,7 +491,7 @@
     "kenn": "u"
    },
    "zug_lok_tender_8_wagen": {
-    "l": 676,
+    "l": 682,
     "felder_promille": 2700,
     "kenn": "abgeleitet"
    },
@@ -3211,8 +3211,8 @@
     "faktor_szene_1e4": 1037,
     "ziel_dm": 43,
     "bezugsachse": "y",
-    "laengsfaktor_z_1e4": 11300,
-    "hinweis": "po K10: Laenge 6,7 -> 7,6 m (sonst 0,88x real < 0,9)"
+    "laengsfaktor_z_1e4": 13414,
+    "hinweis": "po K10: Laenge 6,7 -> 7,6 m; W2 (TA): Laenge 9,04 m (Lok + Tender 13,8 m = 1,19 x real)"
    },
    "tender": {
     "kit": "Train Kit",
@@ -3231,8 +3231,8 @@
    "personenwagen": {
     "kit": "Train Kit",
     "modell": "train-carriage-box",
-    "faktor_szene_1e4": 1022,
-    "ziel_dm": 69,
+    "faktor_szene_1e4": 1007,
+    "ziel_dm": 68,
     "bezugsachse": "z"
    },
    "gleis": {

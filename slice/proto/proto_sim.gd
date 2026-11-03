@@ -1,0 +1,454 @@
+extends RefCounted
+## Phase 4 Welle 2 (Felix): ProtoSim-Adapter (Empfehlung B aus phase4/proto_sim_anbindung.md).
+## Echte Sim-Kette Farm → Mühle → Dorf in der Prototyp-Welt mit dem Bestandskern (core/sim_world.gd, economy.gd,
+## data/economy_slice.json, data/vehicles.json), ohne main.gd und ohne Bestandscode zu ändern.
+##
+##   Graph   Je Weg die Anker der Fahrlinie (proto_strassenband.gd fl.anker = Eingabepunkte + eingefügte
+##           Kreuzungspunkte) als Sim-Knoten, Kanten k → k+1; gleiche Punkte (0,5 m) und Wegenden auf einem anderen
+##           Weg (Fang max(4 m, halbe Trasse) + 0,5 m) = ein Knoten. Position in mm: x_m · feld_mm / m_pro_feld
+##           (1 Feld = 25 m = 1000 mm). Kantenlänge = Luftlinie der Anker (net_graph), Fahrlinie zwischen denselben
+##           Ankern = Darstellung (K28 längentreu-proportional).
+##   Kette   Gut Kuppenhof (proto_orte.industrie typ getreidefarm) → Industrie „getreidefarm“, Erlenmühle → „muehle“,
+##           Dorf (klasse dorf) → Stadt „dorf_agrar“ (Dorfmitte = Kreuzung nächst Ortsmitte), Kleinstadt →
+##           „kleinstadt_a“. Firma mit HQ im Dorf, Lizenzen Farm (gratis) und Mühle (bezahlt) über buy_licence.
+##           Linien wie im Spiel (Werte von lkw_e1, Fuhrwerk ersetzt Lkw laut regelwerk fahrzeuge_dm.ersetzt):
+##             Fuhrwerk 1  Farm → Mühle (Getreide),  Fuhrwerk 2  Mühle → Dorf (Mehl),
+##             Postkutsche Dorf → Kleinstadt (leer, Personen nicht in der Sim: leave_empty, Annahme)
+##           Start: 10 Getreide im Farmlager (economy.seed_stock), damit Fuhrwerk 1 sofort fährt (Annahme, sichtbar).
+##   Tick    tick(): sim.step(), Fahrkosten wie main.charge (eco.cash_cent −= line_cost_cent), Lieferungen ins
+##           Protokoll, danach je Fahrzeug die Sim-Probe (Leg, Fahrstrecke) an proto_easing.Zustand. Die Sim liest
+##           nichts aus der Darstellung (K27): Prüfsumme mit Easing an/aus gleich (E1).
+
+const SimWorld := preload("res://core/sim_world.gd")
+const Economy := preload("res://economy.gd")
+const Easing := preload("res://proto/proto_easing.gd")
+const SLICE_JSON := "res://data/economy_slice.json"
+const CONSTS_JSON := "res://data/economy_constants.json"
+const VEHICLES_JSON := "res://data/vehicles.json"
+const MAX_WAIT_TICKS := 50           # main.gd TRUCK_MAX_WAIT_TICKS
+const START_GETREIDE := 10
+
+var sim = null                       # SimWorld
+var eco = null                       # Economy oder null (synthetische Tests)
+var strassen = null                  # proto_strassenband.gd
+var regelwerk: Dictionary = {}
+var mm_pro_m := 40.0
+var knoten_pos: Dictionary = {}      # Knoten-ID -> Vector3 (m)
+var knoten_grad: Dictionary = {}     # Knoten-ID -> Anzahl Kanten
+var knoten_wege: Dictionary = {}     # Knoten-ID -> Anzahl Wege (≥ 2 = Einmündung/Kreuzung)
+var anker_knoten: Array = []         # je Weg: PackedInt32Array Knoten-ID je Anker
+var anker_s: Array = []              # je Weg: PackedFloat32Array monotones s je Anker
+var kante: Dictionary = {}           # Kanten-ID -> [weg, k]  (a = Anker k, b = Anker k+1)
+var fahrzeuge: Array = []            # [{vid, kat, name, von, nach, legs, zustand, profil}]
+var stationen: Dictionary = {}       # Name -> {knoten, site, k, id}
+var lieferungen: Array = []          # [{tick, vid, menge, cent, gut}]
+var fehler: Array = []
+var kette_ok := false
+var ticks := 0
+var _profile: Dictionary = {}
+var _vdef: Dictionary = {}
+
+
+func _init(p_regelwerk: Dictionary = {}) -> void:
+	regelwerk = p_regelwerk
+	sim = SimWorld.new()
+
+
+func profil(kat: String):
+	if not _profile.has(kat):
+		_profile[kat] = Easing.Profil.aus_regelwerk(regelwerk, kat)
+	return _profile[kat]
+
+
+# ------------------------------------------------------------------ Graph
+
+func graph_bauen(p_strassen) -> void:
+	strassen = p_strassen
+	var mpf := float(regelwerk.get("skalen", {}).get("m_pro_feld", 25.0))
+	mm_pro_m = float(sim.feld_mm) / mpf
+	var schluessel := {}
+	var naechste := 1
+	anker_knoten.clear()
+	anker_s.clear()
+	for wi in strassen.fahrlinien.size():
+		var fl = strassen.fahrlinien[wi]
+		var ids := PackedInt32Array()
+		var ss := PackedFloat32Array()
+		for k in fl.anker.size():
+			var a: Vector2 = fl.anker[k]
+			var key := Vector2i(roundi(a.x * 2.0), roundi(a.y * 2.0))
+			var s := float(fl.anker_s[k]) if k < fl.anker_s.size() else 0.0
+			if ss.size() > 0:
+				s = maxf(s, ss[-1])              # Projektion kann bei dichten Ankern minimal rückwärts laufen
+			ss.append(s)
+			if schluessel.has(key):
+				ids.append(schluessel[key])
+				continue
+			schluessel[key] = naechste
+			knoten_pos[naechste] = Vector3(a.x, fl.strecke_punkt(s).y, a.y)
+			ids.append(naechste)
+			naechste += 1
+		anker_knoten.append(ids)
+		anker_s.append(ss)
+	# Wegenden auf andere Wege fangen (Kreuzungspunkt wurde dort als Anker eingefügt, liegt ≤ Fang daneben).
+	# Ein Wegende, das schon ein Knoten eines anderen Wegs ist (gleicher Punkt), bleibt, wie es ist.
+	var wege_je_knoten := {}
+	for wi in anker_knoten.size():
+		for nid in anker_knoten[wi]:
+			if not wege_je_knoten.has(nid):
+				wege_je_knoten[nid] = {}
+			wege_je_knoten[nid][wi] = true
+	var alias := {}
+	for wi in anker_knoten.size():
+		var ids: PackedInt32Array = anker_knoten[wi]
+		if ids.size() < 2:
+			continue
+		var fang := maxf(4.0, float(strassen.fahrlinien[wi].trasse_m) * 0.5) + 0.5
+		for ende in [0, ids.size() - 1]:
+			var nid: int = ids[ende]
+			if wege_je_knoten[nid].size() > 1:
+				continue
+			var p: Vector3 = knoten_pos[nid]
+			var best := -1
+			var bd := INF
+			for wj in anker_knoten.size():
+				if wj == wi:
+					continue
+				var fj := maxf(4.0, float(strassen.fahrlinien[wj].trasse_m) * 0.5) + 0.5
+				for oid in anker_knoten[wj]:
+					if oid == nid:
+						continue
+					var d := Vector2(p.x, p.z).distance_to(Vector2(knoten_pos[oid].x, knoten_pos[oid].z))
+					if d < bd and d <= maxf(fang, fj):
+						bd = d
+						best = oid
+			if best > 0 and not alias.has(best):
+				alias[nid] = best
+	for wi in anker_knoten.size():
+		var ids: PackedInt32Array = anker_knoten[wi]
+		for k in ids.size():
+			while alias.has(ids[k]):
+				ids[k] = alias[ids[k]]
+		anker_knoten[wi] = ids
+	var benutzt := {}
+	for wi in anker_knoten.size():
+		var gesehen := {}
+		for nid in anker_knoten[wi]:
+			benutzt[nid] = true
+			if not gesehen.has(nid):
+				gesehen[nid] = true
+				knoten_wege[nid] = knoten_wege.get(nid, 0) + 1
+	var sortiert := benutzt.keys()
+	sortiert.sort()
+	for nid in sortiert:
+		var p: Vector3 = knoten_pos[nid]
+		sim.add_node(nid, Vector2i(roundi(p.x * mm_pro_m), roundi(p.z * mm_pro_m)), "k%d" % nid)
+		knoten_grad[nid] = 0
+	var eid := 1
+	var paare := {}
+	for wi in anker_knoten.size():
+		var ids: PackedInt32Array = anker_knoten[wi]
+		for k in ids.size() - 1:
+			var a := ids[k]
+			var b := ids[k + 1]
+			if a == b:
+				continue
+			var pk := Vector2i(mini(a, b), maxi(a, b))
+			if paare.has(pk):
+				continue
+			if sim.graph.nodes[a]["pos"] == sim.graph.nodes[b]["pos"]:
+				continue
+			paare[pk] = true
+			sim.graph.add_edge(eid, a, b, true)
+			kante[eid] = [wi, k]
+			knoten_grad[a] += 1
+			knoten_grad[b] += 1
+			eid += 1
+
+
+func knoten_naechst(p: Vector2, nur_kreuzung := false, r_max := INF) -> int:
+	var best := -1
+	var bd := INF
+	for nid in knoten_grad:
+		if knoten_grad[nid] == 0:
+			continue
+		if nur_kreuzung and knoten_grad[nid] < 3:
+			continue
+		var q: Vector3 = knoten_pos[nid]
+		var d := p.distance_to(Vector2(q.x, q.z))
+		if d < bd and d <= r_max:
+			bd = d
+			best = nid
+	return best
+
+
+## Halteknoten an einem Gebäude: Wegende oder Kreuzung (Grad ≠ 2) bis 40 m, sonst nächster Knoten. So endet die
+## Linie nicht 10 m vor einer Einmündung (sonst bleibt für den Übergangsbogen kein Platz).
+func knoten_halt(p: Vector2) -> int:
+	var best := -1
+	var bd := INF
+	for nid in knoten_grad:
+		var g: int = knoten_grad[nid]
+		if g == 0 or (g == 2 and knoten_wege.get(nid, 1) < 2):
+			continue
+		var q: Vector3 = knoten_pos[nid]
+		var d := p.distance_to(Vector2(q.x, q.z))
+		if d < bd and d <= 40.0:
+			bd = d
+			best = nid
+	return best if best > 0 else knoten_naechst(p)
+
+
+# ------------------------------------------------------------------ Linien
+
+## Routenlinie (Darstellung) aus einer Sim-Route [{edge, fwd}].
+func routenlinie(route: Array, prof):
+	var roh := PackedVector3Array()
+	var roh_s := PackedFloat32Array()
+	var ueb := PackedInt32Array()
+	var grenzen := PackedFloat32Array()
+	var knoten := PackedVector3Array()
+	var rtyp := PackedFloat32Array()
+	var r_ueb := PackedFloat32Array()
+	var weg_alt := -1
+	var cum := 0.0
+	for si in route.size():
+		var st: Dictionary = route[si]
+		var info: Array = kante[st["edge"]]
+		var wi: int = info[0]
+		var k: int = info[1]
+		var fl = strassen.fahrlinien[wi]
+		var ss: PackedFloat32Array = anker_s[wi]
+		var e: Dictionary = sim.graph.edges[st["edge"]]
+		var von_a: bool = st["fwd"]          # fwd = a → b = Anker k → k+1
+		var s0 := ss[k] if von_a else ss[k + 1]
+		var s1 := ss[k + 1] if von_a else ss[k]
+		var r_typ := float(strassen.profile.get(fl.typ, strassen.profile["dorfstrasse"])["radius"])
+		var n := maxi(1, ceili(absf(s1 - s0) / Easing.DS))
+		if si == 0:
+			var n0: int = e["a"] if von_a else e["b"]
+			var p0: Vector3 = fl.strecke_punkt(s0)
+			knoten.append(Vector3(knoten_pos[n0].x, p0.y, knoten_pos[n0].z))
+		if wi != weg_alt and weg_alt >= 0:
+			ueb.append(roh.size() - 1)
+			var r_alt := float(strassen.profile.get(strassen.fahrlinien[weg_alt].typ, strassen.profile["dorfstrasse"])["radius"])
+			r_ueb.append(minf(r_alt, r_typ))
+		for j in n + 1:
+			if j == 0 and roh.size() > 0 and wi == weg_alt:
+				continue
+			var s := lerpf(s0, s1, float(j) / n)
+			var p: Vector3 = fl.strecke_punkt(s)
+			if roh.size() > 0:
+				cum += Vector2(p.x, p.z).distance_to(Vector2(roh[-1].x, roh[-1].z))
+			roh.append(p)
+			roh_s.append(cum)
+			rtyp.append(r_typ)
+		if si == 0:
+			grenzen.append(0.0)
+		grenzen.append(cum)
+		var n1: int = e["b"] if von_a else e["a"]
+		knoten.append(Vector3(knoten_pos[n1].x, roh[-1].y, knoten_pos[n1].z))
+		weg_alt = wi
+	return Easing.routenlinie_bauen(roh, roh_s, ueb, grenzen, knoten, rtyp, r_ueb, prof)
+
+
+## Linienfahrzeug von Knoten a nach b (Pendel). Gibt den Fahrzeug-Eintrag zurück oder {} bei Fehler.
+func linie(kat: String, name: String, von: int, nach: int, src_k: int, dst_k: int, leere_fahrt := false) -> Dictionary:
+	if von < 0 or nach < 0:
+		fehler.append("%s: Knoten fehlt" % name)
+		return {}
+	var route: Array = sim.graph.find_path(von, nach)
+	if route.is_empty():
+		fehler.append("%s: keine Verbindung %d → %d" % [name, von, nach])
+		return {}
+	var prof = profil(kat)
+	var lkw := _lkw()
+	var vid := fahrzeuge.size() + 1
+	var cap := int(lkw.get("kapazitaet_einheiten", 10))
+	var var_cent := int(lkw.get("variabel_cent_pro_feld", 0))
+	var load_ticks := 100
+	if eco != null:
+		load_ticks = int(eco.slice.get("fahrzeug_ref", {}).get("load_ticks", 100))
+	var speed_mm := roundi(prof.v_nom * mm_pro_m)
+	sim.add_line_vehicle(vid, name, route, speed_mm, cap, src_k, dst_k, load_ticks, MAX_WAIT_TICKS, var_cent)
+	if leere_fahrt:
+		sim.set_line_flags(vid, true, MAX_WAIT_TICKS)
+	# Leg 1 (Rückweg) wird nachgereicht (tick(): eines je Tick), das spart Ladezeit; gebraucht erst am Linienende.
+	var legs := [routenlinie(route, prof), null]
+	var z = Easing.Zustand.new(prof, legs)
+	var f := {"vid": vid, "kat": kat, "name": name, "von": von, "nach": nach, "legs": legs, "zustand": z,
+		"profil": prof, "route_kanten": route.size(), "sim_mm": sim.graph.route_length(route), "route": route}
+	fahrzeuge.append(f)
+	_probe(f)
+	z.folger_setzen()
+	return f
+
+
+func _lkw() -> Dictionary:
+	if _vdef.is_empty() and FileAccess.file_exists(VEHICLES_JSON):
+		var d = JSON.parse_string(FileAccess.get_file_as_string(VEHICLES_JSON))
+		var id := "lkw_e1"
+		if eco != null:
+			id = String(eco.slice.get("fahrzeug_ref", {}).get("lkw_id", id))
+		for v in d.get("fahrzeuge", []):
+			if v.get("id", "") == id:
+				_vdef = v
+	return _vdef
+
+
+## Station ohne Ökonomie (synthetische Tests): Lager-Slot am Knoten.
+func station_leer(name: String, knoten: int) -> int:
+	sim.add_station(knoten, name, 0, 0, 0)
+	var k: int = sim._station_of[knoten]
+	stationen[name] = {"knoten": knoten, "site": -1, "k": k, "id": ""}
+	return k
+
+
+## Synthetische Pendellinie (Tests): Knoten nächst den Punkten, leere Stationen, leave_empty.
+func testlinie(kat: String, von: Vector2, nach: Vector2) -> Dictionary:
+	var a := knoten_naechst(von)
+	var b := knoten_naechst(nach)
+	var ka := station_leer("A%d" % fahrzeuge.size(), a) if not sim._station_of.has(a) else int(sim._station_of[a])
+	var kb := station_leer("B%d" % fahrzeuge.size(), b) if not sim._station_of.has(b) else int(sim._station_of[b])
+	return linie(kat, "%s %d" % [kat, fahrzeuge.size() + 1], a, b, ka, kb, true)
+
+
+# ------------------------------------------------------------------ Kette Farm → Mühle → Dorf
+
+## orte = proto_orte.json (Dictionary mit orte, industrie). extra_fuhrwerke: zusätzliche Fahrzeuge (nur E8-Bench).
+func kette_aufbauen(orte: Dictionary, extra_fuhrwerke := 0) -> bool:
+	eco = Economy.new()
+	if not eco.load_from(SLICE_JSON, CONSTS_JSON):
+		fehler.append("Ökonomie-JSON: " + ", ".join(eco.errors))
+		eco = null
+		return false
+	eco.attach(sim)
+	sim.feld_mm = eco.feld_mm
+	var farm: Dictionary = {}
+	var muehle: Dictionary = {}
+	for ind in orte.get("industrie", []):
+		var t := String(ind.get("typ", ""))
+		if t == "getreidefarm" and farm.is_empty():
+			farm = ind
+		elif t in ["wassermuehle", "muehle"] and muehle.is_empty():
+			muehle = ind
+	var dorf: Dictionary = {}
+	var stadt: Dictionary = {}
+	for o in orte.get("orte", []):
+		var k := String(o.get("klasse", ""))
+		if k == "dorf" and dorf.is_empty():
+			dorf = o
+		elif k in ["kleinstadt", "marktflecken", "markt"] and stadt.is_empty():
+			stadt = o
+	if farm.is_empty() or muehle.is_empty() or dorf.is_empty():
+		fehler.append("Kette: Farm/Mühle/Dorf fehlt in proto_orte.json")
+		return false
+	var n_farm := knoten_halt(Vector2(farm["x"], farm["z"]))
+	var n_muehle := knoten_halt(Vector2(muehle["x"], muehle["z"]))
+	var n_dorf := knoten_naechst(Vector2(dorf["x"], dorf["z"]), true, float(dorf.get("r_m", 200.0)))
+	if n_dorf < 0:
+		n_dorf = knoten_naechst(Vector2(dorf["x"], dorf["z"]))
+	var n_stadt := -1
+	if not stadt.is_empty():
+		n_stadt = knoten_naechst(Vector2(stadt["x"], stadt["z"]), true, float(stadt.get("r_m", 200.0)))
+		if n_stadt < 0:
+			n_stadt = knoten_naechst(Vector2(stadt["x"], stadt["z"]))
+	var s_farm: int = eco.add_industry_site(n_farm, "getreidefarm")
+	var s_muehle: int = eco.add_industry_site(n_muehle, "muehle")
+	var s_dorf: int = eco.add_city_site(n_dorf, "dorf_agrar")
+	var s_stadt := -1
+	if n_stadt > 0 and n_stadt != n_dorf:
+		s_stadt = eco.add_city_site(n_stadt, "kleinstadt_a")
+	stationen[String(farm.get("name", "Farm"))] = {"knoten": n_farm, "site": s_farm, "k": eco.s_station[s_farm], "id": "getreidefarm",
+		"abstand_m": Vector2(farm["x"], farm["z"]).distance_to(Vector2(knoten_pos[n_farm].x, knoten_pos[n_farm].z))}
+	stationen[String(muehle.get("name", "Mühle"))] = {"knoten": n_muehle, "site": s_muehle, "k": eco.s_station[s_muehle], "id": "muehle",
+		"abstand_m": Vector2(muehle["x"], muehle["z"]).distance_to(Vector2(knoten_pos[n_muehle].x, knoten_pos[n_muehle].z))}
+	stationen[String(dorf.get("name", "Dorf"))] = {"knoten": n_dorf, "site": s_dorf, "k": eco.s_station[s_dorf], "id": "dorf_agrar",
+		"abstand_m": Vector2(dorf["x"], dorf["z"]).distance_to(Vector2(knoten_pos[n_dorf].x, knoten_pos[n_dorf].z))}
+	if s_stadt >= 0:
+		stationen[String(stadt.get("name", "Stadt"))] = {"knoten": n_stadt, "site": s_stadt, "k": eco.s_station[s_stadt], "id": "kleinstadt_a",
+			"abstand_m": Vector2(stadt["x"], stadt["z"]).distance_to(Vector2(knoten_pos[n_stadt].x, knoten_pos[n_stadt].z))}
+	if not eco.start_company_at(n_dorf, "dorf"):
+		fehler.append("Kette: Firma nicht gegründet")
+	for s in [s_farm, s_muehle]:
+		var r: Dictionary = eco.buy_licence(s)
+		if not r.get("ok", false):
+			fehler.append("Lizenz %s: %s" % [eco.i_ids[eco.s_def[s]], r.get("fehler", "?")])
+	eco.seed_stock(s_farm, "getreide", START_GETREIDE)
+	var n0 := fahrzeuge.size()
+	linie("fuhrwerk", "Fuhrwerk 1 (Getreide)", n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
+	linie("fuhrwerk", "Fuhrwerk 2 (Mehl)", n_muehle, n_dorf, eco.s_station[s_muehle], eco.s_station[s_dorf])
+	if s_stadt >= 0:
+		linie("postkutsche", "Postkutsche", n_dorf, n_stadt, eco.s_station[s_dorf], eco.s_station[s_stadt], true)
+	for x in extra_fuhrwerke:
+		if x % 2 == 0:
+			linie("fuhrwerk", "Fuhrwerk Bench %d" % x, n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
+		else:
+			linie("fuhrwerk", "Fuhrwerk Bench %d" % x, n_muehle, n_dorf, eco.s_station[s_muehle], eco.s_station[s_dorf])
+	kette_ok = fahrzeuge.size() - n0 >= 2 and fehler.is_empty()
+	return kette_ok
+
+
+# ------------------------------------------------------------------ Tick
+
+func tick() -> void:
+	sim.step()
+	ticks += 1
+	if sim.line_cost_cent != 0:
+		if eco != null:
+			eco.cash_cent -= sim.line_cost_cent          # wie main.charge()
+		sim.line_cost_cent = 0
+	if not sim.line_events.is_empty():
+		for ev in sim.line_events:
+			lieferungen.append({"tick": sim.tick_count, "vid": ev[0], "menge": ev[1], "cent": ev[2], "gut": ev[3]})
+		sim.line_events = []
+	var gebaut := false
+	for f in fahrzeuge:
+		if not gebaut and f["legs"][1] == null:
+			_leg1(f)
+			gebaut = true
+		_probe(f)
+
+
+func _leg1(f: Dictionary) -> void:
+	f["legs"][1] = routenlinie(sim.graph.reverse_route(f["route"]), f["profil"])
+
+
+## Alle Rückwege sofort bauen (Tests, die Legs direkt prüfen).
+func legs_vollstaendig() -> void:
+	for f in fahrzeuge:
+		if f["legs"][1] == null:
+			_leg1(f)
+
+
+func _probe(f: Dictionary) -> void:
+	var i: int = sim.slot_of(f["vid"])
+	var leg: int = sim.v_leg[i]
+	if f["legs"][leg] == null:
+		_leg1(f)
+	var d := 0.0
+	if sim.v_state[i] == SimWorld.S_UNTERWEGS:
+		var rs: int = sim.v_rstart[i]
+		var idx: int = sim.v_idx[i]
+		var rl = f["legs"][leg]
+		d = rl.d_von_sim(idx, float(sim.v_pos[i]) / maxf(1.0, float(sim.r_len[rs + idx])))
+	f["zustand"].probe(leg, d)
+
+
+func pruefsumme() -> int:
+	return sim.checksum()
+
+
+## Zustandstext je Fahrzeug (HUD): Name, Zustand, Ladung.
+func zustand_text(f: Dictionary) -> String:
+	var i: int = sim.slot_of(f["vid"])
+	var st: int = sim.v_state[i]
+	var namen := {SimWorld.S_UNTERWEGS: "fährt", SimWorld.S_WARTET_LADUNG: "lädt", SimWorld.S_ENTLADEN: "entlädt",
+		SimWorld.S_ENDE: "steht", SimWorld.S_GEPLANT: "geplant", SimWorld.S_WARTET_BLOCK: "wartet"}
+	var lad := ""
+	if sim.v_cargo[i] > 0:
+		var gut := "Ware"
+		if eco != null and eco.v_lots.has(f["vid"]) and not eco.v_lots[f["vid"]].is_empty():
+			gut = String(eco.g_ids[eco.v_lots[f["vid"]][0][0]]).capitalize()
+		lad = " · %d %s" % [sim.v_cargo[i], gut]
+	return "%s: %s%s" % [f["name"], namen.get(st, "?"), lad]

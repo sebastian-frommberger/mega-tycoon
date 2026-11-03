@@ -12,11 +12,11 @@ eiche.h;15.0–25.0 ±25%;20.00;+0.0;ja;platzhalter (import_faktoren.rollen.eich
 fass;(kein Soll);0.62;;ja;platzhalter (import_faktoren.rollen.fass.masse_m) | Info: kein Soll im Regelwerk
 fischerhuette.lang;8.0 ±25%;8.80;+10.0;ja;platzhalter (16_prototyp_plan §5 M14 (8 × 6 m), H Annahme wie Kate) | 16 §5 M14
 fischerhuette.quer;6.0 ±25%;6.80;+13.3;ja;platzhalter (16_prototyp_plan §5 M14 (8 × 6 m), H Annahme wie Kate) | 16 §5 M14
-flaeche_garten;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
-flaeche_hof;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
-flaeche_kirchhof;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
-flaeche_marktplatz;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
-flaeche_obstwiese;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
+flaeche_garten;Typ bekannt (Fläche);55.00;;ja;Bodenfläche, kein Maß-Soll (Ist = Anzahl Instanzen) | Stadt-Erweiterung (Bodenfläche, b × t je Instanz, stadt_welle1 §7)
+flaeche_hof;Typ bekannt (Fläche);68.00;;ja;Bodenfläche, kein Maß-Soll (Ist = Anzahl Instanzen) | Stadt-Erweiterung (Bodenfläche, b × t je Instanz, stadt_welle1 §7)
+flaeche_kirchhof;Typ bekannt (Fläche);2.00;;ja;Bodenfläche, kein Maß-Soll (Ist = Anzahl Instanzen) | Stadt-Erweiterung (Bodenfläche, b × t je Instanz, stadt_welle1 §7)
+flaeche_marktplatz;Typ bekannt (Fläche);1.00;;ja;Bodenfläche, kein Maß-Soll (Ist = Anzahl Instanzen) | Stadt-Erweiterung (Bodenfläche, b × t je Instanz, stadt_welle1 §7)
+flaeche_obstwiese;Typ bekannt (Fläche);8.00;;ja;Bodenfläche, kein Maß-Soll (Ist = Anzahl Instanzen) | Stadt-Erweiterung (Bodenfläche, b × t je Instanz, stadt_welle1 §7)
 fuhrwerk_2_pferde.l;7.20–10.80 (0.9–1.2×);9.50;+11.8;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.fuhrwerk_2_pferde) | skalen.fahrzeuge_dm/fuhrwerk_2_pferde.real_l
 gasthaus.lang;14.0 ±25%;14.80;+5.7;ja;platzhalter (regelwerk.haustypen.gasthaus) | haustypen.gasthaus
 gasthaus.quer;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.gasthaus) | haustypen.gasthaus
@@ -39,12 +39,12 @@ kirche_stadt.lang;35.0 ±25%;35.80;+2.3;ja;platzhalter (regelwerk.haustypen.kirc
 kirche_stadt.quer;15.0 ±25%;15.80;+5.3;ja;platzhalter (regelwerk.haustypen.kirche_stadt) | skalen.gebaeude_m/kirche_stadt
 kirche_stadt.h;45.0–55.0 ±25%;50.00;+0.0;ja;platzhalter (regelwerk.haustypen.kirche_stadt) | skalen.gebaeude_m/kirche_stadt
 laubbaum.h;15.0–25.0 ±25%;18.00;+0.0;ja;platzhalter (import_faktoren.rollen.laubbaum.masse_m) | skalen.baeume_m/laub
-nebengebaeude.lang;0.0 ±25%;10.80;+inf;NEIN;platzhalter (regelwerk.haustypen.nebengebaeude) | haustypen.nebengebaeude
-nebengebaeude.quer;0.0 ±25%;8.80;+inf;NEIN;platzhalter (regelwerk.haustypen.nebengebaeude) | haustypen.nebengebaeude
+nebengebaeude.lang;6.0–18.0 ±25%;12.80;+0.0;ja;platzhalter (regelwerk.haustypen.nebengebaeude) | haustypen.nebengebaeude.varianten_m (Band)
+nebengebaeude.quer;4.0–10.0 ±25%;8.80;+0.0;ja;platzhalter (regelwerk.haustypen.nebengebaeude) | haustypen.nebengebaeude.varianten_m (Band)
 netzgestell;(kein Soll);4.00;;ja;platzhalter (Annahme Felix) | Info: kein Soll im Regelwerk
 obstbaum.h;6.0–8.0 ±25%;7.00;+0.0;ja;platzhalter (import_faktoren.rollen.obstbaum.masse_m) | skalen.baeume_m/obst
 passant;(kein Soll);1.65;;ja;platzhalter (import_faktoren.rollen.passant.masse_m) | Info: kein Soll im Regelwerk
-personenwagen.l;5.13–6.84 (0.9–1.2×);6.90;+21.1;NEIN;platzhalter (regelwerk.skalen.fahrzeuge_dm.personenwagen) | skalen.fahrzeuge_dm/personenwagen.real_l
+personenwagen.l;5.13–6.84 (0.9–1.2×);6.80;+19.3;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.personenwagen) | skalen.fahrzeuge_dm/personenwagen.real_l
 postkutsche_4_pferde.l;9.00–14.40 (0.9–1.2×);12.50;+13.6;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.postkutsche_4_pferde) | skalen.fahrzeuge_dm/postkutsche_4_pferde.real_l
 rathaus.lang;16.0 ±25%;16.80;+5.0;ja;platzhalter (regelwerk.haustypen.rathaus) | haustypen.rathaus
 rathaus.quer;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.rathaus) | haustypen.rathaus
@@ -70,14 +70,21 @@ epoche.bauernhof;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustype
 epoche.buergerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
 epoche.handwerkerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
 epoche.kate;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
-perf.Übersicht.dreiecke;≤ 1000000;1618628.00;+61.9;NEIN;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.Übersicht.draw_calls;≤ 300;154.00;-48.7;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.Dorf.dreiecke;(Info);1618628.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.Dorf.draw_calls;(Info);154.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.Markt.dreiecke;≤ 2900000;1618628.00;-44.2;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.Fluss.dreiecke;(Info);1618628.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.Fluss.draw_calls;(Info);154.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.See.dreiecke;(Info);1618628.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.See.draw_calls;(Info);154.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
-perf.ladezeit_ms;≤ 3000;771.56;-74.3;ja;prototyp_welt._ready
-perf.ladezeit_wand_ms;≤ 3000;847.14;-71.8;ja;instantiate + 1 Frame
+perf.Übersicht.dreiecke_ohne_culling;(Info);1628188.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Übersicht.dreiecke;≤ 1000000;118584.00;-88.1;ja;RenderingServer (live)
+perf.Übersicht.draw_calls;≤ 300;78.00;-74.0;ja;RenderingServer (live)
+perf.Dorf.dreiecke_ohne_culling;(Info);1628188.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Dorf.dreiecke;(Info);393190.00;;ja;RenderingServer (live)
+perf.Dorf.draw_calls;(Info);98.00;;ja;RenderingServer (live)
+perf.Markt.dreiecke_ohne_culling;(Info);1628188.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Markt.dreiecke;≤ 2900000;269542.00;-90.7;ja;RenderingServer (live)
+perf.Fluss.dreiecke_ohne_culling;(Info);1628188.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Fluss.dreiecke;(Info);189702.00;;ja;RenderingServer (live)
+perf.Fluss.draw_calls;(Info);69.00;;ja;RenderingServer (live)
+perf.See.dreiecke_ohne_culling;(Info);1628188.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.See.dreiecke;(Info);744776.00;;ja;RenderingServer (live)
+perf.See.draw_calls;(Info);106.00;;ja;RenderingServer (live)
+perf.Übersicht_1800m.dreiecke;≤ 1000000;715710.00;-28.4;ja;RenderingServer (live)
+perf.Übersicht_1200m.dreiecke;≤ 1000000;605650.00;-39.4;ja;RenderingServer (live)
+perf.ladezeit_ms;≤ 3000;1256.83;-58.1;ja;prototyp_welt._ready
+perf.ladezeit_wand_ms;≤ 3000;1940.98;-35.3;ja;instantiate + 1 Frame

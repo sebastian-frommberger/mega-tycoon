@@ -16,6 +16,11 @@ extends Node3D
 ##
 ## Hooks für Welle 2: Signale wasser_modus_geaendert(modus), easing_geaendert(an), modelle_geaendert(an);
 ## strassen.fahrlinien[i] (Schnittstelle in proto_strassenband.gd), hoehe_at(x, z) durchgereicht.
+##
+## Welle 2: Sim-Kette Farm → Mühle → Dorf (proto_sim.gd, echter SimWorld + Economy, Tick 10 Hz unabhängig von der
+## Framerate) und Easing-Probe (proto_easing.gd, proto_fahrzeuge.gd): G schaltet Easing an/aus (Prüfsumme bleibt),
+## F Kamera folgt einem Fahrzeug (Fuhrwerk 1 → Fuhrwerk 2 → Postkutsche → aus), T Bildtempo 1× / ¼× (nur Ansicht:
+## weniger Ticks je Sekunde, die Sim bleibt dieselbe).
 
 signal fertig
 signal wasser_modus_geaendert(modus: String)
@@ -25,6 +30,8 @@ signal modelle_geaendert(an: bool)
 const Strassenband := preload("res://proto/proto_strassenband.gd")
 const Platzhalter := preload("res://proto/proto_platzhalter.gd")
 const Epochen := preload("res://proto/proto_epochen.gd")
+const ProtoSim := preload("res://proto/proto_sim.gd")
+const Fahrzeuge := preload("res://proto/proto_fahrzeuge.gd")
 const STUB := "res://proto/proto_terrain_stub.gd"
 const TA_TERRAIN := "res://world/proto_terrain.gd"
 const DATEN := "res://world/data/proto/"
@@ -45,6 +52,7 @@ var terrain: Node3D = null
 var terrain_quelle := ""
 var strassen = null                  # proto_strassenband.gd
 var platzhalter = null               # proto_platzhalter.gd
+var kulissen = null                  # proto_kulissen.gd (TA W2)
 var epochen = null                   # proto_epochen.gd
 var regelwerk: Dictionary = {}
 var startjahr := 0
@@ -55,8 +63,18 @@ var wege: Array = []
 var see: Dictionary = {}
 var quellen := {}                    # Datei -> benutzter Pfad
 var lade_ms := 0.0
+var lade_stufen: Dictionary = {}     # Stufe -> ms seit Start (kumuliert)
 var wasser_modus := "A"
-var easing_an := false
+var easing_an := true
+var proto_sim = null                 # proto_sim.gd (Welle 2)
+var fahrzeuge = null                 # proto_fahrzeuge.gd
+var orte_json: Dictionary = {}
+var sim_aus := false                 # Tests: vor add_child setzen, dann keine Sim/Fahrzeuge
+var sim_tempo := 1.0
+var sim_acc := 0.0
+var folgen := -1
+const TICKS_JE_S := 10.0
+const MAX_TICKS_JE_FRAME := 8
 var modelle_an := true
 var modelle_root: Node3D
 var wege_root: Node3D
@@ -92,6 +110,7 @@ func _json(name: String) -> Variant:
 
 func _ready() -> void:
 	var t0 := Time.get_ticks_usec()
+	var tz := {}
 	_baue_umgebung()
 	epochen = Epochen.laden()
 	regelwerk = epochen.regelwerk
@@ -101,22 +120,32 @@ func _ready() -> void:
 			startjahr = int(a.substr(12))
 	welt_epoche = epochen.fuer_jahr(startjahr)
 	_lies_daten()
+	tz["lies_daten"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_gelaende()
+	tz["baue_gelaende"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_wege()
+	tz["baue_wege"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_modelle()
+	tz["baue_modelle"] = (Time.get_ticks_usec() - t0) / 1000.0
+	_baue_fahrzeuge()
+	tz["baue_fahrzeuge"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_kamera()
 	_baue_hud()
 	_presets_berechnen()
 	setze_preset(1)
 	lade_ms = (Time.get_ticks_usec() - t0) / 1000.0
-	print("PROTO_WELT lade_ms %.1f terrain=%s wege=%d instanzen=%d knoten=%d bruecken=%d" % [lade_ms, terrain_quelle,
-		wege.size(), instanzen.size(), strassen.knoten.size(), strassen.bruecken.size()])
+	lade_stufen = tz
+	print("PROTO_WELT stufen %s sim %s" % [str(lade_stufen), str(quellen.get("sim_ms", []))])
+	print("PROTO_WELT lade_ms %.1f terrain=%s wege=%d instanzen=%d knoten=%d bruecken=%d fahrzeuge=%d kette=%s" % [lade_ms,
+		terrain_quelle, wege.size(), instanzen.size(), strassen.knoten.size(), strassen.bruecken.size(),
+		proto_sim.fahrzeuge.size() if proto_sim != null else 0, str(proto_sim.kette_ok) if proto_sim != null else "aus"])
 	fertig.emit()
 
 
 func _lies_daten() -> void:
 	var o = _json("proto_orte.json")
 	orte = o.get("orte", []) if o is Dictionary else []
+	orte_json = o if o is Dictionary else {}
 	var i = _json("proto_instanzen.json")
 	instanzen = i if i is Array else []
 	var w = _json("proto_wege.json")
@@ -214,12 +243,49 @@ func _baue_wege() -> void:
 	strassen.bauen(wege_root, wege, Callable(self, "hoehe_at"), fluss)
 
 
+## Welle 2: Sim-Kette und Fahrzeuge. Fehlt etwas (Daten, Verbindung), läuft die Szene ohne Fahrzeuge weiter.
+func _baue_fahrzeuge() -> void:
+	if sim_aus:
+		return
+	var t0 := Time.get_ticks_usec()
+	proto_sim = ProtoSim.new(regelwerk)
+	proto_sim.graph_bauen(strassen)
+	var t1 := Time.get_ticks_usec()
+	var ok: bool = proto_sim.kette_aufbauen(orte_json)
+	quellen["sim_ms"] = [(t1 - t0) / 1000.0, (Time.get_ticks_usec() - t1) / 1000.0]
+	if not ok:
+		push_warning("Prototyp: Sim-Kette unvollständig: " + "; ".join(PackedStringArray(proto_sim.fehler.map(func(x): return str(x)))))
+	fahrzeuge = Fahrzeuge.new()
+	add_child(fahrzeuge)
+	fahrzeuge.easing_an = easing_an
+	fahrzeuge.bauen(proto_sim, regelwerk)
+
+
+## Sim-Ticks nachholen (feste 10 Hz × Bildtempo) und alle Fahrzeuge für diesen Frame setzen.
+func sim_schritt(delta: float) -> void:
+	if proto_sim == null:
+		return
+	var dt := delta * TICKS_JE_S * sim_tempo
+	sim_acc += dt
+	var n := 0
+	while sim_acc >= 1.0 and n < MAX_TICKS_JE_FRAME:
+		proto_sim.tick()
+		sim_acc -= 1.0
+		n += 1
+	if sim_acc >= 1.0:
+		sim_acc = fmod(sim_acc, 1.0)
+	fahrzeuge.frame(sim_acc, dt)
+
+
 func _baue_modelle() -> void:
 	modelle_root = Node3D.new()
 	modelle_root.name = "Modelle"
 	add_child(modelle_root)
 	platzhalter = Platzhalter.new(regelwerk)
 	platzhalter.bauen(modelle_root, instanzen, Callable(self, "hoehe_at"))
+	# TA-W2-Testhook: Kulissen am Wasser (Steg, Boote, Floss), nur mit TA-Gelaende
+	if terrain != null and terrain.has_method("fluss_mitte_z"):
+		kulissen = ProtoKulissen.bauen(modelle_root, terrain, quellen.get("terrain_dir", DATEN))
 
 
 # ------------------------------------------------------------------ Kamera
@@ -259,6 +325,19 @@ func _kamera_anwenden() -> void:
 	env.fog_depth_begin = abstand * 1.6 + 1500.0
 	env.fog_depth_end = abstand * 5.0 + 15000.0
 	sun.directional_shadow_max_distance = clampf(abstand * 1.4, 150.0, 2500.0)
+
+
+## F: Kamera folgt Fahrzeug 1, 2, 3, dann wieder frei (Abstand 120 m beim Einstieg).
+func folge_naechstem() -> void:
+	if proto_sim == null or proto_sim.fahrzeuge.is_empty():
+		return
+	folgen += 1
+	if folgen >= proto_sim.fahrzeuge.size():
+		folgen = -1
+	elif abstand > 400.0:
+		abstand = 120.0
+	_kamera_anwenden()
+	_hud_text()
 
 
 func kamera_abstand() -> float:
@@ -311,12 +390,16 @@ func setze_wasser(modus: String) -> void:
 	wasser_modus = modus
 	if terrain != null and terrain.has_method("set_wasser_modus"):
 		terrain.set_wasser_modus(modus)
+	elif terrain != null and terrain.has_method("wasser_variante_b"):      # TA-API (proto_terrain.gd)
+		terrain.wasser_variante_b(modus == "B")
 	wasser_modus_geaendert.emit(modus)
 	_hud_text()
 
 
 func setze_easing(an: bool) -> void:
-	easing_an = an                    # Welle 2: Easing-Probe hängt sich an easing_geaendert
+	easing_an = an
+	if fahrzeuge != null:
+		fahrzeuge.easing_an = an
 	easing_geaendert.emit(an)
 	_hud_text()
 
@@ -341,6 +424,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 			setze_easing(not easing_an)
 		elif k == KEY_M:
 			setze_modelle(not modelle_an)
+		elif k == KEY_F:
+			folge_naechstem()
+		elif k == KEY_T:
+			sim_tempo = 0.25 if sim_tempo == 1.0 else 1.0
+			_hud_text()
 		elif k == KEY_H:
 			hud_an = not hud_an
 			hud.visible = hud_an
@@ -391,6 +479,11 @@ func _process(delta: float) -> void:
 		ziel += Basis(Vector3.UP, gier) * mv.normalized() * abstand * 0.8 * delta
 		gier += dreh
 		_kamera_anwenden()
+	sim_schritt(delta)
+	if folgen >= 0 and proto_sim != null and folgen < proto_sim.fahrzeuge.size():
+		var z = proto_sim.fahrzeuge[folgen]["zustand"]
+		ziel = Vector3(z.pos.x, 0.0, z.pos.z)
+		_kamera_anwenden()
 	_hud_t += delta
 	if _hud_t > 0.25:
 		_hud_t = 0.0
@@ -422,12 +515,22 @@ func _hud_text() -> void:
 	var live := ""
 	if z["live_dreiecke"] > 0:
 		live = "  ·  live %s Dreiecke / %d DC" % [_tsd(z["live_dreiecke"]), z["live_dc"]]
-	hud.text = "Prototyp Welt · Welle 1 (schlank) · Startjahr %d (%s)\n" % [startjahr, welt_epoche.get("epoche_id", "?")] \
-		+ "Ansicht %d %s · Abstand %d m\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand)] \
-		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s (Hook)   [M] Modelle %s   [H] Hilfe   [Esc] Menü\n" % [
-			wasser_modus, "an" if easing_an else "aus", "an" if modelle_an else "aus"] \
+	var fz := ""
+	if proto_sim != null:
+		var zeilen: Array = []
+		for f in proto_sim.fahrzeuge:
+			zeilen.append(proto_sim.zustand_text(f))
+		var kasse: int = proto_sim.eco.cash_cent if proto_sim.eco != null else 0
+		fz = "Sim-Kette %s · Tick %d · Lieferungen %d · Kasse %d €\n%s\n" % ["Farm → Mühle → Dorf" if proto_sim.kette_ok else "UNVOLLSTÄNDIG",
+			proto_sim.ticks, proto_sim.lieferungen.size(), kasse / 100, "  ·  ".join(PackedStringArray(zeilen))]
+	hud.text = "Prototyp Welt · Welle 2 (schlank) · Startjahr %d (%s)\n" % [startjahr, welt_epoche.get("epoche_id", "?")] \
+		+ "Ansicht %d %s · Abstand %d m%s\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand),
+			(" · folgt %s" % proto_sim.fahrzeuge[folgen]["name"]) if folgen >= 0 and proto_sim != null else ""] \
+		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s   [F] Folgen   [T] Tempo %s   [M] Modelle %s   [H] Hilfe   [Esc] Menü\n" % [
+			wasser_modus, "an" if easing_an else "aus", "1×" if sim_tempo == 1.0 else "¼×", "an" if modelle_an else "aus"] \
+		+ fz \
 		+ "Gelände: %s · Daten: %s · Laden %.0f ms\n" % [terrain_quelle, "Vertrag" if quellen.get("proto_wege.json", "").begins_with(DATEN) else "Testdaten", lade_ms] \
-		+ "Szene %s Dreiecke / %d Objekte (gezählt)%s" % [_tsd(z["dreiecke"]), z["objekte"], live]
+		+ "Szene %s Dreiecke / %d Objekte (gezählt), %s mit Sichtweite%s" % [_tsd(z["dreiecke"]), z["objekte"], _tsd(z["dreiecke_sicht"]), live]
 
 
 static func _tsd(n: int) -> String:
@@ -441,32 +544,77 @@ static func _tsd(n: int) -> String:
 
 ## Zählung ohne Renderziel (Mesh-Daten) + live aus dem RenderingServer, wenn gerendert wird.
 ## objekte = sichtbare Geometrie-Instanzen (≈ Draw Calls im Farbpass ohne Schatten/Culling).
+## dreiecke_sicht/objekte_sicht: ohne Knoten, deren AABB weiter als visibility_range_end von der Kamera liegt
+## (Sichtweiten-Culling, Abstand Kamera → AABB-Mitte, ohne Frustum) – die Gate-Zahl, wenn kein Renderziel da ist.
 func zaehlung() -> Dictionary:
 	var tris := 0
 	var obj := 0
+	var tris_s := 0
+	var obj_s := 0
+	var cpos := cam.global_position if cam != null and cam.is_inside_tree() else Vector3(INF, INF, INF)
 	var stapel: Array = [self]
 	while not stapel.is_empty():
 		var n: Node = stapel.pop_back()
 		if n is Node3D and not (n as Node3D).visible:
 			continue
+		var t := 0
+		var o := 0
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
 			var m: Mesh = n.mesh
-			tris += _mesh_tris(m)
-			obj += m.get_surface_count()
+			t = _mesh_tris(m)
+			o = m.get_surface_count()
 		elif n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh != null:
 			var mm: MultiMesh = n.multimesh
 			var cnt := mm.instance_count if mm.visible_instance_count < 0 else mm.visible_instance_count
 			if mm.mesh != null and cnt > 0:
-				tris += _mesh_tris(mm.mesh) * cnt
-				obj += mm.mesh.get_surface_count()
+				t = _mesh_tris(mm.mesh) * cnt
+				o = mm.mesh.get_surface_count()
+		if t > 0:
+			tris += t
+			obj += o
+			var gi := n as GeometryInstance3D
+			var sicht := true
+			if gi.visibility_range_end > 0.0 and cpos.x != INF:
+				var lb := _aabb_cpu(gi)
+				if lb.size.length() > 0.01:      # headless: MultiMesh-Transforms liegen nur im RenderingServer → unbekannt = sichtbar
+					var bb: AABB = gi.global_transform * lb
+					sicht = cpos.distance_to(bb.get_center()) <= gi.visibility_range_end + gi.visibility_range_end_margin   # Renderer: AABB-Mitte
+			if sicht:
+				tris_s += t
+				obj_s += o
 		for c in n.get_children():
 			stapel.append(c)
-	return {"dreiecke": tris, "objekte": obj,
+	return {"dreiecke": tris, "objekte": obj, "dreiecke_sicht": tris_s, "objekte_sicht": obj_s,
 		"live_dreiecke": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
 		"live_dc": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)}
 
 
 var _tri_cache := {}
+var _aabb_cache := {}
+
+
+## AABB ohne RenderingServer (headless liefert für MultiMesh keine AABB): aus den Instanz-Transforms, gepuffert.
+## Für bewegte MultiMeshes (Fahrzeuge, keine Sichtweite) nicht benutzt.
+func _aabb_cpu(gi: GeometryInstance3D) -> AABB:
+	var id := gi.get_instance_id()
+	if _aabb_cache.has(id):
+		return _aabb_cache[id]
+	var bb := AABB()
+	if gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh != null:
+		var mm: MultiMesh = (gi as MultiMeshInstance3D).multimesh
+		var mb := mm.mesh.get_aabb() if mm.mesh != null else AABB()
+		var pos_ok := false
+		for i in mm.instance_count:
+			var xf := mm.get_instance_transform(i)
+			pos_ok = pos_ok or xf.origin != Vector3.ZERO
+			var ib := xf * mb
+			bb = ib if i == 0 else bb.merge(ib)
+		if not pos_ok:
+			bb = AABB()
+	elif gi is MeshInstance3D and (gi as MeshInstance3D).mesh != null:
+		bb = (gi as MeshInstance3D).mesh.get_aabb()
+	_aabb_cache[id] = bb
+	return bb
 
 func _mesh_tris(m: Mesh) -> int:
 	var id := m.get_instance_id()

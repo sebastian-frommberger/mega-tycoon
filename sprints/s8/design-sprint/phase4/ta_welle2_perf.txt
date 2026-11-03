@@ -1,0 +1,14 @@
+Ladezeit Szene 2113 ms, Prefab-Bau 459 ms, Gelaende {"baeume":9936,"baum_dreiecke_alle":1280140,"baum_dreiecke_je_art":[114,230],"baum_multimeshes":64,"fein_felder":805,"freigestellt":81,"gelaende_dreiecke":86880,"gelaende_meshes":17,"ms_baeume":323.835,"ms_gelaende":384.38,"ms_gesamt":1134.491,"ms_laden":5.541,"ms_wasser":420.735,"wasser_dreiecke":19080,"wasser_meshes":5}
+w2_uebersicht      live   181182 Dreiecke /  83 DC   gezaehlt   551682 / 106 Objekte   Abstand 3000 m
+w2_dorf            live   549184 Dreiecke /  91 DC   gezaehlt  1540844 / 154 Objekte   Abstand  450 m
+w2_dorf_nah        live   526378 Dreiecke /  62 DC   gezaehlt  1551332 / 155 Objekte   Abstand  170 m
+w2_markt           live   509388 Dreiecke /  48 DC   gezaehlt  1482186 / 148 Objekte   Abstand  350 m
+w2_markt_nah       live   395680 Dreiecke /  40 DC   gezaehlt  1422410 / 142 Objekte   Abstand  140 m
+w2_fluss_floss     live   188298 Dreiecke /  28 DC   gezaehlt  1306364 / 146 Objekte   Abstand   55 m
+w2_floss_laende    live   477802 Dreiecke /  52 DC   gezaehlt  1439334 / 154 Objekte   Abstand   75 m
+w2_see_steg        live   730380 Dreiecke /  56 DC   gezaehlt  1602746 / 159 Objekte   Abstand  140 m
+w2_see_uebersicht  live   952018 Dreiecke /  99 DC   gezaehlt  1804676 / 166 Objekte   Abstand  520 m
+w2_muehle          live   342900 Dreiecke /  37 DC   gezaehlt  1551332 / 155 Objekte   Abstand  150 m
+w2_gutshof         live   339858 Dreiecke /  24 DC   gezaehlt  1481548 / 152 Objekte   Abstand  260 m
+w2_dorfteich       live   546776 Dreiecke /  60 DC   gezaehlt  1551902 / 156 Objekte   Abstand  110 m
+w2_bachbruecke     live   824130 Dreiecke /  66 DC   gezaehlt  1562162 / 157 Objekte   Abstand  120 m

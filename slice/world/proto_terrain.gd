@@ -8,6 +8,11 @@ extends Node3D
 ##   t.ist_wasser(x_m, z_m)      Fluss, See, Teich (Bach nicht: blockiert nicht)
 ##   t.baeume_freistellen([Vector3(x, z, r), ...])   Baeume in Kreisen entfernen (Orte, Wege, Hofstellen)
 ##   t.wasser_variante_b(true)   Wasser A/B (12_welt_regelwerk_v1 §6)
+##   t.fluss_mitte_z(x_m)        Flussmitte (z, m) an x (W2: Floss-Kurs), t.fluss_pegel_at(x_m) Pegel
+## W2: Baeume werden beim Bau an Orten, Gebaeuden, Wegen, Bruecken, Muehle und Steg automatisch freigestellt, wenn
+## proto_instanzen.json / proto_wege.json / proto_orte.json im Datenordner liegen (stats.freigestellt). Baum-Chunks
+## werden zusaetzlich per Skript nach Kameraabstand ein-/ausgeblendet (gleiche Sichtweite wie visibility_range), damit
+## Zaehlungen ohne Renderer (headless) dasselbe sehen wie der Renderer.
 ## Gelaende: 4 x 4 Chunks; Felder mit proto_fein_maske = 1 im 5-m-Raster (See, Teiche, Bachrinne), sonst 25 m.
 ## Gleiche Dreiecksteilung ueberall: (a,b,c), (b,d,c) mit a=(x,z), b=(x+1,z), c=(x,z+1), d=(x+1,z+1).
 
@@ -58,6 +63,8 @@ var _baeume: Array = []                 # [art(0 laub/1 nadel), Transform3D, Col
 var _baum_meshes: Array = []
 var _baum_mat: ShaderMaterial
 var _baum_node: Node3D
+var _baum_chunks: Array = []            # [MultiMeshInstance3D, Vector3 Mitte]
+var _fluss_mitte := PackedFloat32Array()
 
 
 static func bauen(parent: Node3D, daten_dir: String) -> ProtoTerrain:
@@ -72,6 +79,7 @@ static func bauen(parent: Node3D, daten_dir: String) -> ProtoTerrain:
 	t._baue_wasser()
 	var t3 := Time.get_ticks_usec()
 	t._baue_baeume()
+	t._auto_freistellen(daten_dir)
 	var t4 := Time.get_ticks_usec()
 	t.stats["ms_laden"] = (t1 - t0) / 1000.0
 	t.stats["ms_gelaende"] = (t2 - t1) / 1000.0
@@ -544,6 +552,7 @@ func _baeume_chunks() -> void:
 	if _baum_node != null:
 		_baum_node.free()
 	_baum_node = Node3D.new()
+	_baum_chunks.clear()
 	_baum_node.name = "Baeume"
 	add_child(_baum_node)
 	var nx := int(ceil(BAUM_BEREICH.size.x / BAUM_CHUNK_M))
@@ -580,6 +589,10 @@ func _baeume_chunks() -> void:
 		mmi.visibility_range_end = BAUM_SICHT_M
 		mmi.visibility_range_end_margin = 50.0
 		_baum_node.add_child(mmi)
+		var summe := Vector3.ZERO
+		for e2 in liste:
+			summe += (e2[1] as Transform3D).origin
+		_baum_chunks.append([mmi, summe / maxf(1.0, liste.size()) + Vector3(0, 8.0, 0)])
 		tris_alle += liste.size() * int(_baum_meshes[art].get_meta("dreiecke"))
 		n_mm += 1
 	stats["baeume"] = _baeume.size()
@@ -599,6 +612,139 @@ func baeume_freistellen(kreise: Array) -> int:
 			if Vector2(o.x, o.z).distance_squared_to(Vector2(k.x, k.y)) < k.z * k.z:
 				frei = false
 				break
+		if frei:
+			rest.append(e)
+	_baeume = rest
+	if not _baum_meshes.is_empty() and _baum_meshes[0] != null:
+		_baeume_chunks()
+	return vorher - _baeume.size()
+
+
+# ------------------------------------------------------------------ W2: Sichtweite per Skript, Freistellen, Flussmitte
+func _process(_delta: float) -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var cam := vp.get_camera_3d()
+	if cam == null:
+		return
+	var cp := cam.global_position
+	var grenze := BAUM_SICHT_M
+	for e in _baum_chunks:
+		var mmi: MultiMeshInstance3D = e[0]
+		var an: bool = cp.distance_to(e[1]) < grenze + (0.0 if mmi.visible else -50.0)
+		if mmi.visible != an:
+			mmi.visible = an
+
+
+## Sichtbare Baumdreiecke fuer die aktuelle Kamera (fuer HUD/Messsuite ohne Renderer)
+func baum_dreiecke_sichtbar() -> int:
+	var t := 0
+	for e in _baum_chunks:
+		var mmi: MultiMeshInstance3D = e[0]
+		if mmi.visible:
+			t += mmi.multimesh.instance_count * int(mmi.multimesh.mesh.get_meta("dreiecke", 0))
+	return t
+
+
+## Flussmitte (z) je Feldspalte aus den Rinnenfeldern (Bit 1), linear zwischen Spaltenmitten
+func fluss_mitte_z(x_m: float) -> float:
+	if _fluss_mitte.is_empty():
+		_fluss_mitte.resize(gw)
+		var letzte := 0.0
+		for x in gw:
+			var s := 0.0
+			var c := 0
+			for z in gh:
+				if fluss[z * gw + x] & 1:
+					s += z
+					c += 1
+			letzte = (s / c + 0.5) * M + oz if c > 0 else letzte
+			_fluss_mitte[x] = letzte
+		var gl := _fluss_mitte.duplicate()
+		for x in gw:
+			var a := 0.0
+			var n := 0
+			for d in range(-3, 4):
+				var xx := clampi(x + d, 0, gw - 1)
+				a += gl[xx]
+				n += 1
+			_fluss_mitte[x] = a / n
+	var g := clampf((x_m - ox) / M - 0.5, 0.0, gw - 1.0)
+	var i := mini(int(g), gw - 2)
+	return lerpf(_fluss_mitte[i], _fluss_mitte[i + 1], g - i)
+
+
+## Freistellen aus den Stadt-Daten (Gebaeude, Wege, Bruecken, Muehle, Fischerei). Grossbaeume der Instanzen bleiben.
+func _auto_freistellen(dir: String) -> void:
+	var kreise: Array = []
+	var p_inst := dir.path_join("proto_instanzen.json")
+	if FileAccess.file_exists(p_inst):
+		var inst = JSON.parse_string(FileAccess.get_file_as_string(p_inst))
+		if inst is Array:
+			for it in inst:
+				var typ := String(it.get("typ", ""))
+				if typ in ["laubbaum", "eiche", "obstbaum", "passant", "zaun_latte", "fass", "amboss"]:
+					continue
+				var b := float(it.get("b", 6.0))
+				var t := float(it.get("t", 6.0))
+				var r := sqrt(b * b + t * t) * 0.5 + 4.0
+				if typ in ["wassermuehle", "wassermuehle_rad"]:
+					r = 28.0
+				elif typ in ["steg", "fischerhuette", "netzgestell", "ruderboot"]:
+					r = maxf(r, 16.0)
+				kreise.append(Vector3(float(it["x"]), float(it["z"]), r))
+	var p_wege := dir.path_join("proto_wege.json")
+	if FileAccess.file_exists(p_wege):
+		var wege = JSON.parse_string(FileAccess.get_file_as_string(p_wege))
+		if wege is Array:
+			for w in wege:
+				var r := float(w.get("breite_m", 4.0)) * 0.5 + (6.0 if String(w.get("typ", "")) == "chaussee" else 4.0)
+				var pts: Array = w.get("punkte", [])
+				var letzte := Vector2(INF, INF)
+				for pt in pts:
+					var q := Vector2(float(pt[0]), float(pt[1]))
+					if q.distance_to(letzte) >= r * 0.8:
+						kreise.append(Vector3(q.x, q.y, r))
+						letzte = q
+				for br in w.get("bruecken", []):
+					for k in ["von", "bis", "mitte"]:
+						if br.has(k) and br[k] is Array:
+							kreise.append(Vector3(float(br[k][0]), float(br[k][1]), 22.0))
+	# Bachbruecke (Stadt: 1462,5 / 728,1) und Muehle explizit, falls die Daten fehlen
+	kreise.append(Vector3(1462.5, 728.1, 20.0))
+	kreise.append(Vector3(1617.0, 1090.0, 28.0))
+	stats["freigestellt"] = _freistellen_raster(kreise)
+
+
+## wie baeume_freistellen, aber mit 25-m-Raster (viele Kreise)
+func _freistellen_raster(kreise: Array) -> int:
+	if kreise.is_empty() or _baeume.is_empty():
+		return 0
+	var zelle := 25.0
+	var raster := {}
+	for k: Vector3 in kreise:
+		var x0 := int(floor((k.x - k.z) / zelle))
+		var x1 := int(floor((k.x + k.z) / zelle))
+		var z0 := int(floor((k.y - k.z) / zelle))
+		var z1 := int(floor((k.y + k.z) / zelle))
+		for zz in range(z0, z1 + 1):
+			for xx in range(x0, x1 + 1):
+				var key := Vector2i(xx, zz)
+				if not raster.has(key):
+					raster[key] = []
+				raster[key].append(k)
+	var vorher := _baeume.size()
+	var rest: Array = []
+	for e in _baeume:
+		var o: Vector3 = (e[1] as Transform3D).origin
+		var key := Vector2i(int(floor(o.x / zelle)), int(floor(o.z / zelle)))
+		var frei := true
+		if raster.has(key):
+			for k: Vector3 in raster[key]:
+				if Vector2(o.x, o.z).distance_squared_to(Vector2(k.x, k.y)) < k.z * k.z:
+					frei = false
+					break
 		if frei:
 			rest.append(e)
 	_baeume = rest

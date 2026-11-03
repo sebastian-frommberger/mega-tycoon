@@ -64,6 +64,7 @@ func zeile(objekt: String, soll: String, ist: float, abw: float, ok: bool, quell
 
 func _run() -> void:
 	print("proto_mass")
+	print("  Modellquelle: %s" % ("ProtoPrefabs (TA) wo vorhanden, sonst Platzhalter" if ResourceLoader.exists("res://world/proto_prefabs.gd") else "Platzhalter (res://world/proto_prefabs.gd fehlt noch)"))
 	var ep = Epochen.laden()
 	rw = ep.regelwerk
 	var sk: Dictionary = rw.get("skalen", {})
@@ -112,9 +113,11 @@ func _run() -> void:
 		for i in 6:
 			await process_frame
 		var z: Dictionary = s.zaehlung()
-		var tris: int = z["live_dreiecke"] if live and z["live_dreiecke"] > 0 else z["dreiecke"]
-		var dc: int = z["live_dc"] if live and z["live_dc"] > 0 else z["objekte"]
-		var q := "RenderingServer (live)" if live and z["live_dreiecke"] > 0 else "gezählt (Mesh-Daten, DC ohne Schatten)"
+		# Gate: live (RenderingServer), sonst gezählt mit Sichtweiten-Culling (W2); ohne Culling als Info-Zeile
+		var tris: int = z["live_dreiecke"] if live and z["live_dreiecke"] > 0 else z["dreiecke_sicht"]
+		var dc: int = z["live_dc"] if live and z["live_dc"] > 0 else z["objekte_sicht"]
+		var q := "RenderingServer (live)" if live and z["live_dreiecke"] > 0 else "gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)"
+		zeile("perf.%s.dreiecke_ohne_culling" % s.PRESET_NAMEN[n], "(Info)", z["dreiecke"], NAN, true, "gezählt ohne Frustum/Sichtweite (obere Schranke)")
 		var nm: String = s.PRESET_NAMEN[n]
 		if gate.has(n):
 			var g: Array = gate[n]
@@ -124,6 +127,17 @@ func _run() -> void:
 		else:
 			zeile("perf.%s.dreiecke" % nm, "(Info)", tris, NAN, true, q)
 			zeile("perf.%s.draw_calls" % nm, "(Info)", dc, NAN, true, q)
+	# ungünstigster Übersichts-Abstand (live-Spitze bei 1,2–1,8 km, felix_perf_aufschluesselung.md)
+	for d in [1800.0, 1200.0]:
+		s.setze_preset(1)
+		s.abstand = d
+		s._kamera_anwenden()
+		for i in 6:
+			await process_frame
+		var zz: Dictionary = s.zaehlung()
+		var tt: int = zz["live_dreiecke"] if live and zz["live_dreiecke"] > 0 else zz["dreiecke_sicht"]
+		var qq := "RenderingServer (live)" if live and zz["live_dreiecke"] > 0 else "gezählt mit Sichtweite"
+		zeile("perf.Übersicht_%dm.dreiecke" % int(d), "≤ 1000000", tt, (float(tt) / 1000000.0 - 1.0) * 100.0, tt <= 1000000, qq)
 	zeile("perf.ladezeit_ms", "≤ 3000", s.lade_ms, (s.lade_ms / 3000.0 - 1.0) * 100.0, s.lade_ms <= 3000.0, "prototyp_welt._ready")
 	zeile("perf.ladezeit_wand_ms", "≤ 3000", wand_ms, (wand_ms / 3000.0 - 1.0) * 100.0, wand_ms <= 3000.0, "instantiate + 1 Frame")
 	_csv()
@@ -131,8 +145,18 @@ func _run() -> void:
 	quit(0 if n_fail == 0 else 1)
 
 
-## AABB des Typs in Metern: Prefab (falls vorhanden) sonst Platzhalter-Mesh.
+## AABB des Typs in Metern: ProtoPrefabs (TA, Welle 2) → res://proto/prefabs/<typ>.tscn → Platzhalter-Mesh.
+## Fahrzeug-Kategorien (fuhrwerk_2_pferde, postkutsche_4_pferde) zusätzlich über ProtoPrefabs.fahrzeug(kat).
 func _aabb(typ: String, ph) -> Array:
+	var pm: Mesh = ph.prefab_mesh(typ)
+	if pm != null:
+		return [pm.get_aabb(), "prefab ProtoPrefabs.mesh_fuer(%s)" % typ]
+	var kat := {"fuhrwerk_2_pferde": "fuhrwerk", "postkutsche_4_pferde": "postkutsche"}
+	var scr: Script = ph.prefab_script()
+	if scr != null and kat.has(typ):
+		var d = scr.call("fahrzeug", kat[typ])
+		if d is Dictionary and d.get("mesh") is Mesh:
+			return [(d["mesh"] as Mesh).get_aabb(), "prefab ProtoPrefabs.fahrzeug(%s)" % kat[typ]]
 	var pf := PREFABS + typ + ".tscn"
 	if ResourceLoader.exists(pf):
 		var n: Node = (load(pf) as PackedScene).instantiate()
@@ -169,6 +193,10 @@ func _messe(typ: String, ph) -> void:
 	var hoch := bb.size.y
 	if ph.masse(typ)["kat"] == "unbekannt" and not quelle.begins_with("prefab"):
 		zeile(typ, "Typ bekannt", 0.0, NAN, false, "unbekannter Typ (weder regelwerk noch import_faktoren)")
+		return
+	if ph.masse(typ)["kat"] == "flaeche":
+		zeile(typ, "Typ bekannt (Fläche)", float(ph.anzahl.get(typ, 0)), NAN, true,
+			"Bodenfläche, kein Maß-Soll (Ist = Anzahl Instanzen) | " + String(ph.masse(typ)["quelle"]))
 		return
 	var sk: Dictionary = rw.get("skalen", {})
 	var pfad: String = SOLL_SKALEN.get(typ, "")
@@ -209,10 +237,26 @@ func _messe(typ: String, ph) -> void:
 		_band(typ + ".quer", [m[1], m[1]], quer, quelle + " | 16 §5 M14")
 		return
 	var ht: Dictionary = rw.get("haustypen", {})
+	if ht.has(typ) and not ht[typ].has("grundriss_m") and ht[typ].get("varianten_m") is Array:
+		# Varianten (nebengebaeude [[18,10],[12,8],[6,4]]): Soll-Band = kleinste bis größte Variante, Ist = Grundmesh
+		# (mittlere Variante); Instanzen werden auf ihr b × t skaliert.
+		var lo_l := INF
+		var hi_l := 0.0
+		var lo_q := INF
+		var hi_q := 0.0
+		for v in ht[typ]["varianten_m"]:
+			lo_l = minf(lo_l, maxf(v[0], v[1]))
+			hi_l = maxf(hi_l, maxf(v[0], v[1]))
+			lo_q = minf(lo_q, minf(v[0], v[1]))
+			hi_q = maxf(hi_q, minf(v[0], v[1]))
+		var qv := quelle + " | haustypen.%s.varianten_m (Band)" % typ
+		_band(typ + ".lang", [lo_l, hi_l], lang, qv)
+		_band(typ + ".quer", [lo_q, hi_q], quer, qv)
+		return
 	if ht.has(typ):
 		var h: Dictionary = ht[typ]
-		var g: Array = h.get("grundriss_m", [0, 0])
-		var q := quelle + " | haustypen." + typ
+		var g: Array = h.get("grundriss_m", (h.get("varianten_m", [[0, 0]]) as Array)[0])
+		var q := quelle + " | haustypen." + typ + (".varianten_m[0]" if not h.has("grundriss_m") else "")
 		_band(typ + ".lang", [maxf(g[0], g[1]), maxf(g[0], g[1])], lang, q)
 		_band(typ + ".quer", [minf(g[0], g[1]), minf(g[0], g[1])], quer, q)
 		var hv: Variant = h.get("turm_m", h.get("first_m", null))

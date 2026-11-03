@@ -64,7 +64,7 @@
     "name": "wasser"
    }
   ],
-  "orte_quelle": "Platzhalter TA (Dorf bei x 1400, z 1350, r 150 m)",
+  "orte_quelle": "slice/world/data/proto/proto_orte.json",
   "png": "RGB = Klassenfarbe (sRGB), A = id * 20 + 10"
  },
  "dreiecksteilung": "je Quad (a=(x,z), b=(x+1,z), c=(x,z+1), d=(x+1,z+1)): (a,b,c) und (b,d,c); Diagonale b-c",
@@ -272,38 +272,38 @@
  "hoehe_format": "uint16 little endian, Zeilen = z (Nord -> Sued), Spalten = x",
  "hoehe_skala_m": 0.05,
  "kennzahlen": {
-  "bach_gefaelle_promille": 60.4,
+  "bach_gefaelle_promille": 56.3,
   "bach_laenge_m": 955.9,
   "boden_anteile_gesamt_pct": {
-   "acker_dunkel": 0.7,
-   "acker_hell": 1.6,
-   "auenboden": 21.4,
-   "fels": 0.1,
-   "heide": 4.5,
+   "acker_dunkel": 3.0,
+   "acker_hell": 5.7,
+   "auenboden": 19.3,
+   "fels": 0.0,
+   "heide": 7.9,
    "schnee": 0.0,
    "schotter": 0.0,
    "sumpf": 2.0,
    "ufer": 1.4,
-   "waldboden": 30.6,
+   "waldboden": 28.0,
    "wasser": 4.0,
-   "wiese": 33.8
+   "wiese": 28.8
   },
   "boden_anteile_kern_pct": {
-   "acker_dunkel": 2.4,
-   "acker_hell": 4.4,
-   "auenboden": 36.5,
-   "fels": 0.4,
+   "acker_dunkel": 3.8,
+   "acker_hell": 11.0,
+   "auenboden": 35.3,
+   "fels": 0.0,
    "heide": 0.0,
    "schnee": 0.0,
    "schotter": 0.0,
-   "sumpf": 4.1,
+   "sumpf": 4.0,
    "ufer": 3.1,
-   "waldboden": 17.4,
+   "waldboden": 15.3,
    "wasser": 11.7,
-   "wiese": 19.9
+   "wiese": 15.7
   },
-  "dorfteich_flaeche_m2": 525,
-  "fein_felder": 809,
+  "dorfteich_flaeche_m2": 425,
+  "fein_felder": 805,
   "fluss_flaeche_m2": 419062,
   "fluss_pegel_m": {
    "kern_mitte": 39.89,
@@ -326,16 +326,16 @@
   ],
   "hoehe_kern_m": [
    35.0,
-   117.9
+   117.15
   ],
   "muehlteich_flaeche_m2": 5975,
   "neigung_kern_landfelder_pct": {
-   "15-30%": 6.6,
-   "2-6%": 14.0,
+   "15-30%": 7.3,
+   "2-6%": 13.9,
    "30-60%": 2.0,
-   "6-15%": 3.8,
-   "<2%": 73.1,
-   ">60%": 0.5
+   "6-15%": 4.4,
+   "<2%": 72.4,
+   ">60%": 0.0
   },
   "neigung_kern_median_promille": 8.5,
   "see_durchmesser_aequivalent_m": 494.3,
@@ -348,14 +348,34 @@
  "koordinaten": "lokal in Metern, Ursprung = NW-Ecke des Kerns, +x Ost, +z Sued, y = Hoehe ueber NN (m)",
  "m_pro_feld": 25.0,
  "md5": {
-  "proto_acker_maske.u8": "5a3a9b928d0046d9b95ab1f1f1305d8c",
-  "proto_bach.json": "230fdae3741964abf6941aeb476e789d",
-  "proto_boden.png": "91d1dfdd3bb10e2f0cf7b4f806a40603",
-  "proto_fein.r16": "76e56c7c0306a9d6bde9bf6274efcf7f",
-  "proto_fein_maske.u8": "dc2c3a4d0d72b7014779f8f23822b068",
+  "proto_acker_maske.u8": "925f4af02b5ca676e602c1d1ffbd837e",
+  "proto_bach.json": "fcd989b3e8285b739845a71c7c8a48fd",
+  "proto_boden.png": "a2bd6e0fc3f955608d37cf097c3d3f34",
+  "proto_fein.r16": "0b05f7559d49f40752da15d38d76eded",
+  "proto_fein_maske.u8": "a64f7b64d5ac5bfb31de372012991382",
   "proto_fluss.u8": "c85c4f25853b71665e6f2219188442de",
-  "proto_hoehe.r16": "0e259200d06e0cc5433855973a537cda",
-  "proto_see.json": "2f06853a52f05734628bf78f3ba1ca0f"
+  "proto_hoehe.r16": "4a69966a38578a2fadb44992f9acdf4a",
+  "proto_see.json": "0318e3bb02197aceabe94ff904ac1d5f"
+ },
+ "plateaus_w2": {
+  "farm2_61": {
+   "max_aenderung_m": 13.19,
+   "plateau_knoten": 113,
+   "ring_knoten": 144
+  },
+  "haberau_118": {
+   "max_aenderung_m": 8.0,
+   "plateau_knoten": 2515,
+   "ring_knoten": 851
+  },
+  "kern_anteil_ueber_30pct": {
+   "nachher": 2.09,
+   "vorher": 2.44
+  },
+  "kern_max_neigung_pct": {
+   "nachher": 61.3,
+   "vorher": 83.5
+  }
  },
  "quelle_md5": {
   "fluss_s7.u8": "dcafe0afc53934a209052611376ab2b4",

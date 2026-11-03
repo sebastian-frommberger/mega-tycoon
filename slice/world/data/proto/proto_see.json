@@ -40,19 +40,19 @@
  },
  "dorfteich": {
   "mitte_m": [
-   1400.0,
-   1325.0
+   1512.0,
+   818.0
   ],
   "radius_m": 12.5,
   "tiefe_m": 1.2,
   "boeschung_m": 6.0,
   "rand_min_m": 0.3,
-  "pegel_m": 49.1,
+  "pegel_m": 45.25,
   "ufer_rauschen": 0.05,
   "rausch_phase": 3.1,
   "schelf_m": 7.5,
-  "flaeche_m2": 525,
-  "quelle": "TA-Annahme: Anger des Platzhalter-Dorfs (x 1400, z 1350); Stadt-Rolle darf das Dorf darum legen"
+  "flaeche_m2": 425,
+  "quelle": "W2: Stadt-Vorschlag (proto_orte.json gewaesser.dorfteich, Ende der Bachgasse)"
  },
  "rauschen_formel": "r_eff = r * (1 + (sin(3t+0.7+s)*0.035 + sin(5t+2.1+1.3s)*0.025 + sin(8t+4.0+0.4s)*0.012) * staerke/0.07), t = atan2(z-cz, x-cx)"
 }

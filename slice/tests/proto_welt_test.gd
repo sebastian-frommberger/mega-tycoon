@@ -49,7 +49,16 @@ func _run() -> void:
 	var typen := {}
 	for it in s.instanzen:
 		typen[it["typ"]] = true
-	ok(s.platzhalter.mmis.size() == typen.size(), "MultiMesh je Typ: %d Typen, %d Instanzen" % [typen.size(), s.instanzen.size()])
+	ok(s.platzhalter.mmis.size() + s.platzhalter.flaechen.size() == typen.size(), "MultiMesh bzw. Flächen-Mesh je Typ: %d Typen (%d Flächen), %d Instanzen" % [typen.size(), s.platzhalter.flaechen.size(), s.instanzen.size()])
+	var fl_ok := true
+	for ft in s.platzhalter.flaechen:
+		var mi: MeshInstance3D = s.platzhalter.flaechen[ft]
+		var arr := mi.mesh.surface_get_arrays(0)
+		var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		for k in range(0, vs.size(), 7):
+			if absf(vs[k].y - s.hoehe_at(vs[k].x, vs[k].z) - 0.08) > 0.01:
+				fl_ok = false
+	ok(fl_ok and s.platzhalter.flaechen.size() >= 5, "Flächen flaeche_* liegen am Gelände (+0,08 m), 1 Mesh je Typ")
 	ok(s.platzhalter.unbekannt.is_empty(), "keine unbekannten Typen %s" % str(s.platzhalter.unbekannt))
 	ok(s.welt_epoche.get("epoche_id", "") == "W1" and s.startjahr == 1820, "Startjahr %d, Epoche %s (Datenhülle)" % [s.startjahr, s.welt_epoche.get("epoche_id", "")])
 	# Presets und Kamera-Klemme
@@ -78,10 +87,28 @@ func _run() -> void:
 	ok(s.wasser_modus == "B" and signale.get("wasser", "") == "B", "V: Wasser A → B (Hook + Signal)")
 	_key(KEY_V)
 	ok(s.wasser_modus == "A", "V: zurück auf A")
+	ok(s.easing_an, "Easing startet an (Welle 2)")
 	_key(KEY_G)
-	ok(s.easing_an and signale.get("easing", false) == true, "G: Easing an (Hook + Signal, Welle 2)")
+	ok(not s.easing_an and signale.get("easing", true) == false and (s.fahrzeuge == null or not s.fahrzeuge.easing_an),
+		"G: Easing aus (Hook + Signal, Fahrzeuge folgen)")
 	_key(KEY_G)
-	ok(not s.easing_an, "G: Easing aus")
+	ok(s.easing_an and signale.get("easing", false) == true, "G: Easing wieder an")
+	# Welle 2: Sim-Kette + Fahrzeuge in der Szene
+	ok(s.proto_sim != null and s.proto_sim.kette_ok, "Sim-Kette Farm → Mühle → Dorf aufgebaut (%s)" % (str(s.proto_sim.fehler) if s.proto_sim != null else "keine Sim"))
+	var tk0: int = s.proto_sim.ticks if s.proto_sim != null else 0
+	for i in 30:
+		s.sim_schritt(1.0 / 60.0)
+	ok(s.proto_sim != null and s.proto_sim.ticks - tk0 == 5, "Sim tickt mit 10 Hz unabhängig vom Frame (30 Frames à 1/60 s → %d Ticks)" % (s.proto_sim.ticks - tk0 if s.proto_sim != null else -1))
+	_key(KEY_F)
+	ok(s.folgen == 0, "F: Kamera folgt Fuhrwerk 1")
+	_key(KEY_F)
+	_key(KEY_F)
+	_key(KEY_F)
+	ok(s.folgen == -1, "F: nach dem letzten Fahrzeug wieder frei")
+	_key(KEY_T)
+	ok(is_equal_approx(s.sim_tempo, 0.25), "T: Bildtempo ¼×")
+	_key(KEY_T)
+	ok(is_equal_approx(s.sim_tempo, 1.0), "T: Bildtempo 1×")
 	var z_an: Dictionary = s.zaehlung()
 	_key(KEY_M)
 	var z_aus: Dictionary = s.zaehlung()

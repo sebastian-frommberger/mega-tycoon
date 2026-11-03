@@ -63,3 +63,12 @@ Firmenkauf, Skilltree, Energie und Pendler (Konzept liegt bei Lena/Tobias für S
 | E9 | F4 **A**, aber mit **Fahrzeug-Easing je Kategorie** (nicht je Modell): Fahrzeuge fahren nicht wie ein Schuhkarton um die Ecke. | Bewegungsprofile je Kategorie (Anfahren, Bremsen, Kurventempo, Wippen); nur Darstellung, Sim bleibt in Feldern. |
 | E10 | F5 **C bzw. je nach Einstellung**: Gewässer, Flüsse und Seen mit **sichtbarer sinnvoller Nutzung**. | Kartentyp/Wasseranteil als Einstellung (Flusstal, Seenplatte, Seenreich); Nutzung sichtbar (Mühle, Fischer, Steg, Fähre, Hafen, Holztrift), Schiffsverkehr als Folgefrage. |
 | E11 | F6 **B** plus Parameter **Konkurrenz** (fehlte). | Schwierigkeitshebel Konkurrenz (Zahl, Stärke der KI-Firmen) in `04_schwierigkeit`. |
+
+## Entscheidungen von Basti zu den Fragen aus Phase 3b (03.11., 06:26)
+| # | Entscheidung | Folge |
+|---|---|---|
+| E12 | Kalendertempo (Dauer 1820 bis heute) **wählbar**. | Datenparameter Zeit je Spieljahr, im Prototyp nur Hülle. |
+| E13 | Kartengröße: **bleibt zunächst bei der heutigen Karte** (Großstadt bis ca. 100.000). | Größere Karte später. |
+| E14 | Konkurrenz **per Default an, sichtbar auf den Straßen**; im Freien Spiel später **abschaltbar**. | Schwierigkeitshebel Konkurrenz mit „aus“-Stufe; S8 (Bot als Grundlage). |
+| E15 | Wasser als Verkehrsweg: **theoretisch von Anfang an mit Flößen**. | Floß als erstes Wasserfahrzeug (Holz/Stein flussabwärts), Mechanik-Entscheidung Lena/Tobias in S8/S9; im Prototyp nur als Kulisse mit Funktion auf dem Fluss. Fähre und Schiffe später. |
+Phase 4 Welle 1 (Variante schlank) gestartet 03.11. 06:50; Vertrag unter `/tmp/claude-0/gd/designsprint/p4/VERTRAG.md` (Arbeitskopien je Rolle).

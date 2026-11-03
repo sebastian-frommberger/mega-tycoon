@@ -18,10 +18,11 @@ extends RefCounted
 ## Straßenband +0,15 m), Farbe nach Typ, kein Schatten, 1 Draw Call je Typ. Typen mit varianten_m (nebengebaeude) werden
 ## je Instanz auf b × t skaliert (Grundmesh = mittlere Variante). Sichtweiten (Perf, felix_perf_aufschluesselung.md):
 ## Kleinteile 700 m, Platzhalter-Bäume 1.800 m (wie TA), Flächen 2.500 m.
-## Echte Prefabs (Welle 2) ersetzen das Mesh je Typ; proto_mass misst dann die Prefab-AABB statt dieser Boxen.
+## Welle 2 (Integration): echte Prefabs aus ProtoPrefabs (TA) ersetzen das Box-Mesh je Schlüssel (Typ bzw. Typ/Variante),
+## Gebäude bekommen ein Fern-LOD ab 650 m; die Boxen bleiben Fallback für Typen ohne Prefab. proto_mass misst die
+## Prefab-AABB.
 
 const IMPORT_PFAD := "res://world/data/proto/import_faktoren.json"   # Kopie von phase2/10_import_faktoren.json
-const PREFABS := "res://world/proto_prefabs.gd"     # TA (Welle 2): ProtoPrefabs.vorhanden(typ) / mesh_fuer(typ)
 
 ## Zusatzmaße [b, h, t] in m mit Quelle. Nur, was in regelwerk und Import-Faktoren fehlt.
 const ZUSATZ := {
@@ -54,6 +55,8 @@ const SICHT_KLEIN_M := 700.0
 const SICHT_BAUM := ["obstbaum", "laubbaum", "eiche", "nadelbaum", "nadelbaum_schlank", "busch"]
 const SICHT_BAUM_M := 1800.0
 const SICHT_FLAECHE_M := 2500.0
+const FERN_AB_M := 650.0             # Gebäude-Fern-LOD (TA, ProtoPrefabs.FERN_TYPEN)
+const FERN_RAND_M := 30.0
 
 var regelwerk: Dictionary = {}
 var flaechen: Dictionary = {}        # typ -> MeshInstance3D (Bodenflächen)
@@ -63,31 +66,17 @@ var mmis: Dictionary = {}            # typ -> MultiMeshInstance3D
 var anzahl: Dictionary = {}          # typ -> Instanzen
 var _mesh_cache: Dictionary = {}
 var _mat: StandardMaterial3D
-var prefab_typen: Dictionary = {}    # typ -> true, wenn das Mesh von ProtoPrefabs kommt
-var _prefab_scr: Script = null
-var _prefab_geprueft := false
+var prefab_typen: Dictionary = {}    # Schlüssel -> true, wenn das Mesh von ProtoPrefabs kommt
+var mmis_fern: Dictionary = {}       # Schlüssel -> MultiMeshInstance3D (Fern-LOD, ab FERN_AB_M)
 
 
-## Hook Welle 2: ProtoPrefabs (TA) per Pfad laden, damit Szene und Tests ohne die Datei kompilieren.
-func prefab_script() -> Script:
-	if not _prefab_geprueft:
-		_prefab_geprueft = true
-		if ResourceLoader.exists(PREFABS):
-			var scr: Script = load(PREFABS)
-			if scr != null and scr.can_instantiate():
-				_prefab_scr = scr
-	return _prefab_scr
-
-
-## Echtes Prefab-Mesh für typ oder null (Ursprung am Boden, Front +z, Maße laut Import-Faktoren – Vertrag TA).
+## Echtes Prefab-Mesh für typ (auch Schlüssel typ/variante) oder null. ProtoPrefabs (TA, world/proto_prefabs.gd):
+## Ursprung Bodenmitte, Front +z, Maße laut Import-Faktoren, Material in der Fläche. flaeche_* baut dieses Skript selbst
+## (Raster am Gelände statt Einheitsquadrat).
 func prefab_mesh(typ: String) -> Mesh:
-	var scr := prefab_script()
-	if scr == null:
+	if typ.begins_with("flaeche_") or not ProtoPrefabs.vorhanden(typ):
 		return null
-	if not bool(scr.call("vorhanden", typ)):
-		return null
-	var m = scr.call("mesh_fuer", typ)
-	return m if m is Mesh else null
+	return ProtoPrefabs.mesh_fuer(typ)
 
 
 func _init(p_regelwerk: Dictionary = {}) -> void:
@@ -221,12 +210,12 @@ static func _mittel(v: Variant) -> float:
 func mesh_fuer(typ: String) -> Mesh:
 	if _mesh_cache.has(typ):
 		return _mesh_cache[typ]
-	var pm := prefab_mesh(typ) if not typ.begins_with("flaeche_") else null
+	var pm := prefab_mesh(typ)
 	if pm != null:
 		prefab_typen[typ] = true
 		_mesh_cache[typ] = pm
 		return pm
-	var m := masse(typ)
+	var m := masse(typ.get_slice("/", 0))
 	var farben: Array = FARBE.get(m["kat"], FARBE["objekt"])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -292,67 +281,68 @@ func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
 	st.add_vertex(b)
 
 
-## Instanzen bauen: MultiMesh je Typ unter parent.
+## Instanzen bauen: MultiMesh je Schlüssel unter parent (Schlüssel = ProtoPrefabs.schluessel(it), also Typ oder
+## Typ/Variante, z. B. nebengebaeude/stall_12x8). Steg und Ruderboot (ProtoKulissen.TYPEN_SELBST) setzt ProtoKulissen
+## am Pegel, sie werden hier übersprungen. Prefab-Typen: Mesh mit eigenem Material (kein material_override),
+## use_colors (Weiß) + use_custom_data (Variante in .g, ProtoPrefabs.custom_fuer), Fern-LOD ab FERN_AB_M.
+## Fallback (kein Prefab): Box-Mesh in Zielmaßen, Varianten-Typen auf b × t skaliert.
 func bauen(parent: Node3D, instanzen: Array, hoehe_fn: Callable) -> void:
 	_mat = StandardMaterial3D.new()
 	_mat.vertex_color_use_as_albedo = true
 	_mat.roughness = 1.0
 	var je_typ := {}
 	for it in instanzen:
-		# TA-W2-Testhook (Felix ersetzt durch seinen Hook): Schluessel inkl. Variante, Wasser-Kulissen baut ProtoKulissen
-		var typ := ProtoPrefabs.schluessel(it)
-		if typ in ProtoKulissen.TYPEN_SELBST:
+		if String(it.get("typ", "")) in ProtoKulissen.TYPEN_SELBST:
 			continue
-		if not je_typ.has(typ):
-			je_typ[typ] = []
-		je_typ[typ].append(it)
+		var key := ProtoPrefabs.schluessel(it)
+		if not je_typ.has(key):
+			je_typ[key] = []
+		je_typ[key].append(it)
 	var typen := je_typ.keys()
 	typen.sort()
-	for typ in typen:
+	for key: String in typen:
+		var typ := key.get_slice("/", 0)
+		var liste: Array = je_typ[key]
 		var m := masse(typ)
 		if m["kat"] == "flaeche":
-			_flaeche_bauen(parent, typ, je_typ[typ], hoehe_fn)
+			_flaeche_bauen(parent, key, liste, hoehe_fn)
 			continue
-		var var_skal: bool = regelwerk.get("haustypen", {}).get(typ, {}).has("varianten_m") \
-			and not regelwerk.get("haustypen", {}).get(typ, {}).has("grundriss_m")
-		if m["kat"] == "unbekannt":
-			unbekannt[typ] = je_typ[typ].size()
-		var liste: Array = je_typ[typ]
+		var mesh := mesh_fuer(key)
+		var prefab := prefab_typen.has(key)
+		if m["kat"] == "unbekannt" and not prefab:
+			unbekannt[key] = liste.size()
+		var ht: Dictionary = regelwerk.get("haustypen", {}).get(typ, {})
+		var var_skal: bool = not prefab and ht.has("varianten_m") and not ht.has("grundriss_m")
+		var g: Vector3 = mesh.get_aabb().size if prefab else m["groesse"]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		var g: Vector3 = m["groesse"]
-		var flaeche := typ.begins_with("flaeche_")
-		if prefab:
-			mm.use_colors = true
-			mm.use_custom_data = true
-			mm.mesh = ProtoPrefabs.mesh_fuer(typ)
-			g = mm.mesh.get_aabb().size
-		else:
-			mm.mesh = mesh_fuer(typ)
+		mm.use_colors = prefab
+		mm.use_custom_data = prefab
+		mm.mesh = mesh
 		mm.instance_count = liste.size()
 		for k in liste.size():
 			var it: Dictionary = liste[k]
 			var x := float(it.get("x", 0.0))
 			var z := float(it.get("z", 0.0))
-			var rot := deg_to_rad(float(it.get("rot_deg", 0.0)))
-			var bas := Basis(Vector3.UP, rot)
+			var dreh := Basis(Vector3.UP, deg_to_rad(float(it.get("rot_deg", 0.0))))
+			var bas := dreh
+			var gi := g
 			if var_skal and it.has("b") and it.has("t"):
-				var mb := float(m["groesse"].x)
-				var mt := float(m["groesse"].z)
-				bas = bas * Basis.from_scale(Vector3(float(it["b"]) / mb, 1.0, float(it["t"]) / mt))
+				gi = Vector3(float(it["b"]), g.y, float(it["t"]))
+				bas = dreh * Basis.from_scale(Vector3(gi.x / g.x, 1.0, gi.z / g.z))
 			var y := INF
 			for e in [Vector3(-gi.x, 0, -gi.z), Vector3(gi.x, 0, -gi.z), Vector3(gi.x, 0, gi.z), Vector3(-gi.x, 0, gi.z)]:
-				var w: Vector3 = Basis(Vector3.UP, rot) * (e * 0.5)
+				var w: Vector3 = dreh * (e * 0.5)
 				y = minf(y, float(hoehe_fn.call(x + w.x, z + w.z)))
 			mm.set_instance_transform(k, Transform3D(bas, Vector3(x, y, z)))
 			if prefab:
 				mm.set_instance_color(k, Color.WHITE)
 				mm.set_instance_custom_data(k, ProtoPrefabs.custom_fuer(it))
 		var mmi := MultiMeshInstance3D.new()
-		mmi.name = ("PF_" if prefab_typen.has(typ) else "PH_") + typ
+		mmi.name = ("PF_" if prefab else "PH_") + key.replace("/", "_")
 		mmi.multimesh = mm
-		if not prefab_typen.has(typ):
-			mmi.material_override = _mat         # Prefabs bringen ihre Materialien mit
+		if not prefab:
+			mmi.material_override = _mat         # Prefabs bringen ihr Material in der Fläche mit
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if m["kat"] != "natur" or g.y > 3.0 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if typ in SICHT_KLEIN:
 			mmi.visibility_range_end = SICHT_KLEIN_M
@@ -362,29 +352,36 @@ func bauen(parent: Node3D, instanzen: Array, hoehe_fn: Callable) -> void:
 			mmi.visibility_range_end = SICHT_BAUM_M
 			mmi.visibility_range_end_margin = 50.0
 		parent.add_child(mmi)
-		mmis[typ] = mmi
-		anzahl[typ] = liste.size()
-		# TA-W2: Fern-LOD fuer Gebaeude (gleiche Transformationen/Varianten, ab 650 m)
-		if prefab and typ in ProtoPrefabs.FERN_TYPEN:
-			mmi.visibility_range_end = 650.0
-			mmi.visibility_range_end_margin = 30.0
-			var mf := MultiMesh.new()
-			mf.transform_format = MultiMesh.TRANSFORM_3D
-			mf.use_colors = true
-			mf.use_custom_data = true
-			mf.mesh = ProtoPrefabs.mesh_fern(typ)
-			mf.instance_count = mm.instance_count
-			for k in mm.instance_count:
-				mf.set_instance_transform(k, mm.get_instance_transform(k))
-				mf.set_instance_color(k, Color.WHITE)
-				mf.set_instance_custom_data(k, mm.get_instance_custom_data(k))
-			var mfi := MultiMeshInstance3D.new()
-			mfi.name = "PHF_" + typ.replace("/", "_")
-			mfi.multimesh = mf
-			mfi.visibility_range_begin = 650.0
-			mfi.visibility_range_begin_margin = 30.0
-			mfi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-			parent.add_child(mfi)
+		mmis[key] = mmi
+		anzahl[key] = liste.size()
+		if prefab and key in ProtoPrefabs.FERN_TYPEN:
+			_fern_bauen(parent, key, mmi)
+
+
+## Fern-LOD (TA): zweites MultiMesh mit ProtoPrefabs.mesh_fern, gleiche Transformationen und Custom-Daten (Varianten);
+## Nah endet, Fern beginnt bei FERN_AB_M (Überblendrand FERN_RAND_M).
+func _fern_bauen(parent: Node3D, key: String, nah: MultiMeshInstance3D) -> void:
+	var mm := nah.multimesh
+	nah.visibility_range_end = FERN_AB_M
+	nah.visibility_range_end_margin = FERN_RAND_M
+	var mf := MultiMesh.new()
+	mf.transform_format = MultiMesh.TRANSFORM_3D
+	mf.use_colors = true
+	mf.use_custom_data = true
+	mf.mesh = ProtoPrefabs.mesh_fern(key)
+	mf.instance_count = mm.instance_count
+	for k in mm.instance_count:
+		mf.set_instance_transform(k, mm.get_instance_transform(k))
+		mf.set_instance_color(k, Color.WHITE)
+		mf.set_instance_custom_data(k, mm.get_instance_custom_data(k))
+	var mfi := MultiMeshInstance3D.new()
+	mfi.name = "PFF_" + key.replace("/", "_")
+	mfi.multimesh = mf
+	mfi.visibility_range_begin = FERN_AB_M
+	mfi.visibility_range_begin_margin = FERN_RAND_M
+	mfi.cast_shadow = nah.cast_shadow
+	parent.add_child(mfi)
+	mmis_fern[key] = mfi
 
 
 func dreiecke() -> int:
@@ -392,6 +389,9 @@ func dreiecke() -> int:
 	for typ in mmis:
 		var mm: MultiMesh = mmis[typ].multimesh
 		t += mm.mesh.get_faces().size() / 3 * mm.instance_count
+	for typ in mmis_fern:
+		var mf: MultiMesh = mmis_fern[typ].multimesh
+		t += mf.mesh.get_faces().size() / 3 * mf.instance_count
 	for typ in flaechen:
 		t += (flaechen[typ] as MeshInstance3D).mesh.get_faces().size() / 3
 	return t

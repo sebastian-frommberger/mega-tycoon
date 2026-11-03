@@ -5,7 +5,9 @@ extends Node3D
 ## Aufbau (alles im Code, Einheit = 1 m, Koordinaten lokal: Ursprung NW-Ecke Kern, +x Ost, +z Süd):
 ##   Gelände   ProtoTerrain (TA, res://world/proto_terrain.gd) – fehlt die Datei: proto_terrain_stub.gd (flach)
 ##   Wege      proto_wege.json → proto_strassenband.gd (Band je Weg, Kreuzungen, Steinbogenbrücke, Fahrlinien)
-##   Modelle   proto_instanzen.json → proto_platzhalter.gd (Boxen in Zielmaßen, MultiMesh je Typ)
+##   Modelle   proto_instanzen.json → proto_platzhalter.gd (ProtoPrefabs je Typ/Variante, Fern-LOD; Box als Fallback)
+##   Wasser    ProtoKulissen (TA): Steg, Ruderboote, Floß mit Holzlände (nicht aus den Instanzen)
+##   Schilder  ProtoSchilder (Aylin): Ortsschilder Erlenbach/Lindenfurt/Hasenwinkel, Plaketten Gutshof/Mühle
 ##   Epoche    proto_epochen.gd (Datenhülle; Startjahr per `--startjahr=JJJJ`, Standard aus regelwerk.json)
 ## Daten je Datei: res://world/data/proto/<datei> (Vertrag: TA/Stadt), sonst res://proto/testdaten/<datei> (Felix).
 ##
@@ -20,12 +22,13 @@ extends Node3D
 ## Welle 2: Sim-Kette Farm → Mühle → Dorf (proto_sim.gd, echter SimWorld + Economy, Tick 10 Hz unabhängig von der
 ## Framerate) und Easing-Probe (proto_easing.gd, proto_fahrzeuge.gd): G schaltet Easing an/aus (Prüfsumme bleibt),
 ## F Kamera folgt einem Fahrzeug (Fuhrwerk 1 → Fuhrwerk 2 → Postkutsche → aus), T Bildtempo 1× / ¼× (nur Ansicht:
-## weniger Ticks je Sekunde, die Sim bleibt dieselbe).
+## weniger Ticks je Sekunde, die Sim bleibt dieselbe), N Schilder an/aus (kein Modal).
 
 signal fertig
 signal wasser_modus_geaendert(modus: String)
 signal easing_geaendert(an: bool)
 signal modelle_geaendert(an: bool)
+signal schilder_geaendert(an: bool)
 
 const Strassenband := preload("res://proto/proto_strassenband.gd")
 const Platzhalter := preload("res://proto/proto_platzhalter.gd")
@@ -52,7 +55,9 @@ var terrain: Node3D = null
 var terrain_quelle := ""
 var strassen = null                  # proto_strassenband.gd
 var platzhalter = null               # proto_platzhalter.gd
-var kulissen = null                  # proto_kulissen.gd (TA W2)
+var kulissen: ProtoKulissen = null   # Steg, Boote, Floß (TA W2)
+var schilder: ProtoSchilder = null   # Ortsschilder + Plaketten (Aylin W2)
+var schilder_an := true
 var epochen = null                   # proto_epochen.gd
 var regelwerk: Dictionary = {}
 var startjahr := 0
@@ -130,6 +135,8 @@ func _ready() -> void:
 	_baue_fahrzeuge()
 	tz["baue_fahrzeuge"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_kamera()
+	schilder = ProtoSchilder.bauen(self, cam, orte, terrain)
+	tz["baue_schilder"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_hud()
 	_presets_berechnen()
 	setze_preset(1)
@@ -283,7 +290,7 @@ func _baue_modelle() -> void:
 	add_child(modelle_root)
 	platzhalter = Platzhalter.new(regelwerk)
 	platzhalter.bauen(modelle_root, instanzen, Callable(self, "hoehe_at"))
-	# TA-W2-Testhook: Kulissen am Wasser (Steg, Boote, Floss), nur mit TA-Gelaende
+	# Kulissen am Wasser (ProtoKulissen.TYPEN_SELBST überspringt der Platzhalter); braucht das TA-Gelände (fluss_mitte_z)
 	if terrain != null and terrain.has_method("fluss_mitte_z"):
 		kulissen = ProtoKulissen.bauen(modelle_root, terrain, quellen.get("terrain_dir", DATEN))
 
@@ -411,6 +418,14 @@ func setze_modelle(an: bool) -> void:
 	_hud_text()
 
 
+func setze_schilder(an: bool) -> void:
+	schilder_an = an
+	if schilder != null:
+		schilder.setze_sichtbar(an)
+	schilder_geaendert.emit(an)
+	_hud_text()
+
+
 func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		var k: int = ev.keycode
@@ -424,6 +439,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			setze_easing(not easing_an)
 		elif k == KEY_M:
 			setze_modelle(not modelle_an)
+		elif k == KEY_N:
+			setze_schilder(not schilder_an)
 		elif k == KEY_F:
 			folge_naechstem()
 		elif k == KEY_T:
@@ -526,8 +543,9 @@ func _hud_text() -> void:
 	hud.text = "Prototyp Welt · Welle 2 (schlank) · Startjahr %d (%s)\n" % [startjahr, welt_epoche.get("epoche_id", "?")] \
 		+ "Ansicht %d %s · Abstand %d m%s\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand),
 			(" · folgt %s" % proto_sim.fahrzeuge[folgen]["name"]) if folgen >= 0 and proto_sim != null else ""] \
-		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s   [F] Folgen   [T] Tempo %s   [M] Modelle %s   [H] Hilfe   [Esc] Menü\n" % [
-			wasser_modus, "an" if easing_an else "aus", "1×" if sim_tempo == 1.0 else "¼×", "an" if modelle_an else "aus"] \
+		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s   [F] Folgen   [T] Tempo %s   [M] Modelle %s   [N] Schilder %s   [H] Hilfe   [Esc] Menü\n" % [
+			wasser_modus, "an" if easing_an else "aus", "1×" if sim_tempo == 1.0 else "¼×", "an" if modelle_an else "aus",
+			"an" if schilder_an else "aus"] \
 		+ fz \
 		+ "Gelände: %s · Daten: %s · Laden %.0f ms\n" % [terrain_quelle, "Vertrag" if quellen.get("proto_wege.json", "").begins_with(DATEN) else "Testdaten", lade_ms] \
 		+ "Szene %s Dreiecke / %d Objekte (gezählt), %s mit Sichtweite%s" % [_tsd(z["dreiecke"]), z["objekte"], _tsd(z["dreiecke_sicht"]), live]

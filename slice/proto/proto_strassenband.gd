@@ -7,8 +7,11 @@ extends RefCounted
 ##
 ## Glättung (Standard "bogen"):
 ##   0. Treppen (Kanten ≤ 40 m) werden durch Kantenmittelpunkte ersetzt (liegen bei regelmäßiger Treppe auf der Diagonale).
-##   1. Douglas-Peucker mit Toleranz max(ortsstrasse_abweichung.m_max 8 m, 9 m): Feldmitten-Treppen werden Diagonalen
-##      (9 m, weil die halbe Feldstufe am Treppenanfang 8,84 m neben der Diagonale liegt).
+##   1. Douglas-Peucker mit Toleranz max(ortsstrasse_abweichung.m_max, 9 m): Feldmitten-Treppen werden Diagonalen
+##      (mind. 9 m, weil die halbe Feldstufe am Treppenanfang 8,84 m neben der Diagonale liegt).
+##      Entscheidung PO (Integration W2): Kurvenradius Dorfstraße 25 m bleibt, Fahrlinie und Band dürfen bis 11 m von
+##      der Feldmitte abweichen (m_max 11 statt 8, regelwerk.json). Damit passt der Bogenscheitel einer 90°-Ecke
+##      (R·(√2 − 1) = 10,4 m) und Treppen 2:1 werden ohne Zickzack geglättet.
 ##      Kreuzungspunkte sind fest (bleiben erhalten, Abweichung dort ≤ 1 m).
 ##   2. Jede Ecke bekommt einen Kreisbogen mit dem Kurvenradius des Wegtyps (Dorfstraße 25 m, Chaussee 50 m), begrenzt
 ##      auf 0,45 × kürzere Nachbarkante (gleiche Regel wie der Easing-Fallback 15 §B4). Ergebnis: G1-stetig, Radius bekannt.
@@ -65,7 +68,7 @@ var profile := {
 	"feldweg": {"fahrbahn": 3.5, "trasse": 3.5, "radius": 25.0, "graben": false},    # Radius Annahme Felix (W2: 25 m, E3)
 	"bruecke": {"fahrbahn": 6.0, "trasse": 6.0, "radius": 25.0, "graben": false},
 }
-var abweichung_max_m := 8.0
+var abweichung_max_m := 11.0          # regelwerk strasse_gleis_bild.ortsstrasse_abweichung.m_max (PO W2: 11 m)
 var bogen_m := 15.0
 var wasser_pegel_m := 36.4
 var glaettung := "bogen"

@@ -21,7 +21,6 @@ extends SceneTree
 const Platzhalter := preload("res://proto/proto_platzhalter.gd")
 const Epochen := preload("res://proto/proto_epochen.gd")
 const SZENE := "res://proto/prototyp_welt.tscn"
-const PREFABS := "res://proto/prefabs/"
 
 ## Pflichtobjekte (14 §3 M1–M13, 16 §5 M14), auch wenn sie in den Instanzen fehlen.
 const PFLICHT := ["kate", "bauernhof", "buergerhaus", "kirche_dorf", "kirche_stadt", "scheune", "gutshof", "wassermuehle",
@@ -64,7 +63,7 @@ func zeile(objekt: String, soll: String, ist: float, abw: float, ok: bool, quell
 
 func _run() -> void:
 	print("proto_mass")
-	print("  Modellquelle: %s" % ("ProtoPrefabs (TA) wo vorhanden, sonst Platzhalter" if ResourceLoader.exists("res://world/proto_prefabs.gd") else "Platzhalter (res://world/proto_prefabs.gd fehlt noch)"))
+	print("  Modellquelle: ProtoPrefabs (TA) wo vorhanden, sonst Platzhalter (Box)")
 	var ep = Epochen.laden()
 	rw = ep.regelwerk
 	var sk: Dictionary = rw.get("skalen", {})
@@ -82,6 +81,7 @@ func _run() -> void:
 	var typen := {}
 	for it in s.instanzen:
 		typen[String(it.get("typ", ""))] = true
+		typen[ProtoPrefabs.schluessel(it)] = true        # Varianten-Meshes (nebengebaeude/stall_12x8 …) einzeln
 	for t in PFLICHT:
 		typen[t] = true
 	var liste := typen.keys()
@@ -137,7 +137,12 @@ func _run() -> void:
 		var zz: Dictionary = s.zaehlung()
 		var tt: int = zz["live_dreiecke"] if live and zz["live_dreiecke"] > 0 else zz["dreiecke_sicht"]
 		var qq := "RenderingServer (live)" if live and zz["live_dreiecke"] > 0 else "gezählt mit Sichtweite"
-		zeile("perf.Übersicht_%dm.dreiecke" % int(d), "≤ 1000000", tt, (float(tt) / 1000000.0 - 1.0) * 100.0, tt <= 1000000, qq)
+		if live and zz["live_dreiecke"] > 0:
+			zeile("perf.Übersicht_%dm.dreiecke" % int(d), "≤ 1000000", tt, (float(tt) / 1000000.0 - 1.0) * 100.0, tt <= 1000000, qq)
+		else:
+			# headless: Zwischenabstände nur als Info. Der Dummy-Renderer hält keine MultiMesh-Transforms, Fern- und
+			# Nah-LOD sowie Baum-Chunks am Rand zählen dann beide als sichtbar (obere Schranke); Gate gilt live (xvfb).
+			zeile("perf.Übersicht_%dm.dreiecke" % int(d), "(Info headless, Gate live)", tt, NAN, true, qq + " – obere Schranke")
 	zeile("perf.ladezeit_ms", "≤ 3000", s.lade_ms, (s.lade_ms / 3000.0 - 1.0) * 100.0, s.lade_ms <= 3000.0, "prototyp_welt._ready")
 	zeile("perf.ladezeit_wand_ms", "≤ 3000", wand_ms, (wand_ms / 3000.0 - 1.0) * 100.0, wand_ms <= 3000.0, "instantiate + 1 Frame")
 	_csv()
@@ -145,43 +150,18 @@ func _run() -> void:
 	quit(0 if n_fail == 0 else 1)
 
 
-## AABB des Typs in Metern: ProtoPrefabs (TA, Welle 2) → res://proto/prefabs/<typ>.tscn → Platzhalter-Mesh.
-## Fahrzeug-Kategorien (fuhrwerk_2_pferde, postkutsche_4_pferde) zusätzlich über ProtoPrefabs.fahrzeug(kat).
+## AABB des Typs in Metern: ProtoPrefabs (TA, Welle 2) → Platzhalter-Mesh (Fallback Box).
+## Fahrzeug-Kategorien (fuhrwerk_2_pferde, postkutsche_4_pferde) zusätzlich über ProtoPrefabs.fahrzeug(kat) – das Mesh,
+## das in der Szene fährt.
 func _aabb(typ: String, ph) -> Array:
+	const KAT := {"fuhrwerk_2_pferde": "fuhrwerk", "postkutsche_4_pferde": "postkutsche"}
+	if KAT.has(typ):
+		var d: Dictionary = ProtoPrefabs.fahrzeug(KAT[typ])
+		return [(d["mesh"] as Mesh).get_aabb(), "prefab ProtoPrefabs.fahrzeug(%s)" % KAT[typ]]
 	var pm: Mesh = ph.prefab_mesh(typ)
 	if pm != null:
 		return [pm.get_aabb(), "prefab ProtoPrefabs.mesh_fuer(%s)" % typ]
-	var kat := {"fuhrwerk_2_pferde": "fuhrwerk", "postkutsche_4_pferde": "postkutsche"}
-	var scr: Script = ph.prefab_script()
-	if scr != null and kat.has(typ):
-		var d = scr.call("fahrzeug", kat[typ])
-		if d is Dictionary and d.get("mesh") is Mesh:
-			return [(d["mesh"] as Mesh).get_aabb(), "prefab ProtoPrefabs.fahrzeug(%s)" % kat[typ]]
-	var pf := PREFABS + typ + ".tscn"
-	if ResourceLoader.exists(pf):
-		var n: Node = (load(pf) as PackedScene).instantiate()
-		var bb := _merge_aabb(n, Transform3D.IDENTITY)
-		n.free()
-		return [bb, "prefab " + pf.get_file()]
-	return [ph.mesh_fuer(typ).get_aabb(), "platzhalter (" + String(ph.masse(typ)["quelle"]) + ")"]
-
-
-func _merge_aabb(n: Node, xf: Transform3D) -> AABB:
-	var out := AABB()
-	var first := true
-	var x := xf
-	if n is Node3D:
-		x = xf * (n as Node3D).transform
-	if n is VisualInstance3D:
-		var bb := x * (n as VisualInstance3D).get_aabb()
-		out = bb
-		first = false
-	for c in n.get_children():
-		var cb := _merge_aabb(c, x)
-		if cb.size != Vector3.ZERO:
-			out = cb if first else out.merge(cb)
-			first = false
-	return out
+	return [ph.mesh_fuer(typ).get_aabb(), "platzhalter (" + String(ph.masse(typ.get_slice("/", 0))["quelle"]) + ")"]
 
 
 func _messe(typ: String, ph) -> void:
@@ -237,6 +217,23 @@ func _messe(typ: String, ph) -> void:
 		_band(typ + ".quer", [m[1], m[1]], quer, quelle + " | 16 §5 M14")
 		return
 	var ht: Dictionary = rw.get("haustypen", {})
+	if typ.contains("/"):
+		# Varianten-Mesh (ProtoPrefabs.schluessel): Soll = die Variante aus varianten_m, deren Maße im Namen stehen (…_18x10)
+		var basis := typ.get_slice("/", 0)
+		var rx := RegEx.create_from_string("(\\d+)x(\\d+)$")
+		var mt := rx.search(typ)
+		var soll: Array = []
+		if mt != null:
+			for v in ht.get(basis, {}).get("varianten_m", []):
+				if int(v[0]) == int(mt.get_string(1)) and int(v[1]) == int(mt.get_string(2)):
+					soll = v
+		if soll.is_empty():
+			zeile(typ, "Variante in haustypen.%s.varianten_m" % basis, 0.0, NAN, false, quelle)
+			return
+		var qv := quelle + " | haustypen.%s.varianten_m %s" % [basis, str(soll)]
+		_band(typ + ".lang", [maxf(soll[0], soll[1]), maxf(soll[0], soll[1])], lang, qv)
+		_band(typ + ".quer", [minf(soll[0], soll[1]), minf(soll[0], soll[1])], quer, qv)
+		return
 	if ht.has(typ) and not ht[typ].has("grundriss_m") and ht[typ].get("varianten_m") is Array:
 		# Varianten (nebengebaeude [[18,10],[12,8],[6,4]]): Soll-Band = kleinste bis größte Variante, Ist = Grundmesh
 		# (mittlere Variante); Instanzen werden auf ihr b × t skaliert.
@@ -255,8 +252,8 @@ func _messe(typ: String, ph) -> void:
 		return
 	if ht.has(typ):
 		var h: Dictionary = ht[typ]
-		var g: Array = h.get("grundriss_m", (h.get("varianten_m", [[0, 0]]) as Array)[0])
-		var q := quelle + " | haustypen." + typ + (".varianten_m[0]" if not h.has("grundriss_m") else "")
+		var g: Array = h.get("grundriss_m", [0, 0])
+		var q := quelle + " | haustypen." + typ
 		_band(typ + ".lang", [maxf(g[0], g[1]), maxf(g[0], g[1])], lang, q)
 		_band(typ + ".quer", [minf(g[0], g[1]), minf(g[0], g[1])], quer, q)
 		var hv: Variant = h.get("turm_m", h.get("first_m", null))

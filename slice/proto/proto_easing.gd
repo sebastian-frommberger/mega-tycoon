@@ -521,7 +521,11 @@ class Zustand extends RefCounted:
 	var pos := Vector3.ZERO
 	var gier := 0.0
 	var basis := Basis.IDENTITY          # Instanz-Basis (an: nur Gier; aus: FAST-Mischung)
-	var custom := Color(0, 0, 0, 0)      # x Gangphase 0..1, y Wippen m, z Rollen rad, w Nicken rad
+	## INSTANCE_CUSTOM nach Vertrag ProtoPrefabs (gang): x Gang = fmod(Gangstrecke m, 240), y Variante (setzt
+	## proto_fahrzeuge), z Nicken rad (Drehung um +x, + = Bug senkt sich), w Wanken rad (Drehung um +z, + = linke
+	## Modellseite hebt sich). Gangstrecke = Gangphase × ProtoPrefabs.SCHRITT_M (Schrittfrequenz gedeckelt, K31).
+	var custom := Color(0, 0, 0, 0)
+	var wipp := 0.0                      # Wippen des ganzen Gespanns in m (0..wipp_m), geht in den Instanz-Transform
 	var p_bild := 0.0                    # Bildposition auf dem Bild-Leg (nach φ)
 	var u_bild := 0.0
 	var leg_bild := 0
@@ -643,8 +647,12 @@ class Zustand extends RefCounted:
 		var v_rel := clampf(v_p / prof.v_nom, 0.0, 1.0)
 		var stride_w := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.wipp_hz      # m je Wipp-Periode
 		var stride_g := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.gang_hz      # m je Schritt-Periode (Deckel)
-		var wipp := prof.wipp_m * v_rel * sin(TAU * zb / stride_w)
-		custom = Color(fposmod(zb / stride_g, 1.0), wipp, roll, nick)
+		wipp = prof.wipp_m * v_rel * 0.5 * (1.0 - cos(TAU * zb / stride_w))   # hebt, sinkt nie ein
+		custom = Color(gang_m(zb / stride_g), 0.0, -nick, roll)
+
+	## Gangphase (Schritte) → INSTANCE_CUSTOM.x in m: Schritte × SCHRITT_M, modulo PERIODE_M (nahtlos, TA-Shader).
+	static func gang_m(schritte: float) -> float:
+		return fposmod(schritte * ProtoPrefabs.SCHRITT_M, ProtoPrefabs.PERIODE_M)
 
 	## Wende 180° mit Gierrate ≤ ω_max (smoothstep: Spitze 1,5 × Mittel).
 	func wende_ticks() -> float:
@@ -667,7 +675,8 @@ class Zustand extends RefCounted:
 		basis = Basis(ba.x.lerp(bb.x, alpha), ba.y.lerp(bb.y, alpha), ba.z.lerp(bb.z, alpha))
 		gier = lerp_angle(float(aus_vor[1]), float(aus_akt[1]), alpha)
 		var stride_g := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.gang_hz
-		custom = Color(fposmod(r / stride_g, 1.0), 0.0, 0.0, 0.0)
+		custom = Color(gang_m(r / stride_g), 0.0, 0.0, 0.0)
+		wipp = 0.0
 		zb = r
 		vb = maxf(0.0, z_akt - z_vor)
 		in_wende = false

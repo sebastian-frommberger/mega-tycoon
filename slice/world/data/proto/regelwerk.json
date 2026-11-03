@@ -2756,7 +2756,7 @@
   "kreuzung": "eigenes Knotenstueck (Junction-Mesh) je Kreuzungstyp",
   "ortsstrasse_abweichung": {
    "grad_max": 20,
-   "m_max": 8
+   "m_max": 11
   },
   "bruecke": "Sim-Brueckenfelder; Band laeuft ueber Brueckenmesh",
   "spielernetz": "gleiche Glaettung, Sim unveraendert (W-04b)",
@@ -4065,7 +4065,7 @@
    "fuhrwerk": {
     "sim_felder_je_tick_promille": 600,
     "fenster_ticks": 4,
-    "kurvenfaktor_min_promille": 550,
+    "kurvenfaktor_min_promille": 700,
     "ueberhoehung_max_promille": 150,
     "radius_min_m": 8,
     "spur_versatz_dm": 15,
@@ -4082,7 +4082,7 @@
    "postkutsche": {
     "sim_felder_je_tick_promille": 600,
     "fenster_ticks": 5,
-    "kurvenfaktor_min_promille": 600,
+    "kurvenfaktor_min_promille": 700,
     "ueberhoehung_max_promille": 150,
     "radius_min_m": 10,
     "spur_versatz_dm": 15,

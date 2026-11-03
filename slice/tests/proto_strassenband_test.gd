@@ -110,7 +110,8 @@ func _initialize() -> void:
 	for k in fl2.punkte.size():
 		dmin = minf(dmin, Vector2(fl2.punkte[k].x, fl2.punkte[k].z).distance_to(Vector2(ecke.x, ecke.z)))
 	ok(is_equal_approx(fl2.r_min, 25.0), "90°-Ecke: Bogen R = %.1f m (Dorfstraße 25 m)" % fl2.r_min)
-	ok(dmin < 12.5 * sqrt(2.0), "90°-Ecke: Scheitel %.1f m vom Eckpunkt, bleibt im Eckfeld (8-m-Regel: %s)" % [dmin, "ja" if dmin <= 8.0 else "nein, Zielkonflikt R 25 m"])
+	ok(dmin <= sb.abweichung_max_m + 0.01 and dmin < 12.5 * sqrt(2.0),
+		"90°-Ecke: Scheitel %.1f m vom Eckpunkt, im Eckfeld und ≤ %.0f m Abweichung (PO W2: R 25 m, 11 m)" % [dmin, sb.abweichung_max_m])
 	# Höhe folgt dem Gelände (außerhalb der Brücke)
 	var dh := 0.0
 	var fl0 = sb.fahrlinien[0]

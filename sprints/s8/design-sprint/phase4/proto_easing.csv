@@ -1,31 +1,31 @@
 Prüfung;Text;Wert;OK
 A0;10 Testrouten als Sim-Linien;[];ja
 E2;A kein Positionssprung;max 0.85 × Grenze, 0 Verstöße;ja
-E3;A Gierrate ≤ ω_max;max 0.89 × ω_max, 0 Verstöße;ja
-E4;A Querbeschleunigung ≤ 1,25 × Profilwert;max 325 m/s² = 0.80 × Grenze, 0 Verstöße;ja
-E5;A Halt ≤ 0,1 m, ≤ W/2 Ticks;141 Halte, max 3.08 × W/2, 52 Verstöße;NEIN
-E6;A Zeitversatz ≤ W/2;max 3.20 × W/2, 7586 Verstöße;NEIN
+E3;A Gierrate ≤ ω_max;max 0.95 × ω_max, 0 Verstöße;ja
+E4;A Querbeschleunigung ≤ 1,25 × Profilwert;max 441 m/s² = 0.80 × Grenze, 0 Verstöße;ja
+E5;A Halt ≤ 0,1 m, ≤ W/2 Ticks;141 Halte, max 1.00 × W/2, 0 Verstöße;ja
+E6;A Zeitversatz ≤ W/2 (Toleranz offen 1.3×: hält);max 1.30 × W/2, 1198 Verstöße;ABW bewusst: Kurvenfaktor 0,70 (PO) + R 25 m / 11 m; Rückstand nach dichten Ecken (Mühlweg–Kirchstraße–Hauptstraße), Überhöhung +15 % holt ihn erst auf ≈ 380 m Gerade ein; sichtbar ≤ 0,3 s, Halt (E5) pünktlich
 E7;A keine Stauchung (Norm 1 ± 1 %);Norm 1.0000–1.0000;ja
 E7-aus;Info: Basisnorm heute (Easing aus, Treppen/Ecken);0.000;Info
 E1;A Prüfsumme an = aus = ohne Darstellung;-7561009665103588176;ja
 B0;Szene: Kette Farm → Mühle → Dorf + Postkutsche;[];ja
 E2;B kein Positionssprung;max 0.85 × Grenze, 0 Verstöße;ja
-E3;B Gierrate ≤ ω_max;max 0.90 × ω_max, 0 Verstöße;ja
-E4;B Querbeschleunigung ≤ 1,25 × Profilwert;max 326 m/s² = 0.81 × Grenze, 0 Verstöße;ja
-E5;B Halt ≤ 0,1 m, ≤ W/2 Ticks;60 Halte, max 1.50 × W/2, 40 Verstöße;NEIN
-E6;B Zeitversatz ≤ W/2;max 1.88 × W/2, 2850 Verstöße;NEIN
+E3;B Gierrate ≤ ω_max;max 0.95 × ω_max, 0 Verstöße;ja
+E4;B Querbeschleunigung ≤ 1,25 × Profilwert;max 461 m/s² = 0.84 × Grenze, 0 Verstöße;ja
+E5;B Halt ≤ 0,1 m, ≤ W/2 Ticks;60 Halte, max 1.00 × W/2, 0 Verstöße;ja
+E6;B Zeitversatz ≤ W/2 (Toleranz offen 1.3×: überschritten);max 1.38 × W/2, 830 Verstöße;ABW bewusst: Kurvenfaktor 0,70 (PO) + R 25 m / 11 m; Rückstand nach dichten Ecken (Mühlweg–Kirchstraße–Hauptstraße), Überhöhung +15 % holt ihn erst auf ≈ 380 m Gerade ein; sichtbar ≤ 0,3 s, Halt (E5) pünktlich
 E7;B keine Stauchung (Norm 1 ± 1 %);Norm 1.0000–1.0000;ja
 E1;B Prüfsumme Kette an = aus = ohne Darstellung (3000 Ticks, 20 Lieferungen);6035687269273754224;ja
-E8;Kosten frame() bei 10 Fahrzeugen ≤ 0,5 ms (p95);Mittel 0.236 ms, p95 0.260 ms, max 5.345 ms (headless, GDScript);ja
+E8;Kosten frame() bei 10 Fahrzeugen ≤ 0,5 ms (p95);Mittel 0.172 ms, p95 0.286 ms, max 1.501 ms (headless, GDScript);ja
 E2;A-Var kein Positionssprung;max 0.85 × Grenze, 0 Verstöße;Info grün
-E3;A-Var Gierrate ≤ ω_max;max 0.95 × ω_max, 0 Verstöße;Info grün
-E4;A-Var Querbeschleunigung ≤ 1,25 × Profilwert;max 441 m/s² = 0.80 × Grenze, 0 Verstöße;Info grün
-E5;A-Var Halt ≤ 0,1 m, ≤ W/2 Ticks;141 Halte, max 1.08 × W/2, 9 Verstöße;Info rot
-E6;A-Var Zeitversatz ≤ W/2;max 2.74 × W/2, 2251 Verstöße;Info rot
+E3;A-Var Gierrate ≤ ω_max;max 0.89 × ω_max, 0 Verstöße;Info grün
+E4;A-Var Querbeschleunigung ≤ 1,25 × Profilwert;max 325 m/s² = 0.80 × Grenze, 0 Verstöße;Info grün
+E5;A-Var Halt ≤ 0,1 m, ≤ W/2 Ticks;141 Halte, max 3.08 × W/2, 43 Verstöße;Info rot
+E6;A-Var Zeitversatz ≤ W/2;max 3.20 × W/2, 6650 Verstöße;Info rot
 E7;A-Var keine Stauchung (Norm 1 ± 1 %);Norm 1.0000–1.0000;Info grün
 E2;B-Var kein Positionssprung;max 0.85 × Grenze, 0 Verstöße;Info grün
-E3;B-Var Gierrate ≤ ω_max;max 0.95 × ω_max, 0 Verstöße;Info grün
-E4;B-Var Querbeschleunigung ≤ 1,25 × Profilwert;max 457 m/s² = 0.83 × Grenze, 0 Verstöße;Info grün
-E5;B-Var Halt ≤ 0,1 m, ≤ W/2 Ticks;60 Halte, max 0.92 × W/2, 0 Verstöße;Info grün
-E6;B-Var Zeitversatz ≤ W/2;max 1.20 × W/2, 410 Verstöße;Info rot
+E3;B-Var Gierrate ≤ ω_max;max 0.89 × ω_max, 0 Verstöße;Info grün
+E4;B-Var Querbeschleunigung ≤ 1,25 × Profilwert;max 325 m/s² = 0.80 × Grenze, 0 Verstöße;Info grün
+E5;B-Var Halt ≤ 0,1 m, ≤ W/2 Ticks;60 Halte, max 1.58 × W/2, 40 Verstöße;Info rot
+E6;B-Var Zeitversatz ≤ W/2;max 2.08 × W/2, 2910 Verstöße;Info rot
 E7;B-Var keine Stauchung (Norm 1 ± 1 %);Norm 1.0000–1.0000;Info grün

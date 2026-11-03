@@ -36,6 +36,7 @@ func _run() -> void:
 	s.wasser_modus_geaendert.connect(func(m): signale["wasser"] = m)
 	s.easing_geaendert.connect(func(a): signale["easing"] = a)
 	s.modelle_geaendert.connect(func(a): signale["modelle"] = a)
+	s.schilder_geaendert.connect(func(a): signale["schilder"] = a)
 	root.add_child(s)
 	await process_frame
 	var ms := (Time.get_ticks_usec() - t0) / 1000.0
@@ -48,8 +49,12 @@ func _run() -> void:
 	ok(s.strassen.bruecken.size() >= 1, "mindestens 1 Steinbogenbrücke (%d)" % s.strassen.bruecken.size())
 	var typen := {}
 	for it in s.instanzen:
-		typen[it["typ"]] = true
-	ok(s.platzhalter.mmis.size() + s.platzhalter.flaechen.size() == typen.size(), "MultiMesh bzw. Flächen-Mesh je Typ: %d Typen (%d Flächen), %d Instanzen" % [typen.size(), s.platzhalter.flaechen.size(), s.instanzen.size()])
+		if not (String(it["typ"]) in ProtoKulissen.TYPEN_SELBST):
+			typen[ProtoPrefabs.schluessel(it)] = true
+	ok(s.platzhalter.mmis.size() + s.platzhalter.flaechen.size() == typen.size(), "MultiMesh bzw. Flächen-Mesh je Schlüssel (Typ/Variante, ohne Steg/Ruderboot): %d (%d Flächen), %d Instanzen" % [typen.size(), s.platzhalter.flaechen.size(), s.instanzen.size()])
+	ok(s.platzhalter.prefab_typen.size() >= typen.size() - s.platzhalter.flaechen.size() and s.platzhalter.mmis_fern.size() > 0,
+		"Prefabs (ProtoPrefabs) für alle Modell-Schlüssel: %d, Fern-LOD: %d" % [s.platzhalter.prefab_typen.size(), s.platzhalter.mmis_fern.size()])
+	ok(s.kulissen != null, "Kulissen am Wasser (ProtoKulissen: Steg, Ruderboot, Floß)")
 	var fl_ok := true
 	for ft in s.platzhalter.flaechen:
 		var mi: MeshInstance3D = s.platzhalter.flaechen[ft]
@@ -96,6 +101,7 @@ func _run() -> void:
 	# Welle 2: Sim-Kette + Fahrzeuge in der Szene
 	ok(s.proto_sim != null and s.proto_sim.kette_ok, "Sim-Kette Farm → Mühle → Dorf aufgebaut (%s)" % (str(s.proto_sim.fehler) if s.proto_sim != null else "keine Sim"))
 	var tk0: int = s.proto_sim.ticks if s.proto_sim != null else 0
+	s.sim_acc = 0.5                    # definierter Rest, sonst hängt das Ergebnis (4 oder 5) an Float-Rundung
 	for i in 30:
 		s.sim_schritt(1.0 / 60.0)
 	ok(s.proto_sim != null and s.proto_sim.ticks - tk0 == 5, "Sim tickt mit 10 Hz unabhängig vom Frame (30 Frames à 1/60 s → %d Ticks)" % (s.proto_sim.ticks - tk0 if s.proto_sim != null else -1))
@@ -117,6 +123,18 @@ func _run() -> void:
 		"Modelle aus senkt Dreiecke %d → %d, Objekte %d → %d" % [z_an["dreiecke"], z_aus["dreiecke"], z_an["objekte"], z_aus["objekte"]])
 	_key(KEY_M)
 	ok(s.modelle_an, "M: Modelle wieder an")
+	# Integration W2: Schilder (Aylin) in der Szene, Schalter N
+	var ids := {}
+	if s.schilder != null:
+		for e in s.schilder.liste():
+			ids[e["id"]] = e["art"]
+	ok(ids.get("erlenbach") == "ort" and ids.get("lindenfurt") == "ort" and ids.get("hasenwinkel") == "ort"
+		and ids.get("gut_kuppenhof") == "industrie" and ids.get("erlenmuehle") == "industrie",
+		"Schilder: Erlenbach, Lindenfurt, Hasenwinkel (Ort), Gut Kuppenhof, Erlenmühle (Plakette) %s" % str(ids))
+	_key(KEY_N)
+	ok(not s.schilder_an and not s.schilder.sichtbar and signale.get("schilder", true) == false, "N: Schilder aus (kein Modal)")
+	_key(KEY_N)
+	ok(s.schilder_an and s.schilder.sichtbar, "N: Schilder wieder an")
 	# Fahrlinie am Szenen-Band (Schnittstelle für Easing)
 	var fl = s.strassen.fahrlinien[0]
 	var p: Vector3 = fl.strecke_punkt(fl.laenge * 0.5)

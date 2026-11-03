@@ -1,0 +1,32 @@
+{
+ "orte": [
+  {
+   "id": "markt",
+   "name": "Lindach",
+   "klasse": "kleinstadt",
+   "ew": 2400,
+   "x": 930.0,
+   "z": 230.0,
+   "r_m": 220
+  },
+  {
+   "id": "dorf",
+   "name": "Haberau",
+   "klasse": "dorf",
+   "ew": 250,
+   "x": 700.0,
+   "z": 1060.0,
+   "r_m": 160
+  },
+  {
+   "id": "weiler",
+   "name": "Bachhof",
+   "klasse": "weiler",
+   "ew": 40,
+   "x": 1700.0,
+   "z": 1360.0,
+   "r_m": 70
+  }
+ ],
+ "_quelle": "Felix-Testdaten (Platzhalter bis Stadt liefert)"
+}

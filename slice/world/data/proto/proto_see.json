@@ -1,0 +1,58 @@
+{
+ "_zweck": "Stehende Gewaesser als Stempel im 5-m-Feinraster (proto_fein.r16). Uferlinie = radius_m x (1 + Rauschen(theta)), Gelaende dort = Pegel.",
+ "see": {
+  "mitte_m": [
+   1212.5,
+   1012.5
+  ],
+  "radius_m": 250.0,
+  "pegel_m": 44.8,
+  "tiefe_m": 4.0,
+  "boeschung_m": 40.0,
+  "rand_min_m": 0.8,
+  "ufer_rauschen": 0.07,
+  "rausch_phase": 0.0,
+  "schelf_m": 70.0,
+  "flaeche_m2": 191900,
+  "durchmesser_aequivalent_m": 494.3,
+  "quelle": "ausschnitt_vorgabe.json"
+ },
+ "muehlteich": {
+  "mitte_m": [
+   1612.5,
+   1150.0
+  ],
+  "radius_m": 45.0,
+  "tiefe_m": 2.5,
+  "boeschung_m": 15.0,
+  "rand_min_m": 0.5,
+  "pegel_m": 47.800000000000004,
+  "ufer_rauschen": 0.05,
+  "rausch_phase": 1.7,
+  "schelf_m": 27.0,
+  "flaeche_m2": 5975,
+  "muehle_vorschlag_m": [
+   1600.5,
+   1088.0
+  ],
+  "damm": "Nordufer (bachabwaerts), Boeschung >= Pegel + 0,5 m; Bach laeuft durch den Teich",
+  "quelle": "TA-Annahme: flachster Bachabschnitt (Gefaelle ~1 %), 600 m vom Fluss"
+ },
+ "dorfteich": {
+  "mitte_m": [
+   1400.0,
+   1325.0
+  ],
+  "radius_m": 12.5,
+  "tiefe_m": 1.2,
+  "boeschung_m": 6.0,
+  "rand_min_m": 0.3,
+  "pegel_m": 49.1,
+  "ufer_rauschen": 0.05,
+  "rausch_phase": 3.1,
+  "schelf_m": 7.5,
+  "flaeche_m2": 525,
+  "quelle": "TA-Annahme: Anger des Platzhalter-Dorfs (x 1400, z 1350); Stadt-Rolle darf das Dorf darum legen"
+ },
+ "rauschen_formel": "r_eff = r * (1 + (sin(3t+0.7+s)*0.035 + sin(5t+2.1+1.3s)*0.025 + sin(8t+4.0+0.4s)*0.012) * staerke/0.07), t = atan2(z-cz, x-cx)"
+}

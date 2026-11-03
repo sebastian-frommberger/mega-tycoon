@@ -1,0 +1,1887 @@
+{
+ "_zweck": "Prefab-Bauanleitung Prototyp (Szene in Metern). Erzeugt von tools_proto/ta_import_faktoren.py. Bauer: slice/world/proto_prefab_bau.gd; Welle 2 kopiert die Modelle nach res_ziel und speichert je Rolle 1 Mesh (R4).",
+ "einheit": "m",
+ "fernproxy_ab_m": 1400,
+ "kits_erlaubt": [
+  "Fantasy Town Kit",
+  "Nature Kit",
+  "Train Kit",
+  "Survival Kit",
+  "Graveyard Kit",
+  "Castle Kit",
+  "Prototype Kit",
+  "Watercraft Pack",
+  "Pirate Kit"
+ ],
+ "quelle": [
+  "sprints/s8/design-sprint/phase2/10_import_faktoren.json",
+  "sprints/s8/design-sprint/phase3b/12_regelwerk_v1_1.json asset_mapping, skalen"
+ ],
+ "regeln": {
+  "R1": "Faktor je Rolle, nicht je Kit",
+  "R2": "Bezugsachse = kleinste Toleranz",
+  "R3": "Quer-/Laengsfaktor nur Fahrzeuge und Bruecken, max +-35 %",
+  "R4": "1 Prefab = 1 Mesh, MultiMesh",
+  "R5": "Fernproxy ab 1400 m",
+  "R6": "Pivot normieren"
+ },
+ "rollen": {
+  "amboss": {
+   "bbox_u": [
+    0.323,
+    0.336,
+    0.296
+   ],
+   "bezugsachse": "x",
+   "faktor_szene_25m": 0.0991,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Survival Kit/Models/GLB format/workbench-anvil.glb",
+   "kit": "Survival Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.477,
+   "modell": "workbench-anvil",
+   "notiz": "Schmiede",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/amboss.tres",
+   "res_ziel": "res://props/kenney_proto/survival/workbench-anvil.glb",
+   "skala_m_pro_u": [
+    2.477,
+    2.477,
+    2.477
+   ],
+   "soll_aabb_m": [
+    0.8,
+    0.832,
+    0.733
+   ],
+   "toleranz": {
+    "achse": "x",
+    "band_m": [
+     0.6,
+     1.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 0.8
+  },
+  "bruecke_bach": {
+   "bbox_u": [
+    1.04,
+    0.4,
+    1.04
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.3077,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/bridge_stoneRound.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 7.692,
+   "modell": "bridge_stoneRound",
+   "notiz": "Breite x auf Wegbreite: eigener x-Faktor",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/bruecke_bach.tres",
+   "res_ziel": "res://props/kenney_proto/nature/bridge_stoneRound.glb",
+   "skala_m_pro_u": [
+    7.692,
+    7.692,
+    7.692
+   ],
+   "soll_aabb_m": [
+    8.0,
+    3.077,
+    8.0
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     6.0,
+     10.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 8.0
+  },
+  "bruecke_fluss_bogen": {
+   "bbox_u": [
+    0.93,
+    1.176,
+    0.93
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.6452,
+   "faktoren_xyz": [
+    0.47,
+    0.5,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Castle Kit/Models/GLB format/bridge-straight-pillar.glb",
+   "kit": "Castle Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 16.129,
+   "modell": "bridge-straight-pillar",
+   "notiz": "Bogen wiederholen; Querfaktor x 0,47 (Breite 7 m), Hoehe y x0,5 (9,5 m) separat; Castle-Palette auf Nature-Stein umfaerben",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/bruecke_fluss_bogen.tres",
+   "res_ziel": "res://props/kenney_proto/castle/bridge-straight-pillar.glb",
+   "skala_m_pro_u": [
+    7.5806,
+    8.0645,
+    16.129
+   ],
+   "soll_aabb_m": [
+    7.05,
+    9.484,
+    15.0
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     11.25,
+     18.75
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "umfaerben": true,
+   "ziel_m": 15.0
+  },
+  "bruecke_holz": {
+   "bbox_u": [
+    1.04,
+    0.4,
+    1.04
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.3077,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/bridge_wood.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 7.692,
+   "modell": "bridge_wood",
+   "notiz": "Weg/Strasse, billig",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/bruecke_holz.tres",
+   "res_ziel": "res://props/kenney_proto/nature/bridge_wood.glb",
+   "skala_m_pro_u": [
+    7.692,
+    7.692,
+    7.692
+   ],
+   "soll_aabb_m": [
+    8.0,
+    3.077,
+    8.0
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     6.0,
+     10.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 8.0
+  },
+  "brunnen": {
+   "bbox_u": [
+    2.0,
+    0.28,
+    2.0
+   ],
+   "bezugsachse": "x",
+   "faktor_szene_25m": 0.12,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/fountain-round.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 3.0,
+   "modell": "fountain-round",
+   "notiz": "= Kit-Faktor",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/brunnen.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/fountain-round.glb",
+   "skala_m_pro_u": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "soll_aabb_m": [
+    6.0,
+    0.84,
+    6.0
+   ],
+   "toleranz": {
+    "achse": "x",
+    "band_m": [
+     4.5,
+     7.5
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 6.0
+  },
+  "busch": {
+   "bbox_u": [
+    0.374,
+    0.243,
+    0.336
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.3292,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/plant_bushLarge.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 8.23,
+   "modell": "plant_bushLarge",
+   "notiz": "Ufergehoelz, Feldrain",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/busch.tres",
+   "res_ziel": "res://props/kenney_proto/nature/plant_bushLarge.glb",
+   "skala_m_pro_u": [
+    8.23,
+    8.23,
+    8.23
+   ],
+   "soll_aabb_m": [
+    3.078,
+    2.0,
+    2.765
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     1.5,
+     2.5
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 2.0
+  },
+  "dach_hoch": {
+   "bbox_u": [
+    1.071,
+    1.176,
+    1.0
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.12,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/roof-high.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 3.0,
+   "modell": "roof-high",
+   "notiz": "Firsthoehe 3,5 m je Modultiefe",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/dach_hoch.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/roof-high.glb",
+   "skala_m_pro_u": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "soll_aabb_m": [
+    3.213,
+    3.528,
+    3.0
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     2.25,
+     3.75
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 3.0
+  },
+  "dampflok": {
+   "bbox_u": [
+    1.429,
+    1.659,
+    2.6
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.1037,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.13
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-locomotive-a.glb",
+   "kit": "Train Kit",
+   "lokal_asset": "assets/kenney/Train Kit/Models/GLB format/train-locomotive-a.glb",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.592,
+   "modell": "train-locomotive-a",
+   "notiz": "Kenney gedrungen (L:B:H 1,6:0,9:1): Bezug Hoehe statt Laenge -> 6,8 x 3,7 x 4,3 m, alles im Band; Laenge auf 9 m wuerde H 5,7 m (x1,55) ergeben",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/dampflok.tres",
+   "res_ziel": "res://props/kenney_proto/train/train-locomotive-a.glb",
+   "skala_m_pro_u": [
+    2.592,
+    2.592,
+    2.929
+   ],
+   "soll_aabb_m": [
+    3.704,
+    4.3,
+    7.615
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     6.8580000000000005,
+     9.144
+    ],
+    "quelle": "skalen.fahrzeuge_dm.dampflok l 76 dm"
+   },
+   "ziel_m": 4.3
+  },
+  "eiche": {
+   "bbox_u": [
+    0.641,
+    1.226,
+    0.74
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.6525,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_oak.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 16.313,
+   "modell": "tree_oak",
+   "notiz": "Solitaer, Allee",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/eiche.tres",
+   "res_ziel": "res://props/kenney_proto/nature/tree_oak.glb",
+   "skala_m_pro_u": [
+    16.313,
+    16.313,
+    16.313
+   ],
+   "soll_aabb_m": [
+    10.457,
+    20.0,
+    12.072
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     15,
+     25
+    ],
+    "quelle": "skalen.baeume_m.laub"
+   },
+   "ziel_m": 20.0
+  },
+  "fass": {
+   "bbox_u": [
+    0.236,
+    0.344,
+    0.236
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.1047,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Survival Kit/Models/GLB format/barrel.glb",
+   "kit": "Survival Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.616,
+   "modell": "barrel",
+   "notiz": "= Kit-Faktor 0,096",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/fass.tres",
+   "res_ziel": "res://props/kenney_proto/survival/barrel.glb",
+   "skala_m_pro_u": [
+    2.616,
+    2.616,
+    2.616
+   ],
+   "soll_aabb_m": [
+    0.617,
+    0.9,
+    0.617
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     0.675,
+     1.125
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 0.9
+  },
+  "felsgruppe": {
+   "bbox_u": [
+    5.113,
+    2.898,
+    4.386
+   ],
+   "bezugsachse": "x",
+   "faktor_szene_25m": 0.0939,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Pirate Kit/Models/GLB format/rocks-a.glb",
+   "kit": "Pirate Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.347,
+   "modell": "rocks-a",
+   "notiz": "Palette auf Nature-Stein umfaerben",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/felsgruppe.tres",
+   "res_ziel": "res://props/kenney_proto/pirate/rocks-a.glb",
+   "skala_m_pro_u": [
+    2.347,
+    2.347,
+    2.347
+   ],
+   "soll_aabb_m": [
+    12.0,
+    6.802,
+    10.294
+   ],
+   "toleranz": {
+    "achse": "x",
+    "band_m": [
+     9.0,
+     15.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "umfaerben": true,
+   "ziel_m": 12.0
+  },
+  "felsnadel": {
+   "bbox_u": [
+    0.983,
+    0.996,
+    0.683
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.4016,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/rock_tallA.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 10.04,
+   "modell": "rock_tallA",
+   "notiz": "nur Fels-Biom",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/felsnadel.tres",
+   "res_ziel": "res://props/kenney_proto/nature/rock_tallA.glb",
+   "skala_m_pro_u": [
+    10.04,
+    10.04,
+    10.04
+   ],
+   "soll_aabb_m": [
+    9.869,
+    10.0,
+    6.857
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     7.5,
+     12.5
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 10.0
+  },
+  "findling": {
+   "bbox_u": [
+    0.785,
+    0.26,
+    1.015
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.1182,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/rock_largeA.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": true,
+   "m_pro_u": 2.956,
+   "modell": "rock_largeA",
+   "notiz": "",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/findling.tres",
+   "res_ziel": "res://props/kenney/rock_largeA.glb",
+   "skala_m_pro_u": [
+    2.956,
+    2.956,
+    2.956
+   ],
+   "soll_aabb_m": [
+    2.32,
+    0.769,
+    3.0
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     2.25,
+     3.75
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 3.0
+  },
+  "fuhrwerk_wagen": {
+   "bbox_u": [
+    0.893,
+    0.536,
+    1.34
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.1493,
+   "faktoren_xyz": [
+    0.65,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/cart.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 3.731,
+   "modell": "cart",
+   "notiz": "Leiterwagen; Kenney zu breit (3,3 m): Querfaktor x 0,65 -> 2,2 m, Raeder (y-z-Ebene) bleiben rund; mit 2 Pferden + Deichsel ~ 9,5 m",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/fuhrwerk_wagen.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/cart.glb",
+   "skala_m_pro_u": [
+    2.4251,
+    3.731,
+    3.731
+   ],
+   "soll_aabb_m": [
+    2.166,
+    2.0,
+    5.0
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     4.05,
+     6.6
+    ],
+    "quelle": "01 C Wagen 4,5-5,5 m, Fahrzeugband"
+   },
+   "ziel_m": 5.0
+  },
+  "getreide": {
+   "bbox_u": [
+    0.54,
+    0.535,
+    0.447
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.1047,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/crops_wheatStageB.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.617,
+   "modell": "crops_wheatStageB",
+   "notiz": "MultiMesh nur <= 500 m, sonst Bodenfarbe",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/getreide.tres",
+   "res_ziel": "res://props/kenney_proto/nature/crops_wheatStageB.glb",
+   "skala_m_pro_u": [
+    2.617,
+    2.617,
+    2.617
+   ],
+   "soll_aabb_m": [
+    1.413,
+    1.4,
+    1.17
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     1.05,
+     1.75
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 1.4
+  },
+  "gleis": {
+   "bbox_u": [
+    1.0,
+    0.1,
+    4.0
+   ],
+   "bezugsachse": "x",
+   "faktor_szene_25m": 0.104,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/railroad-straight.glb",
+   "kit": "Train Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.6,
+   "modell": "railroad-straight",
+   "notiz": "Segment 10,4 m",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/gleis.tres",
+   "res_ziel": "res://props/kenney_proto/train/railroad-straight.glb",
+   "skala_m_pro_u": [
+    2.6,
+    2.6,
+    2.6
+   ],
+   "soll_aabb_m": [
+    2.6,
+    0.26,
+    10.4
+   ],
+   "toleranz": {
+    "achse": "x",
+    "band_m": [
+     1.95,
+     3.25
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 2.6
+  },
+  "gueterwagen": {
+   "bbox_u": [
+    1.2,
+    1.646,
+    2.7
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.1022,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-carriage-coal.glb",
+   "kit": "Train Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.556,
+   "modell": "train-carriage-coal",
+   "notiz": "gilt fuer -dirt, -wood, -lumber, -flatbed, -box (alle 2,7 u)",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/gueterwagen.tres",
+   "res_ziel": "res://props/kenney_proto/train/train-carriage-coal.glb",
+   "skala_m_pro_u": [
+    2.556,
+    2.556,
+    2.556
+   ],
+   "soll_aabb_m": [
+    3.067,
+    4.207,
+    6.901
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     5.175,
+     8.625
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 6.9
+  },
+  "haus_m_modul": {
+   "bbox_u": [
+    0.1,
+    1.0,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.12,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/wall.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 3.0,
+   "modell": "wall",
+   "notiz": "4x3 Module, EG Stein + OG wall-wood, roof-high -> 12x9 m, H 9,5 m",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/haus_m_modul.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/wall.glb",
+   "skala_m_pro_u": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "soll_aabb_m": [
+    0.3,
+    3.0,
+    3.0
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     2.25,
+     3.75
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 3.0
+  },
+  "haus_s_modul": {
+   "bbox_u": [
+    0.1,
+    1.0,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.12,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/wall-wood.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 3.0,
+   "modell": "wall-wood",
+   "notiz": "Kit-Faktor fuer alle Fantasy-Town-Module; Haus S = 3x2 Module + roof-high -> 9x6 m, H 6,5 m",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/haus_s_modul.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/wall-wood.glb",
+   "skala_m_pro_u": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "soll_aabb_m": [
+    0.3,
+    3.0,
+    3.0
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     2.25,
+     3.75
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 3.0
+  },
+  "heuhaufen": {
+   "bbox_u": [
+    0.607,
+    0.354,
+    0.402
+   ],
+   "bezugsachse": "x",
+   "faktor_szene_25m": 0.1054,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/hay-bale.glb",
+   "kit": "Graveyard Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.636,
+   "modell": "hay-bale",
+   "notiz": "Ballen gab es 1820 nicht: als Heuhaufen-Platzhalter",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/heuhaufen.tres",
+   "res_ziel": "res://props/kenney_proto/graveyard/hay-bale.glb",
+   "skala_m_pro_u": [
+    2.636,
+    2.636,
+    2.636
+   ],
+   "soll_aabb_m": [
+    1.6,
+    0.933,
+    1.06
+   ],
+   "toleranz": {
+    "achse": "x",
+    "band_m": [
+     1.2,
+     2.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "umfaerben": true,
+   "ziel_m": 1.6
+  },
+  "holzstapel": {
+   "bbox_u": [
+    0.425,
+    0.346,
+    0.71
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.2254,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/log_stack.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 5.634,
+   "modell": "log_stack",
+   "notiz": "Saegewerk, Koehlerei",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/holzstapel.tres",
+   "res_ziel": "res://props/kenney_proto/nature/log_stack.glb",
+   "skala_m_pro_u": [
+    5.634,
+    5.634,
+    5.634
+   ],
+   "soll_aabb_m": [
+    2.394,
+    1.949,
+    4.0
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     3.0,
+     5.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 4.0
+  },
+  "klippe": {
+   "bbox_u": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.4,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/cliff_block_stone.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 10.0,
+   "modell": "cliff_block_stone",
+   "notiz": "Steinbruch, Stollenmund (cliff_blockCave_stone)",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/klippe.tres",
+   "res_ziel": "res://props/kenney_proto/nature/cliff_block_stone.glb",
+   "skala_m_pro_u": [
+    10.0,
+    10.0,
+    10.0
+   ],
+   "soll_aabb_m": [
+    10.0,
+    10.0,
+    10.0
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     7.5,
+     12.5
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 10.0
+  },
+  "kutsche_wagen": {
+   "bbox_u": [
+    0.893,
+    0.861,
+    1.39
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.1583,
+   "faktoren_xyz": [
+    0.65,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/cart-high.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 3.957,
+   "modell": "cart-high",
+   "notiz": "Kasten offen, Verdeck aus roof-gable (Hilfsmesh); Querfaktor x 0,65",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/kutsche_wagen.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/cart-high.glb",
+   "skala_m_pro_u": [
+    2.572,
+    3.957,
+    3.957
+   ],
+   "soll_aabb_m": [
+    2.297,
+    3.407,
+    5.5
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     4.125,
+     6.875
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 5.5
+  },
+  "laterne": {
+   "bbox_u": [
+    0.209,
+    1.267,
+    0.465
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.0947,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/lightpost-single.glb",
+   "kit": "Graveyard Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.368,
+   "modell": "lightpost-single",
+   "notiz": "erst Stadt ab 1820",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/laterne.tres",
+   "res_ziel": "res://props/kenney_proto/graveyard/lightpost-single.glb",
+   "skala_m_pro_u": [
+    2.368,
+    2.368,
+    2.368
+   ],
+   "soll_aabb_m": [
+    0.495,
+    3.0,
+    1.101
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     2.25,
+     3.75
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "umfaerben": true,
+   "ziel_m": 3.0
+  },
+  "laubbaum": {
+   "bbox_u": [
+    0.755,
+    1.708,
+    0.654
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.4215,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_default.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": true,
+   "m_pro_u": 10.539,
+   "modell": "tree_default",
+   "notiz": "S7 heute NATURE_SCALE 0,8 -> 34 m (x1,9)",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/laubbaum.tres",
+   "res_ziel": "res://props/kenney/tree_default.glb",
+   "skala_m_pro_u": [
+    10.539,
+    10.539,
+    10.539
+   ],
+   "soll_aabb_m": [
+    7.957,
+    18.001,
+    6.893
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     15,
+     25
+    ],
+    "quelle": "skalen.baeume_m.laub"
+   },
+   "ziel_m": 18.0
+  },
+  "nadelbaum": {
+   "bbox_u": [
+    0.532,
+    1.546,
+    0.532
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.6468,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_pineDefaultA.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": true,
+   "m_pro_u": 16.171,
+   "modell": "tree_pineDefaultA",
+   "notiz": "Bergwald",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/nadelbaum.tres",
+   "res_ziel": "res://props/kenney/tree_pineDefaultA.glb",
+   "skala_m_pro_u": [
+    16.171,
+    16.171,
+    16.171
+   ],
+   "soll_aabb_m": [
+    8.603,
+    25.0,
+    8.603
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     20,
+     30
+    ],
+    "quelle": "skalen.baeume_m.nadel"
+   },
+   "ziel_m": 25.0
+  },
+  "nadelbaum_schlank": {
+   "bbox_u": [
+    0.386,
+    1.53,
+    0.392
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.732,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_pineTallA.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 18.301,
+   "modell": "tree_pineTallA",
+   "notiz": "Hochlagen",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/nadelbaum_schlank.tres",
+   "res_ziel": "res://props/kenney_proto/nature/tree_pineTallA.glb",
+   "skala_m_pro_u": [
+    18.301,
+    18.301,
+    18.301
+   ],
+   "soll_aabb_m": [
+    7.064,
+    28.001,
+    7.174
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     20,
+     30
+    ],
+    "quelle": "skalen.baeume_m.nadel"
+   },
+   "ziel_m": 28.0
+  },
+  "obstbaum": {
+   "bbox_u": [
+    1.023,
+    2.413,
+    1.023
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.116,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/tree.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.901,
+   "modell": "tree",
+   "notiz": "= Kit-Faktor 0,12 (Gaerten, Streuobst)",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/obstbaum.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/tree.glb",
+   "skala_m_pro_u": [
+    2.901,
+    2.901,
+    2.901
+   ],
+   "soll_aabb_m": [
+    2.968,
+    7.0,
+    2.968
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     6,
+     8
+    ],
+    "quelle": "skalen.baeume_m.obst"
+   },
+   "ziel_m": 7.0
+  },
+  "passant": {
+   "bbox_u": [
+    0.811,
+    0.862,
+    0.537
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.0812,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/character-keeper.glb",
+   "kit": "Graveyard Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.03,
+   "modell": "character-keeper",
+   "notiz": "nur Nahsicht",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/passant.tres",
+   "res_ziel": "res://props/kenney_proto/graveyard/character-keeper.glb",
+   "skala_m_pro_u": [
+    2.03,
+    2.03,
+    2.03
+   ],
+   "soll_aabb_m": [
+    1.646,
+    1.75,
+    1.09
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     1.312,
+     2.188
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "umfaerben": true,
+   "ziel_m": 1.75
+  },
+  "personenwagen": {
+   "bbox_u": [
+    1.2,
+    1.298,
+    2.7
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.1022,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-carriage-box.glb",
+   "kit": "Train Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.556,
+   "modell": "train-carriage-box",
+   "notiz": "Behelf, Fenster als Decal/Farbstreifen",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/personenwagen.tres",
+   "res_ziel": "res://props/kenney_proto/train/train-carriage-box.glb",
+   "skala_m_pro_u": [
+    2.556,
+    2.556,
+    2.556
+   ],
+   "soll_aabb_m": [
+    3.067,
+    3.318,
+    6.901
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     5.175,
+     8.625
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 6.9
+  },
+  "pferd": {
+   "bbox_u": [
+    1.007,
+    0.889,
+    0.312
+   ],
+   "bezugsachse": "x",
+   "faktor_szene_25m": 0.1152,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Prototype Kit/Models/GLB format/animal-horse.glb",
+   "kit": "Prototype Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.88,
+   "modell": "animal-horse",
+   "notiz": "einziges Pferd, sehr einfach; Laengsachse x",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/pferd.tres",
+   "res_ziel": "res://props/kenney_proto/prototype/animal-horse.glb",
+   "skala_m_pro_u": [
+    2.88,
+    2.88,
+    2.88
+   ],
+   "soll_aabb_m": [
+    2.9,
+    2.56,
+    0.899
+   ],
+   "toleranz": {
+    "achse": "x",
+    "band_m": [
+     2.175,
+     3.625
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 2.9
+  },
+  "ruderboot": {
+   "bbox_u": [
+    2.749,
+    0.848,
+    2.372
+   ],
+   "bezugsachse": "x",
+   "faktor_szene_25m": 0.0655,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Watercraft Pack/Models/GLB format/boat-row-small.glb",
+   "kit": "Watercraft Pack",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 1.637,
+   "modell": "boat-row-small",
+   "notiz": "Achse im Spiel pruefen",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/ruderboot.tres",
+   "res_ziel": "res://props/kenney_proto/watercraft/boat-row-small.glb",
+   "skala_m_pro_u": [
+    1.637,
+    1.637,
+    1.637
+   ],
+   "soll_aabb_m": [
+    4.5,
+    1.388,
+    3.883
+   ],
+   "toleranz": {
+    "achse": "x",
+    "band_m": [
+     4.05,
+     5.3999999999999995
+    ],
+    "quelle": "15 C6 / M14 Ruderboot 4,5 m"
+   },
+   "ziel_m": 4.5
+  },
+  "tender": {
+   "bbox_u": [
+    1.2,
+    1.646,
+    2.7
+   ],
+   "bezugsachse": "z",
+   "faktor_szene_25m": 0.0711,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-carriage-coal.glb",
+   "kit": "Train Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 1.778,
+   "modell": "train-carriage-coal",
+   "notiz": "Hilfsmesh: Kohlewagen auf 4,8 m gekuerzt (nur z)",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/tender.tres",
+   "res_ziel": "res://props/kenney_proto/train/train-carriage-coal.glb",
+   "skala_m_pro_u": [
+    1.778,
+    1.778,
+    1.778
+   ],
+   "soll_aabb_m": [
+    2.134,
+    2.927,
+    4.801
+   ],
+   "toleranz": {
+    "achse": "z",
+    "band_m": [
+     3.6,
+     6.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 4.8
+  },
+  "trockenmauer": {
+   "bbox_u": [
+    1.0,
+    0.725,
+    0.2
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.0717,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/stone-wall.glb",
+   "kit": "Graveyard Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 1.793,
+   "modell": "stone-wall",
+   "notiz": "Weinberg, Kirchhof",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/trockenmauer.tres",
+   "res_ziel": "res://props/kenney_proto/graveyard/stone-wall.glb",
+   "skala_m_pro_u": [
+    1.793,
+    1.793,
+    1.793
+   ],
+   "soll_aabb_m": [
+    1.793,
+    1.3,
+    0.359
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     0.975,
+     1.625
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "umfaerben": true,
+   "ziel_m": 1.3
+  },
+  "wassermuehle_rad": {
+   "bbox_u": [
+    0.85,
+    1.799,
+    1.799
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.1112,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/watermill.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.779,
+   "modell": "watermill",
+   "notiz": "Rad + Gerinne, an Haus M 4x4 Module",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/wassermuehle_rad.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/watermill.glb",
+   "skala_m_pro_u": [
+    2.779,
+    2.779,
+    2.779
+   ],
+   "soll_aabb_m": [
+    2.362,
+    4.999,
+    4.999
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     3.75,
+     6.25
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 5.0
+  },
+  "windmuehle_fluegel": {
+   "bbox_u": [
+    0.471,
+    3.113,
+    3.113
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.257,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/windmill.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 6.425,
+   "modell": "windmill",
+   "notiz": "nur Fluegel; Turm aus wall-rounded (Hilfsmesh)",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/windmuehle_fluegel.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/windmill.glb",
+   "skala_m_pro_u": [
+    6.425,
+    6.425,
+    6.425
+   ],
+   "soll_aabb_m": [
+    3.026,
+    20.001,
+    20.001
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     15.0,
+     25.0
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 20.0
+  },
+  "zaun_feld": {
+   "bbox_u": [
+    1.0,
+    0.345,
+    0.07
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.1275,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/fence_simple.glb",
+   "kit": "Nature Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 3.188,
+   "modell": "fence_simple",
+   "notiz": "",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/zaun_feld.tres",
+   "res_ziel": "res://props/kenney_proto/nature/fence_simple.glb",
+   "skala_m_pro_u": [
+    3.188,
+    3.188,
+    3.188
+   ],
+   "soll_aabb_m": [
+    3.188,
+    1.1,
+    0.223
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     0.825,
+     1.375
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 1.1
+  },
+  "zaun_latte": {
+   "bbox_u": [
+    0.075,
+    0.38,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "faktor_szene_25m": 0.1158,
+   "faktoren_xyz": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kenney_pfad": "Kenney Game Assets All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/fence.glb",
+   "kit": "Fantasy Town Kit",
+   "lokal_asset": "",
+   "lokal_vorhanden": false,
+   "m_pro_u": 2.895,
+   "modell": "fence",
+   "notiz": "= Kit-Faktor",
+   "pivot": "unten_mitte (AABB-Boden y = 0, Mitte x/z = 0)",
+   "prefab_ziel": "res://proto/prefabs/zaun_latte.tres",
+   "res_ziel": "res://props/kenney_proto/fantasy_town/fence.glb",
+   "skala_m_pro_u": [
+    2.895,
+    2.895,
+    2.895
+   ],
+   "soll_aabb_m": [
+    0.217,
+    1.1,
+    2.895
+   ],
+   "toleranz": {
+    "achse": "y",
+    "band_m": [
+     0.825,
+     1.375
+    ],
+    "quelle": "Ziel +-25 % (skalen.toleranz_promille)"
+   },
+   "ziel_m": 1.1
+  }
+ },
+ "zusammenbau": {
+  "fischerhuette": {
+   "quelle": "16 M14 Fischerhuette 8 x 6 m",
+   "soll_m": {
+    "b": 8,
+    "t": 6
+   },
+   "teile": [
+    [
+     "haus_s",
+     "Kate"
+    ],
+    [
+     "netzgestell",
+     "Pfosten 2,5 m + Querstange, Hilfsmesh"
+    ]
+   ]
+  },
+  "floss": {
+   "quelle": "15 C6 Floss aus log_stack (Kulisse)",
+   "soll_m": {
+    "b": [
+     3,
+     4
+    ],
+    "l": [
+     8,
+     12
+    ]
+   },
+   "teile": [
+    [
+     "holzstapel",
+     "3 x nebeneinander, flach gelegt"
+    ]
+   ]
+  },
+  "fuhrwerk": {
+   "band_l_m": [
+    7.2,
+    10.799999999999999
+   ],
+   "erwartet_m": [
+    2.2,
+    2.6,
+    9.5
+   ],
+   "quelle": "skalen.fahrzeuge_dm.fuhrwerk_2_pferde",
+   "soll_m": {
+    "b": 2.2,
+    "l": 9.5
+   },
+   "teile": [
+    [
+     "fuhrwerk_wagen",
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    [
+     "pferd",
+     "2 x nebeneinander vor der Deichsel, Laengsachse x -> 90 Grad drehen"
+    ],
+    [
+     "deichsel",
+     "Hilfsmesh 2,0 x 0,1 x 0,1 m"
+    ]
+   ]
+  },
+  "haus_m": {
+   "erwartet_m": [
+    12.0,
+    9.53,
+    9.0
+   ],
+   "quelle": "skalen.gebaeude_m.haus_m / haustypen.bauernhof",
+   "soll_m": {
+    "b": 12,
+    "h": [
+     9,
+     11
+    ],
+    "t": 9
+   },
+   "teile": [
+    [
+     "haus_m_modul",
+     "raster 4 x 3, EG Stein"
+    ],
+    [
+     "haus_s_modul",
+     "OG wall-wood"
+    ],
+    [
+     "dach_hoch",
+     "4 Module"
+    ]
+   ]
+  },
+  "haus_s": {
+   "erwartet_m": [
+    9.0,
+    6.53,
+    6.0
+   ],
+   "notiz": "Kenney-Modulraster 3 m: 9 x 6 m statt 8 x 6 (+12 %, im Band)",
+   "quelle": "skalen.gebaeude_m.haus_s_kate / haustypen.kate",
+   "soll_m": {
+    "b": 8,
+    "h": [
+     6,
+     7
+    ],
+    "t": 6
+   },
+   "teile": [
+    [
+     "haus_s_modul",
+     "raster 3 x 2 Module, 1 Geschoss (3 m)"
+    ],
+    [
+     "dach_hoch",
+     "3 Module laengs, First 3,5 m"
+    ]
+   ]
+  },
+  "lok_tender": {
+   "quelle": "skalen.fahrzeuge_dm.dampflok + tender",
+   "soll_m": {
+    "l": 12.399999999999999
+   },
+   "teile": [
+    [
+     "dampflok",
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    [
+     "tender",
+     [
+      0,
+      0,
+      -6.4
+     ]
+    ]
+   ]
+  },
+  "postkutsche": {
+   "band_l_m": [
+    9.0,
+    14.399999999999999
+   ],
+   "quelle": "skalen.fahrzeuge_dm.postkutsche_4_pferde",
+   "soll_m": {
+    "b": 2.2,
+    "l": 12.5
+   },
+   "teile": [
+    [
+     "kutsche_wagen",
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    [
+     "pferd",
+     "4 x (2 x 2)"
+    ],
+    [
+     "verdeck",
+     "Fantasy roof-gable (Hilfsmesh)"
+    ]
+   ]
+  },
+  "ruderboot": {
+   "notiz": "Watercraft boat-row-small fehlt lokal (nur ship-cargo-a), Welle 2 kopiert aus Bastis Kenney-Ordner",
+   "quelle": "16 M14",
+   "soll_m": {
+    "l": 4.5
+   },
+   "teile": [
+    [
+     "ruderboot",
+     [
+      0,
+      0,
+      0
+     ]
+    ]
+   ]
+  },
+  "steg": {
+   "notiz": "Welle 2: Hilfsmesh, da Fantasy Town nicht lokal",
+   "quelle": "16 M14 Steg 25 x 2 m",
+   "soll_m": {
+    "b": 2,
+    "l": 25
+   },
+   "teile": [
+    [
+     "planken",
+     "Fantasy planks (fehlt lokal) oder Hilfsmesh Box 25 x 0,15 x 2 m"
+    ],
+    [
+     "pfaehle",
+     "alle 2,5 m je Seite, Hilfsmesh Zylinder 0,2 m"
+    ]
+   ]
+  }
+ }
+}

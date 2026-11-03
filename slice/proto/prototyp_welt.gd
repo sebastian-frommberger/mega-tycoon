@@ -1,0 +1,484 @@
+extends Node3D
+## Phase 4 Welle 1 (Felix): Prototyp-Szene „Welt“ (16_prototyp_plan_v1_1, schlank). Eigene Szene hinter Schalter:
+## Startmenü Taste P oder Start mit `-- --proto`. Slice, S7-Welt und Sim bleiben unberührt (nichts von main.gd geladen).
+##
+## Aufbau (alles im Code, Einheit = 1 m, Koordinaten lokal: Ursprung NW-Ecke Kern, +x Ost, +z Süd):
+##   Gelände   ProtoTerrain (TA, res://world/proto_terrain.gd) – fehlt die Datei: proto_terrain_stub.gd (flach)
+##   Wege      proto_wege.json → proto_strassenband.gd (Band je Weg, Kreuzungen, Steinbogenbrücke, Fahrlinien)
+##   Modelle   proto_instanzen.json → proto_platzhalter.gd (Boxen in Zielmaßen, MultiMesh je Typ)
+##   Epoche    proto_epochen.gd (Datenhülle; Startjahr per `--startjahr=JJJJ`, Standard aus regelwerk.json)
+## Daten je Datei: res://world/data/proto/<datei> (Vertrag: TA/Stadt), sonst res://proto/testdaten/<datei> (Felix).
+##
+## Steuerung (wie im Spiel): WASD/Pfeile schieben, Q/E drehen, Mausrad Zoom (40 m – 3 km), rechte/mittlere Maustaste
+## ziehen = drehen, linke ziehen = schieben. Presets 1 Übersicht · 2 Dorf · 3 Markt · 4 Fluss · 5 See.
+## Schalter: V Wasser A/B (Hook → terrain.set_wasser_modus) · G Easing an/aus (Hook für Welle 2, Signal) ·
+##           M Modelle aus/an (Zeichentest: nur Gelände + Wege) · H Hilfe/HUD · Esc zurück ins Startmenü.
+##
+## Hooks für Welle 2: Signale wasser_modus_geaendert(modus), easing_geaendert(an), modelle_geaendert(an);
+## strassen.fahrlinien[i] (Schnittstelle in proto_strassenband.gd), hoehe_at(x, z) durchgereicht.
+
+signal fertig
+signal wasser_modus_geaendert(modus: String)
+signal easing_geaendert(an: bool)
+signal modelle_geaendert(an: bool)
+
+const Strassenband := preload("res://proto/proto_strassenband.gd")
+const Platzhalter := preload("res://proto/proto_platzhalter.gd")
+const Epochen := preload("res://proto/proto_epochen.gd")
+const STUB := "res://proto/proto_terrain_stub.gd"
+const TA_TERRAIN := "res://world/proto_terrain.gd"
+const DATEN := "res://world/data/proto/"
+const TEST := "res://proto/testdaten/"
+const START_MENU := "res://start_menu.tscn"
+
+const FOV := 50.0
+const P_NEAR := 36.0
+const P_FAR := 62.0
+const ABSTAND_MIN := 40.0
+const ABSTAND_MAX := 3000.0
+const RAND := Rect2(-1000, -1000, 4000, 3600)
+const KERN_MITTE := Vector2(1000, 800)
+const FLUSS_PEGEL_M := 36.4          # ausschnitt_vorgabe.json fenster.fluss_pegel_m (proto_meta.json hat Vorrang)
+const PRESET_NAMEN := ["", "Übersicht", "Dorf", "Markt", "Fluss", "See"]
+
+var terrain: Node3D = null
+var terrain_quelle := ""
+var strassen = null                  # proto_strassenband.gd
+var platzhalter = null               # proto_platzhalter.gd
+var epochen = null                   # proto_epochen.gd
+var regelwerk: Dictionary = {}
+var startjahr := 0
+var welt_epoche: Dictionary = {}
+var orte: Array = []
+var instanzen: Array = []
+var wege: Array = []
+var see: Dictionary = {}
+var quellen := {}                    # Datei -> benutzter Pfad
+var lade_ms := 0.0
+var wasser_modus := "A"
+var easing_an := false
+var modelle_an := true
+var modelle_root: Node3D
+var wege_root: Node3D
+var rig: Node3D
+var cam: Camera3D
+var sun: DirectionalLight3D
+var env: Environment
+var ziel := Vector3(KERN_MITTE.x, 40.0, KERN_MITTE.y)
+var gier := 0.0
+var abstand := ABSTAND_MAX
+var presets := {}                    # nr -> {name, ziel: Vector2, abstand, gier}
+var preset_aktiv := 1
+var hud: Label
+var hud_an := true
+var _hud_t := 0.0
+var _drag := 0                       # 0 nichts, 1 schieben, 2 drehen
+
+
+static func datei(name: String) -> String:
+	if FileAccess.file_exists(DATEN + name):
+		return DATEN + name
+	return TEST + name
+
+
+func _json(name: String) -> Variant:
+	var p := datei(name)
+	quellen[name] = p
+	if not FileAccess.file_exists(p):
+		push_warning("Prototyp: Datei fehlt: " + name)
+		return null
+	return JSON.parse_string(FileAccess.get_file_as_string(p))
+
+
+func _ready() -> void:
+	var t0 := Time.get_ticks_usec()
+	_baue_umgebung()
+	epochen = Epochen.laden()
+	regelwerk = epochen.regelwerk
+	startjahr = epochen.startjahr_standard()
+	for a in OS.get_cmdline_user_args() + OS.get_cmdline_args():
+		if a.begins_with("--startjahr=") and a.substr(12).is_valid_int():
+			startjahr = int(a.substr(12))
+	welt_epoche = epochen.fuer_jahr(startjahr)
+	_lies_daten()
+	_baue_gelaende()
+	_baue_wege()
+	_baue_modelle()
+	_baue_kamera()
+	_baue_hud()
+	_presets_berechnen()
+	setze_preset(1)
+	lade_ms = (Time.get_ticks_usec() - t0) / 1000.0
+	print("PROTO_WELT lade_ms %.1f terrain=%s wege=%d instanzen=%d knoten=%d bruecken=%d" % [lade_ms, terrain_quelle,
+		wege.size(), instanzen.size(), strassen.knoten.size(), strassen.bruecken.size()])
+	fertig.emit()
+
+
+func _lies_daten() -> void:
+	var o = _json("proto_orte.json")
+	orte = o.get("orte", []) if o is Dictionary else []
+	var i = _json("proto_instanzen.json")
+	instanzen = i if i is Array else []
+	var w = _json("proto_wege.json")
+	wege = w if w is Array else []
+	var s = _json("proto_see.json")
+	see = s if s is Dictionary else {}
+
+
+func _baue_umgebung() -> void:
+	var we := WorldEnvironment.new()
+	env = Environment.new()
+	var sm := ProceduralSkyMaterial.new()
+	sm.sky_top_color = Color(0.36, 0.56, 0.80)
+	sm.sky_horizon_color = Color(0.76, 0.84, 0.91)
+	sm.ground_horizon_color = Color(0.76, 0.84, 0.91)
+	sm.ground_bottom_color = Color(0.62, 0.72, 0.80)
+	var sky := Sky.new()
+	sky.sky_material = sm
+	sky.radiance_size = Sky.RADIANCE_SIZE_32
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.74, 0.81, 0.92)
+	env.ambient_light_energy = 0.36
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.fog_enabled = true
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_light_color = Color(0.76, 0.84, 0.91)
+	env.fog_density = 1.0
+	env.fog_depth_curve = 1.6
+	env.fog_sky_affect = 0.0
+	we.environment = env
+	add_child(we)
+	sun = DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-42, 38, 0)
+	sun.light_color = Color(1.0, 0.92, 0.78)
+	sun.light_energy = 0.52
+	sun.shadow_enabled = true
+	sun.shadow_opacity = 0.5
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	add_child(sun)
+
+
+func _baue_gelaende() -> void:
+	var pfad := TA_TERRAIN if ResourceLoader.exists(TA_TERRAIN) else STUB
+	terrain_quelle = "TA" if pfad == TA_TERRAIN else "Stub (flach)"
+	var dir := DATEN if FileAccess.file_exists(DATEN + "proto_hoehe.r16") or FileAccess.file_exists(DATEN + "proto_fluss.u8") else TEST
+	var scr: Script = load(pfad)
+	if scr != null and scr.can_instantiate():
+		terrain = scr.call("bauen", self, dir)
+	if terrain == null and pfad != STUB:        # TA-Datei kaputt oder andere API: Stub, damit die Szene läuft
+		push_warning("Prototyp: ProtoTerrain nicht nutzbar, Stub statt TA")
+		terrain_quelle = "Stub (TA-Fehler)"
+		terrain = (load(STUB) as Script).call("bauen", self, dir)
+	if terrain != null and terrain.get_parent() == null:
+		add_child(terrain)
+	quellen["terrain_dir"] = dir
+
+
+func hoehe_at(x_m: float, z_m: float) -> float:
+	if terrain == null:
+		return 0.0
+	return float(terrain.hoehe_at(x_m, z_m))
+
+
+func _meta() -> Dictionary:
+	var p := datei("proto_meta.json")
+	if not FileAccess.file_exists(p):
+		return {}
+	var d = JSON.parse_string(FileAccess.get_file_as_string(p))
+	return d if d is Dictionary else {}
+
+
+func _baue_wege() -> void:
+	wege_root = Node3D.new()
+	wege_root.name = "Wege"
+	add_child(wege_root)
+	strassen = Strassenband.new()
+	strassen.konfig_aus_regelwerk(regelwerk)
+	var meta := _meta()
+	strassen.wasser_pegel_m = float(meta.get("fluss_pegel_m", FLUSS_PEGEL_M))
+	# Flussmaske: Meta-Schlüssel defensiv lesen (TA-Format noch offen), sonst Ausschnitt-Vorgabe 160 × 144 ab (−1000, −1000)
+	var fm := {}
+	if meta.has("ursprung_m"):
+		fm["x0"] = meta["ursprung_m"][0]
+		fm["z0"] = meta["ursprung_m"][1]
+	if meta.has("felder"):
+		fm["w"] = meta["felder"][0]
+		fm["h"] = meta["felder"][1]
+	if meta.has("m_pro_feld"):
+		fm["m"] = meta["m_pro_feld"]
+	var fp := datei("proto_fluss.u8")
+	quellen["proto_fluss.u8"] = fp
+	var fluss: Dictionary = Strassenband.fluss_laden(fp, fm)
+	strassen.bauen(wege_root, wege, Callable(self, "hoehe_at"), fluss)
+
+
+func _baue_modelle() -> void:
+	modelle_root = Node3D.new()
+	modelle_root.name = "Modelle"
+	add_child(modelle_root)
+	platzhalter = Platzhalter.new(regelwerk)
+	platzhalter.bauen(modelle_root, instanzen, Callable(self, "hoehe_at"))
+
+
+# ------------------------------------------------------------------ Kamera
+
+func _baue_kamera() -> void:
+	rig = Node3D.new()
+	rig.name = "KameraRig"
+	add_child(rig)
+	cam = Camera3D.new()
+	cam.fov = FOV
+	rig.add_child(cam)
+	cam.current = true
+
+
+static func pitch_for(d_m: float) -> float:
+	var t := clampf(log(d_m / 40.0) / log(5600.0 / 40.0), 0.0, 1.0)    # gleiche Kurve wie s7_world (SP-03)
+	return lerpf(P_NEAR, P_FAR, pow(t, 0.8))
+
+
+func _kamera_anwenden() -> void:
+	abstand = clampf(abstand, ABSTAND_MIN, ABSTAND_MAX)
+	ziel.x = clampf(ziel.x, RAND.position.x, RAND.end.x)
+	ziel.z = clampf(ziel.z, RAND.position.y, RAND.end.y)
+	ziel.y = hoehe_at(ziel.x, ziel.z)
+	rig.position = ziel
+	rig.rotation = Vector3(0, gier, 0)
+	var p := deg_to_rad(pitch_for(abstand))
+	var cp := Vector3(0.0, sin(p) * abstand, cos(p) * abstand)
+	var welt := rig.transform * cp
+	var gy := hoehe_at(welt.x, welt.z) + 8.0
+	if welt.y < gy:
+		cp.y += gy - welt.y
+	cam.position = cp
+	cam.rotation = Vector3(-atan2(cp.y, cp.z), 0.0, 0.0)
+	cam.near = maxf(0.1, abstand * 0.004)
+	cam.far = abstand * 8.0 + 15000.0
+	env.fog_depth_begin = abstand * 1.6 + 1500.0
+	env.fog_depth_end = abstand * 5.0 + 15000.0
+	sun.directional_shadow_max_distance = clampf(abstand * 1.4, 150.0, 2500.0)
+
+
+func kamera_abstand() -> float:
+	return abstand
+
+
+func _presets_berechnen() -> void:
+	presets[1] = {"ziel": KERN_MITTE, "abstand": ABSTAND_MAX, "gier": 0.0}
+	presets[2] = {"ziel": Vector2(700, 1060), "abstand": 450.0, "gier": 0.35}
+	presets[3] = {"ziel": Vector2(930, 230), "abstand": 350.0, "gier": -0.3}
+	presets[4] = {"ziel": Vector2(860, 620), "abstand": 260.0, "gier": 1.1}
+	presets[5] = {"ziel": Vector2(1212.5, 1012.5), "abstand": 750.0, "gier": 0.6}
+	for o in orte:
+		var k: String = o.get("klasse", "")
+		var p := Vector2(float(o.get("x", 0)), float(o.get("z", 0)))
+		if k == "dorf" and not presets[2].has("aus_daten"):
+			presets[2]["ziel"] = p
+			presets[2]["aus_daten"] = true
+		elif k in ["kleinstadt", "marktflecken", "markt"] and not presets[3].has("aus_daten"):
+			presets[3]["ziel"] = p
+			presets[3]["aus_daten"] = true
+	if not strassen.bruecken.is_empty():
+		var b: Dictionary = strassen.bruecken[0]
+		var m: Vector3 = (b["p0"] + b["p1"]) * 0.5
+		var f: Vector3 = b["p1"] - b["p0"]
+		presets[4]["ziel"] = Vector2(m.x, m.z)
+		presets[4]["gier"] = atan2(f.x, f.z) + PI * 0.5 + 0.35     # seitlich auf die Bögen, leicht schräg
+		presets[4]["abstand"] = 170.0
+		presets[4]["aus_daten"] = true
+	if see.has("mitte_m"):
+		presets[5]["ziel"] = Vector2(float(see["mitte_m"][0]), float(see["mitte_m"][1]))
+		presets[5]["aus_daten"] = true
+
+
+func setze_preset(n: int) -> void:
+	if not presets.has(n):
+		return
+	var p: Dictionary = presets[n]
+	preset_aktiv = n
+	ziel = Vector3(p["ziel"].x, 0, p["ziel"].y)
+	abstand = p["abstand"]
+	gier = p["gier"]
+	_kamera_anwenden()
+	_hud_text()
+
+
+# ------------------------------------------------------------------ Schalter (Hooks)
+
+func setze_wasser(modus: String) -> void:
+	wasser_modus = modus
+	if terrain != null and terrain.has_method("set_wasser_modus"):
+		terrain.set_wasser_modus(modus)
+	wasser_modus_geaendert.emit(modus)
+	_hud_text()
+
+
+func setze_easing(an: bool) -> void:
+	easing_an = an                    # Welle 2: Easing-Probe hängt sich an easing_geaendert
+	easing_geaendert.emit(an)
+	_hud_text()
+
+
+func setze_modelle(an: bool) -> void:
+	modelle_an = an
+	modelle_root.visible = an
+	modelle_geaendert.emit(an)
+	_hud_text()
+
+
+func _unhandled_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and ev.pressed and not ev.echo:
+		var k: int = ev.keycode
+		if k >= KEY_1 and k <= KEY_5:
+			setze_preset(k - KEY_0)
+		elif k >= KEY_KP_1 and k <= KEY_KP_5:
+			setze_preset(k - KEY_KP_0)
+		elif k == KEY_V:
+			setze_wasser("B" if wasser_modus == "A" else "A")
+		elif k == KEY_G:
+			setze_easing(not easing_an)
+		elif k == KEY_M:
+			setze_modelle(not modelle_an)
+		elif k == KEY_H:
+			hud_an = not hud_an
+			hud.visible = hud_an
+		elif k == KEY_ESCAPE:
+			get_tree().change_scene_to_file(START_MENU)
+			return
+		else:
+			return
+		get_viewport().set_input_as_handled()
+	elif ev is InputEventMouseButton:
+		var mb := ev as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
+			abstand *= 0.88
+			_kamera_anwenden()
+		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			abstand /= 0.88
+			_kamera_anwenden()
+		elif mb.button_index == MOUSE_BUTTON_LEFT:
+			_drag = 1 if mb.pressed else 0
+		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+			_drag = 2 if mb.pressed else 0
+	elif ev is InputEventMouseMotion and _drag != 0:
+		var r: Vector2 = (ev as InputEventMouseMotion).relative
+		if _drag == 2:
+			gier -= r.x * 0.005
+		else:
+			var d := Vector3(-r.x, 0, -r.y) * abstand * 0.0012
+			ziel += Basis(Vector3.UP, gier) * d
+		_kamera_anwenden()
+
+
+func _process(delta: float) -> void:
+	var mv := Vector3.ZERO
+	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+		mv.z -= 1
+	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+		mv.z += 1
+	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+		mv.x -= 1
+	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		mv.x += 1
+	var dreh := 0.0
+	if Input.is_key_pressed(KEY_Q):
+		dreh += 1.5 * delta
+	if Input.is_key_pressed(KEY_E):
+		dreh -= 1.5 * delta
+	if mv != Vector3.ZERO or dreh != 0.0:
+		ziel += Basis(Vector3.UP, gier) * mv.normalized() * abstand * 0.8 * delta
+		gier += dreh
+		_kamera_anwenden()
+	_hud_t += delta
+	if _hud_t > 0.25:
+		_hud_t = 0.0
+		_hud_text()
+
+
+# ------------------------------------------------------------------ HUD / Zählung
+
+func _baue_hud() -> void:
+	var cl := CanvasLayer.new()
+	add_child(cl)
+	var pc := PanelContainer.new()
+	pc.position = Vector2(12, 12)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.09, 0.08, 0.72)
+	sb.set_content_margin_all(10)
+	pc.add_theme_stylebox_override("panel", sb)
+	cl.add_child(pc)
+	hud = Label.new()
+	hud.add_theme_font_size_override("font_size", 15)
+	hud.add_theme_color_override("font_color", Color(0.96, 0.92, 0.84))
+	pc.add_child(hud)
+
+
+func _hud_text() -> void:
+	if hud == null:
+		return
+	var z := zaehlung()
+	var live := ""
+	if z["live_dreiecke"] > 0:
+		live = "  ·  live %s Dreiecke / %d DC" % [_tsd(z["live_dreiecke"]), z["live_dc"]]
+	hud.text = "Prototyp Welt · Welle 1 (schlank) · Startjahr %d (%s)\n" % [startjahr, welt_epoche.get("epoche_id", "?")] \
+		+ "Ansicht %d %s · Abstand %d m\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand)] \
+		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s (Hook)   [M] Modelle %s   [H] Hilfe   [Esc] Menü\n" % [
+			wasser_modus, "an" if easing_an else "aus", "an" if modelle_an else "aus"] \
+		+ "Gelände: %s · Daten: %s · Laden %.0f ms\n" % [terrain_quelle, "Vertrag" if quellen.get("proto_wege.json", "").begins_with(DATEN) else "Testdaten", lade_ms] \
+		+ "Szene %s Dreiecke / %d Objekte (gezählt)%s" % [_tsd(z["dreiecke"]), z["objekte"], live]
+
+
+static func _tsd(n: int) -> String:
+	var s := str(n)
+	var out := ""
+	while s.length() > 3:
+		out = "." + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return s + out
+
+
+## Zählung ohne Renderziel (Mesh-Daten) + live aus dem RenderingServer, wenn gerendert wird.
+## objekte = sichtbare Geometrie-Instanzen (≈ Draw Calls im Farbpass ohne Schatten/Culling).
+func zaehlung() -> Dictionary:
+	var tris := 0
+	var obj := 0
+	var stapel: Array = [self]
+	while not stapel.is_empty():
+		var n: Node = stapel.pop_back()
+		if n is Node3D and not (n as Node3D).visible:
+			continue
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+			var m: Mesh = n.mesh
+			tris += _mesh_tris(m)
+			obj += m.get_surface_count()
+		elif n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh != null:
+			var mm: MultiMesh = n.multimesh
+			var cnt := mm.instance_count if mm.visible_instance_count < 0 else mm.visible_instance_count
+			if mm.mesh != null and cnt > 0:
+				tris += _mesh_tris(mm.mesh) * cnt
+				obj += mm.mesh.get_surface_count()
+		for c in n.get_children():
+			stapel.append(c)
+	return {"dreiecke": tris, "objekte": obj,
+		"live_dreiecke": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
+		"live_dc": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)}
+
+
+var _tri_cache := {}
+
+func _mesh_tris(m: Mesh) -> int:
+	var id := m.get_instance_id()
+	if _tri_cache.has(id):
+		return _tri_cache[id]
+	var t := 0
+	if m is PrimitiveMesh:
+		t = m.get_faces().size() / 3
+	else:
+		for s in m.get_surface_count():
+			var arr := m.surface_get_arrays(s)
+			var idx = arr[Mesh.ARRAY_INDEX]
+			t += (idx.size() if idx != null and idx.size() > 0 else arr[Mesh.ARRAY_VERTEX].size()) / 3
+	_tri_cache[id] = t
+	return t

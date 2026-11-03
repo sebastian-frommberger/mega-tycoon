@@ -1,0 +1,9 @@
+{
+ "mitte_m": [
+  1212.5,
+  1012.5
+ ],
+ "radius_m": 250,
+ "pegel_m": 44.8,
+ "_quelle": "ausschnitt_vorgabe.json"
+}

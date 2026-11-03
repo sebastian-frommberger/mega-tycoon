@@ -1,0 +1,858 @@
+{
+ "_zweck": "Importfaktoren je Rolle (Design Sprint Welt, TEAM-02, Skizze Phase 2). faktor_szene = Ziel_m / Modell_u / 25; m_pro_u = Ziel_m / Modell_u.",
+ "_quelle_bbox": "asset_audit_bbox.py, gemessen 02.11.2026 auf Bastis Geraet (1.451 Modelle in 13 Kits, 0 Fehler)",
+ "_quelle_ziel": "phase2/01_skalen.md (Art Director), Fahrzeuge <= 1,2x real, sonst 1,0",
+ "_kit_faktor": {
+  "Fantasy Town Kit": 0.12,
+  "Train Kit": 0.104,
+  "Nature Kit": 0.128,
+  "Survival Kit": 0.096,
+  "Graveyard Kit": 0.08,
+  "Castle Kit": 0.24,
+  "Prototype Kit": 0.096,
+  "Pirate Kit": 0.092,
+  "Watercraft Pack": 0.068,
+  "Hexagon Kit": 1.0
+ },
+ "rollen": {
+  "haus_s_modul": {
+   "kit": "Fantasy Town Kit",
+   "modell": "wall-wood",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/wall-wood.glb",
+   "bbox_u": [
+    0.1,
+    1.0,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 3.0,
+   "ziel_quelle": "01 A: Kenney-Modulraster 3 m",
+   "m_pro_u": 3.0,
+   "faktor_szene": 0.12,
+   "masse_m": [
+    0.3,
+    3.0,
+    3.0
+   ],
+   "abweichung_kit_faktor_pct": 0,
+   "notiz": "Kit-Faktor fuer alle Fantasy-Town-Module; Haus S = 3x2 Module + roof-high -> 9x6 m, H 6,5 m"
+  },
+  "haus_m_modul": {
+   "kit": "Fantasy Town Kit",
+   "modell": "wall",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/wall.glb",
+   "bbox_u": [
+    0.1,
+    1.0,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 3.0,
+   "ziel_quelle": "01 A Haus M 12x9",
+   "m_pro_u": 3.0,
+   "faktor_szene": 0.12,
+   "masse_m": [
+    0.3,
+    3.0,
+    3.0
+   ],
+   "abweichung_kit_faktor_pct": 0,
+   "notiz": "4x3 Module, EG Stein + OG wall-wood, roof-high -> 12x9 m, H 9,5 m"
+  },
+  "dach_hoch": {
+   "kit": "Fantasy Town Kit",
+   "modell": "roof-high",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/roof-high.glb",
+   "bbox_u": [
+    1.071,
+    1.176,
+    1.0
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 3.0,
+   "ziel_quelle": "Modul 3 m",
+   "m_pro_u": 3.0,
+   "faktor_szene": 0.12,
+   "masse_m": [
+    3.21,
+    3.53,
+    3.0
+   ],
+   "abweichung_kit_faktor_pct": 0,
+   "notiz": "Firsthoehe 3,5 m je Modultiefe"
+  },
+  "windmuehle_fluegel": {
+   "kit": "Fantasy Town Kit",
+   "modell": "windmill",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/windmill.glb",
+   "bbox_u": [
+    0.471,
+    3.113,
+    3.113
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 20.0,
+   "ziel_quelle": "01 D Fluegel D 20 m",
+   "m_pro_u": 6.425,
+   "faktor_szene": 0.257,
+   "masse_m": [
+    3.03,
+    20.0,
+    20.0
+   ],
+   "abweichung_kit_faktor_pct": 114,
+   "notiz": "nur Fluegel; Turm aus wall-rounded (Hilfsmesh)"
+  },
+  "wassermuehle_rad": {
+   "kit": "Fantasy Town Kit",
+   "modell": "watermill",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/watermill.glb",
+   "bbox_u": [
+    0.85,
+    1.799,
+    1.799
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 5.0,
+   "ziel_quelle": "01 D Rad D 5 m",
+   "m_pro_u": 2.779,
+   "faktor_szene": 0.1112,
+   "masse_m": [
+    2.36,
+    5.0,
+    5.0
+   ],
+   "abweichung_kit_faktor_pct": -7,
+   "notiz": "Rad + Gerinne, an Haus M 4x4 Module"
+  },
+  "fuhrwerk_wagen": {
+   "kit": "Fantasy Town Kit",
+   "modell": "cart",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/cart.glb",
+   "bbox_u": [
+    0.893,
+    0.536,
+    1.34
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 5.0,
+   "ziel_quelle": "01 C Wagen 4,5 m x 1,1",
+   "m_pro_u": 3.731,
+   "faktor_szene": 0.1493,
+   "masse_m": [
+    2.16,
+    2.0,
+    5.0
+   ],
+   "abweichung_kit_faktor_pct": 24,
+   "notiz": "Leiterwagen; Kenney zu breit (3,3 m): Querfaktor x 0,65 -> 2,2 m, Raeder (y-z-Ebene) bleiben rund; mit 2 Pferden + Deichsel ~ 9,5 m",
+   "querfaktor_x": 0.65
+  },
+  "kutsche_wagen": {
+   "kit": "Fantasy Town Kit",
+   "modell": "cart-high",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/cart-high.glb",
+   "bbox_u": [
+    0.893,
+    0.861,
+    1.39
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 5.5,
+   "ziel_quelle": "01 C Postkutsche Wagen 5 m x 1,1",
+   "m_pro_u": 3.957,
+   "faktor_szene": 0.1583,
+   "masse_m": [
+    2.29,
+    3.41,
+    5.5
+   ],
+   "abweichung_kit_faktor_pct": 32,
+   "notiz": "Kasten offen, Verdeck aus roof-gable (Hilfsmesh); Querfaktor x 0,65",
+   "querfaktor_x": 0.65
+  },
+  "pferd": {
+   "kit": "Prototype Kit",
+   "modell": "animal-horse",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Prototype Kit/Models/GLB format/animal-horse.glb",
+   "bbox_u": [
+    1.007,
+    0.889,
+    0.312
+   ],
+   "bezugsachse": "x",
+   "ziel_m": 2.9,
+   "ziel_quelle": "01 C Pferd 2,6 x 1,1",
+   "m_pro_u": 2.88,
+   "faktor_szene": 0.1152,
+   "masse_m": [
+    2.9,
+    2.56,
+    0.9
+   ],
+   "abweichung_kit_faktor_pct": 20,
+   "notiz": "einziges Pferd, sehr einfach; Laengsachse x"
+  },
+  "dampflok": {
+   "kit": "Train Kit",
+   "modell": "train-locomotive-a",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-locomotive-a.glb",
+   "bbox_u": [
+    1.429,
+    1.659,
+    2.6
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 4.3,
+   "ziel_quelle": "01 C Lok 7,62 x 1,19 (Laenge), real H ~3,7 x 1,15",
+   "m_pro_u": 2.592,
+   "faktor_szene": 0.1037,
+   "masse_m": [
+    3.7,
+    4.3,
+    6.74
+   ],
+   "abweichung_kit_faktor_pct": 0,
+   "notiz": "Kenney gedrungen (L:B:H 1,6:0,9:1): Bezug Hoehe statt Laenge -> 6,8 x 3,7 x 4,3 m, alles im Band; Laenge auf 9 m wuerde H 5,7 m (x1,55) ergeben"
+  },
+  "tender": {
+   "kit": "Train Kit",
+   "modell": "train-carriage-coal",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-carriage-coal.glb",
+   "bbox_u": [
+    1.2,
+    1.646,
+    2.7
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 4.8,
+   "ziel_quelle": "01 C Tender 4,8",
+   "m_pro_u": 1.778,
+   "faktor_szene": 0.0711,
+   "masse_m": [
+    2.13,
+    2.93,
+    4.8
+   ],
+   "abweichung_kit_faktor_pct": -32,
+   "notiz": "Hilfsmesh: Kohlewagen auf 4,8 m gekuerzt (nur z)"
+  },
+  "gueterwagen": {
+   "kit": "Train Kit",
+   "modell": "train-carriage-coal",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-carriage-coal.glb",
+   "bbox_u": [
+    1.2,
+    1.646,
+    2.7
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 6.9,
+   "ziel_quelle": "01 C Gueterwagen 6,9",
+   "m_pro_u": 2.556,
+   "faktor_szene": 0.1022,
+   "masse_m": [
+    3.07,
+    4.21,
+    6.9
+   ],
+   "abweichung_kit_faktor_pct": -2,
+   "notiz": "gilt fuer -dirt, -wood, -lumber, -flatbed, -box (alle 2,7 u)"
+  },
+  "personenwagen": {
+   "kit": "Train Kit",
+   "modell": "train-carriage-box",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/train-carriage-box.glb",
+   "bbox_u": [
+    1.2,
+    1.298,
+    2.7
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 6.9,
+   "ziel_quelle": "01 C Personenwagen 5,74 x 1,2",
+   "m_pro_u": 2.556,
+   "faktor_szene": 0.1022,
+   "masse_m": [
+    3.07,
+    3.32,
+    6.9
+   ],
+   "abweichung_kit_faktor_pct": -2,
+   "notiz": "Behelf, Fenster als Decal/Farbstreifen"
+  },
+  "gleis": {
+   "kit": "Train Kit",
+   "modell": "railroad-straight",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Train Kit/Models/GLB format/railroad-straight.glb",
+   "bbox_u": [
+    1.0,
+    0.1,
+    4.0
+   ],
+   "bezugsachse": "x",
+   "ziel_m": 2.6,
+   "ziel_quelle": "Schwelle 2,6 m",
+   "m_pro_u": 2.6,
+   "faktor_szene": 0.104,
+   "masse_m": [
+    2.6,
+    0.26,
+    10.4
+   ],
+   "abweichung_kit_faktor_pct": 0,
+   "notiz": "Segment 10,4 m"
+  },
+  "laubbaum": {
+   "kit": "Nature Kit",
+   "modell": "tree_default",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_default.glb",
+   "bbox_u": [
+    0.755,
+    1.708,
+    0.654
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 18.0,
+   "ziel_quelle": "01 E Laubbaum 15-25",
+   "m_pro_u": 10.539,
+   "faktor_szene": 0.4215,
+   "masse_m": [
+    7.96,
+    18.0,
+    6.89
+   ],
+   "abweichung_kit_faktor_pct": 229,
+   "notiz": "S7 heute NATURE_SCALE 0,8 -> 34 m (x1,9)"
+  },
+  "eiche": {
+   "kit": "Nature Kit",
+   "modell": "tree_oak",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_oak.glb",
+   "bbox_u": [
+    0.641,
+    1.226,
+    0.74
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 20.0,
+   "ziel_quelle": "01 E Laubbaum",
+   "m_pro_u": 16.313,
+   "faktor_szene": 0.6525,
+   "masse_m": [
+    10.46,
+    20.0,
+    12.07
+   ],
+   "abweichung_kit_faktor_pct": 410,
+   "notiz": "Solitaer, Allee"
+  },
+  "nadelbaum": {
+   "kit": "Nature Kit",
+   "modell": "tree_pineDefaultA",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_pineDefaultA.glb",
+   "bbox_u": [
+    0.532,
+    1.546,
+    0.532
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 25.0,
+   "ziel_quelle": "01 E Nadelbaum 20-30",
+   "m_pro_u": 16.171,
+   "faktor_szene": 0.6468,
+   "masse_m": [
+    8.6,
+    25.0,
+    8.6
+   ],
+   "abweichung_kit_faktor_pct": 405,
+   "notiz": "Bergwald"
+  },
+  "nadelbaum_schlank": {
+   "kit": "Nature Kit",
+   "modell": "tree_pineTallA",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/tree_pineTallA.glb",
+   "bbox_u": [
+    0.386,
+    1.53,
+    0.392
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 28.0,
+   "ziel_quelle": "01 E Nadelbaum",
+   "m_pro_u": 18.301,
+   "faktor_szene": 0.732,
+   "masse_m": [
+    7.06,
+    28.0,
+    7.17
+   ],
+   "abweichung_kit_faktor_pct": 472,
+   "notiz": "Hochlagen"
+  },
+  "obstbaum": {
+   "kit": "Fantasy Town Kit",
+   "modell": "tree",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/tree.glb",
+   "bbox_u": [
+    1.023,
+    2.413,
+    1.023
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 7.0,
+   "ziel_quelle": "01 E Obstbaum 6-8",
+   "m_pro_u": 2.901,
+   "faktor_szene": 0.116,
+   "masse_m": [
+    2.97,
+    7.0,
+    2.97
+   ],
+   "abweichung_kit_faktor_pct": -3,
+   "notiz": "= Kit-Faktor 0,12 (Gaerten, Streuobst)"
+  },
+  "busch": {
+   "kit": "Nature Kit",
+   "modell": "plant_bushLarge",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/plant_bushLarge.glb",
+   "bbox_u": [
+    0.374,
+    0.243,
+    0.336
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 2.0,
+   "ziel_quelle": "Hecke/Busch 1,5-3",
+   "m_pro_u": 8.23,
+   "faktor_szene": 0.3292,
+   "masse_m": [
+    3.08,
+    2.0,
+    2.77
+   ],
+   "abweichung_kit_faktor_pct": 157,
+   "notiz": "Ufergehoelz, Feldrain"
+  },
+  "findling": {
+   "kit": "Nature Kit",
+   "modell": "rock_largeA",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/rock_largeA.glb",
+   "bbox_u": [
+    0.785,
+    0.26,
+    1.015
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 3.0,
+   "ziel_quelle": "Findling 2-4",
+   "m_pro_u": 2.956,
+   "faktor_szene": 0.1182,
+   "masse_m": [
+    2.32,
+    0.77,
+    3.0
+   ],
+   "abweichung_kit_faktor_pct": -8,
+   "notiz": ""
+  },
+  "felsnadel": {
+   "kit": "Nature Kit",
+   "modell": "rock_tallA",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/rock_tallA.glb",
+   "bbox_u": [
+    0.983,
+    0.996,
+    0.683
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 10.0,
+   "ziel_quelle": "Felsturm 8-12",
+   "m_pro_u": 10.04,
+   "faktor_szene": 0.4016,
+   "masse_m": [
+    9.87,
+    10.0,
+    6.86
+   ],
+   "abweichung_kit_faktor_pct": 214,
+   "notiz": "nur Fels-Biom"
+  },
+  "felsgruppe": {
+   "kit": "Pirate Kit",
+   "modell": "rocks-a",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Pirate Kit/Models/GLB format/rocks-a.glb",
+   "bbox_u": [
+    5.113,
+    2.898,
+    4.386
+   ],
+   "bezugsachse": "x",
+   "ziel_m": 12.0,
+   "ziel_quelle": "Felsgruppe 10-15",
+   "m_pro_u": 2.347,
+   "faktor_szene": 0.0939,
+   "masse_m": [
+    12.0,
+    6.8,
+    10.29
+   ],
+   "abweichung_kit_faktor_pct": 2,
+   "notiz": "Palette auf Nature-Stein umfaerben"
+  },
+  "klippe": {
+   "kit": "Nature Kit",
+   "modell": "cliff_block_stone",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/cliff_block_stone.glb",
+   "bbox_u": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 10.0,
+   "ziel_quelle": "Gelaendestufe 10 m",
+   "m_pro_u": 10.0,
+   "faktor_szene": 0.4,
+   "masse_m": [
+    10.0,
+    10.0,
+    10.0
+   ],
+   "abweichung_kit_faktor_pct": 212,
+   "notiz": "Steinbruch, Stollenmund (cliff_blockCave_stone)"
+  },
+  "bruecke_bach": {
+   "kit": "Nature Kit",
+   "modell": "bridge_stoneRound",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/bridge_stoneRound.glb",
+   "bbox_u": [
+    1.04,
+    0.4,
+    1.04
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 8.0,
+   "ziel_quelle": "01 E Bachbruecke 8",
+   "m_pro_u": 7.692,
+   "faktor_szene": 0.3077,
+   "masse_m": [
+    8.0,
+    3.08,
+    8.0
+   ],
+   "abweichung_kit_faktor_pct": 140,
+   "notiz": "Breite x auf Wegbreite: eigener x-Faktor"
+  },
+  "bruecke_fluss_bogen": {
+   "kit": "Castle Kit",
+   "modell": "bridge-straight-pillar",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Castle Kit/Models/GLB format/bridge-straight-pillar.glb",
+   "bbox_u": [
+    0.93,
+    1.176,
+    0.93
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 15.0,
+   "ziel_quelle": "01 E Bogen 15 m",
+   "m_pro_u": 16.129,
+   "faktor_szene": 0.6452,
+   "masse_m": [
+    7.05,
+    18.97,
+    15.0
+   ],
+   "abweichung_kit_faktor_pct": 169,
+   "notiz": "Bogen wiederholen; Querfaktor x 0,47 (Breite 7 m), Hoehe y x0,5 (9,5 m) separat; Castle-Palette auf Nature-Stein umfaerben",
+   "querfaktor_x": 0.47
+  },
+  "bruecke_holz": {
+   "kit": "Nature Kit",
+   "modell": "bridge_wood",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/bridge_wood.glb",
+   "bbox_u": [
+    1.04,
+    0.4,
+    1.04
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 8.0,
+   "ziel_quelle": "01 E Joch 8 m",
+   "m_pro_u": 7.692,
+   "faktor_szene": 0.3077,
+   "masse_m": [
+    8.0,
+    3.08,
+    8.0
+   ],
+   "abweichung_kit_faktor_pct": 140,
+   "notiz": "Weg/Strasse, billig"
+  },
+  "zaun_latte": {
+   "kit": "Fantasy Town Kit",
+   "modell": "fence",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/fence.glb",
+   "bbox_u": [
+    0.075,
+    0.38,
+    1.0
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 1.1,
+   "ziel_quelle": "Lattenzaun 1-1,2",
+   "m_pro_u": 2.895,
+   "faktor_szene": 0.1158,
+   "masse_m": [
+    0.22,
+    1.1,
+    2.89
+   ],
+   "abweichung_kit_faktor_pct": -4,
+   "notiz": "= Kit-Faktor"
+  },
+  "zaun_feld": {
+   "kit": "Nature Kit",
+   "modell": "fence_simple",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/fence_simple.glb",
+   "bbox_u": [
+    1.0,
+    0.345,
+    0.07
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 1.1,
+   "ziel_quelle": "Koppelzaun 1-1,2",
+   "m_pro_u": 3.188,
+   "faktor_szene": 0.1275,
+   "masse_m": [
+    3.19,
+    1.1,
+    0.22
+   ],
+   "abweichung_kit_faktor_pct": 0,
+   "notiz": ""
+  },
+  "trockenmauer": {
+   "kit": "Graveyard Kit",
+   "modell": "stone-wall",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/stone-wall.glb",
+   "bbox_u": [
+    1.0,
+    0.725,
+    0.2
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 1.3,
+   "ziel_quelle": "Feldmauer 1-1,5",
+   "m_pro_u": 1.793,
+   "faktor_szene": 0.0717,
+   "masse_m": [
+    1.79,
+    1.3,
+    0.36
+   ],
+   "abweichung_kit_faktor_pct": -10,
+   "notiz": "Weinberg, Kirchhof"
+  },
+  "heuhaufen": {
+   "kit": "Graveyard Kit",
+   "modell": "hay-bale",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/hay-bale.glb",
+   "bbox_u": [
+    0.607,
+    0.354,
+    0.402
+   ],
+   "bezugsachse": "x",
+   "ziel_m": 1.6,
+   "ziel_quelle": "Heuhaufen/-ballen 1,2-2",
+   "m_pro_u": 2.636,
+   "faktor_szene": 0.1054,
+   "masse_m": [
+    1.6,
+    0.93,
+    1.06
+   ],
+   "abweichung_kit_faktor_pct": 32,
+   "notiz": "Ballen gab es 1820 nicht: als Heuhaufen-Platzhalter"
+  },
+  "holzstapel": {
+   "kit": "Nature Kit",
+   "modell": "log_stack",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/log_stack.glb",
+   "bbox_u": [
+    0.425,
+    0.346,
+    0.71
+   ],
+   "bezugsachse": "z",
+   "ziel_m": 4.0,
+   "ziel_quelle": "Holzstoss 3-5",
+   "m_pro_u": 5.634,
+   "faktor_szene": 0.2254,
+   "masse_m": [
+    2.39,
+    1.95,
+    4.0
+   ],
+   "abweichung_kit_faktor_pct": 76,
+   "notiz": "Saegewerk, Koehlerei"
+  },
+  "fass": {
+   "kit": "Survival Kit",
+   "modell": "barrel",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Survival Kit/Models/GLB format/barrel.glb",
+   "bbox_u": [
+    0.236,
+    0.344,
+    0.236
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 0.9,
+   "ziel_quelle": "Fass 0,8-1",
+   "m_pro_u": 2.616,
+   "faktor_szene": 0.1047,
+   "masse_m": [
+    0.62,
+    0.9,
+    0.62
+   ],
+   "abweichung_kit_faktor_pct": 9,
+   "notiz": "= Kit-Faktor 0,096"
+  },
+  "amboss": {
+   "kit": "Survival Kit",
+   "modell": "workbench-anvil",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Survival Kit/Models/GLB format/workbench-anvil.glb",
+   "bbox_u": [
+    0.323,
+    0.336,
+    0.296
+   ],
+   "bezugsachse": "x",
+   "ziel_m": 0.8,
+   "ziel_quelle": "Amboss + Block",
+   "m_pro_u": 2.477,
+   "faktor_szene": 0.0991,
+   "masse_m": [
+    0.8,
+    0.83,
+    0.73
+   ],
+   "abweichung_kit_faktor_pct": 3,
+   "notiz": "Schmiede"
+  },
+  "passant": {
+   "kit": "Graveyard Kit",
+   "modell": "character-keeper",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/character-keeper.glb",
+   "bbox_u": [
+    0.811,
+    0.862,
+    0.537
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 1.75,
+   "ziel_quelle": "Figur 1,75",
+   "m_pro_u": 2.03,
+   "faktor_szene": 0.0812,
+   "masse_m": [
+    1.65,
+    1.75,
+    1.09
+   ],
+   "abweichung_kit_faktor_pct": 2,
+   "notiz": "nur Nahsicht"
+  },
+  "getreide": {
+   "kit": "Nature Kit",
+   "modell": "crops_wheatStageB",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Nature Kit/Models/GLTF format/crops_wheatStageB.glb",
+   "bbox_u": [
+    0.54,
+    0.535,
+    0.447
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 1.4,
+   "ziel_quelle": "Getreide 1820 ~1,2-1,5",
+   "m_pro_u": 2.617,
+   "faktor_szene": 0.1047,
+   "masse_m": [
+    1.41,
+    1.4,
+    1.17
+   ],
+   "abweichung_kit_faktor_pct": -18,
+   "notiz": "MultiMesh nur <= 500 m, sonst Bodenfarbe"
+  },
+  "brunnen": {
+   "kit": "Fantasy Town Kit",
+   "modell": "fountain-round",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Fantasy Town Kit/Models/GLB format/fountain-round.glb",
+   "bbox_u": [
+    2.0,
+    0.28,
+    2.0
+   ],
+   "bezugsachse": "x",
+   "ziel_m": 6.0,
+   "ziel_quelle": "Marktbrunnen 4-6",
+   "m_pro_u": 3.0,
+   "faktor_szene": 0.12,
+   "masse_m": [
+    6.0,
+    0.84,
+    6.0
+   ],
+   "abweichung_kit_faktor_pct": 0,
+   "notiz": "= Kit-Faktor"
+  },
+  "laterne": {
+   "kit": "Graveyard Kit",
+   "modell": "lightpost-single",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Graveyard Kit/Models/GLB format/lightpost-single.glb",
+   "bbox_u": [
+    0.209,
+    1.267,
+    0.465
+   ],
+   "bezugsachse": "y",
+   "ziel_m": 3.0,
+   "ziel_quelle": "Laterne 3 m",
+   "m_pro_u": 2.368,
+   "faktor_szene": 0.0947,
+   "masse_m": [
+    0.49,
+    3.0,
+    1.1
+   ],
+   "abweichung_kit_faktor_pct": 18,
+   "notiz": "erst Stadt ab 1820"
+  },
+  "ruderboot": {
+   "kit": "Watercraft Pack",
+   "modell": "boat-row-small",
+   "pfad": "Kenney All-in-1 3.7.0/3D assets/Watercraft Pack/Models/GLB format/boat-row-small.glb",
+   "bbox_u": [
+    2.749,
+    0.848,
+    2.372
+   ],
+   "bezugsachse": "x",
+   "ziel_m": 4.5,
+   "ziel_quelle": "Ruderboot 4-5",
+   "m_pro_u": 1.637,
+   "faktor_szene": 0.0655,
+   "masse_m": [
+    4.5,
+    1.39,
+    3.88
+   ],
+   "abweichung_kit_faktor_pct": -4,
+   "notiz": "Achse im Spiel pruefen"
+  }
+ }
+}

@@ -5,12 +5,14 @@ extends Control
 ## Kein Dialog (D21), alles im Theme (ui/theme) und UI-Kit (ui/ui_kit.gd).
 ## Ohne Menü: Tests laden main.tscn bzw. laufen mit -s (sehen dieses Menü nie); Bench (Feature „bench“ oder --bench)
 ## und --modus=neu|beispiel springen direkt ins Spiel. --welt=s7 wählt die Welt vor (Menü zeigt sie unten an).
+## Phase 4 (Felix): Taste P oder Argument --proto öffnet die Prototyp-Welt (res://proto/prototyp_welt.tscn).
 
 const MainScript := preload("res://main.gd")
 const WorldSel := preload("res://world/welt.gd")
 const ThemeBuilder := preload("res://ui/theme/theme_builder.gd")
 const Kit := preload("res://ui/ui_kit.gd")
 const MAIN := "res://main.tscn"
+const PROTO := "res://proto/prototyp_welt.tscn"
 const KARTEN := [
 	["neu", "1", "Neues Spiel", "Gründe dein Unternehmen, wo du willst.", "hq"],
 	["beispiel", "2", "Beispielnetz ansehen", "Ein laufendes Netz: sieh, wie Farm, Mühle und Stadt zusammenhängen.", "lkw"],
@@ -31,6 +33,9 @@ func _ready() -> void:
 	for a in args:
 		if a == "--modus=neu" or a == "--modus=beispiel":
 			direkt = a.substr(8)
+	if args.has("--proto"):
+		get_tree().change_scene_to_file.call_deferred(PROTO)
+		return
 	if direkt != "":
 		starte.call_deferred(direkt)
 		return
@@ -97,7 +102,7 @@ func _maus_durch(n: Node) -> void:
 
 func _zeige_welt() -> void:
 	var nm := "Slice (Standard)" if welt == "slice" else "S7 (neue Karte, 1 Feld = 25 m)"
-	welt_label.text = "Welt: %s  ·  W wechselt  ·  Start mit Argument -- --welt=s7 wählt S7 vor" % nm
+	welt_label.text = "Welt: %s  ·  W wechselt  ·  Start mit Argument -- --welt=s7 wählt S7 vor  ·  P Prototyp Welt" % nm
 
 
 ## Markierte Karte (Enter) hervorheben: gleiche Darstellung wie Hover (amber Rand).
@@ -114,7 +119,7 @@ func _markiere(i: int) -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or not ev.pressed or ev.echo or karten.is_empty():
 		return
-	if not ev.keycode in [KEY_1, KEY_KP_1, KEY_2, KEY_KP_2, KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_LEFT, KEY_RIGHT, KEY_TAB, KEY_W]:
+	if not ev.keycode in [KEY_1, KEY_KP_1, KEY_2, KEY_KP_2, KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_LEFT, KEY_RIGHT, KEY_TAB, KEY_W, KEY_P]:
 		return
 	get_viewport().set_input_as_handled()      # vor starte(): danach ist das Menü nicht mehr im Baum
 	match ev.keycode:
@@ -129,6 +134,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_W:
 			welt = "s7" if welt == "slice" else "slice"
 			_zeige_welt()
+		KEY_P:
+			get_tree().change_scene_to_file(PROTO)
 
 
 ## Modus an main.gd übergeben und die Spielszene laden. Die Welt geht über Main.world_override (wie in den Tests).

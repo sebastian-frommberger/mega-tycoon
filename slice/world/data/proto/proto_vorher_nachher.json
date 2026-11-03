@@ -1,0 +1,2450 @@
+{
+ "_zweck": "Wachstum Erlenbach Monat 0 -> Monat 12 nach Stadt-KI (12_regelwerk_v1_1 wachstum): Luecke, Upgrade, Teilung, Vorstadt, Gasse, Platz; verdichten vor ausdehnen. Monat 0 = Instanzen aus proto_instanzen.json (ort erlenbach).",
+ "ort": "erlenbach",
+ "welt_seed": 7,
+ "annahmen": {
+  "sim_ew_start": 650,
+  "umland_ew": 406,
+  "rate_pro_monat": 0.018,
+  "rate_quelle": "Annahme 180 bp/Monat bei Versorgung >= 80 % (economy wachstum.band nicht gelesen, Konstante RATE_BP)",
+  "ew_je_aktion": 8,
+  "max_aktionen_je_monat": "1 + ort_ew_soll // 500",
+  "haus_ruhe_monate": 3,
+  "gewicht_haltestelle": "entfaellt (keine Spielerhaltestelle im Prototyp)"
+ },
+ "monat0": {
+  "ew": 244,
+  "gebaeude": {
+   "bauernhof": 18,
+   "gasthaus": 1,
+   "handwerkerhaus": 4,
+   "kate": 12,
+   "kirche_dorf": 1,
+   "schmiede": 1
+  },
+  "luecken": [
+   "erlenbach_p08",
+   "erlenbach_p09",
+   "erlenbach_p10",
+   "erlenbach_p16",
+   "erlenbach_p24",
+   "erlenbach_p36",
+   "erlenbach_p42"
+  ],
+  "instanzen_n": 583
+ },
+ "monat12_ohne_versorgung": {
+  "ew": 244,
+  "gebaeude": {
+   "bauernhof": 18,
+   "gasthaus": 1,
+   "handwerkerhaus": 4,
+   "kate": 12,
+   "kirche_dorf": 1,
+   "schmiede": 1
+  },
+  "aktionen_n": 0,
+  "aktionen": [],
+  "verlauf": [
+   {
+    "monat": 1,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 2,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 3,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 4,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 5,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 6,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 7,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 8,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 9,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 10,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 11,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   },
+   {
+    "monat": 12,
+    "sim_ew": 650,
+    "ort_soll": 244,
+    "ort_ist": 244,
+    "aktionen": 0
+   }
+  ],
+  "ersetze_parzellen": [],
+  "entfernte_instanzen": [],
+  "neue_instanzen": [],
+  "neue_parzellen": [],
+  "luecken_offen": [
+   "erlenbach_p08",
+   "erlenbach_p09",
+   "erlenbach_p10",
+   "erlenbach_p16",
+   "erlenbach_p24",
+   "erlenbach_p36",
+   "erlenbach_p42"
+  ]
+ },
+ "monat12_mit_versorgung": {
+  "ew": 307,
+  "gebaeude": {
+   "bauernhof": 18,
+   "gasthaus": 1,
+   "grosshof": 3,
+   "handwerkerhaus": 5,
+   "kate": 16,
+   "kirche_dorf": 1,
+   "schmiede": 1
+  },
+  "aktionen_n": 12,
+  "aktionen": [
+   {
+    "monat": 1,
+    "regel": "luecke",
+    "parzelle": "erlenbach_p10",
+    "typ_alt": null,
+    "typ_neu": "kate",
+    "x": 1589.38,
+    "z": 749.16,
+    "ew_plus": 5
+   },
+   {
+    "monat": 2,
+    "regel": "luecke",
+    "parzelle": "erlenbach_p09",
+    "typ_alt": null,
+    "typ_neu": "bauernhof",
+    "x": 1671.38,
+    "z": 734.34,
+    "ew_plus": 8
+   },
+   {
+    "monat": 3,
+    "regel": "luecke",
+    "parzelle": "erlenbach_p08",
+    "typ_alt": null,
+    "typ_neu": "kate",
+    "x": 1652.49,
+    "z": 685.91,
+    "ew_plus": 5
+   },
+   {
+    "monat": 4,
+    "regel": "luecke",
+    "parzelle": "erlenbach_p16",
+    "typ_alt": null,
+    "typ_neu": "kate",
+    "x": 1719.72,
+    "z": 721.53,
+    "ew_plus": 5
+   },
+   {
+    "monat": 5,
+    "regel": "luecke",
+    "parzelle": "erlenbach_p42",
+    "typ_alt": null,
+    "typ_neu": "kate",
+    "x": 1655.36,
+    "z": 822.38,
+    "ew_plus": 5
+   },
+   {
+    "monat": 6,
+    "regel": "luecke",
+    "parzelle": "erlenbach_p36",
+    "typ_alt": null,
+    "typ_neu": "bauernhof",
+    "x": 1700.57,
+    "z": 802.46,
+    "ew_plus": 8
+   },
+   {
+    "monat": 7,
+    "regel": "luecke",
+    "parzelle": "erlenbach_p24",
+    "typ_alt": null,
+    "typ_neu": "kate",
+    "x": 1737.29,
+    "z": 676.57,
+    "ew_plus": 5
+   },
+   {
+    "monat": 8,
+    "regel": "upgrade",
+    "parzelle": "erlenbach_p06",
+    "typ_alt": "bauernhof",
+    "typ_neu": "grosshof",
+    "x": 1612.67,
+    "z": 785.19,
+    "ew_plus": 4
+   },
+   {
+    "monat": 9,
+    "regel": "upgrade",
+    "parzelle": "erlenbach_p40",
+    "typ_alt": "bauernhof",
+    "typ_neu": "grosshof",
+    "x": 1850.01,
+    "z": 615.85,
+    "ew_plus": 4
+   },
+   {
+    "monat": 10,
+    "regel": "upgrade",
+    "parzelle": "erlenbach_p17",
+    "typ_alt": "bauernhof",
+    "typ_neu": "grosshof",
+    "x": 1609.07,
+    "z": 821.58,
+    "ew_plus": 4
+   },
+   {
+    "monat": 11,
+    "regel": "vorstadt",
+    "parzelle": "erlenbach_p45",
+    "typ_alt": null,
+    "typ_neu": "bauernhof",
+    "x": 1631.04,
+    "z": 648.25,
+    "ew_plus": 8
+   },
+   {
+    "monat": 12,
+    "regel": "upgrade",
+    "parzelle": "erlenbach_p08",
+    "typ_alt": "kate",
+    "typ_neu": "handwerkerhaus",
+    "x": 1652.49,
+    "z": 685.91,
+    "ew_plus": 2
+   }
+  ],
+  "verlauf": [
+   {
+    "monat": 1,
+    "sim_ew": 661.7,
+    "ort_soll": 255.7,
+    "ort_ist": 249,
+    "aktionen": 1
+   },
+   {
+    "monat": 2,
+    "sim_ew": 673.6,
+    "ort_soll": 267.6,
+    "ort_ist": 257,
+    "aktionen": 1
+   },
+   {
+    "monat": 3,
+    "sim_ew": 685.7,
+    "ort_soll": 279.7,
+    "ort_ist": 262,
+    "aktionen": 1
+   },
+   {
+    "monat": 4,
+    "sim_ew": 698.1,
+    "ort_soll": 292.1,
+    "ort_ist": 267,
+    "aktionen": 1
+   },
+   {
+    "monat": 5,
+    "sim_ew": 710.6,
+    "ort_soll": 304.6,
+    "ort_ist": 272,
+    "aktionen": 1
+   },
+   {
+    "monat": 6,
+    "sim_ew": 723.4,
+    "ort_soll": 317.4,
+    "ort_ist": 280,
+    "aktionen": 1
+   },
+   {
+    "monat": 7,
+    "sim_ew": 736.5,
+    "ort_soll": 330.5,
+    "ort_ist": 285,
+    "aktionen": 1
+   },
+   {
+    "monat": 8,
+    "sim_ew": 749.7,
+    "ort_soll": 343.7,
+    "ort_ist": 289,
+    "aktionen": 1
+   },
+   {
+    "monat": 9,
+    "sim_ew": 763.2,
+    "ort_soll": 357.2,
+    "ort_ist": 293,
+    "aktionen": 1
+   },
+   {
+    "monat": 10,
+    "sim_ew": 776.9,
+    "ort_soll": 370.9,
+    "ort_ist": 297,
+    "aktionen": 1
+   },
+   {
+    "monat": 11,
+    "sim_ew": 790.9,
+    "ort_soll": 384.9,
+    "ort_ist": 305,
+    "aktionen": 1
+   },
+   {
+    "monat": 12,
+    "sim_ew": 805.2,
+    "ort_soll": 399.2,
+    "ort_ist": 307,
+    "aktionen": 1
+   }
+  ],
+  "ersetze_parzellen": [
+   "erlenbach_p10",
+   "erlenbach_p09",
+   "erlenbach_p08",
+   "erlenbach_p16",
+   "erlenbach_p42",
+   "erlenbach_p36",
+   "erlenbach_p24",
+   "erlenbach_p06",
+   "erlenbach_p40",
+   "erlenbach_p17",
+   "erlenbach_p45"
+  ],
+  "entfernte_instanzen": [
+   {
+    "typ": "bauernhof",
+    "x": 1617.38,
+    "z": 792.2,
+    "rot_deg": 93.51,
+    "parzelle": "erlenbach_p06",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1612.41,
+    "z": 777.69,
+    "rot_deg": 179.13,
+    "parzelle": "erlenbach_p06",
+    "b": 18.0,
+    "ort": "erlenbach",
+    "t": 10.0,
+    "variante": "scheune_18x10"
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1602.94,
+    "z": 792.22,
+    "rot_deg": 92.54,
+    "parzelle": "erlenbach_p06",
+    "b": 6.0,
+    "ort": "erlenbach",
+    "t": 4.0,
+    "variante": "schuppen_6x4"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1606.52,
+    "z": 779.07,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1618.41,
+    "z": 785.53,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1606.06,
+    "z": 781.29,
+    "rot_deg": -117.79,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "heuhaufen",
+    "x": 1605.63,
+    "z": 777.26,
+    "rot_deg": 75.17,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1625.06,
+    "z": 787.43,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1607.95,
+    "z": 797.24,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1619.93,
+    "z": 797.94,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1625.42,
+    "z": 781.44,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1613.94,
+    "z": 797.59,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1624.53,
+    "z": 796.41,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1625.59,
+    "z": 778.44,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1616.94,
+    "z": 797.77,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1615.39,
+    "z": 773.03,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1624.88,
+    "z": 790.42,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "flaeche_obstwiese",
+    "x": 1652.49,
+    "z": 685.91,
+    "rot_deg": 72.85,
+    "parzelle": "erlenbach_p08",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 24.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1650.68,
+    "z": 682.82,
+    "rot_deg": -145.73,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1650.82,
+    "z": 683.66,
+    "rot_deg": -87.41,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "flaeche_obstwiese",
+    "x": 1671.38,
+    "z": 734.34,
+    "rot_deg": 15.35,
+    "parzelle": "erlenbach_p09",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 24.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1675.25,
+    "z": 726.13,
+    "rot_deg": 174.11,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1662.89,
+    "z": 737.45,
+    "rot_deg": -163.23,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1676.11,
+    "z": 738.91,
+    "rot_deg": -127.52,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "flaeche_obstwiese",
+    "x": 1589.38,
+    "z": 749.16,
+    "rot_deg": 5.48,
+    "parzelle": "erlenbach_p10",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 24.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1590.43,
+    "z": 741.1,
+    "rot_deg": 34.07,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1588.39,
+    "z": 752.71,
+    "rot_deg": -85.13,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "flaeche_obstwiese",
+    "x": 1719.72,
+    "z": 721.53,
+    "rot_deg": 125.38,
+    "parzelle": "erlenbach_p16",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 24.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1718.69,
+    "z": 723.06,
+    "rot_deg": -38.21,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1721.44,
+    "z": 718.19,
+    "rot_deg": 19.24,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "bauernhof",
+    "x": 1611.16,
+    "z": 826.51,
+    "rot_deg": 75.66,
+    "parzelle": "erlenbach_p17",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1598.86,
+    "z": 827.81,
+    "rot_deg": 84.81,
+    "parzelle": "erlenbach_p17",
+    "b": 6.0,
+    "ort": "erlenbach",
+    "t": 4.0,
+    "variante": "schuppen_6x4"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1603.38,
+    "z": 815.02,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1614.77,
+    "z": 822.32,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1601.87,
+    "z": 814.62,
+    "rot_deg": 80.59,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1603.32,
+    "z": 812.15,
+    "rot_deg": 133.69,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "holzstapel",
+    "x": 1614.16,
+    "z": 832.63,
+    "rot_deg": 66.06,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1622.44,
+    "z": 815.77,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1621.26,
+    "z": 824.7,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1606.46,
+    "z": 833.63,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1606.72,
+    "z": 808.85,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1621.66,
+    "z": 821.72,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1603.49,
+    "z": 833.24,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1618.61,
+    "z": 810.43,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1622.84,
+    "z": 812.8,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1612.66,
+    "z": 809.64,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1622.05,
+    "z": 818.75,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1620.87,
+    "z": 827.67,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1615.39,
+    "z": 834.81,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "flaeche_obstwiese",
+    "x": 1737.29,
+    "z": 676.57,
+    "rot_deg": -156.64,
+    "parzelle": "erlenbach_p24",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 24.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1735.51,
+    "z": 679.31,
+    "rot_deg": 135.65,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1737.64,
+    "z": 679.53,
+    "rot_deg": -27.67,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "flaeche_obstwiese",
+    "x": 1700.57,
+    "z": 802.46,
+    "rot_deg": 37.79,
+    "parzelle": "erlenbach_p36",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 24.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1704.51,
+    "z": 809.51,
+    "rot_deg": -56.53,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1699.28,
+    "z": 804.83,
+    "rot_deg": -179.99,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1689.68,
+    "z": 800.98,
+    "rot_deg": -62.28,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "bauernhof",
+    "x": 1847.42,
+    "z": 621.61,
+    "rot_deg": 27.96,
+    "parzelle": "erlenbach_p40",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1855.27,
+    "z": 611.33,
+    "rot_deg": 125.67,
+    "parzelle": "erlenbach_p40",
+    "b": 18.0,
+    "ort": "erlenbach",
+    "t": 10.0,
+    "variante": "scheune_18x10"
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1838.34,
+    "z": 612.65,
+    "rot_deg": 30.58,
+    "parzelle": "erlenbach_p40",
+    "b": 6.0,
+    "ort": "erlenbach",
+    "t": 4.0,
+    "variante": "schuppen_6x4"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1851.01,
+    "z": 607.23,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1853.3,
+    "z": 620.56,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1851.31,
+    "z": 605.06,
+    "rot_deg": -135.45,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1852.56,
+    "z": 607.87,
+    "rot_deg": -49.08,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "heuhaufen",
+    "x": 1851.87,
+    "z": 605.41,
+    "rot_deg": 15.62,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1863.31,
+    "z": 621.81,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1839.35,
+    "z": 622.06,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1855.93,
+    "z": 626.96,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1837.63,
+    "z": 619.6,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1857.81,
+    "z": 605.53,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1865.77,
+    "z": 620.09,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1844.5,
+    "z": 629.45,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1864.67,
+    "z": 615.37,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1860.85,
+    "z": 623.53,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1848.55,
+    "z": 632.11,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1859.53,
+    "z": 607.99,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1851.01,
+    "z": 630.39,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1841.06,
+    "z": 624.52,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "flaeche_obstwiese",
+    "x": 1655.36,
+    "z": 822.38,
+    "rot_deg": 15.46,
+    "parzelle": "erlenbach_p42",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 24.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1655.78,
+    "z": 813.66,
+    "rot_deg": -177.46,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1651.41,
+    "z": 815.14,
+    "rot_deg": 68.85,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   }
+  ],
+  "neue_instanzen": [
+   {
+    "typ": "kate",
+    "x": 1588.21,
+    "z": 742.94,
+    "rot_deg": -174.52,
+    "parzelle": "erlenbach_p10",
+    "b": 8.0,
+    "ort": "erlenbach",
+    "t": 6.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1590.06,
+    "z": 758.44,
+    "rot_deg": -178.39,
+    "parzelle": "erlenbach_p10",
+    "b": 6.0,
+    "ort": "erlenbach",
+    "t": 4.0,
+    "variante": "schuppen_6x4"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1589.59,
+    "z": 751.4,
+    "rot_deg": -174.52,
+    "parzelle": "erlenbach_p10",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 8.5
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1588.71,
+    "z": 742.19,
+    "rot_deg": -174.52,
+    "parzelle": "erlenbach_p10",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 10.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1587.7,
+    "z": 750.72,
+    "rot_deg": 83.95,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1588.9,
+    "z": 759.56,
+    "rot_deg": -164.99,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "holzstapel",
+    "x": 1584.13,
+    "z": 741.13,
+    "rot_deg": 166.04,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1592.66,
+    "z": 736.29,
+    "rot_deg": -174.52,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1595.2,
+    "z": 746.59,
+    "rot_deg": -84.52,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1594.63,
+    "z": 740.62,
+    "rot_deg": -84.52,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1582.87,
+    "z": 744.76,
+    "rot_deg": -84.52,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1583.45,
+    "z": 750.74,
+    "rot_deg": -84.52,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1583.73,
+    "z": 753.72,
+    "rot_deg": -84.52,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1583.16,
+    "z": 747.75,
+    "rot_deg": -84.52,
+    "parzelle": "erlenbach_p10",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "bauernhof",
+    "x": 1674.05,
+    "z": 730.08,
+    "rot_deg": -170.04,
+    "parzelle": "erlenbach_p09",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1682.24,
+    "z": 741.01,
+    "rot_deg": -160.91,
+    "parzelle": "erlenbach_p09",
+    "b": 6.0,
+    "ort": "erlenbach",
+    "t": 4.0,
+    "variante": "schuppen_6x4"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1667.55,
+    "z": 742.13,
+    "rot_deg": -164.65,
+    "parzelle": "erlenbach_p09",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1669.86,
+    "z": 728.8,
+    "rot_deg": -164.65,
+    "parzelle": "erlenbach_p09",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1668.19,
+    "z": 742.98,
+    "rot_deg": -3.38,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "heuhaufen",
+    "x": 1666.13,
+    "z": 743.56,
+    "rot_deg": 176.99,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1682.71,
+    "z": 729.16,
+    "rot_deg": -74.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1669.52,
+    "z": 721.89,
+    "rot_deg": -164.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1660.58,
+    "z": 741.46,
+    "rot_deg": -74.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1683.5,
+    "z": 732.05,
+    "rot_deg": -74.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1657.94,
+    "z": 725.07,
+    "rot_deg": -164.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1678.2,
+    "z": 719.51,
+    "rot_deg": -164.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1681.12,
+    "z": 723.37,
+    "rot_deg": -74.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1666.62,
+    "z": 722.69,
+    "rot_deg": -164.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1681.92,
+    "z": 726.27,
+    "rot_deg": -74.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1658.19,
+    "z": 732.78,
+    "rot_deg": -74.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1672.41,
+    "z": 721.1,
+    "rot_deg": -164.65,
+    "parzelle": "erlenbach_p09",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "kate",
+    "x": 1716.51,
+    "z": 724.41,
+    "rot_deg": -48.08,
+    "parzelle": "erlenbach_p16",
+    "b": 8.0,
+    "ort": "erlenbach",
+    "t": 6.0
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1721.56,
+    "z": 720.23,
+    "rot_deg": -54.62,
+    "parzelle": "erlenbach_p16",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 8.5
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1714.01,
+    "z": 725.59,
+    "rot_deg": -54.62,
+    "parzelle": "erlenbach_p16",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 10.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1722.44,
+    "z": 720.58,
+    "rot_deg": -84.75,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1726.78,
+    "z": 716.46,
+    "rot_deg": -64.43,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "holzstapel",
+    "x": 1715.37,
+    "z": 730.08,
+    "rot_deg": -45.16,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1719.48,
+    "z": 714.28,
+    "rot_deg": 35.38,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1706.92,
+    "z": 725.1,
+    "rot_deg": -54.62,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1716.7,
+    "z": 731.1,
+    "rot_deg": 35.38,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1712.14,
+    "z": 719.49,
+    "rot_deg": 35.38,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1719.15,
+    "z": 729.36,
+    "rot_deg": 35.38,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1717.03,
+    "z": 716.02,
+    "rot_deg": 35.38,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1712.14,
+    "z": 732.44,
+    "rot_deg": -54.62,
+    "parzelle": "erlenbach_p16",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "kate",
+    "x": 1653.45,
+    "z": 817.13,
+    "rot_deg": -162.99,
+    "parzelle": "erlenbach_p42",
+    "b": 8.0,
+    "ort": "erlenbach",
+    "t": 6.0
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1655.96,
+    "z": 824.55,
+    "rot_deg": -164.54,
+    "parzelle": "erlenbach_p42",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 8.5
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1653.5,
+    "z": 815.63,
+    "rot_deg": -164.54,
+    "parzelle": "erlenbach_p42",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 10.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1655.59,
+    "z": 824.53,
+    "rot_deg": 136.85,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1659.01,
+    "z": 831.87,
+    "rot_deg": 61.62,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "holzstapel",
+    "x": 1648.81,
+    "z": 815.37,
+    "rot_deg": -162.77,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1650.6,
+    "z": 827.85,
+    "rot_deg": -74.54,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1649.0,
+    "z": 822.06,
+    "rot_deg": -74.54,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1662.26,
+    "z": 824.62,
+    "rot_deg": -74.54,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1649.8,
+    "z": 824.95,
+    "rot_deg": -74.54,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1648.2,
+    "z": 819.17,
+    "rot_deg": -74.54,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1661.46,
+    "z": 821.73,
+    "rot_deg": -74.54,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1660.66,
+    "z": 818.84,
+    "rot_deg": -74.54,
+    "parzelle": "erlenbach_p42",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "bauernhof",
+    "x": 1702.3,
+    "z": 797.44,
+    "rot_deg": -147.63,
+    "parzelle": "erlenbach_p36",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1700.01,
+    "z": 811.12,
+    "rot_deg": -142.21,
+    "parzelle": "erlenbach_p36",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1697.05,
+    "z": 797.91,
+    "rot_deg": -142.21,
+    "parzelle": "erlenbach_p36",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1699.83,
+    "z": 811.38,
+    "rot_deg": 47.68,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "heuhaufen",
+    "x": 1699.24,
+    "z": 812.98,
+    "rot_deg": -149.36,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1696.47,
+    "z": 789.82,
+    "rot_deg": -142.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1686.98,
+    "z": 797.18,
+    "rot_deg": -142.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1701.21,
+    "z": 786.15,
+    "rot_deg": -142.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1687.78,
+    "z": 806.04,
+    "rot_deg": -52.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1684.61,
+    "z": 799.01,
+    "rot_deg": -142.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1705.39,
+    "z": 788.6,
+    "rot_deg": -52.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1685.95,
+    "z": 803.67,
+    "rot_deg": -52.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1698.84,
+    "z": 787.98,
+    "rot_deg": -142.21,
+    "parzelle": "erlenbach_p36",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "kate",
+    "x": 1740.1,
+    "z": 682.09,
+    "rot_deg": 30.3,
+    "parzelle": "erlenbach_p24",
+    "b": 8.0,
+    "ort": "erlenbach",
+    "t": 6.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1733.26,
+    "z": 668.18,
+    "rot_deg": 28.99,
+    "parzelle": "erlenbach_p24",
+    "b": 6.0,
+    "ort": "erlenbach",
+    "t": 4.0,
+    "variante": "schuppen_6x4"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1736.39,
+    "z": 674.51,
+    "rot_deg": 23.36,
+    "parzelle": "erlenbach_p24",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 8.5
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1740.06,
+    "z": 683.0,
+    "rot_deg": 23.36,
+    "parzelle": "erlenbach_p24",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 10.0
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1737.43,
+    "z": 674.1,
+    "rot_deg": 135.72,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1746.37,
+    "z": 686.27,
+    "rot_deg": 23.36,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1744.82,
+    "z": 678.77,
+    "rot_deg": 113.36,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1738.11,
+    "z": 689.83,
+    "rot_deg": 23.36,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1741.25,
+    "z": 670.5,
+    "rot_deg": 113.36,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1731.33,
+    "z": 678.06,
+    "rot_deg": 113.36,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1734.9,
+    "z": 686.32,
+    "rot_deg": 113.36,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1730.14,
+    "z": 675.3,
+    "rot_deg": 113.36,
+    "parzelle": "erlenbach_p24",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "grosshof",
+    "x": 1617.46,
+    "z": 791.94,
+    "rot_deg": 82.11,
+    "parzelle": "erlenbach_p06",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1612.39,
+    "z": 778.16,
+    "rot_deg": 174.44,
+    "parzelle": "erlenbach_p06",
+    "b": 18.0,
+    "ort": "erlenbach",
+    "t": 10.0,
+    "variante": "scheune_18x10"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1606.52,
+    "z": 779.07,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1618.41,
+    "z": 785.53,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1605.32,
+    "z": 780.57,
+    "rot_deg": 109.09,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1602.88,
+    "z": 789.09,
+    "rot_deg": -44.18,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "heuhaufen",
+    "x": 1605.63,
+    "z": 777.26,
+    "rot_deg": 73.42,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1619.93,
+    "z": 797.94,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1625.06,
+    "z": 787.43,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1625.42,
+    "z": 781.44,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1624.71,
+    "z": 793.42,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1607.95,
+    "z": 797.24,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1625.77,
+    "z": 775.45,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1624.53,
+    "z": 796.41,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1616.94,
+    "z": 797.77,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1618.39,
+    "z": 773.21,
+    "rot_deg": 176.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1625.59,
+    "z": 778.44,
+    "rot_deg": 86.62,
+    "parzelle": "erlenbach_p06",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "grosshof",
+    "x": 1848.28,
+    "z": 623.3,
+    "rot_deg": 33.01,
+    "parzelle": "erlenbach_p40",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1855.6,
+    "z": 611.1,
+    "rot_deg": 123.89,
+    "parzelle": "erlenbach_p40",
+    "b": 18.0,
+    "ort": "erlenbach",
+    "t": 10.0,
+    "variante": "scheune_18x10"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1851.01,
+    "z": 607.23,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1853.3,
+    "z": 620.56,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1850.47,
+    "z": 605.64,
+    "rot_deg": -36.64,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "heuhaufen",
+    "x": 1851.87,
+    "z": 605.41,
+    "rot_deg": 21.41,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "holzstapel",
+    "x": 1845.28,
+    "z": 627.07,
+    "rot_deg": 46.78,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1851.01,
+    "z": 630.39,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1858.39,
+    "z": 625.24,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1848.55,
+    "z": 632.11,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1837.63,
+    "z": 619.6,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1842.78,
+    "z": 626.98,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1860.85,
+    "z": 623.53,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1865.77,
+    "z": 620.09,
+    "rot_deg": 34.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1862.96,
+    "z": 612.91,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1841.06,
+    "z": 624.52,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1857.81,
+    "z": 605.53,
+    "rot_deg": 124.89,
+    "parzelle": "erlenbach_p40",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "grosshof",
+    "x": 1613.26,
+    "z": 818.29,
+    "rot_deg": 89.8,
+    "parzelle": "erlenbach_p17",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1601.87,
+    "z": 826.42,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1614.77,
+    "z": 822.32,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1601.28,
+    "z": 825.45,
+    "rot_deg": -88.09,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1597.77,
+    "z": 821.69,
+    "rot_deg": -38.92,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "holzstapel",
+    "x": 1616.86,
+    "z": 812.21,
+    "rot_deg": 88.92,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1606.72,
+    "z": 808.85,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1603.49,
+    "z": 833.24,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1620.48,
+    "z": 830.65,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1615.64,
+    "z": 810.03,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1612.41,
+    "z": 834.42,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1621.26,
+    "z": 824.7,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1606.46,
+    "z": 833.63,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1622.44,
+    "z": 815.77,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1615.39,
+    "z": 834.81,
+    "rot_deg": 172.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1620.08,
+    "z": 833.62,
+    "rot_deg": 82.46,
+    "parzelle": "erlenbach_p17",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "bauernhof",
+    "x": 1633.26,
+    "z": 654.66,
+    "rot_deg": 76.0,
+    "parzelle": "erlenbach_p45",
+    "b": 12.0,
+    "ort": "erlenbach",
+    "t": 9.0
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1632.5,
+    "z": 641.39,
+    "rot_deg": 162.72,
+    "parzelle": "erlenbach_p45",
+    "b": 18.0,
+    "ort": "erlenbach",
+    "t": 10.0,
+    "variante": "scheune_18x10"
+   },
+   {
+    "typ": "nebengebaeude",
+    "x": 1619.8,
+    "z": 652.88,
+    "rot_deg": 76.72,
+    "parzelle": "erlenbach_p45",
+    "b": 6.0,
+    "ort": "erlenbach",
+    "t": 4.0,
+    "variante": "schuppen_6x4"
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1626.6,
+    "z": 640.8,
+    "rot_deg": 72.27,
+    "parzelle": "erlenbach_p45",
+    "b": 12.5,
+    "ort": "erlenbach",
+    "t": 11.0
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1636.52,
+    "z": 650.0,
+    "rot_deg": 72.27,
+    "parzelle": "erlenbach_p45",
+    "b": 24.0,
+    "ort": "erlenbach",
+    "t": 12.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1626.14,
+    "z": 639.59,
+    "rot_deg": -97.51,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1628.11,
+    "z": 640.11,
+    "rot_deg": -176.29,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "holzstapel",
+    "x": 1634.1,
+    "z": 660.04,
+    "rot_deg": 57.92,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1639.55,
+    "z": 638.06,
+    "rot_deg": 162.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1640.67,
+    "z": 659.2,
+    "rot_deg": 72.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1629.2,
+    "z": 660.58,
+    "rot_deg": 162.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1642.49,
+    "z": 653.49,
+    "rot_deg": 72.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1634.92,
+    "z": 662.41,
+    "rot_deg": 162.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1633.84,
+    "z": 636.23,
+    "rot_deg": 162.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1641.58,
+    "z": 656.35,
+    "rot_deg": 72.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1645.23,
+    "z": 644.92,
+    "rot_deg": 72.27,
+    "parzelle": "erlenbach_p45",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "handwerkerhaus",
+    "x": 1650.44,
+    "z": 683.1,
+    "rot_deg": -110.78,
+    "parzelle": "erlenbach_p08",
+    "b": 9.0,
+    "ort": "erlenbach",
+    "t": 12.0
+   },
+   {
+    "typ": "flaeche_garten",
+    "x": 1659.89,
+    "z": 688.19,
+    "rot_deg": -107.14,
+    "parzelle": "erlenbach_p08",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 8.5
+   },
+   {
+    "typ": "flaeche_hof",
+    "x": 1642.21,
+    "z": 682.74,
+    "rot_deg": -107.14,
+    "parzelle": "erlenbach_p08",
+    "b": 11.5,
+    "ort": "erlenbach",
+    "t": 2.5
+   },
+   {
+    "typ": "obstbaum",
+    "x": 1659.08,
+    "z": 689.11,
+    "rot_deg": 135.58,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "fass",
+    "x": 1645.76,
+    "z": 678.86,
+    "rot_deg": -103.82,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1654.52,
+    "z": 692.87,
+    "rot_deg": -17.14,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1649.49,
+    "z": 678.65,
+    "rot_deg": -17.14,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1643.06,
+    "z": 689.33,
+    "rot_deg": -17.14,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1658.09,
+    "z": 681.3,
+    "rot_deg": -17.14,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1645.92,
+    "z": 690.21,
+    "rot_deg": -17.14,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1648.79,
+    "z": 691.1,
+    "rot_deg": -17.14,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   },
+   {
+    "typ": "zaun_latte",
+    "x": 1651.66,
+    "z": 691.98,
+    "rot_deg": -17.14,
+    "parzelle": "erlenbach_p08",
+    "ort": "erlenbach"
+   }
+  ],
+  "neue_parzellen": [
+   {
+    "id": "erlenbach_p45",
+    "typ": "bauernhof",
+    "x": 1631.04,
+    "z": 648.25,
+    "rot_deg": -107.73
+   }
+  ],
+  "luecken_offen": []
+ }
+}

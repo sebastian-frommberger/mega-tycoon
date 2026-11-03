@@ -1,0 +1,83 @@
+Objekt;Soll;Ist;Abw. %;OK;Quelle
+amboss;(kein Soll);0.80;;ja;platzhalter (import_faktoren.rollen.amboss.masse_m) | Info: kein Soll im Regelwerk
+bauernhof.lang;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.bauernhof) | skalen.gebaeude_m/haus_m
+bauernhof.quer;9.0 ±25%;9.80;+8.9;ja;platzhalter (regelwerk.haustypen.bauernhof) | skalen.gebaeude_m/haus_m
+bauernhof.h;9.0–11.0 ±25%;10.00;+0.0;ja;platzhalter (regelwerk.haustypen.bauernhof) | skalen.gebaeude_m/haus_m
+brunnen;(kein Soll);6.00;;ja;platzhalter (import_faktoren.rollen.brunnen.masse_m) | Info: kein Soll im Regelwerk
+buergerhaus.lang;14.0 ±25%;14.80;+5.7;ja;platzhalter (regelwerk.haustypen.buergerhaus) | skalen.gebaeude_m/haus_l
+buergerhaus.quer;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.buergerhaus) | skalen.gebaeude_m/haus_l
+buergerhaus.h;12.5–15.0 ±25%;15.00;+0.0;ja;platzhalter (regelwerk.haustypen.buergerhaus) | skalen.gebaeude_m/haus_l
+dampflok.l;6.84–9.12 (0.9–1.2×);7.60;-0.0;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.dampflok) | skalen.fahrzeuge_dm/dampflok.real_l
+eiche.h;15.0–25.0 ±25%;20.00;+0.0;ja;platzhalter (import_faktoren.rollen.eiche.masse_m) | skalen.baeume_m/laub
+fass;(kein Soll);0.62;;ja;platzhalter (import_faktoren.rollen.fass.masse_m) | Info: kein Soll im Regelwerk
+fischerhuette.lang;8.0 ±25%;8.80;+10.0;ja;platzhalter (16_prototyp_plan §5 M14 (8 × 6 m), H Annahme wie Kate) | 16 §5 M14
+fischerhuette.quer;6.0 ±25%;6.80;+13.3;ja;platzhalter (16_prototyp_plan §5 M14 (8 × 6 m), H Annahme wie Kate) | 16 §5 M14
+flaeche_garten;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
+flaeche_hof;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
+flaeche_kirchhof;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
+flaeche_marktplatz;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
+flaeche_obstwiese;Typ bekannt;0.00;;NEIN;unbekannter Typ (weder regelwerk noch import_faktoren)
+fuhrwerk_2_pferde.l;7.20–10.80 (0.9–1.2×);9.50;+11.8;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.fuhrwerk_2_pferde) | skalen.fahrzeuge_dm/fuhrwerk_2_pferde.real_l
+gasthaus.lang;14.0 ±25%;14.80;+5.7;ja;platzhalter (regelwerk.haustypen.gasthaus) | haustypen.gasthaus
+gasthaus.quer;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.gasthaus) | haustypen.gasthaus
+gueterwagen.l;4.50–7.20 (0.9–1.2×);6.90;+25.5;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.gueterwagen) | skalen.fahrzeuge_dm/gueterwagen.real_l
+gutshof.lang;40.0 ±25%;40.80;+2.0;ja;platzhalter (regelwerk.skalen.industrie_m.gutshof) | skalen.industrie_m/gutshof
+gutshof.quer;40.0 ±25%;40.80;+2.0;ja;platzhalter (regelwerk.skalen.industrie_m.gutshof) | skalen.industrie_m/gutshof
+gutshof.h;12.0–15.0 ±25%;13.50;+0.0;ja;platzhalter (regelwerk.skalen.industrie_m.gutshof) | skalen.industrie_m/gutshof
+handwerkerhaus.lang;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.handwerkerhaus) | skalen.gebaeude_m/haus_m
+handwerkerhaus.quer;9.0 ±25%;9.80;+8.9;ja;platzhalter (regelwerk.haustypen.handwerkerhaus) | skalen.gebaeude_m/haus_m
+handwerkerhaus.h;9.0–11.0 ±25%;10.00;+0.0;ja;platzhalter (regelwerk.haustypen.handwerkerhaus) | skalen.gebaeude_m/haus_m
+heuhaufen;(kein Soll);1.60;;ja;platzhalter (import_faktoren.rollen.heuhaufen.masse_m) | Info: kein Soll im Regelwerk
+holzstapel;(kein Soll);4.00;;ja;platzhalter (import_faktoren.rollen.holzstapel.masse_m) | Info: kein Soll im Regelwerk
+kate.lang;8.0 ±25%;8.80;+10.0;ja;platzhalter (regelwerk.haustypen.kate) | skalen.gebaeude_m/haus_s_kate
+kate.quer;6.0 ±25%;6.80;+13.3;ja;platzhalter (regelwerk.haustypen.kate) | skalen.gebaeude_m/haus_s_kate
+kate.h;6.0–7.0 ±25%;6.50;+0.0;ja;platzhalter (regelwerk.haustypen.kate) | skalen.gebaeude_m/haus_s_kate
+kirche_dorf.lang;20.0 ±25%;20.80;+4.0;ja;platzhalter (regelwerk.haustypen.kirche_dorf) | skalen.gebaeude_m/kirche_dorf
+kirche_dorf.quer;10.0 ±25%;10.80;+8.0;ja;platzhalter (regelwerk.haustypen.kirche_dorf) | skalen.gebaeude_m/kirche_dorf
+kirche_dorf.h;30.0 ±25%;30.00;+0.0;ja;platzhalter (regelwerk.haustypen.kirche_dorf) | skalen.gebaeude_m/kirche_dorf
+kirche_stadt.lang;35.0 ±25%;35.80;+2.3;ja;platzhalter (regelwerk.haustypen.kirche_stadt) | skalen.gebaeude_m/kirche_stadt
+kirche_stadt.quer;15.0 ±25%;15.80;+5.3;ja;platzhalter (regelwerk.haustypen.kirche_stadt) | skalen.gebaeude_m/kirche_stadt
+kirche_stadt.h;45.0–55.0 ±25%;50.00;+0.0;ja;platzhalter (regelwerk.haustypen.kirche_stadt) | skalen.gebaeude_m/kirche_stadt
+laubbaum.h;15.0–25.0 ±25%;18.00;+0.0;ja;platzhalter (import_faktoren.rollen.laubbaum.masse_m) | skalen.baeume_m/laub
+nebengebaeude.lang;0.0 ±25%;10.80;+inf;NEIN;platzhalter (regelwerk.haustypen.nebengebaeude) | haustypen.nebengebaeude
+nebengebaeude.quer;0.0 ±25%;8.80;+inf;NEIN;platzhalter (regelwerk.haustypen.nebengebaeude) | haustypen.nebengebaeude
+netzgestell;(kein Soll);4.00;;ja;platzhalter (Annahme Felix) | Info: kein Soll im Regelwerk
+obstbaum.h;6.0–8.0 ±25%;7.00;+0.0;ja;platzhalter (import_faktoren.rollen.obstbaum.masse_m) | skalen.baeume_m/obst
+passant;(kein Soll);1.65;;ja;platzhalter (import_faktoren.rollen.passant.masse_m) | Info: kein Soll im Regelwerk
+personenwagen.l;5.13–6.84 (0.9–1.2×);6.90;+21.1;NEIN;platzhalter (regelwerk.skalen.fahrzeuge_dm.personenwagen) | skalen.fahrzeuge_dm/personenwagen.real_l
+postkutsche_4_pferde.l;9.00–14.40 (0.9–1.2×);12.50;+13.6;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.postkutsche_4_pferde) | skalen.fahrzeuge_dm/postkutsche_4_pferde.real_l
+rathaus.lang;16.0 ±25%;16.80;+5.0;ja;platzhalter (regelwerk.haustypen.rathaus) | haustypen.rathaus
+rathaus.quer;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.rathaus) | haustypen.rathaus
+ruderboot.l;4.05–5.40 (0.9–1.2×);4.50;+0.0;ja;platzhalter (import_faktoren.rollen.ruderboot.masse_m) | epochen.W1.fahrzeuge.ruderboot_dm
+scheune.lang;18.0 ±25%;18.80;+4.4;ja;platzhalter (regelwerk.skalen.gebaeude_m.scheune) | skalen.gebaeude_m/scheune
+scheune.quer;10.0 ±25%;10.80;+8.0;ja;platzhalter (regelwerk.skalen.gebaeude_m.scheune) | skalen.gebaeude_m/scheune
+scheune.h;8.0–10.0 ±25%;9.00;+0.0;ja;platzhalter (regelwerk.skalen.gebaeude_m.scheune) | skalen.gebaeude_m/scheune
+schmiede.lang;9.0 ±25%;9.80;+8.9;ja;platzhalter (regelwerk.haustypen.schmiede) | haustypen.schmiede
+schmiede.quer;7.0 ±25%;7.80;+11.4;ja;platzhalter (regelwerk.haustypen.schmiede) | haustypen.schmiede
+speicher.lang;20.0 ±25%;20.80;+4.0;ja;platzhalter (regelwerk.haustypen.speicher) | haustypen.speicher
+speicher.quer;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.haustypen.speicher) | haustypen.speicher
+stadttor.lang;8.0 ±25%;8.00;+0.0;ja;platzhalter (regelwerk.haustypen.stadttor) | haustypen.stadttor
+stadttor.quer;8.0 ±25%;8.00;+0.0;ja;platzhalter (regelwerk.haustypen.stadttor) | haustypen.stadttor
+stadttor.h;18.0 ±25%;18.00;+0.0;ja;platzhalter (regelwerk.haustypen.stadttor) | haustypen.stadttor
+steg.lang;25.0 ±25%;25.00;+0.0;ja;platzhalter (16_prototyp_plan §5 M14 (25 × 2 m)) | 16 §5 M14
+steg.quer;2.0 ±25%;2.00;+0.0;ja;platzhalter (16_prototyp_plan §5 M14 (25 × 2 m)) | 16 §5 M14
+tender.l;3.60–4.80 (0.9–1.2×);4.80;+20.0;ja;platzhalter (regelwerk.skalen.fahrzeuge_dm.tender) | skalen.fahrzeuge_dm/tender.real_l
+wassermuehle.lang;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.skalen.industrie_m.wassermuehle) | skalen.industrie_m/wassermuehle
+wassermuehle.quer;12.0 ±25%;12.80;+6.7;ja;platzhalter (regelwerk.skalen.industrie_m.wassermuehle) | skalen.industrie_m/wassermuehle
+wassermuehle_rad;(kein Soll);5.00;;ja;platzhalter (import_faktoren.rollen.wassermuehle_rad.masse_m) | Info: kein Soll im Regelwerk
+zaun_latte;(kein Soll);2.89;;ja;platzhalter (import_faktoren.rollen.zaun_latte.masse_m) | Info: kein Soll im Regelwerk
+epoche.bauernhof;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+epoche.buergerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+epoche.handwerkerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+epoche.kate;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
+perf.Übersicht.dreiecke;≤ 1000000;1618628.00;+61.9;NEIN;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.Übersicht.draw_calls;≤ 300;154.00;-48.7;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.Dorf.dreiecke;(Info);1618628.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.Dorf.draw_calls;(Info);154.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.Markt.dreiecke;≤ 2900000;1618628.00;-44.2;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.Fluss.dreiecke;(Info);1618628.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.Fluss.draw_calls;(Info);154.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.See.dreiecke;(Info);1618628.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.See.draw_calls;(Info);154.00;;ja;gezählt (Mesh-Daten, DC ohne Schatten)
+perf.ladezeit_ms;≤ 3000;771.56;-74.3;ja;prototyp_welt._ready
+perf.ladezeit_wand_ms;≤ 3000;847.14;-71.8;ja;instantiate + 1 Frame

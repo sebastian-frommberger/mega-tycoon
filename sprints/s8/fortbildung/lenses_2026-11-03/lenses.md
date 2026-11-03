@@ -1,0 +1,30 @@
+# Schell-Linsen für Mega Tycoon (Auswahl, Pilot 03.11.2026)
+
+Quelle: Jesse Schell, *The Art of Game Design: A Book of Lenses*, 3. Aufl., Kapiteltexte in `/tmp/claude-0/gd/lenses/C*.txt`, Nummern aus `tol.txt`. Prüffragen in eigenen Worten, keine Zitate. Auswahlkriterium: Wirtschafts-/Aufbauspiel, Zeitreise 1820 → heute, Sitzungen 60–120 min je Epoche, Fortschrittssystem, Bahn/Logistik.
+
+| # | Linse | Kapitel | Prüffragen (eigene Worte) | Wann nutzen bei uns |
+|---|---|---|---|---|
+| 2 | Essential Experience | Kap. 2, The Designer Creates an Experience | Welches Erlebnis soll der Spieler haben? Was ist daran unverzichtbar? Trägt jedes System genau dieses Kernerlebnis? | Wenn ein Feature (Firmenkauf, Floß, Konkurrenz) gegen den Kern „Ketten schließen, Orte wachsen lassen, Klemmen verstehen“ gehalten werden muss. |
+| 16 | Risk Mitigation | Kap. 8, The Game Improves through Iteration | Was könnte das Spiel am ehesten scheitern lassen? Was tun wir jetzt dagegen, statt an Sicherem weiterzubauen? | Vor jeder Sprintplanung: Papierfeatures gegen das größte Risiko (Leere nach M7, falsche Karte) sortieren. |
+| 21 | Flow | Kap. 10, The Experience Is in the Player's Mind | Sind die Ziele klar und die des Spielers dieselben wie unsere? Lenkt etwas vom Ziel ab? Wächst die Herausforderung mit dem Können? | Bei G-01 (Leerlauf nach M7) und bei Tempostufen, die Entscheidungen überspringen könnten. |
+| 23 | Motivation | Kap. 11, The Player's Mind Is Driven by the Player's Motivation | Warum spielt jemand weiter? Welche Antriebe sind innerlich, welche von außen, welche stützen oder stören sich? | Wenn Skillpunkte, Ranglisten oder Aufträge als Belohnung geplant werden und unklar ist, wen sie antreiben. |
+| 27 | Time | Kap. 12, Some Elements Are Game Mechanics (dazu Kap. 13, Abschnitt „Short vs. Long“) | Was bestimmt eigentlich die Länge einer Aktivität? Wo ist es zu kurz, wo zu lang? Helfen Uhren/Wettläufe oder stören sie? Gibt es verschachtelte Zeitebenen? | Bei Kalendertempo, Epochenlänge, Partielänge 1820 → heute. |
+| 32 | Goals | Kap. 12 | Was ist das Endziel, ist es sichtbar? Hängen Teilziele sinnvoll zusammen? Mischung kurz/lang? Darf der Spieler eigene Ziele setzen? | Bei G-01-Etappen, Epochen-Toren, Endziel der Kampagne. |
+| 35 | Expected Value | Kap. 12 | Wie wahrscheinlich ist ein Ergebnis wirklich, wie wahrscheinlich wirkt es? Was ist es (in Zahlen) wert? Sind die Erwartungswerte der Optionen so, dass echte Wahl entsteht? | Wenn eine Belohnung oder ein Kauf in $/min bewertet werden muss (Skillknoten, Lizenz vs. Kauf). |
+| 39 | Meaningful Choices | Kap. 13, Game Mechanics Must Be in Balance | Welche Wahl stellen wir, ist sie bedeutsam? Zu viele oder zu wenige Optionen? Gibt es eine dominante Strategie? | Bei Skilltree-Ästen, Zug vs. Lkw, Lizenz vs. Kauf. |
+| 40 | Triangularity | Kap. 13 | Gibt es eine sichere Option mit kleinem Ertrag neben einer riskanten mit großem? Passt der Lohn zum Risiko? | Bei Kredit, früher Firmenkauf, Prototyp-Fahrzeug vor Serie. |
+| 46 | Reward | Kap. 13 | Welche Belohnungen gibt es, versteht der Spieler sie? Sind sie zu gleichförmig? Hängen sie zusammen? Wachsen sie im richtigen Tempo? | Bei Skillpunkt-Quote und Rangknoten (+8 %). |
+| 47 | Punishment | Kap. 13 | Wofür bestrafen wir und warum? Wirkt es fair, also verständlich und vermeidbar? Ginge dasselbe als Belohnung? Steht starker Strafe starker Lohn gegenüber? | Bei Zwangsverkauf, Nachzügler-Druck im Epochentor, KI-Übernahme eigener Firmen. |
+| 48 | Simplicity/Complexity | Kap. 13 | Wo ist Komplexität eingebaut statt entstanden? Lässt sie sich in entstehende Tiefe umwandeln? Ist etwas zu simpel? | Bei 110 Skillknoten, zwei Uhren, Besitzmodell. |
+| 52 | Economy | Kap. 13 | Wie verdient man, wofür gibt man aus? Ist Geld zu leicht oder zu schwer zu haben? Sind beide Entscheidungen bedeutsam? Eine Währung oder mehrere? (Skillpunkte zählen als Währung.) | Bei Skillpunkten als Zweitwährung, Lizenz-/Kaufpreisen. |
+| 53 | Balance | Kap. 13 | Fühlt sich das Spiel richtig an, und warum (nicht)? | Als Abschlussfrage nach jedem Bot- oder Basti-Lauf, nicht als Analyse. |
+| 55 | Visible Progress | Kap. 14, Game Mechanics Support Puzzles | Was heißt Fortschritt hier? Gibt es genug Zwischenschritte? Was ist versteckt und könnte sichtbar werden? | Bei Epochenleiste, Etappen-Vorschau, Ortswachstum. |
+| 63 | Feedback | Kap. 15, Players Play Games through an Interface | Was muss/will der Spieler gerade wissen? Was soll er fühlen? Hilft die Rückmeldung zum aktuellen Ziel? | Bei Tempostufen (was geht bei hohem Tempo verloren?), Zeit-/Geldanzeigen, A-08. |
+| 69 | Interest Curve | Kap. 16, Experiences Can Be Judged by Their Interest Curves | Wie sieht die Spannungskurve aus? Gibt es Einstieg, Anstieg mit Pausen, Höhepunkt? Ist sie verschachtelt? Stimmt unser Bild mit der von Testern gezeichneten Kurve überein? | Bei Epochenlänge (Höhepunkte je 60–120 min) und Langzeitpartie. |
+| 103 | Playtesting | Kap. 28, Good Games Are Created through Playtesting | Warum testen wir, mit wem, wann, wo, worauf achten wir, wie kommen wir an die Information? | Vor jedem Test (Basti-Rundgang, Fremdtest), damit Leitfrage und Messweg vorher stehen. |
+
+18 Linsen. Bewusst nicht gewählt: Charakter-, Story-, Avatar-, Präsenz-, Community- und Pitch-Linsen (passen nicht zu einem Einzelspieler-Tycoon ohne Erzählung) sowie #43 Competition (keine KI-Firmen im Code).
+
+## Grenzen der Linsen
+
+Die Linsen sind Fragenkataloge, keine Messverfahren: Sie lenken den Blick, liefern aber weder Zahlen noch Belege, und jede Antwort darauf ist zunächst die Meinung dessen, der sie anwendet. Schell selbst stellt sie als Perspektiven vor, die einander widersprechen dürfen (Belohnung variabel machen gegen Belohnung planbar halten); welche gilt, entscheidet erst ein Test. Viele Fragen sind so allgemein (#53: fühlt es sich richtig an?), dass sie bei einem Team, das schon Checklisten hat (`sprints/s8/fortbildung/mt-gamedesign/SKILL.md` A8, A10), nur Bekanntes abfragen. Nützlich werden sie dort, wo sie zum Rechnen oder zum Benennen einer Annahme zwingen (#35, #27); als Ersatz für Bot-Läufe, Fremdtests oder Entscheidungen taugen sie nicht.

@@ -1,0 +1,16 @@
+grund;farbe_hex;text_auf_platte;rand_zu_grund;status_min;industrie_name_min;scheibe_zu_grund
+himmel_horizont;c2d6e8;12.23;9.13;6.55;8.38;12.12
+wasser_a_tief;2f6e7c;14.59;4.86;7.82;10.00;3.55
+wasser_b_tief;345f7e;14.79;5.73;7.92;10.14;4.19
+boden_wiese;73945c;13.77;4.47;7.38;9.44;5.26
+boden_auenboden;7d9959;13.66;4.76;7.31;9.36;5.65
+boden_sumpf;5f7352;14.38;4.36;7.70;9.85;3.49
+boden_acker_hell;c2a866;13.09;6.30;7.01;8.97;7.81
+boden_acker_dunkel;8f7350;14.15;3.73;7.58;9.70;4.07
+boden_heide;8c8462;13.89;4.12;7.44;9.52;4.81
+boden_waldboden;55734a;14.43;4.49;7.73;9.89;3.38
+boden_schotter;a39d90;13.35;5.51;7.15;9.15;6.69
+boden_fels;807361;14.20;3.89;7.61;9.73;3.91
+boden_schnee;f2f2f7;11.59;11.56;6.21;7.94;16.18
+boden_ufer;6b7054;14.36;4.34;7.69;9.84;3.50
+boden_wasser;345f7e;14.79;5.73;7.92;10.14;4.19

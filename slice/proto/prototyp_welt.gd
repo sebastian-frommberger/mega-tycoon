@@ -14,7 +14,7 @@ extends Node3D
 ## Steuerung (wie im Spiel): WASD/Pfeile schieben, Q/E drehen, Mausrad Zoom (40 m – 3 km), rechte/mittlere Maustaste
 ## ziehen = drehen, linke ziehen = schieben. Presets 1 Übersicht · 2 Dorf · 3 Markt · 4 Fluss · 5 See.
 ## Schalter: V Wasser A/B (Hook → terrain.set_wasser_modus) · G Easing an/aus (Hook für Welle 2, Signal) ·
-##           M Modelle aus/an (Zeichentest: nur Gelände + Wege) · H Hilfe/HUD · Esc zurück ins Startmenü.
+##           M Modelle aus/an (Zeichentest: nur Gelände + Wege) · H Hilfe/HUD · F11 Vollbild · Esc zurück ins Startmenü.
 ##
 ## Hooks für Welle 2: Signale wasser_modus_geaendert(modus), easing_geaendert(an), modelle_geaendert(an);
 ## strassen.fahrlinien[i] (Schnittstelle in proto_strassenband.gd), hoehe_at(x, z) durchgereicht.
@@ -426,6 +426,16 @@ func setze_schilder(an: bool) -> void:
 	_hud_text()
 
 
+## Vollbild (randlos) an/aus. F11 oder Alt+Enter. Sim und Kamera bleiben unberührt, die UI skaliert über stretch=expand.
+func vollbild_umschalten() -> void:
+	var w := get_window()
+	if w.mode == Window.MODE_FULLSCREEN:
+		w.mode = Window.MODE_WINDOWED
+	else:
+		w.mode = Window.MODE_FULLSCREEN
+	_hud_text()
+
+
 func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		var k: int = ev.keycode
@@ -449,6 +459,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		elif k == KEY_H:
 			hud_an = not hud_an
 			hud.visible = hud_an
+		elif k == KEY_F11 or (k == KEY_ENTER and ev.alt_pressed):
+			vollbild_umschalten()
 		elif k == KEY_ESCAPE:
 			get_tree().change_scene_to_file(START_MENU)
 			return
@@ -543,7 +555,7 @@ func _hud_text() -> void:
 	hud.text = "Prototyp Welt · Welle 2 (schlank) · Startjahr %d (%s)\n" % [startjahr, welt_epoche.get("epoche_id", "?")] \
 		+ "Ansicht %d %s · Abstand %d m%s\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand),
 			(" · folgt %s" % proto_sim.fahrzeuge[folgen]["name"]) if folgen >= 0 and proto_sim != null else ""] \
-		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s   [F] Folgen   [T] Tempo %s   [M] Modelle %s   [N] Schilder %s   [H] Hilfe   [Esc] Menü\n" % [
+		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s   [F] Folgen   [T] Tempo %s   [M] Modelle %s   [N] Schilder %s   [H] Hilfe   [F11] Vollbild   [Esc] Menü\n" % [
 			wasser_modus, "an" if easing_an else "aus", "1×" if sim_tempo == 1.0 else "¼×", "an" if modelle_an else "aus",
 			"an" if schilder_an else "aus"] \
 		+ fz \

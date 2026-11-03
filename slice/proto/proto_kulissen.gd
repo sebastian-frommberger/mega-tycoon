@@ -6,9 +6,18 @@ extends Node3D
 ## Holzfloss (8 x 3 m, Stammladung) treibt flussabwaerts (Fluss fliesst nach Westen), legt an der Holzlaende am Suedufer an,
 ## liegt, wird zurueckgesetzt (taucht ab, erscheint oberhalb wieder). Lage aus proto_orte.json _meta.see_nutzung (Stadt),
 ## sonst TA-Vorschlag Suedufer (1212 / 1262). Typen, die hier gebaut werden, NICHT zusaetzlich aus den Instanzen bauen.
+## Fix-Pass W2 (TA): Muehlrad am Muehlgraben (Rad dreht sich, Graben vom Muehlteich am Rad vorbei in den Bach, M5) und
+## Marktstaende auf dem Marktplatz (Kenney-Tisch + Plane, M7).
 class_name ProtoKulissen
 
-const TYPEN_SELBST := ["steg", "ruderboot"]
+const Wasser := preload("res://world/proto_wasser.gd")
+const TYPEN_SELBST := ["steg", "ruderboot", "wassermuehle_rad"]
+const RAD_D_M := 5.0                # Muehlrad-Durchmesser (Prefab wassermuehle_rad)
+const RAD_DICKE_M := 2.36
+const GRABEN_B_M := 3.0             # Muehlgraben: Wand der Muehle bis Aussenplanke, Rad in der Mitte
+const GRABEN_FLUSS_MS := 1.0
+const GRABEN_DY_M := 0.14           # Wasserflaeche ueber dem Gelaende
+const RAD_TAUCH_M := 0.4            # Rad taucht so tief ins Wasser (unterschlaechtig)
 const FLOSS_X0 := 2450.0           # Start oberhalb (Ost, Randlandschaft)
 const FLOSS_XL := 1600.0           # Holzlaende (Suedufer, unterhalb Erlenbach-Muendung)
 const FLOSS_MS := 1.5              # Treibgeschwindigkeit
@@ -23,6 +32,9 @@ var boot_steg: MeshInstance3D
 var boot_kreis: MeshInstance3D
 var floss: MeshInstance3D
 var laende: MeshInstance3D
+var muehlrad: MeshInstance3D
+var muehlgraben: MeshInstance3D
+var markt_mmi: MultiMeshInstance3D
 var zeit := 0.0
 var lage := {}                      # Kennwerte fuer Tests (M14/M15)
 var _steg_mitte := Vector3.ZERO
@@ -35,6 +47,8 @@ var _laende_punkt := Vector3.ZERO
 var _laende_gier := 0.0
 var _t_treiben := 0.0
 var _periode := 0.0
+var _rad_lage := {}
+var _markt_n := 0
 
 
 static func bauen(parent: Node3D, p_terrain, daten_dir := "res://world/data/proto/") -> ProtoKulissen:
@@ -99,9 +113,11 @@ func _aufbauen(dir: String) -> void:
 	floss = _mi("floss", "Floss")
 	laende = _mi("anlegestelle", "Holzlaende")
 	_laende_einrichten()
+	_muehlrad_einrichten(dir)
+	_markt_einrichten(dir)
 	lage = {"quelle": quelle, "steg_wurzel": wurzel, "steg_ende": ende, "steg_laenge_m": wurzel.distance_to(ende),
 		"see_mitte": see_mitte, "pegel_see": pegel_see, "boot_schleife": [_kreis_mitte, _kreis_r, _kreis_umlauf],
-		"laende": _laende_punkt, "floss_periode_s": _periode}
+		"laende": _laende_punkt, "floss_periode_s": _periode, "muehlrad": _rad_lage, "markt_staende": _markt_n}
 	zeit_setzen(0.0)
 
 
@@ -120,6 +136,196 @@ func _laende_einrichten() -> void:
 	_laende_punkt = Vector3(FLOSS_XL - 0.5, pg, ufer.y - 9.5)
 	_t_treiben = (FLOSS_X0 - FLOSS_XL) / FLOSS_MS
 	_periode = _t_treiben + T_ANLEGEN + T_LIEGEN + T_TAUCHEN * 2.0
+
+
+
+func _boden(x: float, z: float) -> float:
+	return float(terrain.hoehe_at(x, z))
+
+
+func _holz_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.43, 0.33, 0.24)
+	m.roughness = 1.0
+	return m
+
+
+func _box_mi(n: String, mitte: Vector3, groesse: Vector3, gier: float, mat: Material) -> MeshInstance3D:
+	var bm := BoxMesh.new()
+	bm.size = groesse
+	var mi := MeshInstance3D.new()
+	mi.name = n
+	mi.mesh = bm
+	mi.material_override = mat
+	mi.transform = Transform3D(Basis(Vector3.UP, gier), mitte)
+	add_child(mi)
+	return mi
+
+
+## Abstand eines Punkts zur Bach-Mittellinie (Punkte aus proto_bach.json, ohne Muehlteich-Abschnitt)
+func _bach_abstand(p: Vector2, bach: Array) -> float:
+	var best := INF
+	for b in bach:
+		if int(b[3]) == 1:
+			continue
+		best = minf(best, p.distance_to(Vector2(b[0], b[1])))
+	return best
+
+
+## Muehlrad (Fix-Pass W2, M5): das Prefab wassermuehle_rad steht parallel zur Wand der Muehle, die dem Muehlteich zugewandt
+## ist (vorher quer zur Giebelwand an der Hauswand, 10 m vom Wasser). Ein Muehlgraben (Wasserband, 3 m) kommt vom Teichufer,
+## laeuft am Rad vorbei (unterschlaechtig, Rad taucht 0,4 m) und muendet in den Bach. Das Rad dreht der Prefab-Shader (TIME);
+## die Drehrichtung folgt dem Fliessen (Radunterseite bewegt sich mit dem Wasser).
+func _muehlrad_einrichten(dir: String) -> void:
+	var inst = _json(dir.path_join("proto_instanzen.json"))
+	var orte = _json(dir.path_join("proto_orte.json"))
+	var bach_d = _json(dir.path_join("proto_bach.json"))
+	var see_d = _json(dir.path_join("proto_see.json"))
+	if not (inst is Array) or not (orte is Dictionary) or not (bach_d is Dictionary):
+		return
+	var muehle := {}
+	for it in inst:
+		if String(it.get("typ", "")) == "wassermuehle":
+			muehle = it
+			break
+	if muehle.is_empty():
+		return
+	var m := Vector2(float(muehle["x"]), float(muehle["z"]))
+	var rot := deg_to_rad(float(muehle.get("rot_deg", 0.0)))
+	var halb_t := float(muehle.get("t", 12.0)) * 0.5
+	var teich := m + Vector2(0.0, 60.0)
+	var teich_pegel := pegel_see
+	for ind in orte.get("industrie", []):
+		if String(ind.get("typ", "")) == "wassermuehle" and ind.has("muehlteich"):
+			teich = Vector2(float(ind["muehlteich"]["x"]), float(ind["muehlteich"]["z"]))
+	if see_d is Dictionary and see_d.has("muehlteich"):
+		teich_pegel = float(see_d["muehlteich"]["pegel_m"])
+	var f := Vector2(sin(rot), cos(rot))
+	var n := f if f.dot(teich - m) > 0.0 else -f                     # Aussennormale der Wand zum Teich
+	var tv := Vector2(-n.y, n.x)                                     # Richtung entlang der Wand
+	var wc := m + n * (halb_t + 0.05 + RAD_DICKE_M * 0.5 + 0.32)    # Radmitte (Boden), 0,32 m Luft zur Wand
+	var bach: Array = bach_d["punkte"]
+	# Stromab: die Seite, auf der der Bach liegt
+	var s_best := 1.0
+	var d_best := INF
+	for s in [1.0, -1.0]:
+		var d := 0.0
+		while d <= 40.0:
+			if _bach_abstand(wc + tv * s * d, bach) < 2.0:
+				break
+			d += 0.5
+		if d < d_best:
+			d_best = d
+			s_best = s
+	var d_ab := minf(d_best + 1.0, 40.0) if d_best <= 40.0 else 14.0
+	var ab := tv * s_best                                            # Fliessrichtung am Rad
+	var ecke := wc - ab * (RAD_D_M * 0.5 + 2.5)                      # Knick Zulauf → Graben (stromauf vom Rad)
+	var ufer := ecke
+	var steps := 0
+	while steps < 40 and _boden(ufer.x, ufer.y) >= teich_pegel - 0.02:
+		ufer += n * 0.5
+		steps += 1
+	ufer += n * 1.5                                                  # ein Stück ins Teichwasser hinein (verdeckt vom Teich)
+	# Rad
+	var base_y := _boden(wc.x, wc.y) + GRABEN_DY_M - RAD_TAUCH_M
+	muehlrad = _mi("wassermuehle_rad", "Muehlrad")
+	var zr := -ab                                                    # lokales +z des Rads: Oberkante dreht nach +z, Unterkante nach −z = mit dem Wasser
+	var gier := atan2(zr.x, zr.y)
+	muehlrad.transform = Transform3D(Basis(Vector3.UP, gier), Vector3(wc.x, base_y, wc.y))
+	muehlrad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	# Welle (vom Mauerwerk durch das Rad) und Aussenplanke
+	var holz := _holz_material()
+	var wand := m + n * (halb_t + 0.05)
+	var achs_y := base_y + RAD_D_M * 0.5
+	var achs_l := RAD_DICKE_M + 0.32 + 0.35
+	var achs_m := wand + n * (achs_l * 0.5)
+	_box_mi("Muehlwelle", Vector3(achs_m.x, achs_y, achs_m.y), Vector3(0.28, 0.28, achs_l), atan2(n.x, n.y), holz)
+	var pm := m + n * (halb_t + 0.05 + GRABEN_B_M)                  # Aussenplanke des Radgrabens
+	var planke_l := RAD_D_M + 1.2
+	var gy := _boden(pm.x, pm.y) + 0.3 + GRABEN_DY_M * 0.5
+	_box_mi("Radgraben_Planke", Vector3(pm.x, gy, pm.y), Vector3(0.18, 0.7, planke_l), atan2(tv.x, tv.y), holz)
+	# Muehlgraben: zwei Wasserstreifen (Zulauf vom Teichufer zur Ecke, Graben an der Wand entlang bis in den Bach)
+	var v := PackedVector3Array()
+	var col := PackedColorArray()
+	var uv := PackedVector2Array()
+	var idx := PackedInt32Array()
+	_streifen(ufer, ecke + n * (GRABEN_B_M * 0.5), -n, v, col, uv, idx)       # Zulauf endet an der Kante des Grabens (keine Überlappung)
+	_streifen(ecke - ab * (GRABEN_B_M * 0.5), wc + ab * d_ab, ab, v, col, uv, idx)
+	muehlgraben = Wasser._instanz("Muehlgraben", v, col, uv, idx, Wasser._material(0.25))
+	add_child(muehlgraben)
+	_rad_lage = {"mitte": Vector3(wc.x, base_y + RAD_D_M * 0.5, wc.y), "wand_normale": n, "fliess": ab, "graben_ende": wc + ab * d_ab,
+		"teichufer": ufer, "bach_abstand_m": _bach_abstand(wc + ab * d_ab, bach), "durchmesser_m": RAD_D_M}
+
+
+## Wasserband von a nach b (Mitte), Breite GRABEN_B_M, 1-m-Raster am Gelaende (+GRABEN_DY_M), Fliessvektor fluss_r · 1 m/s.
+## Tiefe quer 0 → 0,45 m → 0 (weiche Kanten wie der Bach).
+func _streifen(a: Vector2, b: Vector2, fluss_r: Vector2, v: PackedVector3Array, col: PackedColorArray, uv: PackedVector2Array, idx: PackedInt32Array) -> void:
+	var laenge := a.distance_to(b)
+	var nseg := maxi(1, ceili(laenge))
+	var dir := (b - a).normalized()
+	var q := Vector2(-dir.y, dir.x)
+	var base := v.size()
+	for i in nseg + 1:
+		var p := a.lerp(b, float(i) / nseg)
+		for s in [-1.0, 0.0, 1.0]:
+			var pp: Vector2 = p + q * (GRABEN_B_M * 0.5) * s
+			v.append(Vector3(pp.x, _boden(pp.x, pp.y) + GRABEN_DY_M, pp.y))
+			col.append(Color((0.45 if s == 0.0 else 0.0) / Wasser.TIEFE_SKALA_M, 0, 0, 1))
+			uv.append(fluss_r * GRABEN_FLUSS_MS)
+	for i in nseg:
+		var r0 := base + i * 3
+		var r1 := r0 + 3
+		idx.append_array([r0, r1, r0 + 1, r1, r1 + 1, r0 + 1, r0 + 1, r1 + 1, r0 + 2, r1 + 1, r1 + 2, r0 + 2])
+
+
+## Marktstaende (Fix-Pass W2, M7): zwei Reihen auf dem Marktplatz (Platz aus proto_instanzen.json, flaeche_marktplatz), Front
+## zur Platzmitte, Brunnen und Platzmitte bleiben frei. Prefab "marktstand" (Kenney-Tisch, Plane, Kisten).
+func _markt_einrichten(dir: String) -> void:
+	var inst = _json(dir.path_join("proto_instanzen.json"))
+	if not (inst is Array):
+		return
+	var platz := {}
+	for it in inst:
+		if String(it.get("typ", "")) == "flaeche_marktplatz":
+			platz = it
+			break
+	if platz.is_empty():
+		return
+	var c := Vector2(float(platz["x"]), float(platz["z"]))
+	var rot := deg_to_rad(float(platz.get("rot_deg", 0.0)))
+	var b := float(platz.get("b", 80.0))
+	var tt := float(platz.get("t", 60.0))
+	var rechts := Vector2(cos(rot), -sin(rot))
+	var vor := Vector2(sin(rot), cos(rot))
+	var liste: Array = []                                           # [Position, Gier]
+	for reihe in [-1.0, 1.0]:
+		for xi in [-27.0, -17.0, 17.0, 27.0]:
+			var lz: float = reihe * (tt * 0.5 - 9.0)
+			var lx: float = float(xi) * (b / 80.0)
+			var pos := c + rechts * lx + vor * lz
+			liste.append([pos, rot + (0.0 if reihe < 0.0 else PI)])
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = ProtoPrefabs.mesh_fuer("marktstand")
+	mm.instance_count = liste.size()
+	for i in liste.size():
+		var p: Vector2 = liste[i][0]
+		var y := _boden(p.x, p.y)
+		for e in [Vector2(-1.2, -0.7), Vector2(1.2, -0.7), Vector2(1.2, 0.7), Vector2(-1.2, 0.7)]:
+			var w := Basis(Vector3.UP, float(liste[i][1])) * Vector3(e.x, 0, e.y)
+			y = maxf(y, _boden(p.x + w.x, p.y + w.z))
+		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, float(liste[i][1])), Vector3(p.x, y + 0.08, p.y)))
+		mm.set_instance_color(i, Color.WHITE)
+		mm.set_instance_custom_data(i, ProtoPrefabs.custom_fuer({"x": p.x, "z": p.y, "typ": "marktstand"}))
+	markt_mmi = MultiMeshInstance3D.new()
+	markt_mmi.name = "Marktstaende"
+	markt_mmi.multimesh = mm
+	markt_mmi.visibility_range_end = 900.0
+	markt_mmi.visibility_range_end_margin = 50.0
+	add_child(markt_mmi)
+	_markt_n = liste.size()
 
 
 func _process(delta: float) -> void:

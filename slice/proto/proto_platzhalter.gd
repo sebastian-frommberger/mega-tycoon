@@ -48,6 +48,8 @@ const FLAECHE_FARBE := {
 	"flaeche_kirchhof": Color(0.34, 0.44, 0.27), "flaeche_marktplatz": Color(0.60, 0.58, 0.54),
 	"flaeche_obstwiese": Color(0.44, 0.54, 0.29), "flaeche_schlag": Color(0.64, 0.57, 0.33),
 }
+const FLAECHE_SHADER := preload("res://world/proto_flaeche.gdshader")
+const FLAECHE_MUSTER := {"flaeche_marktplatz": 1, "flaeche_hof": 2}      # Oberflächen-Detail (proto_flaeche.gdshader): 1 Pflaster, 2 Kies
 const FLAECHE_RASTER_M := 2.5
 const FLAECHE_Y_M := 0.08
 const SICHT_KLEIN := ["zaun_latte", "zaun_feld", "fass", "heuhaufen", "holzstapel", "passant", "amboss", "netzgestell", "brunnen"]
@@ -434,10 +436,19 @@ func _flaeche_bauen(parent: Node3D, typ: String, liste: Array, hoehe_fn: Callabl
 	var mi := MeshInstance3D.new()
 	mi.name = "FL_" + typ
 	mi.mesh = st.commit()
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 1.0
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mat: Material
+	if FLAECHE_MUSTER.has(typ):
+		# Fix-Pass W2 (M7): Pflaster (Marktplatz) bzw. Kies/Hofboden (Höfe) prozedural in Weltkoordinaten
+		var sm := ShaderMaterial.new()
+		sm.shader = FLAECHE_SHADER
+		sm.set_shader_parameter("modus", FLAECHE_MUSTER[typ])
+		mat = sm
+	else:
+		var sb := StandardMaterial3D.new()
+		sb.vertex_color_use_as_albedo = true
+		sb.roughness = 1.0
+		sb.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat = sb
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_end = SICHT_FLAECHE_M

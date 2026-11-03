@@ -27,6 +27,10 @@ extends RefCounted
 
 const M_PRO_FELD := 25.0
 const DS := 1.0
+const SPUR_SCHMAL_M := 4.0           # Bänder unter 4 m (Feldweg 3,5 m): einspurig, Fahrzeug in der Bandmitte
+const SPUR_RAND_M := 0.4             # Luft zwischen Fahrzeugkante und Bandkante bei Spur-Versatz
+const SPUR_BLEND_M := 10.0           # Übergang zwischen Spur-Werten zweier Wege (3 × Box-Filter, E2: kein Sprung, kein Knick im Tempolimit)
+const HALT_LUFT_M := 0.3             # Luft zwischen Gespannende und Bandende am Halt
 
 
 ## Bewegungsprofil einer Kategorie aus regelwerk.fahrzeug_easing.kategorien[kat].
@@ -47,6 +51,8 @@ class Profil extends RefCounted:
 	var omega_max := deg_to_rad(270.0) / 10.0    # rad/Tick
 	var aufholen := 0.10
 	var r_ref := 25.0                # Kurvenradius Dorfstraße (regelwerk skalen.wege_dm.kurvenradius_m)
+	var laenge_m := 9.0              # Fahrzeug mit Gespann (regelwerk skalen.fahrzeuge_dm), Fix-Pass W2: Halt am Wegende
+	var breite_m := 2.2              # Spurweite des Fahrzeugs: Spur-Versatz nur, wo das Band breit genug ist
 
 	static func aus_regelwerk(rw: Dictionary, kat: String) -> Profil:
 		var p := Profil.new()
@@ -68,7 +74,24 @@ class Profil extends RefCounted:
 		p.rad_u_s = float(k.get("rad_u_s_max", 3))
 		p.omega_max = deg_to_rad(float(k.get("gierrate_max_grad_s", 270))) / 10.0
 		p.r_ref = float(rw.get("skalen", {}).get("wege_dm", {}).get("kurvenradius_m", {}).get("dorfstrasse", 25))
+		var fz: Dictionary = rw.get("skalen", {}).get("fahrzeuge_dm", {}).get({"fuhrwerk": "fuhrwerk_2_pferde", "postkutsche": "postkutsche_4_pferde"}.get(kat, kat), {})
+		if fz.has("l"):
+			p.laenge_m = float(fz["l"]) / 10.0
+		if fz.has("b"):
+			p.breite_m = float(fz["b"]) / 10.0
 		return p
+
+	## Spur-Versatz (m, + = rechts) auf einem Band der Fahrbahnbreite fahrbahn_m. Einspurige Wege (Feldweg 3,5 m):
+	## Bandmitte (Fix-Pass W2, M1: der 1,5-m-Versatz setzte die rechten Räder neben das Band). Breitere Bänder:
+	## Rechtsverkehr, aber der Aufbau bleibt mit SPUR_RAND_M Luft auf dem Band.
+	func spur_fuer(fahrbahn_m: float) -> float:
+		if fahrbahn_m < SPUR_SCHMAL_M:
+			return 0.0
+		return clampf((fahrbahn_m - breite_m) * 0.5 - SPUR_RAND_M, 0.0, spur)
+
+	## Abstand (m) des Fahrzeugmittelpunkts vom Ende eines Sackgassen-Bandes: halbe Länge + Luft.
+	func halt_rand_m() -> float:
+		return laenge_m * 0.5 + HALT_LUFT_M
 
 	## Anfahr-/Bremsrampe (m/Tick²): v_nom in W/2 Ticks.
 	func a_max() -> float:
@@ -105,6 +128,9 @@ class Routenlinie extends RefCounted:
 	var schritt_s := PackedFloat32Array()    # Sim-Schritt k: [schritt_s[k], schritt_s[k+1]]
 	var knoten := PackedVector3Array()       # Sim-Knoten (Schritt-Grenzen), für „aus“
 	var r_uebergang_min := INF               # kleinster Bogen an Weg-Übergängen
+	var rand_start := 0.0                    # Sackgasse am Anfang/Ende: Fahrzeugmitte hält so weit vor dem Bandende (m)
+	var rand_ende := 0.0
+	var quer := PackedFloat32Array()         # Wanken (rad, + = linke Modellseite höher) aus dem Quergefälle des Bands
 
 	func _i(s: float) -> Vector2:
 		var n := spur.size()
@@ -116,6 +142,17 @@ class Routenlinie extends RefCounted:
 	func spur_punkt(p: float) -> Vector3:
 		var t := _i(p)
 		return spur[int(t.x)].lerp(spur[int(t.x) + 1], t.y)
+
+	## Posenstrecke: Bildstrecke p (0..laenge) → Strecke, an der das Fahrzeug tatsächlich steht. Sackgassen-Enden
+	## (rand_start/rand_ende) stauchen die Strecke linear, damit Anfang und Ende des Wegs innerhalb des Bands liegen.
+	func pose_p(p: float) -> float:
+		if rand_start + rand_ende <= 0.0 or laenge <= 1e-3:
+			return p
+		var l := maxf(laenge - rand_start - rand_ende, 0.1)
+		return rand_start + clampf(p / laenge, 0.0, 1.0) * l
+
+	func quer_bei(p: float) -> float:
+		return _lin(quer, p) if quer.size() == spur.size() else 0.0
 
 	func mitte_punkt(p: float) -> Vector3:
 		var t := _i(p)
@@ -186,18 +223,20 @@ class Routenlinie extends RefCounted:
 ## r_uebergang: Bogenradius an Weg-Übergängen (Typ-Radius).
 static func routenlinie_bauen(roh: PackedVector3Array, roh_s: PackedFloat32Array, uebergaenge: PackedInt32Array,
 		grenzen_s: PackedFloat32Array, knoten: PackedVector3Array, rtyp: PackedFloat32Array,
-		r_uebergang: PackedFloat32Array, prof: Profil) -> Routenlinie:
+		r_uebergang: PackedFloat32Array, prof: Profil, fahrbahn := PackedFloat32Array()) -> Routenlinie:
 	var rl := Routenlinie.new()
 	# 1) Kreisbogen an jedem Weg-Übergang (Knick zwischen zwei Fahrlinien)
 	var pts := PackedVector2Array()
 	var ys := PackedFloat32Array()
 	var alt_s := PackedFloat32Array()
 	var rt := PackedFloat32Array()
+	var fb := PackedFloat32Array()           # Fahrbahnbreite je Probe (leer = ohne Angabe: Standard-Spur-Versatz)
 	for i in roh.size():
 		pts.append(Vector2(roh[i].x, roh[i].z))
 		ys.append(roh[i].y)
 		alt_s.append(roh_s[i])
 		rt.append(rtyp[i])
+		fb.append(fahrbahn[i] if fahrbahn.size() == roh.size() else 99.0)
 	var fenster: Array = []                  # [s0, s1, mitte(Vector2), ...] Bögen auf alt_s
 	for ui in uebergaenge.size():
 		var j := uebergaenge[ui]
@@ -224,6 +263,7 @@ static func routenlinie_bauen(roh: PackedVector3Array, roh_s: PackedFloat32Array
 	var ny := PackedFloat32Array()
 	var nalt := PackedFloat32Array()
 	var nrt := PackedFloat32Array()
+	var nfb := PackedFloat32Array()
 	var fi := 0
 	var i := 0
 	while i < pts.size():
@@ -245,12 +285,14 @@ static func routenlinie_bauen(roh: PackedVector3Array, roh_s: PackedFloat32Array
 			var y0 := _bei_f(ys, roh_s, s0)
 			var y1 := _bei_f(ys, roh_s, s1)
 			var rmid := _bei_f(rt, roh_s, (s0 + s1) * 0.5)
+			var fmid := minf(_bei_f(fb, roh_s, s0), _bei_f(fb, roh_s, s1))
 			for k in n + 1:
 				var u := float(k) / n
 				np.append(a.lerp(ctrl, u).lerp(ctrl.lerp(b, u), u))
 				ny.append(lerpf(y0, y1, u))
 				nalt.append(lerpf(s0, s1, u))
 				nrt.append(rmid)
+				nfb.append(fmid)
 			while i < pts.size() and roh_s[i] <= s1:
 				i += 1
 			fi += 1
@@ -260,6 +302,7 @@ static func routenlinie_bauen(roh: PackedVector3Array, roh_s: PackedFloat32Array
 			ny.append(ys[i])
 			nalt.append(roh_s[i])
 			nrt.append(rt[i])
+			nfb.append(fb[i])
 		i += 1
 	# 2) Gleichmäßig je 1 m neu abtasten (neue Bogenlänge), alte Bogenlänge mitführen (Schritt-Grenzen)
 	var cum := PackedFloat32Array()
@@ -275,6 +318,7 @@ static func routenlinie_bauen(roh: PackedVector3Array, roh_s: PackedFloat32Array
 	var tab2 := PackedVector2Array()
 	var taby := PackedFloat32Array()
 	var tabr := PackedFloat32Array()
+	var tabf := PackedFloat32Array()
 	for k in n_t + 1:
 		var s := minf(k * DS, L) if k < n_t else L
 		while j2 < np.size() - 2 and cum[j2 + 1] < s:
@@ -284,6 +328,7 @@ static func routenlinie_bauen(roh: PackedVector3Array, roh_s: PackedFloat32Array
 		tab2.append(np[j2].lerp(np[mini(j2 + 1, np.size() - 1)], t))
 		taby.append(lerpf(ny[j2], ny[mini(j2 + 1, np.size() - 1)], t))
 		tabr.append(nrt[j2])
+		tabf.append(nfb[j2])
 	# Schritt-Grenzen: alte Bogenlänge → neue (monoton über nalt/cum)
 	rl.schritt_s.resize(grenzen_s.size())
 	for k in grenzen_s.size():
@@ -307,31 +352,54 @@ static func routenlinie_bauen(roh: PackedVector3Array, roh_s: PackedFloat32Array
 		var a := tab2[maxi(k - 1, 0)]
 		var b := tab2[mini(k + 1, n2 - 1)]
 		g0[k] = atan2(b.x - a.x, b.y - a.y)
+	# Spur-Versatz je Probe (Bandbreite → Mitte oder Rechtsverkehr), über SPUR_BLEND_M weich überblendet (E2)
+	var sp := PackedFloat32Array()
+	sp.resize(n2)
+	for k in n2:
+		sp[k] = prof.spur_fuer(tabf[k]) if fahrbahn.size() == roh.size() else prof.spur
+	if fahrbahn.size() == roh.size():
+		# dreifach geglättet (≈ Parabel-Übergang): ein einfacher Kasten-Filter ließe Knicke (Gierraten-/Kurventempo-Limit würde bremsen)
+		var wb := maxi(int(SPUR_BLEND_M / DS * 0.5), 1)
+		for _pass in 3:
+			sp = _kasten(sp, wb)
 	for k in n2:
 		var d := Vector2(sin(g0[k]), cos(g0[k]))
 		var rgt := Vector2(-d.y, d.x)          # rechts in Fahrtrichtung (wie Fahrlinie.spur_punkt)
 		rl.mitte[k] = Vector3(tab2[k].x, taby[k], tab2[k].y)
-		var q := tab2[k] + rgt * prof.spur
+		var q := tab2[k] + rgt * sp[k]
 		rl.spur[k] = Vector3(q.x, taby[k], q.y)
 		rl.r_typ[k] = tabr[k]
 	for k in n2:
 		var a := rl.spur[maxi(k - 1, 0)]
 		var b := rl.spur[mini(k + 1, n2 - 1)]
 		rl.gier[k] = atan2(b.x - a.x, b.z - a.z)
+	# Krümmung/Tempo-Limit aus der Referenz-Spur (konstanter Rechtsverkehr-Versatz prof.spur, wie vor dem Fix-Pass):
+	# der Versatz des Aufbaus (Bandmitte, Fix-Pass W2 M1) ändert nur die Pose, nicht das Tempoprofil (E5-Halt bleibt pünktlich).
+	var ref := PackedVector2Array()
+	ref.resize(n2)
+	for k in n2:
+		var d0 := Vector2(sin(g0[k]), cos(g0[k]))
+		ref[k] = tab2[k] + Vector2(-d0.y, d0.x) * prof.spur
+	var gref := PackedFloat32Array()
+	gref.resize(n2)
+	for k in n2:
+		var ra := ref[maxi(k - 1, 0)]
+		var rb := ref[mini(k + 1, n2 - 1)]
+		gref[k] = atan2(rb.x - ra.x, rb.y - ra.y)
 	for k in n2:
 		var ka := maxi(k - 2, 0)
 		var kb := mini(k + 2, n2 - 1)
 		var ds := 0.0
 		for m in range(ka, kb):
-			ds += Vector2(rl.spur[m].x, rl.spur[m].z).distance_to(Vector2(rl.spur[m + 1].x, rl.spur[m + 1].z))
-		rl.kappa[k] = wrapf(rl.gier[kb] - rl.gier[ka], -PI, PI) / maxf(ds, 1e-3) if kb > ka else 0.0
+			ds += ref[m].distance_to(ref[m + 1])
+		rl.kappa[k] = wrapf(gref[kb] - gref[ka], -PI, PI) / maxf(ds, 1e-3) if kb > ka else 0.0
 	# Spitzenkrümmung je Probe (Einzelschritt, für das Gierraten-Limit: Knicke liegen in 1–2 m)
 	rl.kappa_spitze.resize(n2)
 	for k in n2:
 		var mx := 0.0
 		for m in range(maxi(k - 2, 0), mini(k + 2, n2 - 1)):
-			var ds1 := maxf(Vector2(rl.spur[m].x, rl.spur[m].z).distance_to(Vector2(rl.spur[m + 1].x, rl.spur[m + 1].z)), 0.05)
-			mx = maxf(mx, absf(wrapf(rl.gier[m + 1] - rl.gier[m], -PI, PI)) / ds1)
+			var ds1 := maxf(ref[m].distance_to(ref[m + 1]), 0.05)
+			mx = maxf(mx, absf(wrapf(gref[m + 1] - gref[m], -PI, PI)) / ds1)
 		rl.kappa_spitze[k] = maxf(mx, absf(rl.kappa[k]))
 		var sa := maxi(k - 12, 0)
 		var sb := mini(k + 12, n2 - 1)
@@ -610,14 +678,16 @@ class Zustand extends RefCounted:
 		rl = legs[leg_b]
 		u_bild = zb - float(e[0])
 		p_bild = rl.phi(u_bild)
-		var p3 := rl.spur_punkt(p_bild)
-		var g := rl.gier_bei(p_bild)
+		var pp := rl.pose_p(p_bild)         # Pose-Strecke: Sackgassen-Enden halten ein halbes Gespann vor dem Bandende
+		var p3 := rl.spur_punkt(pp)
+		var g := rl.gier_bei(pp)
 		# Wende: neues Leg begonnen → Pose von „Ende altes Leg“ über W/2 Ticks auf das neue überblenden
 		if float(e[0]) > 0.0 and absf(float(e[0]) - wende_z) > 1e-3 and u_bild < prof.v_nom * prof.w:
 			var alt := _leg_vor(float(e[0]))
 			if not alt.is_empty():
 				var rla: Routenlinie = legs[alt[1]]
-				wende_von = [rla.spur_punkt(rla.laenge), rla.gier_bei(rla.laenge)]
+				var pe := rla.pose_p(rla.laenge)
+				wende_von = [rla.spur_punkt(pe), rla.gier_bei(pe)]
 				wende_z = float(e[0])
 				wende_t = 0.0
 		in_wende = wende_t < 1.0
@@ -639,11 +709,11 @@ class Zustand extends RefCounted:
 		pos = p3
 		gier = g
 		basis = Basis(Vector3.UP, g)
-		var kap := rl.kappa_bei(p_bild)
+		var kap := rl.kappa_bei(pp)
 		var aq_ref := prof.a_quer_ref(rl.r_typ[mini(int(p_bild), rl.r_typ.size() - 1)])
-		var roll := prof.roll_max * clampf(v_p * v_p * kap / maxf(aq_ref, 1e-6), -1.0, 1.0)
+		var roll := prof.roll_max * clampf(v_p * v_p * kap / maxf(aq_ref, 1e-6), -1.0, 1.0) + rl.quer_bei(pp)
 		var nick_dyn := -prof.nick_max * clampf(a_l / prof.a_max(), -1.0, 1.0)   # Bremsen: Bug taucht ein
-		var nick := atan(rl.steigung_bei(p_bild)) + nick_dyn
+		var nick := atan(rl.steigung_bei(pp)) + nick_dyn
 		var v_rel := clampf(v_p / prof.v_nom, 0.0, 1.0)
 		var stride_w := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.wipp_hz      # m je Wipp-Periode
 		var stride_g := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.gang_hz      # m je Schritt-Periode (Deckel)

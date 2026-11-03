@@ -209,6 +209,7 @@ func routenlinie(route: Array, prof):
 	var grenzen := PackedFloat32Array()
 	var knoten := PackedVector3Array()
 	var rtyp := PackedFloat32Array()
+	var fahrbahn := PackedFloat32Array()
 	var r_ueb := PackedFloat32Array()
 	var weg_alt := -1
 	var cum := 0.0
@@ -243,13 +244,46 @@ func routenlinie(route: Array, prof):
 			roh.append(p)
 			roh_s.append(cum)
 			rtyp.append(r_typ)
+			fahrbahn.append(float(fl.fahrbahn_m))
 		if si == 0:
 			grenzen.append(0.0)
 		grenzen.append(cum)
 		var n1: int = e["b"] if von_a else e["a"]
 		knoten.append(Vector3(knoten_pos[n1].x, roh[-1].y, knoten_pos[n1].z))
 		weg_alt = wi
-	return Easing.routenlinie_bauen(roh, roh_s, ueb, grenzen, knoten, rtyp, r_ueb, prof)
+	var rl = Easing.routenlinie_bauen(roh, roh_s, ueb, grenzen, knoten, rtyp, r_ueb, prof, fahrbahn)
+	# Fix-Pass W2 (M2): Sackgasse (Knoten mit nur einer Kante) → das Gespann hält ein halbes Gespann vor dem Bandende
+	if not route.is_empty():
+		var e_a: Dictionary = sim.graph.edges[route[0]["edge"]]
+		var e_b: Dictionary = sim.graph.edges[route[-1]["edge"]]
+		var n_start: int = e_a["a"] if route[0]["fwd"] else e_a["b"]
+		var n_ende: int = e_b["b"] if route[-1]["fwd"] else e_b["a"]
+		var rand: float = minf(prof.halt_rand_m(), rl.laenge * 0.25)
+		rl.rand_start = rand if int(knoten_grad.get(n_start, 0)) == 1 else 0.0
+		rl.rand_ende = rand if int(knoten_grad.get(n_ende, 0)) == 1 else 0.0
+	_quergefaelle(rl, prof)
+	return rl
+
+
+## Quergefälle des Bands je Fahrlinien-Probe → Wanken (rad, + = linke Modellseite höher): Gelände links/rechts der
+## Bandmitte im Abstand der halben Spurweite (das Band folgt dem Gelände, proto_strassenband Y_OFF konstant).
+func _quergefaelle(rl, prof) -> void:
+	if strassen == null or not strassen.hoehe_funktion.is_valid():
+		return
+	var n: int = rl.spur.size()
+	rl.quer.resize(n)
+	var h: float = prof.breite_m * 0.5
+	for k in n:
+		var g: float = rl.gier[k]
+		var l: Vector2 = Vector2(cos(g), -sin(g)) * h          # Modell +x (links) in der Fahrtrichtung g
+		var m: Vector3 = rl.spur[k]
+		if m.y - float(strassen.hoehe_funktion.call(m.x, m.z)) > 0.6:
+			rl.quer[k] = 0.0                              # Brückendeck/Rampe: Deck ist waagerecht, nicht das Gelände darunter
+			continue
+		var hl: float = float(strassen.hoehe_funktion.call(m.x + l.x, m.z + l.y))
+		var hr: float = float(strassen.hoehe_funktion.call(m.x - l.x, m.z - l.y))
+		rl.quer[k] = clampf(atan((hl - hr) / (2.0 * h)), -deg_to_rad(6.0), deg_to_rad(6.0))
+	rl.quer = Easing._kasten(rl.quer, 4)
 
 
 ## Linienfahrzeug von Knoten a nach b (Pendel). Gibt den Fahrzeug-Eintrag zurück oder {} bei Fehler.

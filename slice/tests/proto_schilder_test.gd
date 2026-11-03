@@ -143,7 +143,13 @@ func _run() -> void:
 	s.abstand = 220.0
 	s._kamera_anwenden()
 	sch.aktualisiere(true)
-	ok(sch.eintrag("hasenwinkel")["sichtbar"] and sch.eintrag("hasenwinkel")["stufe"] == n, "Weiler: nur im Nahbereich (≤ 500 m), nur Name (Abstand %.0f m)" % sch.eintrag("hasenwinkel")["abstand_m"])
+	# VERTRAG GEÄNDERT (Fix-Pass W2, M8): Weiler ohne Schild (Charter E6 kennt keine Weiler-Stufe, Regelwerk label.hierarchie.weiler = "nie").
+	# Vorher: Name nur im Nahbereich ≤ 500 m (Kompromiss Aylin). Die Option bleibt über WEILER_NAH_BIS_M > 0 schaltbar.
+	var weiler_nah: float = sch.WEILER_NAH_BIS_M
+	if weiler_nah <= 0.0:
+		ok(not sch.eintrag("hasenwinkel")["sichtbar"], "Weiler: nie ein Schild, auch nicht im Nahbereich (Abstand %.0f m; Fix-Pass M8, Charter E6)" % sch.eintrag("hasenwinkel")["abstand_m"])
+	else:
+		ok(sch.eintrag("hasenwinkel")["sichtbar"] and sch.eintrag("hasenwinkel")["stufe"] == n, "Weiler: nur im Nahbereich (≤ %.0f m), nur Name (Abstand %.0f m)" % [weiler_nah, sch.eintrag("hasenwinkel")["abstand_m"]])
 
 	# ---- Gelände: Anker über hoehe_at, Sichtlinie
 	var gelaende_ok := true

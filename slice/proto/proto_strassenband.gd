@@ -78,6 +78,7 @@ var knoten: Array = []               # [{pos: Vector3, typ: "kreuzung"|"stoss", 
 var bruecken: Array = []             # [{weg, s0, s1, s_wasser0, s_wasser1, deck_m, boegen, laenge}]
 var meshes: Array = []               # alle erzeugten MeshInstance3D
 var warnungen: Array = []
+var hoehe_funktion: Callable = Callable()  # ProtoTerrain.hoehe_at (Fix-Pass W2: Quergefälle der Fahrzeuge am Band)
 var _mat: ShaderMaterial
 var _mat_stein: StandardMaterial3D
 
@@ -225,6 +226,7 @@ static func _nass(fluss: Dictionary, x: float, z: float) -> bool:
 
 ## Alles bauen. wege = proto_wege.json, hoehe_fn(x_m, z_m) -> m, fluss = fluss_laden(...).
 func bauen(parent: Node3D, wege: Array, hoehe_fn: Callable, fluss: Dictionary) -> void:
+	hoehe_funktion = hoehe_fn
 	_mat = ShaderMaterial.new()
 	_mat.shader = SHADER
 	_mat_stein = StandardMaterial3D.new()

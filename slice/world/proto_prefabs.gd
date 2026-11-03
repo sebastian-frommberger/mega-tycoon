@@ -95,7 +95,7 @@ const TYPEN := ["kate", "bauernhof", "grosshof", "handwerkerhaus", "buergerhaus"
 	"rathaus", "speicher", "kirche_dorf", "kirche_stadt", "kapelle", "stadttor", "scheune", "nebengebaeude",
 	"nebengebaeude/scheune_18x10", "nebengebaeude/stall_12x8", "nebengebaeude/schuppen_6x4", "gutshof", "wassermuehle",
 	"wassermuehle_rad", "fischerhuette", "netzgestell", "steg", "ruderboot", "floss", "anlegestelle",
-	"obstbaum", "laubbaum", "eiche", "heuhaufen", "holzstapel", "zaun_latte", "zaun_feld", "fass", "amboss", "brunnen", "passant",
+	"obstbaum", "laubbaum", "eiche", "heuhaufen", "holzstapel", "zaun_latte", "zaun_feld", "fass", "amboss", "brunnen", "marktstand", "passant",
 	"pferd", "fuhrwerk_wagen", "kutsche_wagen", "fuhrwerk_2_pferde", "postkutsche_4_pferde", "dampflok", "tender",
 	"personenwagen", "gueterwagen", "flaeche_hof", "flaeche_garten", "flaeche_obstwiese", "flaeche_kirchhof",
 	"flaeche_marktplatz", "flaeche_schlag"]
@@ -806,6 +806,20 @@ static func _baue(typ: String, b: Bau) -> void:
 			b.modell(KP + "survival/workbench-anvil.glb", Transform3D(Basis().scaled(Vector3(s, s, s)), Vector3.ZERO), REGELN["eisen"])
 		"brunnen":
 			b.modell(FT + "fountain-round.glb", Transform3D(Basis().scaled(Vector3(3.0, 3.0, 3.0)), Vector3.ZERO), REGELN["brunnen"])
+		"marktstand":
+			# Fix-Pass W2 (M7): Marktstand 2,4 x 1,4 m. Kenney-Tisch (fantasy_town/stall.glb, gedreht und gestreckt auf
+			# 2,4 x 1,0 x 0,88 m), vier Pfosten, schräge Plane (Rückseite höher), Ware in Kisten. Front (Kundenseite) = +z.
+			var tb := Basis(Vector3.UP, PI * 0.5) * Basis.from_scale(Vector3(1.0 / 0.65, 0.88 / 0.3655, 2.4))
+			b.modell(FT + "stall.glb", Transform3D(tb, Vector3(0, 0, 0.15)), REGELN["stamm"])
+			for sx in [-1.1, 1.1]:
+				for sz in [-0.45, 0.65]:
+					b.box(Vector3(sx, 1.1, sz), Vector3(0.09, 2.2, 0.09), K_HOLZ, 2)
+			b.box(Vector3(0, 2.3, 0.1), Vector3(2.7, 0.05, 1.75), K_DACH, 2, Basis(Vector3.RIGHT, 0.2))
+			b.box(Vector3(-0.7, 1.0, 0.2), Vector3(0.55, 0.2, 0.4), K_HOLZ_HELL, 2)
+			b.box(Vector3(-0.7, 1.12, 0.2), Vector3(0.45, 0.08, 0.32), K_LAUB, 3)
+			b.box(Vector3(0.1, 1.0, 0.2), Vector3(0.55, 0.2, 0.4), K_HOLZ_HELL, 2)
+			b.box(Vector3(0.1, 1.12, 0.2), Vector3(0.45, 0.08, 0.32), K_HEU, 3)
+			b.box(Vector3(0.8, 0.98, 0.15), Vector3(0.4, 0.16, 0.4), K_HOLZ, 2)
 		"passant":
 			var s := 1.75 / 0.862
 			b.modell(KP + "graveyard/character-keeper.glb", Transform3D(Basis().scaled(Vector3(s, s, s)), Vector3.ZERO), REGELN["figur"])

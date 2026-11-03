@@ -76,21 +76,21 @@ epoche.bauernhof;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustype
 epoche.buergerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
 epoche.handwerkerhaus;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
 epoche.kate;frei 1820, ab ≤ 1849;0.00;;ja;hebel.haustypen_frei / haustypen.ab_jahr
-perf.Übersicht.dreiecke_ohne_culling;(Info);565902.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
-perf.Übersicht.dreiecke;≤ 1000000;145702.00;-85.4;ja;RenderingServer (live)
-perf.Übersicht.draw_calls;≤ 300;111.00;-63.0;ja;RenderingServer (live)
-perf.Dorf.dreiecke_ohne_culling;(Info);1555064.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
-perf.Dorf.dreiecke;(Info);574123.00;;ja;RenderingServer (live)
-perf.Dorf.draw_calls;(Info);107.00;;ja;RenderingServer (live)
-perf.Markt.dreiecke_ohne_culling;(Info);1496406.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
-perf.Markt.dreiecke;≤ 2900000;514611.00;-82.3;ja;RenderingServer (live)
-perf.Fluss.dreiecke_ohne_culling;(Info);1662498.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
-perf.Fluss.dreiecke;(Info);823052.00;;ja;RenderingServer (live)
-perf.Fluss.draw_calls;(Info);71.00;;ja;RenderingServer (live)
-perf.See.dreiecke_ohne_culling;(Info);1444424.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
-perf.See.dreiecke;(Info);778858.00;;ja;RenderingServer (live)
-perf.See.draw_calls;(Info);144.00;;ja;RenderingServer (live)
-perf.Übersicht_1800m.dreiecke;≤ 1000000;734508.00;-26.5;ja;RenderingServer (live)
-perf.Übersicht_1200m.dreiecke;≤ 1000000;599827.00;-40.0;ja;RenderingServer (live)
-perf.ladezeit_ms;≤ 3000;1640.37;-45.3;ja;prototyp_welt._ready
-perf.ladezeit_wand_ms;≤ 3000;1987.19;-33.8;ja;instantiate + 1 Frame
+perf.Übersicht.dreiecke_ohne_culling;(Info);567874.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Übersicht.dreiecke;≤ 1000000;557582.00;-44.2;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.Übersicht.draw_calls;≤ 300;107.00;-64.3;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.Dorf.dreiecke_ohne_culling;(Info);1557036.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Dorf.dreiecke;(Info);1557036.00;;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.Dorf.draw_calls;(Info);160.00;;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.Markt.dreiecke_ohne_culling;(Info);1498378.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Markt.dreiecke;≤ 2900000;1498378.00;-48.3;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.Fluss.dreiecke_ohne_culling;(Info);1664470.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.Fluss.dreiecke;(Info);1664470.00;;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.Fluss.draw_calls;(Info);170.00;;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.See.dreiecke_ohne_culling;(Info);1446396.00;;ja;gezählt ohne Frustum/Sichtweite (obere Schranke)
+perf.See.dreiecke;(Info);1446396.00;;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.See.draw_calls;(Info);157.00;;ja;gezählt mit Sichtweite (Mesh-Daten, DC ohne Schatten)
+perf.Übersicht_1800m.dreiecke;(Info headless, Gate live);1137994.00;;ja;gezählt mit Sichtweite – obere Schranke
+perf.Übersicht_1200m.dreiecke;(Info headless, Gate live);1601350.00;;ja;gezählt mit Sichtweite – obere Schranke
+perf.ladezeit_ms;≤ 3000;1491.52;-50.3;ja;prototyp_welt._ready
+perf.ladezeit_wand_ms;≤ 3000;1963.24;-34.6;ja;instantiate + 1 Frame

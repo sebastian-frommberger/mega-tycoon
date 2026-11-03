@@ -51,6 +51,8 @@ var fein_maske := PackedByteArray()
 var fluss := PackedByteArray()
 var boden_klasse := PackedByteArray()    # je Feld
 var boden_tex: ImageTexture
+var schlag_tex: ImageTexture             # Fix-Pass W2 (M6): je Ackerzelle R = Furchenrichtung/π, G = Schlag-Kennung, B = 255 (Acker)
+var schlag_n := 0                        # Anzahl Ackerschläge (Keimpunkte mit Ackerzellen)
 var pegel_spalte := PackedFloat32Array()
 var meta := {}
 var see := {}
@@ -129,6 +131,58 @@ func _laden(dir: String) -> void:
 	for i in gw * gh:
 		boden_klasse[i] = int(floor(data[i * 4 + 3] / 20.0))
 	boden_tex = ImageTexture.create_from_image(img)
+	schlag_tex = _schlag_textur()
+
+
+## Ackerschläge (Fix-Pass W2, M6): bisher bekam jeder 200 x 125-m-Block der Welt eine eigene Furchenrichtung, die Richtung
+## wechselte also mitten im Feld an einer geraden Blockkante (sichtbare Nähte, Fischgräten in der 750-m-Ansicht). Jetzt
+## gehört jede Ackerzelle (Klasse 3/4) zum nächsten Keimpunkt eines gejitterten Gitters (7 × 7 Zellen ≈ 175 m ≈ 3 ha, ein
+## Gewann); je Schlag eine Richtung, benachbarte Schläge unterscheiden sich um ≥ 25°. Die Schlaggrenzen laufen im Shader
+## mit demselben Rauschversatz wie die Klassenkanten und liegen so als Feldrain zwischen den Äckern statt quer durchs Feld.
+const SCHLAG_ZELLEN := 7
+func _schlag_textur() -> ImageTexture:
+	var cx := ceili(float(gw) / SCHLAG_ZELLEN) + 2
+	var cz := ceili(float(gh) / SCHLAG_ZELLEN) + 2
+	var keim := PackedVector2Array()
+	keim.resize(cx * cz)
+	for j in cz:
+		for i in cx:
+			var jx := fposmod(sin((i + 1) * 12.9898 + (j + 1) * 78.233) * 43758.5453, 1.0)
+			var jz := fposmod(sin((i + 1) * 39.3468 + (j + 1) * 11.135) * 24634.6345, 1.0)
+			keim[j * cx + i] = Vector2((i - 0.5 + 0.15 + jx * 0.7) * SCHLAG_ZELLEN, (j - 0.5 + 0.15 + jz * 0.7) * SCHLAG_ZELLEN)
+	var bytes := PackedByteArray()
+	bytes.resize(gw * gh * 3)
+	var benutzt := {}
+	for z in gh:
+		for x in gw:
+			var o := (z * gw + x) * 3
+			var kl := boden_klasse[z * gw + x]
+			if kl != 3 and kl != 4:
+				continue
+			var c := Vector2(x + 0.5, z + 0.5)
+			var ci := int(floor(c.x / SCHLAG_ZELLEN)) + 1
+			var cj := int(floor(c.y / SCHLAG_ZELLEN)) + 1
+			var best := INF
+			var bi := 0
+			var bj := 0
+			for dj in range(-1, 2):
+				for di in range(-1, 2):
+					var ii := clampi(ci + di, 0, cx - 1)
+					var jj := clampi(cj + dj, 0, cz - 1)
+					var d := c.distance_squared_to(keim[jj * cx + ii])
+					if d < best:
+						best = d
+						bi = ii
+						bj = jj
+			var stufe := (bi * 2 + bj * 3) % 7
+			var klein := fposmod(sin((bi + 3) * 91.7 + (bj + 5) * 17.3) * 9631.7, 1.0)
+			var winkel := (float(stufe) + (klein - 0.5) * 0.4) / 7.0
+			bytes[o] = clampi(roundi(fposmod(winkel, 1.0) * 255.0), 0, 255)
+			bytes[o + 1] = 1 + (bi * 7 + bj * 13) % 250
+			bytes[o + 2] = 255
+			benutzt[bj * cx + bi] = true
+	schlag_n = benutzt.size()
+	return ImageTexture.create_from_image(Image.create_from_data(gw, gh, false, Image.FORMAT_RGB8, bytes))
 
 
 # ------------------------------------------------------------------ Abfragen
@@ -223,6 +277,7 @@ func _material() -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = SHADER
 	m.set_shader_parameter("boden", boden_tex)
+	m.set_shader_parameter("schlag", schlag_tex)
 	m.set_shader_parameter("boden_rect", Vector4(ox, oz, gw * M, gh * M))
 	var arr := PackedVector4Array()
 	for g in gewaesser:

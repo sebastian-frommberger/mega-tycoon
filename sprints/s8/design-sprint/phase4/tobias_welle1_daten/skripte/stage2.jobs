@@ -1,0 +1,14 @@
+a0 mittelfurt 300 0 - s2_a0_mittelfurt.csv
+a0 haberau 300 0 - s2_a0_haberau.csv
+a0 kohlberg 300 0 - s2_a0_kohlberg.csv
+a1 mittelfurt 300 0 mittelfurt:4250:kleinstadt,haberau:750:dorf s2_a1_mittelfurt.csv
+a1 haberau 300 0 mittelfurt:4250:kleinstadt,haberau:750:dorf s2_a1_haberau.csv
+b_w1 mittelfurt 300 0 kohlberg:1670:kleinstadt,lindach:860:dorf,weidenau:490:dorf,seehafen:1780:kleinstadt,eichwald:720:dorf,mittelfurt:2490:kleinstadt,steinbach:680:dorf,haberau:2550:kleinstadt s2_b_w1_mittelfurt.csv
+b_w1 haberau 300 0 kohlberg:1670:kleinstadt,lindach:860:dorf,weidenau:490:dorf,seehafen:1780:kleinstadt,eichwald:720:dorf,mittelfurt:2490:kleinstadt,steinbach:680:dorf,haberau:2550:kleinstadt s2_b_w1_haberau.csv
+b_w1 kohlberg 300 0 kohlberg:1670:kleinstadt,lindach:860:dorf,weidenau:490:dorf,seehafen:1780:kleinstadt,eichwald:720:dorf,mittelfurt:2490:kleinstadt,steinbach:680:dorf,haberau:2550:kleinstadt s2_b_w1_kohlberg.csv
+b_w2 mittelfurt 300 0 kohlberg:2530:kleinstadt,lindach:1580:kleinstadt,weidenau:2670:kleinstadt,seehafen:660:dorf,eichwald:890:dorf,mittelfurt:520:dorf,steinbach:1390:kleinstadt,haberau:1580:kleinstadt s2_b_w2_mittelfurt.csv
+b_w2 haberau 300 0 kohlberg:2530:kleinstadt,lindach:1580:kleinstadt,weidenau:2670:kleinstadt,seehafen:660:dorf,eichwald:890:dorf,mittelfurt:520:dorf,steinbach:1390:kleinstadt,haberau:1580:kleinstadt s2_b_w2_haberau.csv
+b_w2 kohlberg 300 0 kohlberg:2530:kleinstadt,lindach:1580:kleinstadt,weidenau:2670:kleinstadt,seehafen:660:dorf,eichwald:890:dorf,mittelfurt:520:dorf,steinbach:1390:kleinstadt,haberau:1580:kleinstadt s2_b_w2_kohlberg.csv
+b_w3 mittelfurt 300 0 kohlberg:880:dorf,lindach:3280:kleinstadt,weidenau:1860:kleinstadt,seehafen:1320:kleinstadt,eichwald:2780:kleinstadt,mittelfurt:1460:kleinstadt,steinbach:880:dorf,haberau:740:dorf s2_b_w3_mittelfurt.csv
+b_w3 haberau 300 0 kohlberg:880:dorf,lindach:3280:kleinstadt,weidenau:1860:kleinstadt,seehafen:1320:kleinstadt,eichwald:2780:kleinstadt,mittelfurt:1460:kleinstadt,steinbach:880:dorf,haberau:740:dorf s2_b_w3_haberau.csv
+b_w3 kohlberg 300 0 kohlberg:880:dorf,lindach:3280:kleinstadt,weidenau:1860:kleinstadt,seehafen:1320:kleinstadt,eichwald:2780:kleinstadt,mittelfurt:1460:kleinstadt,steinbach:880:dorf,haberau:740:dorf s2_b_w3_kohlberg.csv

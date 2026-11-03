@@ -39,16 +39,19 @@ const ICON_RUNTER := "res://ui/assets/icons/k_arrowDown.png"
 const FERN_AB_M := 1500.0
 const NAH_UNTER_M := 400.0
 const HYSTERESE := 0.08
-const WEILER_NAH_BIS_M := 500.0          # Regelwerk: Weiler nie im Übersichtsschild; im Nahbereich nur der Name
+const WEILER_NAH_BIS_M := 0.0            # Fix-Pass W2 (M8): Regelwerk label.hierarchie.weiler = "nie" gilt strikt, kein Schild;
+#                                          > 0 (z. B. 250.0) schaltet ein dezentes Namenslabel im Nahbereich wieder ein
+const RAND_PX := 8.0                     # Mindestabstand der Schilder zum Bildschirmrand (Fix-Pass W2, M4), px bei 900 px Höhe
+const SICHT_RAND_PX := 48.0              # Anker darf so weit außerhalb des Bildes liegen, solange das Schild hineingeschoben wird
 const STUFE_FERN := 0
 const STUFE_VOLL := 1
 const STUFE_NAH := 2
 
 # Größen in px bei 900 px Fensterhöhe
 const KLASSEN := {
-	"kleinstadt": {"prio": 0, "name": 21, "ew": 15, "icon": 22, "fern_name": 17, "fern_icon": 28, "nah_name": 18, "anker_m": 40.0},
-	"marktflecken": {"prio": 0, "name": 19, "ew": 15, "icon": 20, "fern_name": 16, "fern_icon": 26, "nah_name": 17, "anker_m": 30.0},
-	"dorf": {"prio": 1, "name": 16, "ew": 14, "icon": 18, "fern_name": 14, "fern_icon": 22, "nah_name": 15, "anker_m": 18.0},
+	"kleinstadt": {"prio": 0, "name": 21, "ew": 15, "icon": 22, "fern_name": 17, "fern_icon": 28, "nah_name": 18, "anker_m": 24.0},
+	"marktflecken": {"prio": 0, "name": 19, "ew": 15, "icon": 20, "fern_name": 16, "fern_icon": 26, "nah_name": 17, "anker_m": 20.0},
+	"dorf": {"prio": 1, "name": 16, "ew": 14, "icon": 18, "fern_name": 14, "fern_icon": 22, "nah_name": 15, "anker_m": 14.0},
 	"weiler": {"prio": 3, "name": 13, "ew": 13, "icon": 0, "fern_name": 13, "fern_icon": 0, "nah_name": 13, "anker_m": 12.0},
 	"industrie": {"prio": 2, "name": 14, "ew": 13, "icon": 18, "fern_name": 14, "fern_icon": 34, "nah_name": 13, "anker_m": 12.0},
 }
@@ -134,8 +137,9 @@ func _aufbauen(industrie_: Array) -> void:
 		var po = _json(datei("proto_orte.json"))
 		if po is Dictionary:
 			ind = po.get("industrie", [])
+	var anker_pts := _ankerpunkte()
 	for o in orte:
-		_neuer_ort(o)
+		_neuer_ort(o, anker_pts)
 	for i in ind:
 		_neue_industrie(i)
 	_canvas = CanvasLayer.new()
@@ -158,7 +162,39 @@ func _bodenhoehe(x: float, z: float) -> float:
 	return 0.0
 
 
-func _neuer_ort(o: Dictionary) -> void:
+## Fußpunkt je Ort (Fix-Pass W2, M3): Marktplatz (Kleinstadt/Marktflecken) bzw. Kirche (Dorf) aus proto_instanzen.json,
+## sonst die Ortsmitte aus proto_orte.json. Das Schild steht am Ortskern, nicht auf der Wiese daneben.
+func _ankerpunkte() -> Dictionary:
+	var out := {}
+	var inst = _json(datei("proto_instanzen.json"))
+	if not (inst is Array):
+		return out
+	var markt := {}
+	var kirche := {}
+	for it in inst:
+		var typ := str(it.get("typ", ""))
+		var ort := str(it.get("ort", ""))
+		if ort == "":
+			continue
+		var p := Vector2(float(it.get("x", 0.0)), float(it.get("z", 0.0)))
+		if typ == "flaeche_marktplatz" and not markt.has(ort):
+			markt[ort] = p
+		elif typ.begins_with("kirche_") and not kirche.has(ort):
+			kirche[ort] = p
+	for o in orte:
+		var id := str(o.get("id", ""))
+		var kl := str(o.get("klasse", ""))
+		if kl in ["kleinstadt", "marktflecken"]:
+			if markt.has(id):
+				out[id] = markt[id]
+			elif kirche.has(id):
+				out[id] = kirche[id]
+		elif kl == "dorf" and kirche.has(id):
+			out[id] = kirche[id]
+	return out
+
+
+func _neuer_ort(o: Dictionary, anker_pts: Dictionary = {}) -> void:
 	var id: String = str(o.get("id", ""))
 	var kl: String = str(o.get("klasse", "dorf"))
 	if not KLASSEN.has(kl):
@@ -171,6 +207,9 @@ func _neuer_ort(o: Dictionary) -> void:
 		"bedarf": (ex.get("bedarf", []) as Array).duplicate(true),
 		"extra": ex, "farbe": TEXT,
 	}
+	var ap: Vector2 = anker_pts.get(id, Vector2(e["x"], e["z"]))
+	e["ax"] = ap.x
+	e["az"] = ap.y
 	_eintrag_grunddaten(e)
 	eintraege.append(e)
 
@@ -189,7 +228,10 @@ func _neue_industrie(i: Dictionary) -> void:
 
 
 func _eintrag_grunddaten(e: Dictionary) -> void:
-	e["boden"] = _bodenhoehe(e["x"], e["z"])
+	if not e.has("ax"):
+		e["ax"] = e["x"]
+		e["az"] = e["z"]
+	e["boden"] = _bodenhoehe(e["ax"], e["az"])
 	e["anker_m"] = float(KLASSEN[e["klasse"]]["anker_m"])
 	e["lift_m"] = 0.0
 	e["lift_ziel"] = 0.0
@@ -201,7 +243,9 @@ func _eintrag_grunddaten(e: Dictionary) -> void:
 	e["rect"] = Rect2()
 	e["anker_scr"] = Vector2.ZERO
 	e["verschub_px"] = 0.0
-	e["anker_pos"] = Vector3(e["x"], e["boden"] + e["anker_m"], e["z"])
+	e["anker_pos"] = Vector3(e["ax"], e["boden"] + e["anker_m"], e["az"])
+	e["fuss_pos"] = Vector3(e["ax"], e["boden"], e["az"])
+	e["fuss_scr"] = Vector2.ZERO
 
 
 # ------------------------------------------------------------------ Daten-Hooks
@@ -440,7 +484,7 @@ func aktualisiere(force := true) -> void:
 		for e in eintraege:
 			_gelaende_anker(e, force)
 	var cam_pos := kt.origin
-	var viewrect := Rect2(Vector2.ZERO, vp).grow(160.0)
+	var viewrect := Rect2(Vector2.ZERO, vp).grow(_px(SICHT_RAND_PX))
 	if _hud_t > 30.0 or force:
 		_hud_t = 0.0
 		_hud_suchen()
@@ -453,11 +497,14 @@ func aktualisiere(force := true) -> void:
 		if an:
 			scr = kamera.unproject_position(e["anker_pos"])
 			an = viewrect.has_point(scr)
-		if e["klasse"] == "weiler" and e["abstand_m"] > WEILER_NAH_BIS_M:
+		if e["klasse"] == "weiler" and (WEILER_NAH_BIS_M <= 0.0 or e["abstand_m"] > WEILER_NAH_BIS_M):
 			an = false
 		e["stufe"] = st
 		e["sichtbar"] = an
 		e["anker_scr"] = scr
+		e["fuss_scr"] = scr
+		if an and not kamera.is_position_behind(e["fuss_pos"]):
+			e["fuss_scr"] = kamera.unproject_position(e["fuss_pos"])
 		e["alpha"] = 1.0 if an else 0.0
 		if an:
 			if e["art"] == "industrie":
@@ -478,18 +525,26 @@ func aktualisiere(force := true) -> void:
 		var verschub := _px(HOCH_PX[e["stufe"]]) if e["art"] == "ort" else 0.0
 		var rect := Rect2(unten - Vector2(gr.x * 0.5, gr.y), gr)
 		var frei := false
-		for _i in MAX_STEPS + 1:
+		var rand := _px(RAND_PX)
+		var verschub0 := verschub
+		var richtung := 1.0
+		for _i in 2 * MAX_STEPS + 2:
 			rect = Rect2(unten + Vector2(-gr.x * 0.5, -gr.y - verschub), gr)
+			# Fix-Pass W2 (M4): Schild nie über den Bildschirmrand hinaus; der Zeiger bleibt auf den Fußpunkt gerichtet
+			rect.position.x = clampf(rect.position.x, rand, maxf(rand, vp.x - gr.x - rand))
+			rect.position.y = clampf(rect.position.y, rand, maxf(rand, vp.y - gr.y - rand))
 			var treffer := false
 			for b in belegt:
 				if rect.grow(2.0).intersects(b):
 					treffer = true
-					# Sperrfläche des HUD: nach unten/oben, was kürzer ist, wird über die Schrittweite gelöst
 					break
 			if not treffer:
 				frei = true
 				break
-			verschub += _px(STEP_PX)
+			if richtung > 0.0 and (rect.position.y <= rand + 0.5 or _i >= MAX_STEPS):
+				richtung = -1.0                 # oben ist kein Platz mehr (Bildrand): unterhalb des Ankers weitersuchen
+				verschub = verschub0
+			verschub += richtung * _px(STEP_PX)
 		var prio: int = int(KLASSEN[e["klasse"]]["prio"])
 		if not frei and prio >= 2:             # Industrie und Weiler weichen, Orte nie
 			e["sichtbar"] = false
@@ -520,11 +575,11 @@ func _hud_suchen() -> void:
 ## Anker über dem Gelände; Sichtlinie prüfen, bei Verdeckung anheben (nur bei bewegter Kamera).
 func _gelaende_anker(e: Dictionary, snap: bool) -> void:
 	var kp := kamera.global_transform.origin
-	e["boden"] = _bodenhoehe(e["x"], e["z"])
+	e["boden"] = _bodenhoehe(e["ax"], e["az"])
 	var ziel_lift := 0.0
 	var verdeckt := true
 	for lift in LIFT_STUFEN_M:
-		var p := Vector3(e["x"], e["boden"] + e["anker_m"] + lift, e["z"])
+		var p := Vector3(e["ax"], e["boden"] + e["anker_m"] + lift, e["az"])
 		if _sicht_frei(kp, p):
 			ziel_lift = lift
 			verdeckt = false
@@ -533,7 +588,8 @@ func _gelaende_anker(e: Dictionary, snap: bool) -> void:
 	e["lift_ziel"] = ziel_lift
 	e["verdeckt"] = verdeckt
 	e["lift_m"] = ziel_lift if snap else lerpf(e["lift_m"], ziel_lift, 0.35)
-	e["anker_pos"] = Vector3(e["x"], e["boden"] + e["anker_m"] + e["lift_m"], e["z"])
+	e["anker_pos"] = Vector3(e["ax"], e["boden"] + e["anker_m"] + e["lift_m"], e["az"])
+	e["fuss_pos"] = Vector3(e["ax"], e["boden"], e["az"])
 
 
 func _sicht_frei(von: Vector3, nach: Vector3) -> bool:
@@ -632,16 +688,23 @@ func _platte(r: Rect2, alpha: float, radius: float) -> void:
 
 func _zeiger(e: Dictionary, r: Rect2, alpha: float) -> void:
 	var c := Color(PLATTE_RAND.r, PLATTE_RAND.g, PLATTE_RAND.b, alpha)
-	var bx := r.position.x + r.size.x * 0.5
-	var by := r.end.y
-	var tip: Vector2 = e["anker_scr"]
+	var fuss: Vector2 = e["fuss_scr"]
 	var w := _px(5.0)
+	# Zeigerfuß wandert an der Unterkante zum Fußpunkt (Schild am Bildrand geklemmt: Zeiger bleibt auf dem Ort)
+	var bx := clampf(fuss.x, r.position.x + w + _px(7.0), r.end.x - w - _px(7.0))
+	var by := r.end.y
 	_flaeche.draw_colored_polygon(PackedVector2Array([Vector2(bx - w, by - 1.0), Vector2(bx + w, by - 1.0), Vector2(bx, by + _px(ZEIGER_PX))]),
 		Color(PLATTE.r, PLATTE.g, PLATTE.b, PLATTE.a * alpha))
-	if e["verschub_px"] > 0.5 or e["lift_m"] > 1.0:
-		_flaeche.draw_line(Vector2(bx, by + _px(ZEIGER_PX)), tip, c, maxf(1.5, _scale * 1.5), true)
-	_flaeche.draw_circle(tip, maxf(2.5, _scale * 3.0), Color(SAUM.r, SAUM.g, SAUM.b, alpha))
-	_flaeche.draw_circle(tip, maxf(1.5, _scale * 1.8), c)
+	# Fußpunkt-Linie (Fix-Pass W2, M3): vom Schild senkrecht zum Boden am Ortskern, dort Ring; so sitzt das Schild am Ort
+	var von := Vector2(bx, by + _px(ZEIGER_PX))
+	if von.distance_to(fuss) > _px(6.0):
+		var lc := Color(PLATTE_RAND.r, PLATTE_RAND.g, PLATTE_RAND.b, alpha * 0.85)
+		_flaeche.draw_line(von, fuss, Color(SAUM.r, SAUM.g, SAUM.b, alpha * 0.7), maxf(3.0, _scale * 3.0), true)
+		_flaeche.draw_line(von, fuss, lc, maxf(1.5, _scale * 1.5), true)
+	var rr := maxf(3.0, _scale * 3.5)
+	_flaeche.draw_circle(fuss, rr + 1.5, Color(SAUM.r, SAUM.g, SAUM.b, alpha))
+	_flaeche.draw_circle(fuss, rr, c)
+	_flaeche.draw_circle(fuss, maxf(1.2, rr * 0.45), Color(SAUM.r, SAUM.g, SAUM.b, alpha))
 
 
 func _icon(pfad: String, mitte: Vector2, px: float, farbe: Color) -> void:

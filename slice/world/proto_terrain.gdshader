@@ -7,6 +7,7 @@ shader_type spatial;
 render_mode cull_back, diffuse_lambert;
 
 uniform sampler2D boden : source_color, filter_nearest, repeat_disable;
+uniform sampler2D schlag : filter_nearest, repeat_disable;       // Ackerschlaege (proto_terrain.gd _schlag_textur): R Furchenrichtung / PI, G Schlag-Kennung, B 255 = Acker
 uniform vec4 boden_rect = vec4(-1000.0, -1000.0, 4000.0, 3600.0);   // xy = Weltursprung der Karte (x,z), zw = Ausdehnung (m)
 uniform float rand_versatz_m = 22.0;
 uniform vec3 c_ufer : source_color = vec3(0.420, 0.440, 0.330);    // #6B7054 = water.gdshader c_ufer
@@ -44,7 +45,8 @@ void fragment() {
 	vec2 p = w_pos.xz;
 	vec2 j = vec2(vnoise(p * 0.075), vnoise(p * 0.075 + vec2(17.3, 5.1))) - 0.5;
 	j += (vec2(vnoise(p * 0.21 + 3.7), vnoise(p * 0.21 + 9.2)) - 0.5) * 0.5;
-	vec4 b = texture(boden, (p + j * rand_versatz_m - boden_rect.xy) / boden_rect.zw);
+	vec2 buv = (p + j * rand_versatz_m - boden_rect.xy) / boden_rect.zw;
+	vec4 b = texture(boden, buv);
 	int id = int(floor(b.a * 255.0 / 20.0 + 0.01));
 	vec3 col = b.rgb;
 	float nz = vnoise(p * 0.012) * 0.6 + vnoise(p * 0.056) * 0.4;
@@ -52,12 +54,17 @@ void fragment() {
 	if (id == 6) {             // Waldboden: Kronentupfen
 		float t = vnoise(p / tupfen_m) * 0.65 + vnoise(p / (tupfen_m * 0.45)) * 0.35;
 		col *= mix(1.0 - tupfen_staerke, 1.0 + tupfen_staerke * 0.6, smoothstep(0.3, 0.7, t));
-	} else if (id == 3 || id == 4) {   // Acker: Streifen je Gewann (200 x 125 m), Richtung je Block
-		vec2 blk = floor(p / vec2(200.0, 125.0));
-		float a = h21(blk + 0.37) * 3.14159;
+	} else if (id == 3 || id == 4) {   // Acker: Streifen je Schlag (Richtung aus der Schlagkarte), kein Blockraster mehr
+		vec4 sc = texture(schlag, buv);
+		float a = sc.r * 3.14159265;
 		vec2 dir = vec2(cos(a), sin(a));
-		float s = fract(dot(p, dir) / streifen_m);
-		col *= 0.95 + 0.065 * smoothstep(0.42, 0.5, s) * (1.0 - smoothstep(0.92, 1.0, s));
+		float ph = dot(p, dir) / streifen_m;
+		float s = fract(ph);
+		float wave = smoothstep(0.42, 0.5, s) * (1.0 - smoothstep(0.92, 1.0, s));
+		// Moire: Streifen blenden mit dem Pixel-Fussabdruck in ihren Mittelwert (0,5) aus, wenn sie kleiner als ~2 Pixel werden
+		float fw = fwidth(ph);
+		wave = mix(0.5, wave, clamp(1.0 - fw * 2.0, 0.0, 1.0));
+		col *= 0.95 + 0.065 * wave;
 	} else if (id == 11) {     // Wasserklasse: sichtbar ist dort nur das Ufer (Wasser kommt als eigenes Mesh)
 		col = c_ufer;
 	}

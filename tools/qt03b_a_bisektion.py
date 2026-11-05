@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """QT-03b a-Bisektion (Daniel): sucht den Ertragsfaktor a (tempo_ausgleich_promille) für ein Tempo k per Intervallhalbierung.
 
-Werkzeug, keine Kalibrierung: economy_proto.json bleibt unberührt, a kommt als --a=<Promille> an den Loop-Bot (Überschreibung im Bot:
-Bonus a/1000 auf jeden Lieferertrag, siehe s8_loop_bot.gd). Tobias entscheidet, welchen Wert die Datei bekommt.
+Werkzeug, keine Kalibrierung: economy_proto.json bleibt unberührt, a kommt als --a=<Promille> an den Loop-Bot und von dort an die Welt
+(seit QT-03c/FX3 rechnet economy.yield_cent mit ertrag_a_promille; der Bot bucht keinen eigenen Bonus mehr). Tobias entscheidet, welchen Wert
+die Datei bekommt. Weitere Bot-Schalter (z. B. Tobias' --oe_set=k4) hinter einem blanken '--' durchreichen.
 
 Zielfunktionen (--ziel=):
   f2min   kleinstes a, bei dem die MEDIAN-Minute von F2 (f2_op, 5 Perioden >= Schwelle, Kredit 0) <= --wert + --band liegt (Standard 25 + 5).
@@ -16,7 +17,7 @@ Intervall: [--lo 1000, --hi]; --hi Standard = k_eff x 1000 mit k_eff aus --keff 
 Abbruch: Intervall <= --tol (50 Promille) oder Schritte > --max.
 
 Aufruf (aus dem Repo-Wurzelordner):
-  python3 -I tools/qt03b_a_bisektion.py --k=4 --n=20 --keff=2.75 --out=/abs/ordner [--ziel=f2min --wert=25] [--godot=...] [--arbeit=slice]
+  python3 -I tools/qt03b_a_bisektion.py --k=4 --n=20 --keff=2.75 --out=/abs/ordner [--ziel=f2min --wert=25] [--godot=...] [--arbeit=slice] [-- --oe_set=k4 ...]
 """
 import csv, math, os, subprocess, sys, tempfile
 
@@ -30,6 +31,13 @@ def argv():
             k, v = a[2:].split("=", 1)
             d[k] = v
     return d
+
+
+def _extra():
+    """Bot-Durchreichung: --p_*, --startkapital*, --oe_set* und alles hinter einem blanken '--' (z. B. -- --oe_set=k4 --fk=aus)."""
+    if "--" in sys.argv:
+        return sys.argv[sys.argv.index("--") + 1:]
+    return [x for x in sys.argv[1:] if x.startswith("--p_") or x.startswith("--startkapital") or x.startswith("--oe_set")]
 
 
 def pct(v, p):
@@ -72,7 +80,7 @@ def main():
         "k": int(a.get("k", "4")), "n": int(a.get("n", "20")), "ziel": a.get("ziel", "f2min"), "wert": float(a.get("wert", "25")), "band": float(a.get("band", "5")),
         "lo": int(a.get("lo", "1000")), "tol": int(a.get("tol", "50")), "max": int(a.get("max", "8")),
         "godot": a.get("godot", GODOT), "arbeit": a.get("arbeit", os.path.join(os.getcwd(), "slice")),
-        "out": a.get("out", tempfile.mkdtemp(prefix="bisektion_")), "extra": [x for x in sys.argv[1:] if x.startswith("--p_") or x.startswith("--startkapital")],
+        "out": a.get("out", tempfile.mkdtemp(prefix="bisektion_")), "extra": _extra(),
     }
     keff = float(a.get("keff", opt["k"]))
     opt["hi"] = int(a.get("hi", str(round(keff * 1000))))

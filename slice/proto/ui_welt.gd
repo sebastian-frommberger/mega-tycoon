@@ -41,6 +41,13 @@ const FT_WELT := {
 	"keine_lizenz": "{name} hat keine Lizenz. Kaufe sie im Panel (Klick auf das Gebäude).",
 	"nimmt_nicht": "{ziel} nimmt {ware} nicht an. Wähle einen Abnehmer, der sie braucht.",
 	"fuhrwerk_geld": "Fuhrwerk kostet {x}, es fehlen {d}. Nimm Kredit oder warte auf Einnahmen.",
+	# AT-09 (AT-14 S4)
+	"kredit_ab12": "Kredit gibt es ab Minute 12. Bis dahin: Einnahmen abwarten.",
+	"kredit_voll": "Kreditrahmen {x} ist voll. Tilge Schulden oder warte auf Einnahmen.",
+	"kredit_ok": "Kredit {x} aufgenommen. Zins {z}/min, Rahmen noch {r}.",
+	"tilgen_geld": "Zum Tilgen fehlen {x} in der Kasse. Warte auf Einnahmen.",
+	"tilgen_ok": "Kredit {x} getilgt, offen noch {r}.",
+	"kein_kredit": "Du hast keinen Kredit offen. Tilgen ist nicht nötig.",
 	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
 	"gibt_es_schon": "Diese Linie gibt es schon. Füge ihr ein Fuhrwerk hinzu (+ Fuhrwerk).",
 	"ins_leere": "Klicke ein Gebäude an: erst die Quelle, dann das Ziel.",
@@ -63,6 +70,7 @@ var knoepfe: Dictionary = {}         # Name -> Button im offenen Panel (Tests, p
 var klicks := 0                      # gezählte Spielerklicks (Welt + Knöpfe), Messgröße AT-08
 var orte_pos: Dictionary = {}        # Stationsname -> Vector3 (m, Gelände)
 var _refresh_t := 0.0
+var _taste_unten := false            # linke Maustaste gehalten (Neuaufbau des Panels würde den Klick verschlucken)
 var _bereiche: Dictionary = {}       # "panel" | "vorschau" | "modus" -> Knopf-IDs
 # AT-08: Linienbau
 var modus_von := ""                  # Quelle im Modus „Linie von hier“, "" = kein Modus
@@ -72,6 +80,16 @@ var modus_panel: PanelContainer
 var modus_hb: HBoxContainer
 var vorschau_panel: PanelContainer
 var vorschau_vb: VBoxContainer
+# AT-09: Kopfleiste
+var kopf: PanelContainer
+var kopf_hb: HBoxContainer
+var lbl_kasse: Label
+var lbl_netto: Label
+var lbl_fix: Label
+var lbl_kredit: Label
+var lbl_k: Label
+var hud_werte: Dictionary = {}       # angezeigte HUD-Zahlen (Test gegen Spielwert)
+var _schnapp: Array = []             # Schnappschüsse an den letzten zwei Periodengrenzen
 
 
 func einbauen(p_welt: Node) -> void:
@@ -84,6 +102,7 @@ func einbauen(p_welt: Node) -> void:
 	_baue_panel()
 	_baue_toast()
 	_baue_linienbau()
+	_baue_kopfleiste()
 
 
 func _orte_lesen() -> void:
@@ -329,11 +348,17 @@ func _process(delta: float) -> void:
 	_refresh_t += delta
 	if _refresh_t >= 0.25:
 		_refresh_t = 0.0
-		if auswahl != "":
+		if auswahl != "" and not _taste_unten:          # BUG-1-Muster: kein Neuaufbau, solange die linke Taste gehalten wird
 			panel_neu()
+		kopf_neu()
 
 
 # ------------------------------------------------------------------ Eingabe
+
+func _input(ev: InputEvent) -> void:
+	if ev is InputEventMouseButton and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		_taste_unten = (ev as InputEventMouseButton).pressed
+
 
 ## Weltklick (Bildschirmposition). Gibt true zurück, wenn ein Ort getroffen wurde (oder ein Modus den Klick braucht).
 func welt_klick(pos: Vector2) -> bool:
@@ -534,7 +559,7 @@ func _panel_hq() -> void:
 	var l := _label(text("fuhrhalterei"), 16, C_GRAU)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel_vb.add_child(l)
-	var l2 := _label(text("postkutsche"), 14, C_GRAU)
+	var l2 := _label(text("postkutsche"), 15, C_GRAU)
 	l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel_vb.add_child(l2)
 
@@ -587,10 +612,13 @@ func _baue_linienbau() -> void:
 	modus_panel.name = "LinienModus"
 	modus_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	modus_panel.add_theme_stylebox_override("panel", _stil(Color(0.12, 0.2, 0.14, 0.9), 8))
-	modus_panel.anchor_left = 0.5
+	modus_panel.anchor_left = 0.5                         # unten Mitte: oben liegt das Prototyp-HUD (H blendet es aus)
 	modus_panel.anchor_right = 0.5
-	modus_panel.offset_top = 72.0
+	modus_panel.anchor_top = 1.0
+	modus_panel.anchor_bottom = 1.0
+	modus_panel.offset_bottom = -16.0
 	modus_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	modus_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	modus_panel.visible = false
 	add_child(modus_panel)
 	modus_hb = HBoxContainer.new()
@@ -604,7 +632,7 @@ func _baue_linienbau() -> void:
 	vorschau_panel.anchor_right = 0.5
 	vorschau_panel.anchor_top = 1.0
 	vorschau_panel.anchor_bottom = 1.0
-	vorschau_panel.offset_bottom = -16.0
+	vorschau_panel.offset_bottom = -72.0                   # über der Modusleiste
 	vorschau_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	vorschau_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	vorschau_panel.visible = false
@@ -744,7 +772,7 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 		geld(v["fix_cent"]), geld(v["fahrkosten_fuhre_cent"])], 16))
 	if v["quelle_begrenzt"]:                                # F3.2: Hinweis, Kauf bleibt möglich
 		vorschau_vb.add_child(_label("▲ " + text("liefert_wenig", {"name": von, "x": v["quelle_rate"]}), 16, C_WARN))
-	vorschau_vb.add_child(_label("Schätzung: volle Frische, ohne Sättigung des Abnehmers.", 14, C_GRAU))
+	vorschau_vb.add_child(_label("Schätzung: volle Frische, ohne Sättigung des Abnehmers.", 15, C_GRAU))
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 12)
 	var grau: bool = v["preis_cent"] > ps.eco.cash_cent
@@ -860,3 +888,151 @@ func _linien_ab(von: String) -> void:
 		hb.add_child(b)
 		panel_vb.add_child(hb)
 		panel_werte["linie_" + nm] = ziele[nm]
+
+
+# ------------------------------------------------------------------ AT-09 Kopfleiste (HUD Welt)
+
+## W1: Kasse zuerst (links), Netto/min, Fix/min, Kredit-Chip, rechts Datum (Kalender), Tempo-Knöpfe und k (AT-14 A7).
+## Netto und Ertrag sind Werte der letzten vollen Spielminute (Periode), tick-genau über nach_tick() aus sim_schritt:
+## Ertrag = Δ revenue_total, laufende Kosten = Δ konto.expenses_total − Δ kauf_total (Fahrkosten, Unterhalt, Zins; ohne
+## Fahrzeug- und Lizenzkäufe). Fix/min = konto.running_cost_per_period (Unterhalt aller Fahrzeuge je Minute).
+func _baue_kopfleiste() -> void:
+	kopf = PanelContainer.new()
+	kopf.name = "Kopfleiste"
+	kopf.mouse_filter = Control.MOUSE_FILTER_STOP
+	kopf.add_theme_stylebox_override("panel", _stil(Color(0.1, 0.09, 0.08, 0.88), 8))
+	kopf.anchor_left = 0.0
+	kopf.anchor_right = 1.0
+	kopf.offset_left = 8.0
+	kopf.offset_right = -8.0
+	kopf.offset_top = 8.0
+	add_child(kopf)
+	kopf_hb = HBoxContainer.new()
+	kopf_hb.add_theme_constant_override("separation", 14)
+	kopf.add_child(kopf_hb)
+	lbl_kasse = _label("", 18)
+	lbl_kasse.name = "Kasse"
+	kopf_hb.add_child(lbl_kasse)
+	lbl_netto = _label("", 16)
+	lbl_netto.name = "Netto"
+	lbl_netto.tooltip_text = "Ertrag minus Fahrkosten, Unterhalt und Zins der letzten vollen Minute"
+	lbl_netto.mouse_filter = Control.MOUSE_FILTER_PASS
+	kopf_hb.add_child(lbl_netto)
+	lbl_fix = _label("", 16)
+	lbl_fix.name = "Fix"
+	lbl_fix.tooltip_text = "Unterhalt aller Fuhrwerke je Minute"
+	lbl_fix.mouse_filter = Control.MOUSE_FILTER_PASS
+	kopf_hb.add_child(lbl_fix)
+	lbl_kredit = _label("", 16)
+	lbl_kredit.name = "Kredit"
+	kopf_hb.add_child(lbl_kredit)
+	kopf_hb.add_child(_knopf("Kredit", "kredit", kredit_aufnehmen, false, false, "kopf"))
+	kopf_hb.add_child(_knopf("Tilgen", "tilgen", kredit_tilgen, false, false, "kopf"))
+	var luecke := Control.new()
+	luecke.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	luecke.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kopf_hb.add_child(luecke)
+	# Datum und Tempo-Knöpfe der Szene (AT-05) ziehen in die Kopfleiste um (gleiche Knoten, Tests der Szene bleiben gültig)
+	if welt.datum_label != null:
+		welt.datum_label.get_parent().remove_child(welt.datum_label)
+		kopf_hb.add_child(welt.datum_label)
+	for t in welt.TEMPI:
+		var b: Button = welt.tempo_knoepfe.get(t)
+		if b != null:
+			b.get_parent().remove_child(b)
+			kopf_hb.add_child(b)
+	lbl_k = _label("", 16)
+	lbl_k.name = "TempoK"
+	lbl_k.tooltip_text = "Tempo-Teiler k der Fuhrwerke (AT-04): Fahrzeuge fahren 1/k so schnell"
+	lbl_k.mouse_filter = Control.MOUSE_FILTER_PASS
+	kopf_hb.add_child(lbl_k)
+	# altes Prototyp-HUD (Zählung, Hilfe) unter die Kopfleiste
+	if welt.hud != null:
+		var pc: Control = welt.hud.get_parent().get_parent()
+		pc.position.y = 64.0
+	_schnapp_neu()
+	kopf_neu()
+
+
+func _schnapp_neu() -> void:
+	_schnapp.append({"tick": ps.sim.tick_count, "rev": int(ps.eco.revenue_total), "ausg": int(ps.konto.expenses_total), "kauf": int(ps.kauf_total)})
+	while _schnapp.size() > 2:
+		_schnapp.pop_front()
+
+
+## Aus sim_schritt nach jedem Tick (prototyp_welt.gd): Schnappschuss genau an der Periodengrenze.
+func nach_tick() -> void:
+	if _sim_ok() and ps.sim.tick_count % periode() == 0:
+		_schnapp_neu()
+
+
+func kopf_neu() -> void:
+	if not _sim_ok() or kopf == null:
+		return
+	var e = ps.eco
+	hud_werte = {"kasse": int(e.cash_cent), "fix": int(ps.konto.running_cost_per_period), "kredit": int(ps.credit.loan_cent),
+		"zins": int(ps.credit.interest_per_period()), "k": int(ps.tempo_k), "tempo": int(welt.sim_tempo),
+		"datum": ps.kalender.datum_text(ps.ticks)}
+	var form := "■" if e.cash_cent < 0 else "●"
+	lbl_kasse.text = "Kasse %s %s" % [form, geld(e.cash_cent)]
+	if _schnapp.size() == 2 and _schnapp[0]["tick"] + periode() == _schnapp[1]["tick"]:
+		var a: Dictionary = _schnapp[0]
+		var b: Dictionary = _schnapp[1]
+		var ertrag: int = b["rev"] - a["rev"]
+		var laufend: int = (b["ausg"] - a["ausg"]) - (b["kauf"] - a["kauf"])
+		hud_werte["ertrag"] = ertrag
+		hud_werte["netto"] = ertrag - laufend
+		var n: int = hud_werte["netto"]
+		lbl_netto.text = "Netto %s %s%s/min" % ["▲" if n >= 0 else "▼", "+" if n > 0 else "", geld(n)]
+	else:
+		lbl_netto.text = "Netto — $/min"
+	lbl_fix.text = "Fix %s/min" % geld(hud_werte["fix"])
+	if ps.credit.loan_cent > 0:
+		lbl_kredit.text = "Kredit %s · Zins %s/min" % [geld(ps.credit.loan_cent), geld(hud_werte["zins"])]
+	else:
+		lbl_kredit.text = "Kredit —"
+	var ab: bool = ps.sim.tick_count >= int(ps.credit.from_ticks)
+	var kb: Button = knoepfe.get("kredit")
+	if kb != null:
+		kb.text = "Kredit +%s" % geld(ps.credit.step_cent)
+		var frei: bool = ab and ps.credit.borrow_amount(ps.sim.tick_count) > 0
+		kb.add_theme_color_override("font_color", C_TEXT if frei else C_GRAU)
+		kb.tooltip_text = "Zins %d %% je Minute auf den offenen Betrag" % roundi(ps.credit.interest_pm / 10.0) if ab else text("kredit_ab12")
+	var tb: Button = knoepfe.get("tilgen")
+	if tb != null:
+		tb.visible = ps.credit.loan_cent > 0
+		tb.text = "Tilgen %s" % geld(mini(ps.credit.step_cent, ps.credit.loan_cent))
+	lbl_k.text = "k=%d" % ps.tempo_k
+
+
+func kredit_aufnehmen() -> int:
+	var t: int = ps.sim.tick_count
+	if ps.konto.bankrupt:
+		meldung(text("bankrott"))
+		return 0
+	if t < int(ps.credit.from_ticks):
+		meldung(text("kredit_ab12"))
+		return 0
+	var a: int = ps.kredit_aufnehmen()
+	if a <= 0:
+		meldung(text("kredit_voll", {"x": geld(ps.credit.limit_cent)}))
+	else:
+		meldung(text("kredit_ok", {"x": geld(a), "z": geld(ps.credit.interest_per_period()), "r": geld(ps.credit.limit_cent - ps.credit.loan_cent)}))
+	kopf_neu()
+	return a
+
+
+func kredit_tilgen() -> int:
+	if ps.konto.bankrupt:
+		meldung(text("bankrott"))
+		return 0
+	if ps.credit.loan_cent <= 0:
+		meldung(text("kein_kredit"))
+		return 0
+	var a: int = ps.kredit_tilgen()
+	if a <= 0:
+		meldung(text("tilgen_geld", {"x": fehlbetrag(mini(ps.credit.step_cent, ps.credit.loan_cent) - ps.eco.cash_cent)}))
+	else:
+		meldung(text("tilgen_ok", {"x": geld(a), "r": geld(ps.credit.loan_cent)}))
+	kopf_neu()
+	return a

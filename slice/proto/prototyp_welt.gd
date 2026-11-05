@@ -278,6 +278,8 @@ func sim_schritt(delta: float) -> void:
 	var n := 0
 	while sim_acc >= 1.0 and n < MAX_TICKS_JE_FRAME:
 		proto_sim.tick()
+		if ui_welt != null:
+			ui_welt.nach_tick()                # AT-09: Netto/min tick-genau je Spielminute
 		sim_acc -= 1.0
 		n += 1
 	if sim_acc >= 1.0:

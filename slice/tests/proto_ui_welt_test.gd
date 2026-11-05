@@ -50,6 +50,11 @@ func _run() -> void:
 		await _at07()
 	if nur == "" or nur == "at08":
 		await _at08()
+	if nur == "" or nur == "at09":
+		await _at09()
+	if nur == "layout":
+		await _at08_maus()
+		await _at09_layout()
 	print("Prüfungen OK: %d, FAIL: %d" % [n_ok, n_fail])
 	quit(0 if n_fail == 0 else 1)
 
@@ -410,6 +415,193 @@ func _vorschau_messung() -> void:
 	var abw: float = (vor - netto) / maxf(1.0, absf(netto)) * 100.0
 	print("    MESSUNG Vorschau Kuppenhof → Mühle: ca. %s/min, gemessen %s/min (Minute 2–7), Abweichung %+.1f %%" % [ui.geld(vor), ui.geld(roundi(netto)), abw])
 	ok(true, "Vorschau-Messung ausgegeben (UX-2 ±5 %%: %s)" % ("ja" if absf(abw) <= 5.0 else "nein"))
+
+# ------------------------------------------------------------------ AT-09
+
+## Ticks über die Szene (sim_schritt → nach_tick), 4× Tempo, simulierte Frames (ohne Wanduhr).
+func _ticks(n: int) -> void:
+	s.setze_tempo(4)
+	var ziel: int = ps.ticks + n
+	while ps.ticks < ziel:
+		s.sim_acc = 0.0
+		s.sim_schritt(minf(0.2, (ziel - ps.ticks) / 40.0 + 0.0001))
+	s.setze_tempo(0)
+
+
+func _at09() -> void:
+	print("  -- AT-09 Kopfleiste")
+	await _neue_szene()
+	var e = ps.eco
+	ui.kopf_neu()
+	ok(ui.kopf != null and ui.kopf.mouse_filter == Control.MOUSE_FILTER_STOP and s.datum_label.get_parent() == ui.kopf_hb
+		and (s.tempo_knoepfe[1] as Button).get_parent() == ui.kopf_hb, "Kopfleiste da; Datum und Tempo-Knöpfe der Szene stecken darin")
+	ok(ui.hud_werte["kasse"] == e.cash_cent and ui.lbl_kasse.text == "Kasse ● 6.000 $", "Kasse %s = cash_cent" % ui.lbl_kasse.text)
+	ok(ui.lbl_netto.text == "Netto — $/min" and ui.lbl_fix.text == "Fix 0 $/min" and ui.lbl_kredit.text == "Kredit —", "Start: Netto —, Fix 0 $/min, Kredit —")
+	ok(ui.lbl_k.text == "k=%d" % ps.tempo_k and ui.hud_werte["k"] == ps.tempo_k, "k angezeigt: %s = proto_sim.tempo_k (A7)" % ui.lbl_k.text)
+	# Spiel: 2 Linien, dann 4 Minuten
+	ps.lizenz_kaufen("Gut Kuppenhof")
+	ps.lizenz_kaufen("Erlenmühle")
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.ziel_waehlen("Erlenbach")
+	ui.anlegen()
+	ok(ps.fahrzeuge.size() == 2, "2 Linien über die UI")
+	var a0: int = ps.konto.expenses_total
+	_ticks(2400 - ps.ticks)
+	var r_a: int = e.revenue_total
+	var x_a: int = ps.konto.expenses_total
+	var k_a: int = ps.kauf_total
+	var c_a: int = e.cash_cent
+	_ticks(600)
+	ok(ps.ticks == 3000 and ps.sim.tick_count == 3000, "Tick 3.000 über sim_schritt erreicht")
+	ui.kopf_neu()
+	var ertrag: int = e.revenue_total - r_a
+	var laufend: int = (ps.konto.expenses_total - x_a) - (ps.kauf_total - k_a)
+	ok(ui.hud_werte["ertrag"] == ertrag and ui.hud_werte["netto"] == ertrag - laufend,
+		"Netto Minute 5 = %s (Ertrag %s − Kosten %s) = Spielwert" % [ui.geld(ui.hud_werte["netto"]), ui.geld(ertrag), ui.geld(laufend)])
+	ok(ui.hud_werte["netto"] == e.cash_cent - c_a, "Netto = Kassenänderung der Minute ohne Käufe (%d ¢)" % (e.cash_cent - c_a))
+	var nt: String = ("+" if ui.hud_werte["netto"] > 0 else "") + ui.geld(ui.hud_werte["netto"])
+	ok(ui.lbl_netto.text.contains(nt + "/min"), "Text %s" % ui.lbl_netto.text)
+	var fix_soll := 0
+	for f in ps.fahrzeuge:
+		fix_soll += ps.fix_eff(f)
+	ok(ui.hud_werte["fix"] == fix_soll and ui.lbl_fix.text == "Fix %s/min" % ui.geld(fix_soll), "%s = Σ fix_eff" % ui.lbl_fix.text)
+	ok(ui.hud_werte["kasse"] == e.cash_cent and ui.lbl_kasse.text == "Kasse ● %s" % ui.geld(e.cash_cent), "%s = cash_cent" % ui.lbl_kasse.text)
+	s._hud_text()
+	ok(s.datum_label.text == ps.kalender.datum_text(ps.ticks) and ui.hud_werte["datum"] == s.datum_label.text, "Datum %s = Kalender (Tick %d)" % [s.datum_label.text, ps.ticks])
+	# Kredit: vor Minute 12 abgelehnt mit Text, danach Chip
+	var c0: int = e.cash_cent
+	_druecke("kredit")
+	ok(_letzte() == "Kredit gibt es ab Minute 12. Bis dahin: Einnahmen abwarten." and e.cash_cent == c0 and ps.credit.loan_cent == 0, "F4.1: %s" % _letzte())
+	_ticks(7200 - ps.ticks)
+	c0 = e.cash_cent
+	_druecke("kredit")
+	ui.kopf_neu()
+	ok(ps.credit.loan_cent == 50000 and e.cash_cent - c0 == 50000 and ui.lbl_kredit.text == "Kredit 500 $ · Zins %s/min" % ui.geld(ps.credit.interest_per_period())
+		and ui.hud_werte["kredit"] == 50000 and ui.hud_werte["zins"] == ps.credit.interest_per_period(), "Kredit-Chip: %s = credit" % ui.lbl_kredit.text)
+	ok(_letzte() == "Kredit 500 $ aufgenommen. Zins 15 $/min, Rahmen noch 1.500 $.", "Toast: %s" % _letzte())
+	for i in 3:
+		_druecke("kredit")
+	_druecke("kredit")
+	ok(ps.credit.loan_cent == 200000 and _letzte() == "Kreditrahmen 2.000 $ ist voll. Tilge Schulden oder warte auf Einnahmen.", "F4.2: %s" % _letzte())
+	var echt: int = e.cash_cent
+	e.cash_cent = 100
+	_druecke("tilgen")
+	ok(_letzte() == "Zum Tilgen fehlen 499 $ in der Kasse. Warte auf Einnahmen." and ps.credit.loan_cent == 200000, "F4.3: %s" % _letzte())
+	e.cash_cent = echt
+	_druecke("tilgen")
+	ok(ps.credit.loan_cent == 150000 and e.cash_cent == echt - 50000, "Tilgen 500 $")
+	# Tempo
+	s.setze_tempo(2)
+	ui.kopf_neu()
+	ok(ui.hud_werte["tempo"] == 2 and (s.tempo_knoepfe[2] as Button).button_pressed, "Tempo 2× markiert (= sim_tempo)")
+	s.setze_tempo(0)
+	var lang: Array = []
+	for m in ui.meldungen_log:
+		if String(m["text"]).length() > 90:
+			lang.append(m["text"])
+	ok(lang.is_empty(), "alle %d Meldungen ≤ 90 Zeichen %s" % [ui.meldungen_log.size(), str(lang)])
+
+
+## Nur unter xvfb (1600 × 900, echtes Layout): Kopfleiste ohne Clipping mit Worst-Case-Werten, Screenshot.
+func _at09_layout() -> void:
+	print("  -- AT-09 Layout (xvfb)")
+	await _neue_szene()
+	var vp := root.get_visible_rect().size
+	ok(vp.x >= 1599.0 and DisplayServer.get_name() != "headless", "Fenster %.0f × %.0f, Treiber %s (Layout nur unter xvfb gültig)" % [vp.x, vp.y, DisplayServer.get_name()])
+	var e = ps.eco
+	ps.lizenz_kaufen("Gut Kuppenhof")
+	for i in 7201:
+		ps.tick()
+	ps.kredit_aufnehmen()
+	ps.kredit_aufnehmen()
+	ps.kredit_aufnehmen()
+	ps.kredit_aufnehmen()
+	ui.kopf_neu()
+	e.cash_cent = -9999999                               # Worst Case Text: "-100.000 $"
+	ui._schnapp = [{"tick": 0, "rev": 0, "ausg": 0, "kauf": 0}, {"tick": 600, "rev": 0, "ausg": 999999, "kauf": 0}]
+	ui.kopf_neu()
+	s._hud_text()
+	for i in 3:
+		await process_frame
+	var r: Rect2 = ui.kopf.get_global_rect()
+	var min_b: float = ui.kopf.get_combined_minimum_size().x
+	var abgeschnitten: Array = []
+	for c in ui.kopf_hb.get_children():
+		if c is Control and (c as Control).visible:
+			var cc := c as Control
+			if cc.size.x + 0.5 < cc.get_combined_minimum_size().x or cc.get_global_rect().end.x > r.end.x + 0.5:
+				abgeschnitten.append(cc.name)
+	ok(r.position.x >= 0.0 and r.end.x <= vp.x + 0.5 and min_b <= vp.x - 16.0 and abgeschnitten.is_empty(),
+		"Kopfleiste %.0f px breit (Mindestbreite %.0f px) in %.0f px, nichts abgeschnitten %s; Texte: %s | %s | %s | %s" % [r.size.x, min_b, vp.x, str(abgeschnitten),
+		ui.lbl_kasse.text, ui.lbl_netto.text, ui.lbl_fix.text, ui.lbl_kredit.text])
+	_klick("Gut Kuppenhof")
+	ui.linie_von_hier("Gut Kuppenhof")
+	e.cash_cent = 600000
+	ui.ziel_waehlen("Erlenmühle")
+	ui.kopf_neu()
+	for i in 3:
+		await process_frame
+	var ueber: bool = ui.panel.get_global_rect().intersects(ui.kopf.get_global_rect()) or ui.vorschau_panel.get_global_rect().intersects(ui.panel.get_global_rect()) \
+		or ui.modus_panel.get_global_rect().intersects(ui.vorschau_panel.get_global_rect()) or ui.modus_panel.get_global_rect().end.y > vp.y
+	ok(not ueber and ui.panel.get_global_rect().end.y <= vp.y and ui.vorschau_panel.get_global_rect().position.y >= 0.0,
+		"Panel, Vorschau, Modusleiste und Kopfleiste überlappen nicht, alles im Bild")
+	var img := root.get_texture().get_image()
+	var pfad := OS.get_environment("UI_WELT_SHOT")
+	if pfad != "" and img != null:
+		img.save_png(pfad)
+		print("    SHOT ", pfad)
+
+## Nur unter xvfb: Farm → Mühle → Dorf mit echter Maus (warp_mouse + push_input, je 2 Frames), Knöpfe an ihrer Bildschirmmitte.
+func _echt(pos: Vector2) -> void:
+	root.warp_mouse(pos)
+	await process_frame                # X11 liefert die Warp-Bewegung verzögert; sonst kommt sie nach dem Drücken (= Ziehen)
+	await process_frame
+	for gedrueckt in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = gedrueckt
+		ev.position = pos
+		ev.global_position = pos
+		root.push_input(ev)
+		await process_frame
+		await process_frame
+
+
+func _echt_ort(nm: String) -> void:
+	_blick(nm)
+	await process_frame
+	var p: Vector2 = ui.bildschirm_pos(nm)
+	await _echt(p)
+
+
+func _echt_knopf(id: String) -> bool:
+	if not ui.knoepfe.has(id):
+		print("    (Knopf fehlt: %s)" % id)
+		return false
+	await process_frame
+	var b: Button = ui.knoepfe[id]
+	await _echt(b.get_global_rect().get_center())
+	return true
+
+
+func _at08_maus() -> void:
+	print("  -- AT-08 echte Maus (xvfb)")
+	await _neue_szene()
+	ui.klicks = 0
+	var n0: int = ui.meldungen_log.size()
+	await _echt_ort("Gut Kuppenhof")
+	await _echt_knopf("lizenz_kaufen")
+	await _echt_knopf("linie_von_hier")
+	await _echt_ort("Erlenmühle")
+	await _echt_knopf("anlegen")
+	await _echt_knopf("modus_lizenz")
+	await _echt_ort("Erlenbach")
+	await _echt_knopf("anlegen")
+	var texte: Array = ui.meldungen_log.slice(n0).map(func(m): return m["text"])
+	ok(ps.fahrzeuge.size() == 2 and ui.klicks == 8 and ps.eco.licence_valid(ui.site_of("Erlenmühle")),
+		"Echte Maus: Farm → Mühle → Dorf mit %d Klicks (2 davon Lizenz), %d Fuhrwerke; Meldungen %s" % [ui.klicks, ps.fahrzeuge.size(), str(texte)])
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

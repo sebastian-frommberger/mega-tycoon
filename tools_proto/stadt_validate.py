@@ -255,6 +255,50 @@ def pruefe_gewaesser(T, orte_j, dir_, geo, regelwerk_pfad=None, kartentyp="fluss
         T.add("Gewaesser binsensee: Stegende im Wasser", "> 0 m", "%.1f m" % tiefe_steg, tiefe_steg > 0.0)
 
 
+def pruefe_ausbau(T, orte_j, inst, wege, geo):
+    """WA-15: jeder kaufbare Betrieb hat eine Ausbauflaeche von mindestens einem Footprint des Betriebs, ohne Ueberlappung mit Gebaeuden/Flaechen/
+    Ladeplatz-Objekten, ohne Wegband, nicht in Rinne/See/Teich/Bach, Hang <= 8 %, keine Props darin."""
+    for i in orte_j["industrie"]:
+        if not i.get("kaufbar"):
+            continue
+        sid = i["id"]
+        ab = i.get("ausbauflaeche")
+        T.add("Ausbauflaeche %s: vorhanden (kaufbarer Betrieb)" % sid, "ja", "ja" if ab else "fehlt", bool(ab))
+        if not ab:
+            continue
+        betrieb = [x for x in inst if x["ort"] == sid and x["typ"] == i["typ"] and "b" in x]
+        fb, ft = (betrieb[0]["b"], betrieb[0]["t"]) if betrieb else (0.0, 0.0)
+        T.add("Ausbauflaeche %s: mindestens 1 Footprint (%.0f x %.0f m)" % (sid, fb, ft), ">= %.0f x %.0f" % (fb, ft), "%.1f x %.1f" % (ab["b"], ab["t"]), ab["b"] >= fb and ab["t"] >= ft and fb > 0)
+        e = obb_ecken(ab["x"], ab["z"], ab["b"], ab["t"], ab["rot_deg"])
+        ueber = ["%s (%s)" % (x["typ"], x["ort"]) for x in inst if "b" in x and obb_ueberlappt(e, obb_ecken(x["x"], x["z"], x["b"], x["t"], x["rot_deg"]))]
+        lp = i.get("ladeplatz") or {}
+        for nm, f in [("kies_hof", lp.get("kies_hof")), ("rampe", lp.get("rampe"))] + [("haufen", h) for h in lp.get("lagerhaufen", [])]:
+            if f and obb_ueberlappt(e, obb_ecken(f["x"], f["z"], f["b"], f["t"], f["rot_deg"])):
+                ueber.append("ladeplatz.%s" % nm)
+        T.add("Ausbauflaeche %s: keine Ueberlappung (Gebaeude, Flaechen, Ladeplatz-Objekte)" % sid, 0, ueber or 0, not ueber)
+        weg = [w["id"] for w in wege if any(poly_abstand(p, [tuple(q) for q in w["punkte"]])[0] < w["breite_m"] / 2.0 for p in _proben_obb(e))]
+        T.add("Ausbauflaeche %s: kein Wegband darin" % sid, 0, weg or 0, not weg)
+        pts = _proben_obb(e)
+        gel = [p for p in pts if geo.rinne_abstand(*p) < 3.0 or geo.see_abstand(*p) < 10.0 or geo.muehlteich_abstand(*p) < 8.0 or geo.bach_abstand(*p) < 8.0]
+        T.add("Ausbauflaeche %s: nicht in Rinne/See/Teich/Bach (Abstand >= 3/10/8/8 m)" % sid, 0, len(gel), not gel)
+        hang = max(geo.steigung(*p) for p in pts)
+        T.add("Ausbauflaeche %s: Hang <= 8 %%" % sid, "<= 8 %", "%.1f %%" % hang, hang <= 8.0)
+        props = [x["typ"] for x in inst if "b" not in x and x["typ"] not in ("laubbaum", "nadelbaum", "obstbaum", "eiche", "busch") and punkt_in_obb((x["x"], x["z"]), e)]
+        T.add("Ausbauflaeche %s: keine Props darin" % sid, 0, props or 0, not props)
+        hs = ab.get("hofschild_platz")
+        T.add("Ausbauflaeche %s: Hofschild-Platz vorhanden, ausserhalb der Ausbauflaeche" % sid, "ja", "ja" if hs else "fehlt", bool(hs) and not punkt_in_obb((hs["x"], hs["z"]), e))
+
+
+def _proben_obb(e, n=4):
+    out = []
+    for a in range(n + 1):
+        for b in range(n + 1):
+            u, v = a / float(n), b / float(n)
+            out.append(((1 - u) * ((1 - v) * e[0][0] + v * e[3][0]) + u * ((1 - v) * e[1][0] + v * e[2][0]),
+                        (1 - u) * ((1 - v) * e[0][1] + v * e[3][1]) + u * ((1 - v) * e[1][1] + v * e[2][1])))
+    return out
+
+
 def pruefe_welt_daten(T, orte_j, wege, geo, inst=()):
     """WA-07: Farm 2, Ladeplatz-Datenpunkt, sim_ew je Ort (Klassenband, Nachfrage)."""
     ind = orte_j["industrie"]
@@ -698,6 +742,7 @@ def pruefen(dir_, src, strikt=False, baseline=None, liste=None):
     T.add("Wegenetz zusammenhaengend (Kreuzungen/Einmuendungen)", "1 Komponente", "%d, %d Knoten" % (len(komp), len(kn)), len(komp) == 1)
     pruefe_welt_daten(T, orte_j, wege, geo, inst)
     pruefe_gewaesser(T, orte_j, dir_, geo)
+    pruefe_ausbau(T, orte_j, inst, wege, geo)
     pruefe_platzierung(T, orte_j, inst, wege, dir_, strikt, baseline, liste)
     pruefe_allee(T, inst, wege)
     al = wd["chaussee"]["allee"]

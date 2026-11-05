@@ -1082,6 +1082,23 @@
     ],
     "hinweis": "Durchgangs-Ladeplatz (WA-08): Datenpunkt = Halteknoten, das Gespann haelt mit der Mitte im Knoten (Heck 4.75 m davor). Ein Ladestich (Sackgasse, 90-Grad-Abzweig) liess proto_easing_test B rot (E3 Gierrate, E5 Halt-Verzug), Begruendung in sprints/s8/umsetzung/WA-08.md. Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
     "baeume_entfernt_n": 0
+   },
+   "kaufbar": true,
+   "ausbauflaeche": {
+    "x": 1605.76,
+    "z": 1070.53,
+    "rot_deg": -180.0,
+    "b": 12.0,
+    "t": 12.0,
+    "footprint_ref": "wassermuehle 12 x 12 m (1 Footprint, gleiche Ausrichtung)",
+    "abstand_zur_muehle_m": 22.49,
+    "baeume_entfernt_n": 0,
+    "zweck": "Werksausbau Stufe 2 (C1, D-F): Anbau/Platz fuer das zweite Werk der kaufbaren Muehle; nur Daten, Modell folgt (Sophie)",
+    "hofschild_platz": {
+     "x": 1615.88,
+     "z": 1081.07,
+     "hinweis": "Platz fuer das Hofschild (Werksstufe sichtbar), 3 m vor der Muehle zum Ladeplatz hin"
+    }
    }
   },
   {

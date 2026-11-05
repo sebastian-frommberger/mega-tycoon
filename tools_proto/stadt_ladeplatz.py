@@ -248,6 +248,31 @@ class Planer:
         dist, _, _, s, dd, E, f = kand[0]
         return dict(E=E, d=dd, s=s, f=f, wid=wids[0], stich=None, stamm=None, score=dist, durchgang=True, K=K)
 
+    def ausbauflaeche(self, mitte, rot_deg, b, t, extra_hindernisse, r_min=None, r_max=48.0):
+        """WA-15: freie Ausbauflaeche (>= 1 Footprint b x t, gleich ausgerichtet) ringfoermig um den Betrieb. extra_hindernisse: Ecken von
+        Ladeplatz-Objekten und eigener Hoffläche. Deterministisch: naechster zulaessiger Mittelpunkt, Abstand in 2-m-Schritten, Winkel in 15-Grad-Schritten."""
+        r_min = r_min if r_min is not None else (math.hypot(b, t) / 2.0 + 2.0)
+        kand = []
+        d = r_min
+        while d <= r_max:
+            for k in range(24):
+                a = math.radians(15.0 * k)
+                kand.append((round(d, 2), k, (mitte[0] + d * math.cos(a), mitte[1] + d * math.sin(a))))
+            d += 2.0
+        for (d, k, c) in kand:
+            e = obb_ecken(c[0], c[1], b, t, rot_deg)
+            if not (self._gelaende_ok(e) and self._frei(e, rand=1.0) and self._wege_frei(e, None)):
+                continue
+            if any(obb_ueberlappt(_aufblasen(e, 1.0), h) for h in extra_hindernisse):
+                continue
+            # keine Wegtrennung: Betrieb und Ausbauflaeche liegen auf derselben Seite aller Wege (Mitte-zu-Mitte-Strecke kreuzt kein Wegband)
+            n = max(2, int(d / 2.0))
+            if any(poly_abstand((mitte[0] + (c[0] - mitte[0]) * i / n, mitte[1] + (c[1] - mitte[1]) * i / n), w.punkte)[0] < w.breite / 2.0
+                   for i in range(n + 1) for w in self.wo.values()):
+                continue
+            return dict(c=c, d=d, e=e)
+        return None
+
     def vorhandenes_ende(self, wid, E, d):
         """Ladeplatz an einem bestimmten vorhandenen Wegende (Seite mit Platz)."""
         for s in (1, -1):

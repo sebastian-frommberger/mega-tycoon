@@ -1000,6 +1000,26 @@ def ladeplaetze_bauen(geo, szene, wo, ol_d, ol_w, ol_m):
         dct = lp.ladeplatz_dict(e, pl, None, LADEGUETER[oid], namen[oid], boden, wid)
         dct["baeume_entfernt_n"] = n0 - len(szene.inst)
         out[oid] = dct
+    # --- WA-15: kaufbare Muehle hat eine Ausbauflaeche (>= 1 Muehlen-Footprint, frei von Gebaeuden, Ladeplatz, Wegen, Wasser) fuer die Werksstufe 2
+    md_, me_ = _hof_ecken(szene, MUEHLE["id"])
+    fp = out[MUEHLE["id"]]
+    extra = [obb_ecken(f["x"], f["z"], f["b"], f["t"], f["rot_deg"]) for f in [fp["kies_hof"], fp["rampe"]] + list(fp["lagerhaufen"])]
+    extra += [obb_ecken(d["x"], d["z"], d["b"], d["t"], d["rot_deg"]) for d in szene.inst if d["ort"] == MUEHLE["id"] and "b" in d]
+    ab = pl.ausbauflaeche((md_["x"], md_["z"]), md_["rot_deg"], md_["b"], md_["t"], extra)
+    if ab is None:
+        raise RuntimeError("Ausbauflaeche: kein Platz fuer die Muehle")
+    n0 = len(szene.inst)
+    szene.inst[:] = [d for d in szene.inst if not (d["typ"] in lp.ENTFERNBAR and "b" not in d and punkt_in_obb((d["x"], d["z"]), lp._aufblasen(ab["e"], 1.5)))]
+    u = (fp["x"] - md_["x"], fp["z"] - md_["z"])
+    ul = math.hypot(*u)
+    u = (u[0] / ul, u[1] / ul)
+    out["_ausbau_" + MUEHLE["id"]] = {
+        "x": r2(ab["c"][0]), "z": r2(ab["c"][1]), "rot_deg": md_["rot_deg"], "b": md_["b"], "t": md_["t"],
+        "footprint_ref": "wassermuehle %.0f x %.0f m (1 Footprint, gleiche Ausrichtung)" % (md_["b"], md_["t"]),
+        "abstand_zur_muehle_m": r2(ab["d"]), "baeume_entfernt_n": n0 - len(szene.inst),
+        "zweck": "Werksausbau Stufe 2 (C1, D-F): Anbau/Platz fuer das zweite Werk der kaufbaren Muehle; nur Daten, Modell folgt (Sophie)",
+        "hofschild_platz": {"x": r2(md_["x"] + u[0] * (md_["b"] / 2.0 + 3.0)), "z": r2(md_["z"] + u[1] * (md_["t"] / 2.0 + 3.0)),
+                            "hinweis": "Platz fuer das Hofschild (Werksstufe sichtbar), 3 m vor der Muehle zum Ladeplatz hin"}}
     return out
 
 
@@ -1111,7 +1131,8 @@ def erzeuge(out_dir=OUT_DIR, bilder=True, src=SRC_DEFAULT, still=False):
         {"id": MUEHLE["id"], "name": MUEHLE["name"], "typ": "wassermuehle", "x": mu["x"], "z": mu["z"], "rot_deg": mu["rot_deg"],
          "muehlteich": {"x": MUEHLTEICH_MITTE[0], "z": MUEHLTEICH_MITTE[1], "r_m": MUEHLTEICH_R},
          "abstand_dorf_m": abst((mu["x"], mu["z"]), K), "zufahrt": "muehlweg",
-         "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)", "ladeplatz": LP[MUEHLE["id"]]},
+         "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)", "ladeplatz": LP[MUEHLE["id"]],
+         "kaufbar": True, "ausbauflaeche": LP["_ausbau_" + MUEHLE["id"]]},
         {"id": GUT2["id"], "name": GUT2["name"], "typ": "getreidefarm", "x": f2p["x"], "z": f2p["z"], "rot_deg": f2p["rot_deg"],
          "hofform": "vierseithof_40x40", "schlaege": f2_schlaege, "lage": "ebene", "abstand_dorf_m": abst((f2p["x"], f2p["z"]), K),
          "abstand_muehle_m": abst((f2p["x"], f2p["z"]), (mu["x"], mu["z"])),

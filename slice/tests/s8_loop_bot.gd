@@ -422,7 +422,7 @@ func _lauf(s: String, sd: int) -> Dictionary:
 		api_n += int(api_abl[k])
 	zeile += ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [fz_max, fz_ende, ps.lieferungen.size(), ps.eco.revenue_total, kasse_ende, tief,
 		kredit_max, ps.credit.loan_cent, netto5_op_min30, netto5_kasse_min30, api_n, ps.pruefsumme()]
-	zeile += ",%s,%d,%s,%d,%d,%s,%s,%s,%d,%d,%s" % [_min_text(fk_kauf_tick), fk_preis, _min_text(fk_ausbau_tick), fk_ausbau_cent, ersetzt_n,
+	zeile += ",%s,%d,%s,%d,%d,%s,%s,%s,%d,%s" % [_min_text(fk_kauf_tick), fk_preis, _min_text(fk_ausbau_tick), fk_ausbau_cent, ersetzt_n,
 		_min_text(ersetzt_erst), _min_text(ev_erst[8]), _min_text(kasse_tief_tick), a_pm, fk_grund if fk_kauf_tick < 0 else ""]
 	zeile += ",%s,%s,%s,%s" % [_min_text(ev8_fm_tick), _min_text(ev8_alter_tick), _min_text(ers_angebot_tick), _min_text(ers_spart_tick)]
 	return {"zeile": zeile, "pruefsumme": ps.pruefsumme(), "ticks": ende, "bankrott": br, "bankrott_tick": ps.bankrott_tick,

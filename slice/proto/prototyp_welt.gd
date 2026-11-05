@@ -162,38 +162,9 @@ func _lies_daten() -> void:
 
 
 func _baue_umgebung() -> void:
-	var we := WorldEnvironment.new()
-	env = Environment.new()
-	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color(0.36, 0.56, 0.80)
-	sm.sky_horizon_color = Color(0.76, 0.84, 0.91)
-	sm.ground_horizon_color = Color(0.76, 0.84, 0.91)
-	sm.ground_bottom_color = Color(0.62, 0.72, 0.80)
-	var sky := Sky.new()
-	sky.sky_material = sm
-	sky.radiance_size = Sky.RADIANCE_SIZE_32
-	env.background_mode = Environment.BG_SKY
-	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.74, 0.81, 0.92)
-	env.ambient_light_energy = 0.36
-	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
-	env.fog_enabled = true
-	env.fog_mode = Environment.FOG_MODE_DEPTH
-	env.fog_light_color = Color(0.76, 0.84, 0.91)
-	env.fog_density = 1.0
-	env.fog_depth_curve = 1.6
-	env.fog_sky_affect = 0.0
-	we.environment = env
-	add_child(we)
-	sun = DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-42, 38, 0)
-	sun.light_color = Color(1.0, 0.92, 0.78)
-	sun.light_energy = 0.52
-	sun.shadow_enabled = true
-	sun.shadow_opacity = 0.5
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	add_child(sun)
+	var l := ProtoLicht.baue(self)
+	env = l["env"]
+	sun = l["sun"]
 
 
 func _baue_gelaende() -> void:

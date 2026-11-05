@@ -15,21 +15,31 @@ rm -rf "$LOGS"; mkdir -p "$LOGS"
 rows=()
 total_fail=0
 T_START=$(date +%s)
+LAP=$(date +%s.%N)
 
-record() {   # name, exit, detail
-  local st="OK"
+# QT-01b (S8): timeout je Godot-Aufruf = max(60 s, 3 x Baseline) aus sprints/s8/umsetzung/baseline/laufzeiten.txt; ohne Eintrag D07_TIMEOUT_DEFAULT (600 s).
+# Timeout = FAIL mit "TIMEOUT". Aufruf: $(TO <name>) <befehl>
+BASE=../sprints/s8/umsetzung/baseline/laufzeiten.txt
+lim() { local b; b=$(awk -v n="$1" '$1==n {print $2}' "$BASE" 2>/dev/null | head -1)
+  if [ -z "$b" ]; then echo "${D07_TIMEOUT_DEFAULT:-600}"; else awk -v b="$b" 'BEGIN { t = int(3*b + 0.999); if (t < 60) t = 60; print t }'; fi; }
+TO() { echo "timeout -k 5 $(lim "$1")"; }
+
+record() {   # name, exit, detail   (hängt die Sekunden seit dem letzten Eintrag an; Exit 124/137 = TIMEOUT)
+  local st="OK" now sec; now=$(date +%s.%N); sec=$(awk -v a="$LAP" -v b="$now" 'BEGIN{printf "%.1f", b-a}'); LAP=$now
+  local d="$3"
+  if [ "$2" -eq 124 ] || [ "$2" -eq 137 ]; then d="TIMEOUT (Exit $2) $d"; fi
   if [ "$2" -ne 0 ]; then st="FAIL"; total_fail=$((total_fail+1)); fi
-  rows+=("| $1 | $st | $3 |")
-  echo "[$st] $1: $3"
+  rows+=("| $1 | $st | $d [${sec} s] |")
+  echo "[$st] $1: $d [${sec} s]"
 }
 
 # --- 1) Bestandssuiten des Slice (slice_test soa/alt, Parität, Screenshots-Lauf), eigener Aufruf von run_tests.sh
-bash tests/run_tests.sh "$G" "$HERE/../d07_shots" > "$LOGS/run_tests.txt" 2>&1; r=$?
+$(TO run_tests) bash tests/run_tests.sh "$G" "$HERE/../d07_shots" > "$LOGS/run_tests.txt" 2>&1; r=$?
 record "run_tests.sh (slice_test soa, slice_test alt, parity_test, 0 SCRIPT ERROR)" $r "$(grep -E 'Prüfungen OK|Paritätsprüfungen OK|SCRIPT ERROR' "$LOGS/run_tests.txt" | sed 's/Exit [0-9]*: //' | tr '\n' ';' | cut -c1-200)"
 
 # --- 2) Unabhängige Abnahmeprüfungen (tests/d07_abnahme.gd) je Block
 for blk in ui kredit parity lager hq; do
-  $G --headless --path . -s res://tests/d07_abnahme.gd -- --only=$blk > "$LOGS/abnahme_$blk.txt" 2>&1; r=$?
+  $(TO d07_abnahme_$blk) $G --headless --path . -s res://tests/d07_abnahme.gd -- --only=$blk > "$LOGS/abnahme_$blk.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/abnahme_$blk.txt")
   [ "$e" -gt 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/abnahme_$blk.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
@@ -38,7 +48,7 @@ done
 
 # --- 2b) D-08 (S6): 100-Seed-Bankrottlauf im echten Spiel (3 Kandidaten-Städte × 100 Seeds × 30 Spielminuten, ca. 3 min).
 # Drift-Wächter, kein Spielerbeleg für das Band 10-30 % (das ist Modell, Tobias T-14). Siehe Kopf von tests/d08_bankrott.gd.
-$G --headless --path . -s res://tests/d08_bankrott.gd -- --n=100 --csv=tests/d08_logs_bankrott.csv > "$LOGS/d08_bankrott.txt" 2>&1; r=$?
+$(TO d08_bankrott_n100) $G --headless --path . -s res://tests/d08_bankrott.gd -- --n=100 --csv=tests/d08_logs_bankrott.csv > "$LOGS/d08_bankrott.txt" 2>&1; r=$?
 e=$(grep -c "SCRIPT ERROR" "$LOGS/d08_bankrott.txt")
 [ "$e" -gt 0 ] && r=1
 fl=$(grep "^  FAIL" "$LOGS/d08_bankrott.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
@@ -46,36 +56,36 @@ rt=$(grep -E "^  (mittelfurt|haberau|kohlberg) " "$LOGS/d08_bankrott.txt" | sed 
 record "d08_bankrott (100 Seeds je Stadt)" $r "$(grep 'Prüfungen OK' "$LOGS/d08_bankrott.txt") $rt ${fl:+ -- FAIL: $fl}"
 
 # --- 2c) D-08: Vorschau-Lizenzfaktor gegen Spielpreis (B-1 behoben S6 Tag 10, Generator rechnet wie economy._licence_cost).
-$G --headless --path . -s res://tests/d08_lizenzfaktor.gd > "$LOGS/d08_lizenzfaktor.txt" 2>&1; r=$?
+$(TO d08_lizenzfaktor) $G --headless --path . -s res://tests/d08_lizenzfaktor.gd > "$LOGS/d08_lizenzfaktor.txt" 2>&1; r=$?
 e=$(grep -c "SCRIPT ERROR" "$LOGS/d08_lizenzfaktor.txt")
 [ "$e" -gt 0 ] && r=1
 record "d08_lizenzfaktor (Vorschau gegen Spielpreis)" $r "$(tail -1 "$LOGS/d08_lizenzfaktor.txt" | cut -c1-120)"
 
 # --- 2c2) S7 Block A (Mira): Z-01 Stadtanschluss beide Richtungen + B-xx (Ring-Klick, Ziele typgenau, Lizenz-Toast, -0 $)
-$G --headless --path . -s res://tests/s7_mira_test.gd > "$LOGS/s7_mira.txt" 2>&1; r=$?
+$(TO s7_mira) $G --headless --path . -s res://tests/s7_mira_test.gd > "$LOGS/s7_mira.txt" 2>&1; r=$?
 e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_mira.txt")
 [ "$e" -gt 0 ] && r=1
 fl=$(grep "^  FAIL" "$LOGS/s7_mira.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
 record "s7_mira (Z-01 + B-xx Regression)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_mira.txt") ${fl:+ -- FAIL: $fl}"
 
 # --- 2c3) S7 Block B (Mira): W-04 Kacheln/Autotile/Vorschau (S7) + U-03 Fehlertexte beide Welten + play.sh-Bau-Fehlerfälle
-$G --headless --path . -s res://tests/s7_w04_test.gd > "$LOGS/s7_w04.txt" 2>&1; r=$?
+$(TO s7_w04) $G --headless --path . -s res://tests/s7_w04_test.gd > "$LOGS/s7_w04.txt" 2>&1; r=$?
 e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_w04.txt"); [ "$e" -gt 0 ] && r=1
 fl=$(grep "^  FAIL" "$LOGS/s7_w04.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
 record "s7_w04 (Kacheln, Autotile, Brücke, Hang-Preis, Straße:Block)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_w04.txt") ${fl:+ -- FAIL: $fl}"
 # --- 2c4) S7 Block C (Sophie): W-03 Städte im neuen Maßstab (Radius, Ausfransung, Gebäude, Zonen, Leerfläche, Baumanteil,
 # city_streets/Z-01-Erreichbarkeit, Bahnhof, LOD ohne Loch, Nachfrage S7 = Formel = Slice, Slice ohne Generator)
-$G --headless --path . -s res://tests/s7_city_test.gd > "$LOGS/s7_city.txt" 2>&1; r=$?
+$(TO s7_city) $G --headless --path . -s res://tests/s7_city_test.gd > "$LOGS/s7_city.txt" 2>&1; r=$?
 e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_city.txt"); [ "$e" -gt 0 ] && r=1
 fl=$(grep "^  FAIL" "$LOGS/s7_city.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
 record "s7_city (W-03 Städte: Radius, Ausfransung, Gebäude, Zonen, Leerfläche, Bäume, Nachfrage)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_city.txt") ${fl:+ -- FAIL: $fl}"
 if command -v xvfb-run >/dev/null 2>&1; then
-  xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_u03_test.gd > "$LOGS/s7_u03.txt" 2>&1; r=$?
+  $(TO s7_u03) xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_u03_test.gd > "$LOGS/s7_u03.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_u03.txt"); [ "$e" -gt 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/s7_u03.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
   record "s7_u03 (Fehlertexte beide Welten, Vorwarnung, Kopfleiste, Linienliste; xvfb)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_u03.txt") ${fl:+ -- FAIL: $fl}"
   for w in slice s7; do
-    bash tests/u03_play_check.sh "$G" $w "$LOGS/u03_play_$w" > "$LOGS/u03_play_$w.txt" 2>&1; r=$?
+    $(TO u03_play_$w) bash tests/u03_play_check.sh "$G" $w "$LOGS/u03_play_$w" > "$LOGS/u03_play_$w.txt" 2>&1; r=$?
     record "u03_play $w (play.sh alle Bau-Fehlerfälle, 0 stumm)" $r "$(grep '^u03_play' "$LOGS/u03_play_$w.txt")"
   done
 else
@@ -84,7 +94,7 @@ fi
 
 # --- 2c4) S7 Block C (Mira): W-05 Industrie-Lesbarkeit (Signalfläche + Plakette + Name, 4 km per Projektion, Status) + U8
 if command -v xvfb-run >/dev/null 2>&1; then
-  xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_industrie_test.gd > "$LOGS/s7_industrie.txt" 2>&1; r=$?
+  $(TO s7_industrie) xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_industrie_test.gd > "$LOGS/s7_industrie.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_industrie.txt"); [ "$e" -gt 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/s7_industrie.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
   record "s7_industrie (W-05 Fläche+Icon+Name, 4 km ≥ 24 px, kein Überlappen, Status, U8; xvfb)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_industrie.txt") ${fl:+ -- FAIL: $fl}"
@@ -94,7 +104,7 @@ fi
 
 # --- 2c5) Startmenü + Beispielnetz (Basti, S7, Mira): Menü-Szene, Taste 1 wie bisher, Beispielnetz slice/s7, main.tscn ohne Menü
 if command -v xvfb-run >/dev/null 2>&1; then
-  xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_start_test.gd > "$LOGS/s7_start.txt" 2>&1; r=$?
+  $(TO s7_start) xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/s7_start_test.gd > "$LOGS/s7_start.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_start.txt"); [ "$e" -gt 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/s7_start.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
   record "s7_start (Startmenü, Beispielnetz slice+s7, Einnahmen, kein Menü in Tests; xvfb)" $r "$(grep 'Prüfungen OK' "$LOGS/s7_start.txt") ${fl:+ -- FAIL: $fl}"
@@ -104,7 +114,7 @@ fi
 
 # --- 2d) D-08: HQ-Platzierung mit echter Maus (X-Zeiger über warp_mouse, echte Projektion Bildschirm -> Feld). Braucht xvfb-run.
 if command -v xvfb-run >/dev/null 2>&1; then
-  D08_NOSHOT=1 xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/d08_maus.gd -- "$LOGS" > "$LOGS/d08_maus.txt" 2>&1; r=$?
+  D08_NOSHOT=1 $(TO d08_maus) xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/d08_maus.gd -- "$LOGS" > "$LOGS/d08_maus.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/d08_maus.txt")
   [ "$e" -gt 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/d08_maus.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
@@ -117,7 +127,7 @@ fi
 # Zwei Läufe: Default-Start (muss Slice bleiben) + world_override, und der echte Kommandozeilen-Schalter.
 for mode in default arg; do
   if [ "$mode" = arg ]; then a="-- --welt=s7"; else a=""; fi
-  $G --headless --path . -s res://tests/s7_boot.gd $a > "$LOGS/s7_boot_$mode.txt" 2>&1; r=$?
+  $(TO s7_boot_$mode) $G --headless --path . -s res://tests/s7_boot.gd $a > "$LOGS/s7_boot_$mode.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/s7_boot_$mode.txt")
   [ "$e" -gt 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/s7_boot_$mode.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
@@ -125,7 +135,7 @@ for mode in default arg; do
 done
 # --- 2f) S7 W-06/W-02: Suite s7_validator (Generator-Determinismus Default-Seed, Validator world/data, 20 Seeds 0 Verstöße).
 if command -v python3 >/dev/null; then
-  bash tests/s7_validator.sh "$HERE/$LOGS/s7_validator" > "$LOGS/s7_validator.txt" 2>&1; r=$?
+  $(TO s7_validator) bash tests/s7_validator.sh "$HERE/$LOGS/s7_validator" > "$LOGS/s7_validator.txt" 2>&1; r=$?
   record "s7_validator (Generator md5, Validator, 20 Seeds)" $r "$(grep '^s7_validator' "$LOGS/s7_validator.txt" | sed 's/^s7_validator //' | tr '\n' ';' | cut -c1-220)"
 else
   record "s7_validator" 1 "python3 fehlt"
@@ -137,7 +147,7 @@ fi
 if command -v xvfb-run >/dev/null 2>&1; then
   PW=${PERF_WELT:-slice}
   PB=${PERF_BASELINE:-$HERE/tests/perf_s7_baseline_slice.csv}
-  xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/perf_s7.gd -- --welt=$PW --out=$HERE/$LOGS/perf_s7_$PW.csv --check=$PB > "$LOGS/perf_s7.txt" 2>&1; r=$?
+  $(TO perf_s7) xvfb-run -a -s "-screen 0 1600x900x24" $G --rendering-driver opengl3 --path . -s res://tests/perf_s7.gd -- --welt=$PW --out=$HERE/$LOGS/perf_s7_$PW.csv --check=$PB > "$LOGS/perf_s7.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/perf_s7.txt")
   [ "$e" -gt 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/perf_s7.txt" | sed 's/^  FAIL //' | cut -c1-90 | tr '\n' ';')
@@ -146,13 +156,25 @@ else
   record "perf_s7" 1 "xvfb-run fehlt"
 fi
 
+# --- 2g) QT-01b (S8): Proto-Suiten (Welt/Prototyp). Ausgabe außerhalb res:// bzw. in $LOGS, damit getrackte CSV-Dateien unberührt bleiben.
+for ps in proto_terrain_test ta_import_test proto_epochen_test proto_strassenband_test proto_welt_test proto_easing_test proto_sim_test \
+          proto_band_hoehe_test proto_schilder_test proto_fixpass_test proto_mass; do
+  extra=""
+  [ "$ps" = proto_easing_test ] && extra="-- --csv=$HERE/$LOGS/proto_easing.csv"
+  [ "$ps" = proto_mass ] && extra="-- --csv=$HERE/$LOGS/proto_mass.csv"
+  $(TO $ps) $G --headless --path . -s res://tests/$ps.gd $extra > "$LOGS/$ps.txt" 2>&1; r=$?
+  e=$(grep -c "SCRIPT ERROR" "$LOGS/$ps.txt"); [ "$e" -gt 0 ] && [ $r -eq 0 ] && r=1
+  fl=$(grep "^  FAIL" "$LOGS/$ps.txt" | sed 's/^  FAIL //' | cut -c1-90 | head -3 | tr '\n' ';')
+  record "$ps (Proto-Suite)" $r "$(grep -E 'Prüfungen OK|[0-9]+ OK, [0-9]+ FAIL|ERGEBNIS|Messzeilen' "$LOGS/$ps.txt" | tail -1 | cut -c1-90) ${fl:+ -- FAIL: $fl}"
+done
+
 # --- 3) Spike-Suiten (Kern, Signal/Diagnose) auf Kopien; prüft, dass die Slice-Änderungen die Spikes nicht berühren
 if [ -d "$SPIKES" ]; then
   W=$(mktemp -d /tmp/d07_spikes.XXXXXX)
   for sp in sim-core f04-signal; do
     if [ -d "$SPIKES/$sp" ]; then
       cp -r "$SPIKES/$sp" "$W/$sp"
-      bash "$W/$sp/run_smoke.sh" "$G" > "$LOGS/spike_$sp.txt" 2>&1; r=$?
+      $(TO spike_$sp) bash "$W/$sp/run_smoke.sh" "$G" > "$LOGS/spike_$sp.txt" 2>&1; r=$?
       record "Spike $sp (run_smoke.sh)" $r "$(tail -1 "$LOGS/spike_$sp.txt")"
     else
       record "Spike $sp" 1 "Ordner fehlt: $SPIKES/$sp"

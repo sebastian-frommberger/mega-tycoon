@@ -1,0 +1,41 @@
+# D-07 Regression, Sprint 5 (2026-11-05, Godot 4.7.2.stable.official.ed1daf0bf, Sandbox)
+
+| Suite | Ergebnis | Detail |
+|---|---|---|
+| run_tests.sh (slice_test soa, slice_test alt, parity_test, 0 SCRIPT ERROR) | OK | slice_test (soa) 74/74 Prüfungen OK, Laufzeit 5.8 s (Sandbox);slice_test (alt) 74/74 Prüfungen OK, Laufzeit 9.1 s (Sandbox);parity_test      8/8 Paritätsprüfungen OK;s11_test         16/16 Prüfun [38.9 s] |
+| d07_abnahme --only=ui | OK | 31/31 Abnahmeprüfungen OK, Laufzeit 15.8 s (Sandbox)  [16.5 s] |
+| d07_abnahme --only=kredit | OK | 17/17 Abnahmeprüfungen OK, Laufzeit 4.8 s (Sandbox)  [5.4 s] |
+| d07_abnahme --only=parity | OK | 12/12 Abnahmeprüfungen OK, Laufzeit 4.5 s (Sandbox)  [5.1 s] |
+| d07_abnahme --only=lager | OK | 2/2 Abnahmeprüfungen OK, Laufzeit 3.6 s (Sandbox)  [4.3 s] |
+| d07_abnahme --only=hq | OK | 30/30 Abnahmeprüfungen OK, Laufzeit 1.6 s (Sandbox)  [2.2 s] |
+| d08_bankrott (100 Seeds je Stadt) | OK | 10/10 Prüfungen OK, Laufzeit 148.7 s (Sandbox) mittelfurt 15/100 = 15 %;haberau 17/100 = 17 %;kohlberg 18/100 = 18 %;  [152.1 s] |
+| d08_lizenzfaktor (Vorschau gegen Spielpreis) | OK | 8/8 Vorschau-Lizenzfaktoren stimmen mit dem Spielpreis überein [3.2 s] |
+| s7_mira (Z-01 + B-xx Regression) | OK | == 33/33 Prüfungen OK  [3.6 s] |
+| s7_w04 (Kacheln, Autotile, Brücke, Hang-Preis, Straße:Block) | OK | 31/31 Prüfungen OK  [2.8 s] |
+| s7_city (W-03 Städte: Radius, Ausfransung, Gebäude, Zonen, Leerfläche, Bäume, Nachfrage) | OK | 114/114 Prüfungen OK  [1.9 s] |
+| s7_u03 (Fehlertexte beide Welten, Vorwarnung, Kopfleiste, Linienliste; xvfb) | OK | 125/125 Prüfungen OK  [13.4 s] |
+| u03_play slice (play.sh alle Bau-Fehlerfälle, 0 stumm) | OK | u03_play welt=slice: 12 Ablehnungen, davon stumm 0 (Soll 12 / 0), play.sh Exit 0 [14.8 s] |
+| u03_play s7 (play.sh alle Bau-Fehlerfälle, 0 stumm) | OK | u03_play welt=s7: 12 Ablehnungen, davon stumm 0 (Soll 12 / 0), play.sh Exit 0 [18.3 s] |
+| s7_industrie (W-05 Fläche+Icon+Name, 4 km ≥ 24 px, kein Überlappen, Status, U8; xvfb) | OK | 66/66 Prüfungen OK  [62.8 s] |
+| s7_start (Startmenü, Beispielnetz slice+s7, Einnahmen, kein Menü in Tests; xvfb) | OK | 31/31 Prüfungen OK  [9.0 s] |
+| d08_maus (echte Maus, xvfb) | OK | 27/27 Prüfungen OK  [131.6 s] |
+| s7_boot (default) | OK | 39/39 Prüfungen OK, Laufzeit 1.7 s (Sandbox)  [2.2 s] |
+| s7_boot (arg: --welt=s7) | OK | 29/29 Prüfungen OK, Laufzeit 1.2 s (Sandbox)  [1.8 s] |
+| s7_validator (Generator md5, Validator, 20 Seeds) | OK | Determinismus: Seed 7 neu erzeugt, 0 von 6 Dateien abweichend (Soll 0);Karte world/data: VALIDIERUNG OK (0 Verstoesse);20 Seeds: 20/20 OK (0 Verstöße, lösbar); [165.7 s] |
+| perf_s7 (slice, 6 Kameras x 0/5.000 Lkw, Gate +10 %) | OK | perf_s7 Prüfungen OK (12 Messwerte, Gate +10 %)  [28.4 s] |
+| proto_terrain_test (Proto-Suite) | OK | ERGEBNIS: GRUEN (0 Fehler)  [0.7 s] |
+| ta_import_test (Proto-Suite) | OK | ERGEBNIS: GRUEN (0 Fehler)  [0.2 s] |
+| proto_epochen_test (Proto-Suite) | OK | Prüfungen OK: 17, FAIL: 0  [0.2 s] |
+| proto_strassenband_test (Proto-Suite) | OK | Prüfungen OK: 36, FAIL: 0  [0.3 s] |
+| proto_welt_test (Proto-Suite) | OK | Prüfungen OK: 35, FAIL: 0  [1.3 s] |
+| proto_easing_test (Proto-Suite) | OK | Prüfungen OK: 15, FAIL: 0, Abweichungen (bewusst, offen): 2  [6.8 s] |
+| proto_sim_test (Proto-Suite) | OK | Prüfungen OK: 11, FAIL: 0  [1.4 s] |
+| proto_band_hoehe_test (Proto-Suite) | OK | Prüfungen OK: 2, FAIL: 0  [1.0 s] |
+| proto_schilder_test (Proto-Suite) | OK | proto_schilder_test: 51 OK, 0 FAIL  [1.2 s] |
+| proto_fixpass_test (Proto-Suite) | OK | proto_fixpass_test: 12 OK, 0 FAIL  [1.2 s] |
+| proto_mass (Proto-Suite) | OK | Messzeilen: 95, FAIL: 0  [1.5 s] |
+| Spike sim-core (run_smoke.sh) | OK | test_runner Exit 0, f06_smoke Exit 0, SCRIPT ERROR Zeilen: 0 [14.1 s] |
+| Spike f04-signal (run_smoke.sh) | OK | test_runner Exit 0, f06_smoke Exit 0, SCRIPT ERROR Zeilen: 0 [6.4 s] |
+| Statische Prüfungen (JSON, Icons >= 24, keine Modal-Klassen, Tween-Konstanten, Export-Filter) | OK | JSON gültig: ja;Icons: 33 (Soll >= 24), Dateien fehlen: [];Modal-Klassen im Code: keine;Übergangskonstanten: Hover 100 ms, Slide 150 ms (Soll <= 150);Export include_filter deckt ui/assets und data/*.json ab: True;B-2:  [0.0 s] |
+
+Gesamt: GRÜN, Laufzeit 720 s. Logs: tests/d07_logs/. Keine FPS-/Zielrechner-Aussage (Sandbox, headless).

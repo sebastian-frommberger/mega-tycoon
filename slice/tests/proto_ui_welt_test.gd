@@ -273,13 +273,11 @@ func _at08() -> void:
 	var d: Dictionary = ps.vdef(ps.def_fuer("fuhrwerk"))
 	var preis := int(d["kauf_cent"])
 	ui.klicks = 0
-	var lizenzklicks := 0
-	# 1 Klick Gut Kuppenhof, 2 Lizenz, 3 Linie von hier, 4 Klick Erlenmühle, 5 Anlegen
+	# PO 05.11.: [Lizenz + Anlegen] in einem Knopf. 1 Kuppenhof, 2 Linie von hier, 3 Erlenmühle, 4 Lizenz + Anlegen,
+	# 5 Erlenbach (Kette geht an der Mühle weiter), 6 Lizenz + Anlegen
 	_klick("Gut Kuppenhof")
-	_druecke("lizenz_kaufen")
-	lizenzklicks += 1
 	_druecke("linie_von_hier")
-	ok(ui.modus_von == "Gut Kuppenhof" and ui.modus_panel.visible, "Modus Linie von Gut Kuppenhof (Modusleiste sichtbar)")
+	ok(ui.modus_von == "Gut Kuppenhof" and ui.modus_panel.visible and ui.knoepfe.has("modus_lizenz"), "Modus Linie von Gut Kuppenhof, Leiste zeigt fehlende Lizenz")
 	_klick("Erlenmühle")
 	var v: Dictionary = ui.vorschau_werte
 	var a: Dictionary = ps.stationen["Gut Kuppenhof"]
@@ -292,30 +290,35 @@ func _at08() -> void:
 		"Vorschau = Spielwerte: Preis %s, Unterhalt %s/min, Strecke %d m, %d Felder" % [ui.geld(v["preis_cent"]), ui.geld(v["fix_cent"]), v["strecke_m"], v["felder"]])
 	var g: int = e.g_index["getreide"]
 	ok(v["ertrag_fuhre_cent"] == e.yield_cent(g, v["felder"], 1000, int(d["kapazitaet_einheiten"]) * 1000), "Ertrag je Fuhre %s = yield_cent (volle Frische, ohne Sättigung)" % ui.geld(v["ertrag_fuhre_cent"]))
+	var lq: int = int(e.licence_quote(int(a["site"]), false)["zu_zahlen_cent"])
+	ok(v["mit_lizenz"] and v["lizenz_cent"] == lq and v["summe_cent"] == lq + preis and (ui.knoepfe["anlegen"] as Button).text == "Lizenz + Anlegen · %s" % ui.geld(lq + preis),
+		"Gemeinsamer Knopf: %s (Lizenz %s + Fuhrwerk)" % [(ui.knoepfe["anlegen"] as Button).text, ui.geld(lq)])
 	var k0: int = e.cash_cent
 	_druecke("anlegen")
-	ok(k0 - e.cash_cent == v["preis_cent"] and ps.fahrzeuge.size() == 1 and s.fahrzeuge.mmis.size() == 1,
-		"Anlegen: Kasse −%d ¢ = Vorschaupreis ± 0, 1 Fuhrwerk, Darstellung neu gebaut" % (k0 - e.cash_cent))
-	ok(_letzte() == "Linie Gut Kuppenhof → Erlenmühle läuft. Fuhrwerk 1 ist unterwegs.", "Toast: %s" % _letzte())
+	ok(k0 - e.cash_cent == v["summe_cent"] and ps.fahrzeuge.size() == 1 and s.fahrzeuge.mmis.size() == 1 and e.licence_valid(int(a["site"])),
+		"Lizenz + Anlegen: Kasse −%d ¢ = Vorschau ± 0, Lizenz gültig, 1 Fuhrwerk, Darstellung neu gebaut" % (k0 - e.cash_cent))
+	ok(_letzte() == "Lizenz Gut Kuppenhof gekauft. Linie nach Erlenmühle läuft, Fuhrwerk 1 ist unterwegs.", "Toast: %s" % _letzte())
 	ok(ui.modus_von == "Erlenmühle" and ui.auswahl == "Erlenmühle", "Kette: Modus geht an der Erlenmühle weiter, Panel Erlenmühle offen")
-	ok(ui.knoepfe.has("modus_lizenz"), "Modusleiste: Erlenmühle ohne Lizenz, Kauf-Knopf in der Leiste")
-	# keine Lizenz (Fehlerfall 3): Ziel klicken, bevor die Mühle lizenziert ist
-	var n_log: int = ui.meldungen_log.size()
-	var k_vor: int = ui.klicks
 	_klick("Erlenbach")
-	ok(ui.meldungen_log.size() == n_log + 1 and _letzte() == "Erlenmühle hat keine Lizenz. Kaufe sie im Panel (Klick auf das Gebäude)." and ps.fahrzeuge.size() == 1,
-		"Fehlerfall keine Lizenz: %s" % _letzte())
-	ui.klicks = k_vor                  # Fehlklick zählt nicht in den Erfolgsweg
-	# 6 Lizenz Mühle (Leiste), 7 Klick Erlenbach, 8 Anlegen
-	_druecke("modus_lizenz")
-	lizenzklicks += 1
-	_klick("Erlenbach")
+	var sm: int = int(ps.stationen["Erlenmühle"]["site"])
+	var lm: int = int(e.licence_quote(sm, false)["zu_zahlen_cent"])
+	ok(ui.vorschau_werte["summe_cent"] == lm + preis, "Vorschau Mühle → Erlenbach mit Lizenz %s" % ui.geld(lm))
 	k0 = e.cash_cent
 	_druecke("anlegen")
-	ok(ps.fahrzeuge.size() == 2 and k0 - e.cash_cent == preis and ui.modus_von == "" and ui.auswahl == "Erlenbach",
-		"Mehl-Linie Erlenmühle → Erlenbach angelegt (−%d ¢), Modus endet am Dorf" % (k0 - e.cash_cent))
-	var klicks_ges: int = ui.klicks
-	ok(klicks_ges - lizenzklicks <= 6, "Farm → Mühle → Dorf: %d Klicks gesamt, davon %d Lizenzklicks, %d Klicks ohne Lizenzen (Soll ≤ 6)" % [klicks_ges, lizenzklicks, klicks_ges - lizenzklicks])
+	ok(ps.fahrzeuge.size() == 2 and k0 - e.cash_cent == lm + preis and ui.modus_von == "" and ui.auswahl == "Erlenbach",
+		"Mehl-Linie Erlenmühle → Erlenbach angelegt (−%d ¢ = Lizenz + Fuhrwerk), Modus endet am Dorf" % (k0 - e.cash_cent))
+	ok(ui.klicks <= 6, "Farm → Mühle → Dorf ab Start ohne Lizenz: %d Klicks inkl. Lizenzen (Soll ≤ 6)" % ui.klicks)
+	# Lizenz + Anlegen ohne Geld: Text, nichts gekauft
+	var echt0: int = e.cash_cent
+	ui.linie_von_hier("Hof Hasenwinkel")
+	ui.ziel_waehlen("Erlenmühle")
+	e.cash_cent = 1000
+	var n_log: int = ui.meldungen_log.size()
+	_druecke("anlegen")
+	ok(ui.meldungen_log.size() == n_log + 1 and _letzte().begins_with("Lizenz und Fuhrwerk kosten") and not e.licence_valid(ui.site_of("Hof Hasenwinkel")) and ps.fahrzeuge.size() == 2,
+		"Lizenz + Anlegen ohne Geld: %s" % _letzte())
+	e.cash_cent = echt0
+	ui.modus_ende()
 	# + Fuhrwerk aus dem Panel (≤ 2 Klicks)
 	ui.klicks = 0
 	_klick("Gut Kuppenhof")
@@ -592,16 +595,14 @@ func _at08_maus() -> void:
 	ui.klicks = 0
 	var n0: int = ui.meldungen_log.size()
 	await _echt_ort("Gut Kuppenhof")
-	await _echt_knopf("lizenz_kaufen")
 	await _echt_knopf("linie_von_hier")
 	await _echt_ort("Erlenmühle")
 	await _echt_knopf("anlegen")
-	await _echt_knopf("modus_lizenz")
 	await _echt_ort("Erlenbach")
 	await _echt_knopf("anlegen")
 	var texte: Array = ui.meldungen_log.slice(n0).map(func(m): return m["text"])
-	ok(ps.fahrzeuge.size() == 2 and ui.klicks == 8 and ps.eco.licence_valid(ui.site_of("Erlenmühle")),
-		"Echte Maus: Farm → Mühle → Dorf mit %d Klicks (2 davon Lizenz), %d Fuhrwerke; Meldungen %s" % [ui.klicks, ps.fahrzeuge.size(), str(texte)])
+	ok(ps.fahrzeuge.size() == 2 and ui.klicks == 6 and ps.eco.licence_valid(ui.site_of("Erlenmühle")),
+		"Echte Maus: Farm → Mühle → Dorf mit %d Klicks inkl. Lizenzen, %d Fuhrwerke; Meldungen %s" % [ui.klicks, ps.fahrzeuge.size(), str(texte)])
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

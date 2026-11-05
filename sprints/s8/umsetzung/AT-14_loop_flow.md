@@ -147,6 +147,7 @@ Fuhrwerk 2 Mehl           −3 $     3 J    ▲ Erlenbach 100 %
 ### S2 Linie anlegen
 **Zustände:** 2a Modus „Linie von hier“ (Cursor-Hinweis „Klicke das Ziel“, mögliche Ziele Kontur grün, ungültige grau) → 2b Vorschau (W3) → 2c angelegt. Esc bricht in jeder Stufe ohne Text ab.
 **Erfolgsweg:** Quelle (Panel) → Ziel (Klick) → [Anlegen]. Annahme A1: Anlegen kauft das **erste Fuhrwerk** mit (Preis in der Vorschau). Toast: „Linie {A} → {B} läuft. Fuhrwerk 1 ist unterwegs.“ Kette Farm → Mühle → Dorf als zwei Linien.
+**Änderung 05.11.2026 (PO-Entscheid, umgesetzt von Mira in `proto/ui_welt.gd`):** Fehlt der Quelle die Lizenz, zeigt die Vorschau die Zeile „{A} hat keine Lizenz: Lizenz {x}, gilt {t} min“ und den gemeinsamen Knopf **[Lizenz + Anlegen · {x+p} $]** (ein Klick kauft beide). Toast: „Lizenz {A} gekauft. Linie nach {B} läuft, Fuhrwerk {n} ist unterwegs.“ Fehlt Geld: „Lizenz und Fuhrwerk kosten {x}, es fehlen {Δ}. Nimm Kredit oder warte.“ Nach [Anlegen] geht der Modus am Ziel weiter, wenn es selbst liefert (Mühle). Damit: Farm → Mühle → Dorf in 6 Klicks inklusive Lizenzen. F2.3 bleibt für [+ Fuhrwerk] bei abgelaufener Lizenz. → Aylin: Wireframe W3 und Texte prüfen.
 
 | # | Fehlerweg | Text | Anzeige |
 |---|---|---|---|

@@ -49,6 +49,8 @@ const FT_WELT := {
 	"tilgen_ok": "Kredit {x} getilgt, offen noch {r}.",
 	"kein_kredit": "Du hast keinen Kredit offen. Tilgen ist nicht nötig.",
 	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
+	"lizenz_linie_ok": "Lizenz {name} gekauft. Linie nach {b} läuft, Fuhrwerk {n} ist unterwegs.",
+	"lizenz_linie_geld": "Lizenz und Fuhrwerk kosten {x}, es fehlen {d}. Nimm Kredit oder warte.",
 	"gibt_es_schon": "Diese Linie gibt es schon. Füge ihr ein Fuhrwerk hinzu (+ Fuhrwerk).",
 	"ins_leere": "Klicke ein Gebäude an: erst die Quelle, dann das Ziel.",
 	"gleich": "Start und Ziel sind gleich. Wähle ein anderes Ziel.",
@@ -202,6 +204,15 @@ func ort_geliefert(site: int, kat: String) -> int:
 func ort_saettigung_pct(site: int, kat: String) -> int:
 	var dem: int = maxi(1, ps.eco.city_demand(site))
 	return Economy.rdiv(ort_geliefert(site, kat) * 100, dem)
+
+
+## Darf die Quelle laden? Lizenz gültig oder Werk im Besitz (FK-02: Besitz ersetzt die Lizenz).
+func lizenz_ok(site: int) -> bool:
+	return ps.eco.licence_valid(site) or eigen(site)
+
+
+func eigen(site: int) -> bool:
+	return site >= 0 and int(ps.eco.s_owner[site]) == Economy.OWNER_SPIELER
 
 
 func lizenz_rest_min(site: int) -> int:
@@ -493,7 +504,7 @@ func _panel_industrie(site: int) -> void:
 			panel_vb.add_child(_label("  %s  %d Felder (%d m)  %s%s" % [a["name"], a["felder"], a["m"], form, zus], 16))
 			liste.append(a["name"])
 		panel_werte["abnehmer"] = liste
-	panel_vb.add_child(_knopf("Linie von hier", "linie_von_hier", linie_von_hier.bind(auswahl), e.licence_valid(site)))
+	panel_vb.add_child(_knopf("Linie von hier", "linie_von_hier", linie_von_hier.bind(auswahl), lizenz_ok(site)))
 	_linien_ab(auswahl)
 
 
@@ -502,7 +513,9 @@ func _lizenz_zeile(site: int) -> void:
 	var q: Dictionary = e.licence_quote(site, false)
 	var hb := HBoxContainer.new()
 	var lt := ""
-	if e.licence_valid(site):
+	if eigen(site):
+		lt = "● Lizenz: nicht nötig, gehört dir"
+	elif e.licence_valid(site):
 		var t := lizenz_rest_min(site)
 		panel_werte["lizenz_rest_min"] = t
 		lt = "%s Lizenz: gilt noch %d min" % ["▲" if t < 3 else "●", t]
@@ -511,7 +524,7 @@ func _lizenz_zeile(site: int) -> void:
 	var l := _label(lt, 16)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(l)
-	if q.get("ok", false) and not e.licence_valid(site):
+	if q.get("ok", false) and not lizenz_ok(site):
 		var preis: int = q["zu_zahlen_cent"]
 		panel_werte["lizenz_preis"] = preis
 		var b := _knopf("Lizenz kaufen %s" % geld(preis), "lizenz_kaufen", lizenz_kaufen.bind(auswahl), false, preis > e.cash_cent)
@@ -669,7 +682,7 @@ func modus_neu() -> void:
 		return
 	modus_hb.add_child(_label(text("modus", {"name": modus_von}), 16))
 	var site := site_of(modus_von)
-	if not ps.eco.licence_valid(site):
+	if not lizenz_ok(site):
 		modus_hb.add_child(_label("Keine Lizenz.", 16, C_WARN))
 		var q: Dictionary = ps.eco.licence_quote(site, false)
 		var preis: int = int(q.get("zu_zahlen_cent", 0))
@@ -712,10 +725,6 @@ func ziel_waehlen(nm: String) -> void:
 		return
 	if not nimmt_an(sz, g):
 		meldung(text("nimmt_nicht", {"ziel": nm, "ware": String(ps.eco.g_ids[g]).capitalize()}))
-		return
-	if not ps.eco.licence_valid(sv):
-		meldung(text("keine_lizenz", {"name": von}))
-		oeffnen(von)
 		return
 	var n_alt := linien_fahrzeuge(von, nm).size()
 	if n_alt > 0:
@@ -775,11 +784,23 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 	vorschau_vb.add_child(_label("Schätzung: volle Frische, ohne Sättigung des Abnehmers.", 15, C_GRAU))
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 12)
-	var grau: bool = v["preis_cent"] > ps.eco.cash_cent
+	var sv := site_of(von)
+	var lic := 0                                            # PO 05.11.: [Lizenz + Anlegen] in einem Knopf
+	if not lizenz_ok(sv):
+		lic = int(ps.eco.licence_quote(sv, false).get("zu_zahlen_cent", 0))
+		vorschau_vb.add_child(_label("%s hat keine Lizenz: Lizenz %s, gilt %d min" % [von, geld(lic),
+			int(ps.eco.lic_duration) / periode()], 16, C_WARN))
+	vorschau_werte["lizenz_cent"] = lic
+	vorschau_werte["mit_lizenz"] = not lizenz_ok(sv)
+	var summe: int = int(v["preis_cent"]) + lic
+	vorschau_werte["summe_cent"] = summe
+	var grau: bool = summe > ps.eco.cash_cent
 	var t := ("+ Fuhrwerk · %s" if n_alt > 0 else "Anlegen · %s") % geld(v["preis_cent"])
+	if not lizenz_ok(sv):
+		t = "Lizenz + Anlegen · %s" % geld(summe)
 	var b := _knopf(t, "anlegen", anlegen, not grau, grau, "vorschau")
 	if grau:
-		b.tooltip_text = "Es fehlen %s." % fehlbetrag(v["preis_cent"] - ps.eco.cash_cent)
+		b.tooltip_text = "Es fehlen %s." % fehlbetrag(summe - ps.eco.cash_cent)
 	hb.add_child(b)
 	hb.add_child(_knopf("Abbrechen · Esc", "vorschau_abbrechen", modus_ende, false, false, "vorschau"))
 	vorschau_vb.add_child(hb)
@@ -790,7 +811,18 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 func anlegen() -> Dictionary:
 	var von := String(vorschau_werte.get("von", ""))
 	var nach := String(vorschau_werte.get("nach", ""))
-	var r := fuhrwerk_kaufen(von, nach)
+	var sv := site_of(von)
+	var mit_lizenz := sv >= 0 and not lizenz_ok(sv)
+	if mit_lizenz:                                         # gemeinsamer Knopf: erst prüfen, dann Lizenz, dann Fuhrwerk
+		var summe := int(ps.eco.licence_quote(sv, false).get("zu_zahlen_cent", 0)) + int(fuhrwerk_def().get("kauf_cent", 0))
+		if summe > ps.eco.cash_cent:
+			meldung(text("lizenz_linie_geld", {"x": geld(summe), "d": fehlbetrag(summe - ps.eco.cash_cent)}))
+			return {"ok": false, "fehler": "guthaben_reicht_nicht"}
+		var rl: Dictionary = ps.lizenz_kaufen(von)
+		if not rl.get("ok", false):
+			meldung(lizenz_fehlertext(von, rl))
+			return rl
+	var r := fuhrwerk_kaufen(von, nach, mit_lizenz)
 	if r.get("ok", false):
 		var sz := site_of(nach)
 		if ausgang(sz) != "":
@@ -803,12 +835,12 @@ func anlegen() -> Dictionary:
 
 ## Fuhrwerk auf der Linie von → nach kaufen (erste Linie oder + Fuhrwerk). Prüft Lizenz und Kasse vor der API,
 ## jede Ablehnung der API wird übersetzt (nie stumm).
-func fuhrwerk_kaufen(von: String, nach: String) -> Dictionary:
+func fuhrwerk_kaufen(von: String, nach: String, mit_lizenz := false) -> Dictionary:
 	if von == "" or nach == "":
 		meldung(text("ins_leere"))
 		return {"ok": false, "fehler": "keine_auswahl"}
 	var sv := site_of(von)
-	if sv >= 0 and ist_industrie(sv) and ps.eco.lic_required and not ps.eco.licence_valid(sv):
+	if sv >= 0 and ist_industrie(sv) and ps.eco.lic_required and not lizenz_ok(sv):
 		meldung(text("keine_lizenz", {"name": von}))       # API-Lücke: linie_anlegen prüft die Lizenz nicht (Bericht)
 		oeffnen(von)
 		return {"ok": false, "fehler": "keine_lizenz"}
@@ -819,7 +851,9 @@ func fuhrwerk_kaufen(von: String, nach: String) -> Dictionary:
 		return r
 	_fahrzeuge_neu()
 	var v := route_vorschau(von, nach, n_alt + 1)
-	if n_alt == 0:
+	if mit_lizenz:
+		meldung(text("lizenz_linie_ok", {"name": von, "b": nach, "n": r["vid"]}))
+	elif n_alt == 0:
 		meldung(text("linie_ok", {"a": von, "b": nach, "n": r["vid"]}))
 	else:
 		meldung(text("fuhrwerk_ok", {"n": r["vid"], "p": geld(int(r["preis_cent"])), "u": geld(v["fix_cent"]),

@@ -39,6 +39,7 @@ const Platzhalter := preload("res://proto/proto_platzhalter.gd")
 const Epochen := preload("res://proto/proto_epochen.gd")
 const ProtoSim := preload("res://proto/proto_sim.gd")
 const Fahrzeuge := preload("res://proto/proto_fahrzeuge.gd")
+const StelleMerken := preload("res://proto/stelle_merken.gd")     # WA-02: F12
 const STUB := "res://proto/proto_terrain_stub.gd"
 const TA_TERRAIN := "res://world/proto_terrain.gd"
 const DATEN := "res://world/data/proto/"
@@ -468,6 +469,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		elif k == KEY_H:
 			hud_an = not hud_an
 			hud.visible = hud_an
+		elif k == KEY_F12:                  # WA-02: Stelle merken (PNG + JSON nach user://stellen/)
+			StelleMerken.merken(self)
 		elif k == KEY_F11 or (k == KEY_ENTER and ev.alt_pressed):
 			vollbild_umschalten()
 		elif k == KEY_ESCAPE:

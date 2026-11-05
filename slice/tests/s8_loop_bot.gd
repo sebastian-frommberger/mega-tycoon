@@ -139,6 +139,11 @@ var naiv: Dictionary = {}
 var plan: Dictionary = {}
 var normal: Dictionary = {}
 var tilge_ok := true
+var rw_total := 0                   # Σ Restwert-Gutschriften (Abgleich Kasse)
+var rw_last := 0
+var recon_fehler := 0               # Periodenabgleich Kassendelta/Netto verletzt
+var recon_text := ""
+var mutant := ""                    # --mutant=det|recon: absichtlich kaputt, der Wächter muss rot werden
 
 
 func _initialize() -> void:
@@ -165,6 +170,8 @@ func _initialize() -> void:
 			det_check = false
 		elif a == "--v":
 			verbose = true
+		elif a.begins_with("--mutant="):
+			mutant = a.substr(9)
 		elif a.begins_with("--p_"):
 			var kv: PackedStringArray = a.substr(4).split("=")
 			if kv.size() == 2 and PARAM.has(kv[0]):
@@ -316,7 +323,7 @@ func _ziele_laden() -> void:
 
 func _csv_kopf() -> String:
 	return "strategie,seed,tempo_k,startkapital_cent,ticks,bankrott,bankrott_min,z_e1,z_e2,z_e3,z_e4,z_e5,z_e6_alle,z_e6_eine,z_f1,z_f2_op,z_f2_kasse," \
-		+ "ev1,ev2,ev3,ev4,ev5,ev6,ev7,ev8,ev3_spec,luecke_max_min,luecke_bei_min,fz_max,fz_ende,lieferungen,ertrag_cent,kasse_ende_cent,kasse_tief_5_20_cent," \
+		+ "ev1,ev2,ev3,ev4,ev5,ev6,ev7,ev8,ev3_spec,luecke_max_min,luecke_bei_min,luecke_ohne_ev3_min,fz_max,fz_ende,lieferungen,ertrag_cent,kasse_ende_cent,kasse_tief_5_20_cent," \
 		+ "kredit_max_cent,kredit_ende_cent,netto5_op_min30_cent,netto5_kasse_min30_cent,fehl_api,pruefsumme"
 
 
@@ -340,23 +347,18 @@ func _lauf(s: String, sd: int) -> Dictionary:
 		fehler = str(ps.fehler)
 	var ende: int = t
 	# größte Ereignislücke im Fenster [2, 45] min, bis Bankrott/Ende
-	var lo := luecke_von_min * PERIODE
-	var hi := mini(luecke_bis_min * PERIODE, ende)
-	var prev := lo
-	var gmax := 0
-	var gbei := lo
 	evs.sort_custom(func(a, b): return a[0] < b[0])
-	for e in evs:
-		var et: int = e[0]
-		if et < lo or et > hi:
-			continue
-		if et - prev > gmax:
-			gmax = et - prev
-			gbei = prev
-		prev = et
-	if hi - prev > gmax and hi > lo:
-		gmax = hi - prev
-		gbei = prev
+	var g1: Array = _luecke(ende, 0)
+	var g3: Array = _luecke(ende, 3)
+	var gmax: int = g1[0]
+	var gbei: int = g1[1]
+	if recon_fehler > 0:
+		fehler += " Abgleich: " + recon_text
+	var sum_l := 0
+	for L in ps.lieferungen:
+		sum_l += int(L["cent"])
+	if sum_l != ps.eco.revenue_total:
+		fehler += " Abgleich: Σ Lieferungen %d != revenue_total %d" % [sum_l, ps.eco.revenue_total]
 	var br: int = 1 if ps.konto.bankrupt else 0
 	var kasse_ende: int = ps.eco.cash_cent
 	var zeile := "%s,%d,%d,%d,%d,%d,%s" % [s, sd, ps.tempo_k, _startkapital_cent(), ende, br, _min_text(ps.bankrott_tick)]
@@ -365,7 +367,7 @@ func _lauf(s: String, sd: int) -> Dictionary:
 	for nr in range(1, 9):
 		zeile += ",%d" % ev_n[nr]
 	zeile += ",%d" % e3_spec_n
-	zeile += ",%.2f,%.2f" % [gmax / 600.0, gbei / 600.0]
+	zeile += ",%.2f,%.2f,%.2f" % [gmax / 600.0, gbei / 600.0, int(g3[0]) / 600.0]
 	var fz_ende := 0
 	for f in ps.fahrzeuge:
 		if not f["verkauft"]:
@@ -377,9 +379,33 @@ func _lauf(s: String, sd: int) -> Dictionary:
 	zeile += ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [fz_max, fz_ende, ps.lieferungen.size(), ps.eco.revenue_total, kasse_ende, tief,
 		kredit_max, ps.credit.loan_cent, netto5_op_min30, netto5_kasse_min30, api_n, ps.pruefsumme()]
 	return {"zeile": zeile, "pruefsumme": ps.pruefsumme(), "ticks": ende, "bankrott": br, "bankrott_tick": ps.bankrott_tick,
-		"z": z.duplicate(), "ev_n": Array(ev_n), "gmax": gmax, "gbei": gbei, "strategie": s, "seed": sd, "fehler": fehler,
+		"z": z.duplicate(), "ev_n": Array(ev_n), "gmax": gmax, "gbei": gbei, "gmax3": int(g3[0]), "strategie": s, "seed": sd, "fehler": fehler,
 		"fz_max": fz_max, "kasse_ende": kasse_ende, "tief": tief, "api_abl": api_abl.duplicate(), "api_aufrufe": api_aufrufe,
 		"n5_op": netto5_op_min30, "n5_kasse": netto5_kasse_min30}
+
+
+## Größte Lücke zwischen zwei Ereignissen im Fenster [luecke_von_min, luecke_bis_min] min (Ränder zählen als Ereignis),
+## bis Bankrott/Laufende. ohne_nr > 0 lässt diesen Ereignistyp weg. Rückgabe [Lücke, Beginn] in Ticks.
+func _luecke(ende: int, ohne_nr: int) -> Array:
+	var lo := luecke_von_min * PERIODE
+	var hi := mini(luecke_bis_min * PERIODE, ende)
+	var prev := lo
+	var gmax := 0
+	var gbei := lo
+	for e in evs:
+		if int(e[1]) == ohne_nr:
+			continue
+		var et: int = e[0]
+		if et < lo or et > hi:
+			continue
+		if et - prev > gmax:
+			gmax = et - prev
+			gbei = prev
+		prev = et
+	if hi - prev > gmax and hi > lo:
+		gmax = hi - prev
+		gbei = prev
+	return [gmax, gbei]
 
 
 func _startkapital_cent() -> int:
@@ -390,6 +416,8 @@ func _reset(s: String, sd: int) -> void:
 	strat = s
 	seed_nr = sd
 	rng.seed = sd * 7919 + STRATEGIEN.find(s) * 104729 + 17
+	if mutant == "det":
+		rng.seed = Time.get_ticks_usec()          # Mutant: Verhalten nicht mehr vom Seed bestimmt
 	ps = ProtoSim.new(szene.regelwerk)
 	ps.graph_bauen(szene.strassen)
 	ps.spiel_starten(orte)
@@ -446,6 +474,10 @@ func _reset(s: String, sd: int) -> void:
 	netto5_kasse_min30 = 0
 	fk_versuche = 0
 	tilge_ok = true
+	rw_total = 0
+	rw_last = 0
+	recon_fehler = 0
+	recon_text = ""
 	_fk_status_pruefen()
 	_strategie_ziehen()
 
@@ -546,6 +578,8 @@ func _kaufe(von: String, nach: String, def_id := "") -> bool:
 
 
 func _kredit_auf() -> int:
+	if int(ps.credit.borrow_amount(ps.sim.tick_count)) <= 0:
+		return 0                       # Knopf wäre grau (Sperre/Rahmen voll): kein API-Aufruf, keine Zählung
 	api_aufrufe += 1
 	var a: int = ps.kredit_aufnehmen()
 	if a <= 0:
@@ -555,6 +589,8 @@ func _kredit_auf() -> int:
 
 
 func _kredit_ab() -> int:
+	if int(ps.credit.repay_amount(_cash())) <= 0:
+		return 0
 	api_aufrufe += 1
 	var a: int = ps.kredit_tilgen()
 	if a <= 0:
@@ -568,6 +604,7 @@ func _verkaufe(vid: int) -> bool:
 	if not r.get("ok", false):
 		_abl("verkauf_" + String(r.get("fehler", "?")))
 		return false
+	rw_total += int(r.get("restwert_cent", 0))
 	return true
 
 
@@ -942,6 +979,14 @@ func _periodenende(t: int) -> void:
 	var liz_renew: int = (ps.eco.licence_paid_total - lizpaid_last) - (bot_lic_cent - bot_lic_last)
 	var n_op: int = ertrag - fahrk - fix - zins - liz_renew
 	var n_ka: int = (cash - cash_last) - (ps.credit.loan_cent - loan_last)
+	# Abgleich (zwei unabhängige Wege zur Kassenänderung): n_ka = n_op - Käufe - Lizenzkäufe des Bots + Restwerte
+	var erw: int = n_op - kauf - (bot_lic_cent - bot_lic_last) + (rw_total - rw_last)
+	if mutant == "recon":
+		erw += 1
+	if erw != n_ka:
+		recon_fehler += 1
+		recon_text = "Periode %d: Kassendelta %d != erwartet %d (Netto %d, Kauf %d, Bot-Lizenz %d, Restwert %d)" % [per, n_ka, erw, n_op, kauf, bot_lic_cent - bot_lic_last, rw_total - rw_last]
+	rw_last = rw_total
 	netto_op.append(n_op)
 	netto_kasse.append(n_ka)
 	rev_last = ps.eco.revenue_total
@@ -1048,7 +1093,9 @@ func _zusammenfassung(s: String, res: Array, ms: Array) -> bool:
 	var fzm: Array = []
 	var api_sum: Dictionary = {}
 	var luecken_ok := 0
+	var luecken3: Array = []
 	for r in res:
+		luecken3.append(float(r["gmax3"]))
 		bk += int(r["bankrott"])
 		if int(r["bankrott"]) == 1:
 			br_min.append(float(r["bankrott_tick"]) / 600.0)
@@ -1065,6 +1112,7 @@ func _zusammenfassung(s: String, res: Array, ms: Array) -> bool:
 			api_sum[kk] = int(api_sum.get(kk, 0)) + int(r["api_abl"][kk])
 	br_min.sort()
 	luecken.sort()
+	luecken3.sort()
 	tief.sort()
 	n5.sort()
 	fzm.sort()
@@ -1083,6 +1131,7 @@ func _zusammenfassung(s: String, res: Array, ms: Array) -> bool:
 	print("  Ereignisse je Lauf (Mittel) 1..8: %s; ev3 nach Spec (v_lwait > 600) ungezählt in Lücke" % str(_mittel_ev(ev_summe, n)))
 	print("  größte Ereignislücke Min 2-%d: P50 %.1f min, P90 %.1f min, Max %.1f min; Läufe mit Lücke <= %.1f min: %d/%d" % [luecke_bis_min,
 		_pct(luecken, 50) / 600.0, _pct(luecken, 90) / 600.0, _pct(luecken, 100) / 600.0, luecke_max_ticks / 600.0, luecken_ok, n])
+	print("  größte Lücke OHNE Ereignis 3 (Ersatzdefinition [E], feuert häufig): P50 %.1f min, P90 %.1f min, Max %.1f min" % [_pct(luecken3, 50) / 600.0, _pct(luecken3, 90) / 600.0, _pct(luecken3, 100) / 600.0])
 	print("  Kasse Tiefpunkt Min 5-20 (min je Lauf): P50 %.0f $ (W24-Kriterium: P50 < 2.000 $), Fuhrwerke max P50 %.0f" % [_pct(tief, 50) / 100.0, _pct(fzm, 50)])
 	print("  Netto operativ 5-Perioden-Mittel Min 30: P50 %.0f $/min (F2-Schwelle %.0f $/min), n_Bankrott zählt als 0 (Wert 0)" % [_pct(n5, 50) / 100.0, schwelle_f2 / 100.0])
 	print("  Ablehnungen der Spieler-API (Bot-Aufrufe): %s" % str(api_sum))

@@ -48,17 +48,40 @@ var fehler: Array = []
 var kette_ok := false
 var ticks := 0
 var _profile: Dictionary = {}
+var tempo_k := 1                     # AT-04 (S8): Tempo-Teiler aus regelwerk fahrzeug_easing.tempo_k, Nutzerargument --tempo_k=
 var _vdef: Dictionary = {}
 
 
 func _init(p_regelwerk: Dictionary = {}) -> void:
 	regelwerk = p_regelwerk
 	sim = SimWorld.new()
+	tempo_k = tempo_k_aus(regelwerk)
+
+
+## AT-04 (W1): k aus regelwerk fahrzeug_easing.tempo_k.standard (fehlt = 1); `--tempo_k=N` überschreibt.
+static func tempo_k_aus(rw: Dictionary) -> int:
+	var tk = rw.get("fahrzeug_easing", {}).get("tempo_k", {})
+	var k: int = int(tk.get("standard", 1)) if tk is Dictionary else 1
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--tempo_k="):
+			k = int(a.substr(10))
+	return maxi(k, 1)
 
 
 func profil(kat: String):
 	if not _profile.has(kat):
-		_profile[kat] = Easing.Profil.aus_regelwerk(regelwerk, kat)
+		var p = Easing.Profil.aus_regelwerk(regelwerk, kat)
+		var fe: Dictionary = regelwerk.get("fahrzeug_easing", {})
+		var tk = fe.get("tempo_k", {})
+		var gilt: Array = tk.get("gilt_fuer", ["fuhrwerk", "postkutsche"]) if tk is Dictionary else ["fuhrwerk", "postkutsche"]
+		if tempo_k != 1 and kat in gilt:
+			# AT-04: einzige Tempo-Quelle bleibt sim_felder_je_tick_promille (W1), hier nur ÷ k, ganzzahlig in mm/Tick
+			var promille: int = int(fe.get("kategorien", {}).get(kat, {}).get("sim_felder_je_tick_promille", 600))
+			if promille % tempo_k != 0:
+				fehler.append("tempo_k %d teilt %s-Tempo %d nicht ganzzahlig" % [tempo_k, kat, promille])
+			var mpf := float(regelwerk.get("skalen", {}).get("m_pro_feld", Easing.M_PRO_FELD))
+			p.v_nom = float(promille / tempo_k) / 1000.0 * mpf
+		_profile[kat] = p
 	return _profile[kat]
 
 

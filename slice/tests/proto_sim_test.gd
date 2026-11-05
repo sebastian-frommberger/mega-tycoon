@@ -60,7 +60,8 @@ func _run() -> void:
 			f["name"], sim_m, l0, (l0 / sim_m - 1.0) * 100.0, f["route_kanten"], f["legs"][0].r_uebergang_min, f["legs"][0].skala])
 		pruef(absf(l0 / sim_m - 1.0) < 0.05, "%s: Fahrlinie ≈ Sim-Länge (±5 %%)" % f["name"])
 	var spd: int = ps.sim.v_speed[ps.sim.slot_of(1)] if ps.fahrzeuge.size() > 0 else 0
-	pruef(spd == 600, "Sim-Tempo Fuhrwerk 600 mm/Tick = 15 m/Tick (%d)" % spd)
+	var k: int = ps.tempo_k        # AT-04: 600 / k (regelwerk tempo_k, --tempo_k=)
+	pruef(spd == 600 / k, "Sim-Tempo Fuhrwerk 600/%d = %d mm/Tick (%d)" % [k, 600 / k, spd])
 	var lieferung_muehle := 0
 	var lieferung_dorf := 0
 	var cent_dorf := 0

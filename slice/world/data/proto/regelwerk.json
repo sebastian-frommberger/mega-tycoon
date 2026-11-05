@@ -4035,6 +4035,20 @@
   "status": "entschieden K27-K30, Kosten Annahme K31",
   "nur_darstellung": true,
   "sim_liest_nichts_zurueck": true,
+  "tempo_k": {
+   "standard": 1,
+   "varianten": [
+    4,
+    6,
+    8
+   ],
+   "gilt_fuer": [
+    "fuhrwerk",
+    "postkutsche"
+   ],
+   "regel": "v_nom = kategorien.<kat>.sim_felder_je_tick_promille / k (ganzzahlig mm/Tick); einzige Tempo-Quelle der Welt (W1); Nutzerargument --tempo_k= ueberschreibt standard; Frischefristen nicht skaliert",
+   "kenn": "S8 AT-04 (Tech T-01, PO W1/W2), Annahme D2 bis Basti"
+  },
   "code_befund": {
    "astar": "main.gd _setup_astar DIAGONAL_MODE_NEVER (4 Richtungen)",
    "render": "3 MultiMesh, Puffer je Tick, set_buffer_interpolated",

@@ -1,0 +1,7 @@
+k=1 exit=0 dauer=81 s load_vor=0.48 nach=0.86
+k=4 exit=0 dauer=84 s load_vor=0.86 nach=0.97
+k=8 exit=0 dauer=44 s load_vor=0.97 nach=1.05
+k=20 exit=0 dauer=26 s load_vor=1.05 nach=1.03
+a k4 1572 exit=0
+a k8 3133 exit=0
+FERTIG

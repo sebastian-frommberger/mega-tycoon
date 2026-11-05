@@ -1,6 +1,6 @@
 # QT-03c Loop-Bot am echten a-Haken, Wiederholung der Kernmessung, Rauchtests in der Regression (Daniel, S8, 05.11.2026)
 
-**Ergebnis:** Der Bot rechnet keinen eigenen Ertragsbonus mehr. `--a=` geht an die Welt (`ProtoSim` liest es selbst, `economy.ertrag_a_promille`), `fk_total` wird nicht mehr zu `kauf_total` addiert. Gegen die alte Emulation gemessen: **0 Abweichungen** in 160 Läufen (a = 1.000: 120 Läufe, a = 1.572 und 3.133: 40 Läufe), alle 55 Spalten gleich, auch die Sim-Prüfsumme. Die Kernmessung (n = 20, k = 1/4/8/20 × 3 Strategien) ist wiederholt; die a-Bisektion läuft mit dem echten Haken. **Kalibriert habe ich nichts, Spielcode ist unverändert** (`main.gd`, `economy.gd`, `proto_sim.gd`, `prototyp_welt.gd`, UI; nur `tests/`, `tools/`, Berichte). Branch `s8-qt4` (von `s8` 48d3220), nichts gepusht.
+**Ergebnis:** Der Bot rechnet keinen eigenen Ertragsbonus mehr. `--a=` geht an die Welt (`ProtoSim` liest es selbst, `economy.ertrag_a_promille`), `fk_total` wird nicht mehr zu `kauf_total` addiert. Gegen die alte Emulation gemessen: **0 Abweichungen** in 160 Läufen (a = 1.000: 120 Läufe, a = 1.572 und 3.133: 40 Läufe), alle 55 Spalten gleich, auch die Sim-Prüfsumme. Die Kernmessung (n = 20, k = 1/4/8/20 × 3 Strategien) ist wiederholt; die a-Bisektion läuft mit dem echten Haken. **Kalibriert habe ich nichts, Spielcode ist unverändert** (`main.gd`, `economy.gd`, `proto_sim.gd`, `prototyp_welt.gd`, UI; nur `tests/`, `tools/`, Berichte). Branch `s8-qt4` (von `s8` 48d3220, danach `s8` 6a817e9 eingemerged: FX4 und OE-02/03; Merge ohne Konflikt, Bot und Rauchtest laufen danach), nichts gepusht. **Zwei Stände gemessen:** §2/§3 auf 48d3220 (vor FX4), §3b auf 6a817e9 (nach FX4 und Tobias' OE-02/03).
 Messart überall: **gemessen, headless, Godot 4.7.2, Sandbox 2 vCPU, ein Prozess nach dem anderen; andere Agenten liefen parallel (Loadavg 1,0 bis 3,4)**. Seeds 1 bis 20, 45 Spielminuten, Takt 300 Ticks, Firmenkauf an. Ein Bot-Verhalten je Strategie (Plan-Bot: höchstens 81 verschiedene Verläufe, siehe QT-03b §6).
 
 ## 1. Was am Bot geändert ist (`slice/tests/s8_loop_bot.gd`)
@@ -22,8 +22,8 @@ Die Rundung von `yield_cent` (`rdiv(c × a, 1000)` je Lieferung) und die Emulati
 **Falle, die ich gemessen habe:** Ruft man den alten Bot mit `--a=1572` auf dem heutigen s8 auf, wirkt a **doppelt** (Welt und Emulation): Netto 2.495 statt 1.182 $/min (k = 4), 7.228 statt 1.143 $/min (k = 8). Wer eine alte Bot-Fassung oder alte CSV (QT-03b) mit `--a=` neu rechnet, bekommt Unsinn. Die Rohdaten dieser Doppelzählung liegen in `qt03c/m2_kontrolle/alt_a_*` (nicht verwenden).
 
 ### Abweichung gegen die gespeicherten QT-03b-Daten (anderer Sim-Stand)
-Die QT-03b-CSV entstanden auf `s8-qt3` (von de75721). `s8` hat seitdem u. a. FX4 (Wirtschafts-Station am Ladeplatz, Postkutsche an der Ortsmitte) bekommen. Bei **a = 1.000** ist deshalb nicht jede Zahl gleich (Kernwerte, n = 20; vollständige Tabelle `qt03c/vgl_tab.md`):
-| k | Strategie | Bankrott QT-03b → QT-03c | Lücke P90 (min) | Netto5 Min 30 P50 ($/min) |
+Die QT-03b-CSV entstanden auf `s8-qt3` (von de75721). **Reproduzierbarkeit gemessen:** Der QT-03b-Bot (`s8-qt3`) auf einem Auszug von de75721 gibt die gespeicherte CSV k = 4, Plan, n = 20 zurück, **0/20 Zeilen abweichend** (56 Spalten); derselbe Bot auf 48d3220 nicht (alle 20 Zeilen abweichen, schon bei Lieferungen und Ertrag). Zwischen de75721 und 48d3220 hat `s8` die Weltdaten neu bekommen (`world/data/proto/proto_wege.json`, `proto_orte.json`, `proto_instanzen.json`, `regelwerk.json` u. a.) sowie FX3; FX3 selbst ist bei a = 1.000 verhaltensgleich (§2 oben). Welche der Weltdaten-Änderungen die Zahlen verschiebt, habe ich nicht getrennt. Bei **a = 1.000** ist deshalb nicht jede Zahl gleich (Kernwerte, n = 20; vollständige Tabelle `qt03c/vgl_tab.md`):
+| k | Strategie | Bankrott QT-03b → QT-03c (48d3220) | Lücke P90 (min) | Netto5 Min 30 P50 ($/min) |
 |---|---|---|---|---|
 | 1 | plan | 0 → 0 | 8,0 → 8,0 | 1.107 → 1.108 |
 | 1 | normal | 8 → 8 | 15,0 → 15,0 | −54 → −49 |
@@ -32,7 +32,7 @@ Die QT-03b-CSV entstanden auf `s8-qt3` (von de75721). `s8` hat seitdem u. a. FX4
 | 4 | normal | **19 → 18** | 6,0 → 5,1 | 0 → 0 |
 | 4 | naiv | 19 → 19 | 7,0 → 7,0 | 0 → 0 |
 | 8, 20 | alle | 20 → 20 | 3,1 bis 7,9, nahe gleich (naiv k = 8: 7,9 → 6,9) | 0 → 0 |
-Ursache der Abweichung: **vermutet, nicht getrennt geprüft** (FX4-Haltepunkte ändern Wege und Fahrzeiten leicht). Die Prüfsumme ist deshalb gegen QT-03b nicht vergleichbar; gegen die Kontrolle oben ist sie gleich.
+Die Prüfsumme ist gegen QT-03b deshalb nicht vergleichbar; gegen die Kontrolle in der ersten Tabelle ist sie gleich.
 
 ## 3. Kernmessung am echten Haken (a = 1.000, Firmenkauf an, n = 20, Wilson 95 %)
 Quelle: `qt03c/m1_neu_bot/n20_k{1,4,8,20}_fkan.csv`, Auswertung mit `tools/qt03b_auswerten.py` (`tabelle_qt03b.csv`).
@@ -53,12 +53,29 @@ Quelle: `qt03c/m1_neu_bot/n20_k{1,4,8,20}_fkan.csv`, Auswertung mit `tools/qt03b
 "Netto 0" heißt bei k ≥ 4: P50 liegt bei einem Lauf mit Bankrott, der als 0 zählt (Methode des Bots). Bandurteile: bei n = 20 nur die Zeilen mit eindeutigem Intervall (naiv 76-100 % gegen Band 10-30 % verfehlt; Plan k ≥ 4 gegen ≤ 5 % verfehlt; Lücke P90 gegen ≤ 3 min verfehlt bei k = 1, 4, 8). Alles andere ist bei n = 20 nicht beurteilbar (QT-03b §6). Determinismus-Doppel (Seed 1 je Strategie) in allen vier k-Zellen gleich.
 Laufzeit (gemessen, Loadavg 2,5 bis 3,4): Mittel je Lauf k = 1 1.695 ms, k = 4 1.362, k = 8 757, k = 20 571 (Max 3.049 ms). Gesamtlauf n = 20 × 3 Strategien einschließlich Determinismus: 116 / 93 / 51 / 40 s Wanduhr. Hochrechnung n = 300 × 3 (Mittel × 900, linear): 25,4 / 20,4 / 11,4 / 8,6 min, zusammen 66 min (QT-03b: 44 min bei Loadavg ≈ 1; die Last der anderen Agenten ist hier mit drin).
 
-### a-Bisektion mit echtem Haken (`tools/qt03b_a_bisektion.py`, Ziel: Netto5 Min 30 P50 ≥ 1.108 $/min = Plan-Wert bei k = 1, a = 1.000 auf dem heutigen s8)
-| k | kleinstes erfülltes a | Intervall am Ende | Messpunkte | QT-03b (Emulation, älterer Sim-Stand) | Bankrott / F2 bei diesem a |
-|---|---|---|---|---|---|
-| 4 | **1.545 ‰** | [1.517; 1.545] (28 ‰, Toleranz 50) | 8 à n = 20, 356 s | 1.572 | 0/20, F2 15/20 (P50 Min 30) |
-| 8 | **3.101 ‰** | [3.069; 3.101] (32 ‰) | 9 à n = 20, 539 s | 3.133 | 0/20, F2 0/20 |
-Die Unterschiede zu QT-03b (27 und 32 ‰) liegen in der Größe der Toleranz und des Sim-Standes (FX4). Es ist **kein** Ergebnis der Emulation gegen den Haken (§2: 0 Abweichungen). Die Einschränkungen aus QT-03b §4 gelten unverändert: Zielwert hängt am Plan-Bot bei k = 1; F2-Minute ist durch den Fahrplan begrenzt (nicht als Ziel brauchbar); die F2-Schwelle (600 $/min) ist ein Platzhalter und zirkulär; X1 für Getreide wird mit diesem a verletzt (QT-03b §3). Bei k = 8 und a = 3.101 erreicht kein Plan-Lauf F2.
+### 3b. Nach FX4 und OE-02/03 (s8 6a817e9, a = 1.000, n = 20, Firmenkauf an)
+Quelle: `qt03c/m4_nach_fx4/`. Zwischen 48d3220 und 6a817e9 liegen FX4 (Wirtschafts-Station am Ladeplatz) und Tobias' OE-02/03 (Kalibrier-Sets, **inaktiv**; F2-Schwelle 620 $/min in `ziele_welt.json`). Ausgabe der Läufe: Determinismus OK in allen vier k, keine ERROR-Zeile, kein Abgleichfehler.
+| k | Strategie | Bankrott vor → nach | Lücke P90 (min) | Netto5 Min 30 P50 ($/min) | F2 op erreicht | Kassentief P50 ($) |
+|---|---|---|---|---|---|---|
+| 1 | plan | 0 → 0 | 8,0 → 8,0 | 1.108 → 1.132 | 20 → 20 | 3.245 → 3.084 |
+| 1 | normal | 8 → 7 | 15,0 → 13,0 | −49 → −8 | 0 → 0 | 4.263 → 4.354 |
+| 1 | naiv | 19 → 19 | 9,0 → 9,0 | 0 → 0 | 0 → 0 | 24 → 20 |
+| 4 | plan | **13 → 4** (Wilson nach: 8-42 %) | 4,0 → 5,0 | 0 → 268 | 0 → 0 | 1.331 → 1.636 |
+| 4 | normal | 18 → 18 | 5,1 → 5,0 | 0 → 0 | 0 → 0 | 560 → 833 |
+| 4 | naiv | 19 → 19 | 7,0 → 7,0 | 0 → 0 | 0 → 0 | 26 → 18 |
+| 8 | plan, normal, naiv | 20 → 20 | 5,0 / 5,3 / 6,9 → 5,0 / 5,5 / 7,9 | 0 → 0 | 0 → 0 | 28 / 28 / 12 → 17 / 26 / 10 |
+| 20 | plan, normal, naiv | 20 → 20 | 4,3 / 3,1 / 7,0 → 4,3 / 3,2 / 7,8 | 0 → 0 | 0 → 0 | 23 / 18 / 21 → 8 / 27 / 6 |
+**Zuordnung gemessen (k = 4, Plan, n = 20):** Der Bot auf einem Auszug von `bd24053` (FX4, vor dem OE-Merge) gibt **4/20 Bankrott und Netto 268 $/min**, dasselbe wie 6a817e9: gleiche CSV bis auf die Spalte `ev8` (16 von 20 Zeilen, ein Zähler; die Ursache liegt im Bot-Merge, nicht untersucht). Die Verbesserung 13 → 4 kommt also von **FX4 (Ladeplatz-Halt)** und nicht von den inaktiven OE-Sets. Warum FX4 so wirkt (kürzere Wege, andere Wartezeit am Halt), habe ich nicht untersucht. Bei k = 8 und 20 trägt die Welt weiter nichts (20/20). Laufzeit (Loadavg 0,5 bis 1,1): Mittel je Lauf 1.163 / 1.254 / 644 / 373 ms (k = 1/4/8/20); Gesamtlauf einschließlich Determinismus 79 / 83 / 43 / 25 s; Hochrechnung n = 300 × 3: 17,4 / 18,8 / 9,7 / 5,6 min, zusammen **51,5 min** (ruhiger als §3: 66 min bei Loadavg 2,5 bis 3,4).
+
+### a-Bisektion mit echtem Haken (`tools/qt03b_a_bisektion.py`, Ziel: Netto5 Min 30 P50 ≥ Plan-Wert bei k = 1, a = 1.000 auf demselben Stand)
+| Stand | k | Zielwert | kleinstes erfülltes a | Intervall am Ende | Messpunkte | Bankrott / F2 bei diesem a |
+|---|---|---|---|---|---|---|
+| 48d3220 (vor FX4) | 4 | 1.108 | **1.545 ‰** | [1.517; 1.545] (28 ‰, Toleranz 50) | 8 à n = 20, 356 s | 0/20, F2 15/20 (P50 Min 30) |
+| 48d3220 | 8 | 1.108 | **3.101 ‰** | [3.069; 3.101] (32 ‰) | 9, 539 s | 0/20, F2 0/20 |
+| 6a817e9 (nach FX4, OE-02/03) | 4 | 1.132 | **1.545 ‰** | [1.517; 1.545] (28 ‰) | 8, 362 s | 0/20, F2 14/20 (P50 Min 30) |
+| 6a817e9 | 8 | 1.132 | **2.783 ‰** | [2.751; 2.783] (32 ‰) | 9, 505 s | 0/20, F2 0/20 |
+QT-03b (Emulation, Stand vor FX3/FX4): k = 4 1.572, k = 8 3.133. Rohdaten: `qt03c/m3_bisektion/` (vor FX4), `qt03c/m5_bisektion_nach_fx4/`. Bei k = 4, a = 1.000 liegt nach FX4 der Plan-Bot schon bei 4/20 Bankrott und Netto 268 $/min; bei k = 8 geht a = 2.019 noch 18/20 Bankrott (Stufe, nicht stetig).
+Die Unterschiede zu QT-03b bei k = 4 (27 ‰) und k = 8 (32 ‰ vor FX4) liegen in der Größe der Toleranz und des Sim-Standes (Weltdaten). Nach FX4 sinkt a bei k = 8 um 318 ‰ gegen vor FX4 (3.101 → 2.783), bei k = 4 bleibt es gleich. Es ist **kein** Ergebnis der Emulation gegen den Haken (§2: 0 Abweichungen). Die Einschränkungen aus QT-03b §4 gelten unverändert: Zielwert hängt am Plan-Bot bei k = 1; F2-Minute ist durch den Fahrplan begrenzt (nicht als Ziel brauchbar); die F2-Schwelle (600 $/min) ist ein Platzhalter und zirkulär; X1 für Getreide wird mit diesem a verletzt (QT-03b §3). Bei k = 8 erreicht in keinem der beiden Stände ein Plan-Lauf F2 bei diesem a.
 Exploit-Sweep: `s8_exploit.gd` rechnet bei `--a=` jetzt ebenfalls über den Haken. `qt03b_exploit.py` skaliert den Ertrag linear mit a nach der Messung; der Rauchtest (§5) prüft, dass `--a=2000` genau 2 × Ertrag und dieselbe Liefermenge ergibt (gemessen: 168.000 → 336.000 ¢, 386.400 → 772.800 ¢, Abweichung 0). Die a-Scan-Ergebnisse aus QT-03b bleiben damit gültig.
 
 ## 4. Aufrufe für Tobias (Kalibrierung, Worktree oe3)
@@ -92,6 +109,8 @@ Hinweise: `--a=` überschreibt `tempo_ausgleich_promille` aus der JSON (Priorit�
 
 ## 6. Regressionslauf mit den neuen Zeilen
 `slice/tests/flaky_nacht.sh --n=1 --stufe=beide` (nohup, Log): **1 Lauf, Exit d07 = 0, Exit fast = 0, 864 s Wanduhr** (Loadavg vor/nach 2,0 / 2,2). `d07_regression.sh` 734 s, **40 Zeilen alle OK** (davon `s8_bot_smoke` 16,5 s und `s8_exploit_smoke` 4,3 s, beide 6/6); `regress_fast.sh` 130 s (Ziel < 300 s), **30 Zeilen alle OK** (Bot 16,5 s, Exploit 4,2 s). Flaky-Tabelle: 70 Zellen, 0 rot, 0,00 %. Ein Lauf kann keine Flakiness zeigen (QT-02): Die Zeilen sind aufgenommen und ein Mal grün, nicht 10/10. Die Zeiten liegen unter dem Bot-Timeout (50 s Baseline → 150 s). Git-Stand des Laufs ce84121 (vor den letzten Berichts-Commits; Code unverändert). Logs: `qt03c/flaky1/`.
+
+Nach dem Merge von `s8` (FX4, OE-02/03) in `s8-qt4`: `regress_fast.sh` erneut gelaufen, **Exit 0, 30 Zeilen alle OK, 133 s** (Loadavg ca. 1; `qt03c/fast_summary_nach_merge.md`). Der volle d07-Lauf nach dem Merge ist **nicht** wiederholt.
 
 ## 7. Grenzen
 - Die Gleichheit Emulation = Haken ist an 160 Läufen gezeigt (a = 1.000, 1.572, 3.133). Nicht gezeigt: andere a, andere Strategien bei a ≠ 1.000, `naiv`/`normal` mit `--a`.

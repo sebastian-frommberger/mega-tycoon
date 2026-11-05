@@ -1,0 +1,3 @@
+bisektion k=4 exit=0 dauer=362 s load=1.00
+bisektion k=8 exit=0 dauer=505 s load=1.00
+FERTIG

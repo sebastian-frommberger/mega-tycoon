@@ -1,0 +1,4 @@
+Godot 4.7.2-stable (official), Szene proto, tempo_k 4, jahr_ticks 1800, startkapital_dollar_override 0, minuten 45, takt 300, saett_pm 1000, a_pm 2746, fk_global true, alterung_override -1, deckel_override -1, oe_set -, fz fuhrwerk_e1, fw frachtwagen_e1
+n 20, seed0 1, Strategien ["plan"]
+PARAM {"naiv_bau_max":4,"naiv_fehl_pct":50,"naiv_fk_pct":0,"naiv_fz_max":14,"naiv_rest_max":8,"naiv_vergessen_pct":50,"normal_extra_pct":50,"normal_fk_min":28,"normal_reserve":150000,"normal_tilge":150000,"plan_ausbau":1,"plan_ersetzen":1,"plan_farm2":1,"plan_farm2_min":20,"plan_fk":1,"plan_fk_min":14,"plan_jitter":2,"plan_lindenfurt_min":10,"plan_mehl_dorf2":15,"plan_mehl_stadt2":25,"plan_reserve":150000}
+Firmenkauf-Schnittstelle: angebunden: kauf_angebot/firma_kaufen/ausbau_angebot/werk_ausbauen

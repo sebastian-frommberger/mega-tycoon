@@ -687,6 +687,75 @@
    "sim_knoten": true,
    "sim_stufe": "dorf",
    "sim_ew": 500,
+   "ladeplatz": {
+    "x": 1642.99,
+    "z": 663.33,
+    "weg": "dorfstrasse_nord",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 1646.0,
+     "z": 654.0,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": 162.14,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 1642.72,
+     "z": 657.67,
+     "rot_deg": 162.14,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 1639.8,
+     "z": 660.2,
+     "rot_deg": 72.14,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 1640.65,
+      "z": 656.27,
+      "rot_deg": 72.14,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "mehl",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "zuletzt abgeladene Menge mehl / Nachfrage je Periode",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_mehl_s1",
+        "platzhalter/lagerhaufen_mehl_s2",
+        "platzhalter/lagerhaufen_mehl_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   },
    "ew_ort": 244,
    "ew_umland": 256
   },
@@ -741,6 +810,75 @@
    "ew_ort": 2000,
    "ew_umland": 400,
    "ew_ausschnitt": 387,
+   "ladeplatz": {
+    "x": 138.92,
+    "z": 163.23,
+    "weg": "marktstrasse",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 130.29,
+     "z": 158.6,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": -118.2,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 135.2,
+     "z": 158.97,
+     "rot_deg": -118.2,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "pflaster",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 139.05,
+     "z": 158.76,
+     "rot_deg": -28.2,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 135.71,
+      "z": 156.52,
+      "rot_deg": -28.2,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "mehl",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "zuletzt abgeladene Menge mehl / Nachfrage je Periode",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_mehl_s1",
+        "platzhalter/lagerhaufen_mehl_s2",
+        "platzhalter/lagerhaufen_mehl_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   },
    "hinweis": "Ausschnitt: Markt (60x80 m Platz), Stadtkirche, 1 Tor, 1 Gasse, Mauerbogen R 200 m (70 % erhalten); die Stadt setzt sich ausserhalb des Kerns nach Westen fort. ew = Summe der Gebaeude im Ausschnitt (387, unveraendert, damit Schilder/Tooltip stabil bleiben); ew_ort = 2000 ist der Ort gesamt im Klassenband Kleinstadt (2.000-4.000), ew_umland 400 (Band 400-700), sim_ew = ew_ort + ew_umland = 2400 (WA-07)."
   }
  ],
@@ -756,7 +894,76 @@
    "schlaege": [],
    "abstand_dorf_m": 697.66,
    "abstand_muehle_m": 413.94,
-   "zufahrt": "gutsweg"
+   "zufahrt": "gutsweg",
+   "ladeplatz": {
+    "x": 1901.0,
+    "z": 1340.94,
+    "weg": "gutsweg",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 1909.96,
+     "z": 1344.89,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": 66.22,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 1905.04,
+     "z": 1344.91,
+     "rot_deg": 66.22,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 1901.21,
+     "z": 1345.4,
+     "rot_deg": 156.22,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 1904.71,
+      "z": 1347.38,
+      "rot_deg": 156.22,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "getreide",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Station-Lagerbestand getreide / Ausgangspuffer",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_getreide_s1",
+        "platzhalter/lagerhaufen_getreide_s2",
+        "platzhalter/lagerhaufen_getreide_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   }
   },
   {
    "id": "erlenmuehle",
@@ -772,7 +979,110 @@
    },
    "abstand_dorf_m": 360.09,
    "zufahrt": "muehlweg",
-   "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)"
+   "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)",
+   "ladeplatz": {
+    "x": 1615.0,
+    "z": 1074.0,
+    "weg": "gutsweg",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 1615.0,
+     "z": 1074.0,
+     "art": "durchgang",
+     "neu_gebaut": false
+    },
+    "richtung_deg": 49.04,
+    "heck_vor_wegende_m": null,
+    "kies_hof": {
+     "x": 1620.31,
+     "z": 1075.96,
+     "rot_deg": 49.04,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 1619.13,
+     "z": 1072.29,
+     "rot_deg": -40.96,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 1622.42,
+      "z": 1074.61,
+      "rot_deg": -40.96,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "getreide",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Eingangspuffer getreide / Puffergroesse",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_getreide_s1",
+        "platzhalter/lagerhaufen_getreide_s2",
+        "platzhalter/lagerhaufen_getreide_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     },
+     {
+      "x": 1625.13,
+      "z": 1076.97,
+      "rot_deg": -40.96,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "mehl",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Ausgangsbestand mehl / Puffergroesse",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_mehl_s1",
+        "platzhalter/lagerhaufen_mehl_s2",
+        "platzhalter/lagerhaufen_mehl_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Durchgangs-Ladeplatz (WA-08): Datenpunkt = Halteknoten, das Gespann haelt mit der Mitte im Knoten (Heck 4.75 m davor). Ein Ladestich (Sackgasse, 90-Grad-Abzweig) liess proto_easing_test B rot (E3 Gierrate, E5 Halt-Verzug), Begruendung in sprints/s8/umsetzung/WA-08.md. Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   }
   },
   {
    "id": "hof_hasenwinkel",
@@ -785,13 +1095,13 @@
    "schlaege": [
     {
      "x": 650.0,
-     "z": 670.0,
+     "z": 640.0,
      "b": 125.0,
      "t": 200.0
     },
     {
      "x": 620.0,
-     "z": 880.0,
+     "z": 920.0,
      "b": 125.0,
      "t": 200.0
     }
@@ -802,11 +1112,73 @@
    "abstand_muehle_felder": 41.0,
    "zufahrt": "hofweg_hasenwinkel",
    "ladeplatz": {
-    "x": 669.1,
-    "z": 787.28,
+    "x": 678.56,
+    "z": 789.84,
     "weg": "hofweg_hasenwinkel",
     "abstand_netz_m": 0.0,
-    "hinweis": "Datenpunkt am Tor-Ende des Hofwegs; Kies-Hof, Rampe und Lagerhaufen folgen mit WA-08"
+    "halt": {
+     "x": 669.1,
+     "z": 787.28,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": -105.19,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 673.97,
+     "z": 786.53,
+     "rot_deg": -105.19,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 677.68,
+     "z": 785.46,
+     "rot_deg": -15.19,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 673.92,
+      "z": 784.03,
+      "rot_deg": -15.19,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "getreide",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Station-Lagerbestand getreide / Ausgangspuffer",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_getreide_s1",
+        "platzhalter/lagerhaufen_getreide_s2",
+        "platzhalter/lagerhaufen_getreide_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
    }
   }
  ],

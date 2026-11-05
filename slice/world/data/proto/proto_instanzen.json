@@ -1000,6 +1000,6 @@
 {"typ":"heuhaufen","x":656.1,"z":781.76,"rot_deg":73.7,"parzelle":"hof_p01","ort":"hof_hasenwinkel"},
 {"typ":"heuhaufen","x":659.21,"z":790.28,"rot_deg":-14.28,"parzelle":"hof_p01","ort":"hof_hasenwinkel"},
 {"typ":"holzstapel","x":664.78,"z":776.11,"rot_deg":75.42,"parzelle":"hof_p01","ort":"hof_hasenwinkel"},
-{"typ":"flaeche_schlag","x":650.0,"z":670.0,"rot_deg":0.0,"parzelle":"hof_p01","b":125.0,"ort":"hof_hasenwinkel","t":200.0},
-{"typ":"flaeche_schlag","x":620.0,"z":880.0,"rot_deg":0.0,"parzelle":"hof_p01","b":125.0,"ort":"hof_hasenwinkel","t":200.0}
+{"typ":"flaeche_schlag","x":650.0,"z":640.0,"rot_deg":0.0,"parzelle":"hof_p01","b":125.0,"ort":"hof_hasenwinkel","t":200.0},
+{"typ":"flaeche_schlag","x":620.0,"z":920.0,"rot_deg":0.0,"parzelle":"hof_p01","b":125.0,"ort":"hof_hasenwinkel","t":200.0}
 ]

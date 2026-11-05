@@ -115,7 +115,112 @@ KLASSEN_SIM = {  # Regelwerk ortsklassen (slice/world/data/proto/regelwerk.json)
 NACHFRAGE_MULT = {"dorf": 2.0, "kleinstadt": 1.0}   # economy_slice.json saettigung.demand_mult_promille_je_stufe / 1000; 1 Einheit je 100 EW und Periode (Min.)
 
 
-def pruefe_welt_daten(T, orte_j, wege, geo):
+LADEPLATZ_NETZ_MAX = 8.0        # WA-08: Datenpunkt <= 8 m vom Wegnetz
+LADEPLATZ_HECK_MAX = 3.0        # WA-08: Gespann-Heck <= 3 m vom Ladeplatz
+HALT_LUFT_M = 0.3               # proto_easing.gd HALT_LUFT_M
+
+
+def _ende_tangente(punkte, schritt=6.0):
+    e = punkte[-1]
+    for p in reversed(punkte[:-1]):
+        if math.hypot(e[0] - p[0], e[1] - p[1]) >= schritt:
+            L = math.hypot(e[0] - p[0], e[1] - p[1])
+            return ((e[0] - p[0]) / L, (e[1] - p[1]) / L)
+    return (1.0, 0.0)
+
+
+def heck_punkt(wege_by_id, lpd, heck):
+    """Heck-Halt-Punkt des Fuhrwerks am Wegende des Ladeplatzes (aus den Wegdaten, nicht aus dem Ladeplatz-Datensatz)."""
+    w = [tuple(p) for p in wege_by_id[lpd["weg"]]["punkte"]]
+    E = w[-1] if math.hypot(w[-1][0] - lpd["halt"]["x"], w[-1][1] - lpd["halt"]["z"]) < math.hypot(w[0][0] - lpd["halt"]["x"], w[0][1] - lpd["halt"]["z"]) else w[0]
+    pts = w if E == w[-1] else list(reversed(w))
+    t = _ende_tangente(pts)
+    return (E[0] - t[0] * heck, E[1] - t[1] * heck), E
+
+
+def pruefe_ladeplaetze(T, orte_j, wege, geo, inst=(), regelwerk_pfad=None):
+    """WA-08: Ladeplatz je Betrieb und Sim-Ort. Datenpunkt <= 8 m vom Netz, Halt = Sackgassen-Wegende (Gespann-Heck <= 3 m) oder Durchgangsknoten,
+    Kies/Rampe/Haufen frei von Gebaeuden und Gewaesser, 3 Fuellstufen. Die Pruefung nutzt nur die ausgelieferten JSON-Daten."""
+    rwp = regelwerk_pfad or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "slice", "world", "data", "proto", "regelwerk.json")
+    rw = json.load(open(rwp, encoding="utf-8"))
+    heck = float(rw["skalen"]["fahrzeuge_dm"]["fuhrwerk_2_pferde"]["l"]) / 10.0 + HALT_LUFT_M
+    wby = {w["id"]: w for w in wege}
+    polys = [[tuple(p) for p in w["punkte"]] for w in wege]
+    kreuz = [(k["x"], k["z"]) for k in orte_j["_meta"]["kreuzungen"]]
+    enden = []
+    for w in wege:
+        for p in (w["punkte"][0], w["punkte"][-1]):
+            enden.append(tuple(p))
+    sites = [(i["id"], i, (i["x"], i["z"])) for i in orte_j["industrie"]]
+    sites += [(o["id"], o, (o["x"], o["z"])) for o in orte_j["orte"] if o.get("sim_knoten")]
+    haupt = HAUS_TYPEN | {"gutshof", "wassermuehle", "fischerhuette"}
+    gebs = [(obb_ecken(d["x"], d["z"], d["b"], d["t"], d["rot_deg"]), d["typ"]) for d in inst if d["typ"] in haupt and "b" in d]
+    for sid, o, mitte in sites:
+        lp = o.get("ladeplatz")
+        if not lp:
+            T.add("Ladeplatz %s: Datenpunkt vorhanden" % sid, "ja", "fehlt", False)
+            continue
+        P = (lp["x"], lp["z"])
+        dmin = min(poly_abstand(P, pl)[0] for pl in polys)
+        T.add("Ladeplatz %s: <= 8 m vom Wegnetz" % sid, "<= %.0f m" % LADEPLATZ_NETZ_MAX, "%.1f m (Weg %s)" % (dmin, lp["weg"]), dmin <= LADEPLATZ_NETZ_MAX)
+        if lp["halt"]["art"] == "durchgang":
+            # Durchgangsknoten (Muendung Muehlweg/Gutsweg): Gespann haelt mit der Mitte im Knoten; Heck-Regel (Sackgasse) entfaellt, stattdessen Datenpunkt = Knoten
+            E = (lp["halt"]["x"], lp["halt"]["z"])
+            dk = math.hypot(E[0] - P[0], E[1] - P[1])
+            T.add("Ladeplatz %s: Durchgangshalt, Datenpunkt = Halteknoten (<= 0,5 m)" % sid, "<= 0.5 m", "%.2f m" % dk, dk <= 0.5)
+            kn_ok = any(math.hypot(q[0] - E[0], q[1] - E[1]) < 0.5 for q in kreuz)
+            T.add("Ladeplatz %s: Halteknoten ist Wegkreuzung/Einmuendung (orte._meta.kreuzungen)" % sid, "ja", "ja" if kn_ok else "nein", kn_ok)
+            kand = [(math.hypot(q[0] - P[0], q[1] - P[1]), q) for q in enden + kreuz if math.hypot(q[0] - P[0], q[1] - P[1]) <= 40.0]
+            kand.sort()
+            nah = kand[0][1] if kand else None
+            T.add("Ladeplatz %s: naechster Halteknoten (<= 40 m) = Halt" % sid, "Halt", "%.1f m" % kand[0][0] if nah and math.hypot(nah[0] - E[0], nah[1] - E[1]) < 1.0 else "anderer Knoten",
+                  bool(nah) and math.hypot(nah[0] - E[0], nah[1] - E[1]) < 1.0)
+        else:
+            hp, E = heck_punkt(wby, lp, heck)
+            dh = math.hypot(hp[0] - P[0], hp[1] - P[1])
+            T.add("Ladeplatz %s: Gespann-Heck (Wegende - %.1f m) <= 3 m vom Ladeplatz" % (sid, heck), "<= %.0f m" % LADEPLATZ_HECK_MAX, "%.2f m" % dh, dh <= LADEPLATZ_HECK_MAX)
+            # Halt ist Sackgasse: nur dieser Weg endet dort, kein anderer Weg im Fang von 8 m
+            fremd = [w["id"] for w in wege if w["id"] != lp["weg"] and poly_abstand(E, [tuple(p) for p in w["punkte"]])[0] < 8.0]
+            T.add("Ladeplatz %s: Halt = Sackgassen-Wegende" % sid, "Grad 1", "kein fremder Weg ausser %s" % (fremd or "-") if fremd else "Grad 1", not fremd)
+            # Halteknoten-Nachbau (ProtoSim.knoten_halt): naechster Wegende/Kreuzungsknoten <= 40 m vom Datenpunkt muss der Halt sein
+            kand = [(math.hypot(q[0] - P[0], q[1] - P[1]), q) for q in enden + kreuz if math.hypot(q[0] - P[0], q[1] - P[1]) <= 40.0]
+            kand.sort()
+            nah = kand[0][1] if kand else None
+            T.add("Ladeplatz %s: naechster Halteknoten (<= 40 m) = Halt" % sid, "Halt", "%.1f m" % kand[0][0] if nah and math.hypot(nah[0] - E[0], nah[1] - E[1]) < 1.0 else "anderer Knoten",
+                  bool(nah) and math.hypot(nah[0] - E[0], nah[1] - E[1]) < 1.0)
+        if "r_m" in o:
+            dm = math.hypot(E[0] - mitte[0], E[1] - mitte[1])
+            T.add("Ladeplatz %s: Halt <= r_m (%d m) von der Ortsmitte" % (sid, o["r_m"]), "<= r_m", "%.0f m" % dm, dm <= o["r_m"])
+        else:
+            T.info("Ladeplatz %s: Halt vom Betrieb (Mitte)" % sid, "%.0f m" % math.hypot(E[0] - mitte[0], E[1] - mitte[1]))
+        # Flaechen: Kies-Hof, Rampe, Haufen
+        flaechen = [("kies_hof", lp["kies_hof"])] + [("rampe", lp["rampe"])] + [("haufen", h) for h in lp["lagerhaufen"]]
+        ueber, gel = [], []
+        for name, f in flaechen:
+            e = obb_ecken(f["x"], f["z"], f["b"], f["t"], f["rot_deg"])
+            for (ge, gt) in gebs:
+                if obb_ueberlappt(e, ge):
+                    ueber.append("%s x %s" % (name, gt))
+            for k in range(5):
+                for m in range(5):
+                    a, b = k / 4.0, m / 4.0
+                    x = (1 - a) * ((1 - b) * e[0][0] + b * e[3][0]) + a * ((1 - b) * e[1][0] + b * e[2][0])
+                    z = (1 - a) * ((1 - b) * e[0][1] + b * e[3][1]) + a * ((1 - b) * e[1][1] + b * e[2][1])
+                    if geo.rinne_abstand(x, z) < 3.0 or geo.see_abstand(x, z) < 10.0 or geo.muehlteich_abstand(x, z) < 8.0 or geo.bach_abstand(x, z) < 8.0:
+                        gel.append(name)
+                        break
+                else:
+                    continue
+                break
+        T.add("Ladeplatz %s: Kies-Hof/Rampe/Haufen ohne Gebaeude-Ueberlappung" % sid, 0, ueber or 0, not ueber)
+        T.add("Ladeplatz %s: Kies-Hof/Rampe/Haufen nicht in Rinne/See/Teich/Bach" % sid, 0, gel or 0, not gel)
+        ok_st = all(len(h["fuellstufen"]["grenzen"]) == 3 and len(h["fuellstufen"]["prefab_refs"]) == 3 and
+                    [g["bestand_ab_anteil"] for g in h["fuellstufen"]["grenzen"]] == sorted(g["bestand_ab_anteil"] for g in h["fuellstufen"]["grenzen"])
+                    for h in lp["lagerhaufen"]) and len(lp["lagerhaufen"]) >= 1
+        T.add("Ladeplatz %s: Lagerhaufen mit 3 Fuellstufen (aufsteigende Grenzen, 3 Prefab-Refs)" % sid, "3", ", ".join("%s:%d" % (h["gut"], len(h["fuellstufen"]["grenzen"])) for h in lp["lagerhaufen"]), ok_st)
+
+
+def pruefe_welt_daten(T, orte_j, wege, geo, inst=()):
     """WA-07: Farm 2, Ladeplatz-Datenpunkt, sim_ew je Ort (Klassenband, Nachfrage)."""
     ind = orte_j["industrie"]
     mu = [i for i in ind if i["typ"] == "wassermuehle"][0]
@@ -128,15 +233,7 @@ def pruefe_welt_daten(T, orte_j, wege, geo):
         T.add("Farm %s: Mittelpunkt Ebene/Aue (nicht Rinne/See, Hang <= 3 %%)" % f["id"], "ja",
               "rinne %.0f m, see %.0f m, Hang %.1f %%" % (geo.rinne_abstand(f["x"], f["z"]), geo.see_abstand(f["x"], f["z"]), geo.steigung(f["x"], f["z"])),
               geo.rinne_abstand(f["x"], f["z"]) > 0.5 and geo.see_abstand(f["x"], f["z"]) > 0.5 and geo.steigung(f["x"], f["z"]) <= 3.0)
-    for f in farmen[1:]:
-        lp = f.get("ladeplatz")
-        if not lp:
-            T.add("Farm %s: Ladeplatz-Datenpunkt" % f["id"], "vorhanden", "fehlt", False)
-            continue
-        dmin = min(poly_abstand((lp["x"], lp["z"]), [tuple(p) for p in w["punkte"]])[0] for w in wege)
-        T.add("Farm %s: Ladeplatz <= 8 m vom Wegnetz" % f["id"], "<= 8 m", "%.1f m" % dmin, dmin <= 8.0)
-        fl = math.hypot(lp["x"] - f["x"], lp["z"] - f["z"])
-        T.add("Farm %s: Ladeplatz <= 40 m vom Hof (Halt = Hof)" % f["id"], "<= 40 m", "%.1f m" % fl, fl <= 40.0)
+    pruefe_ladeplaetze(T, orte_j, wege, geo, inst)
     for o in orte_j["orte"]:
         if not o.get("sim_knoten"):
             T.add("Ort %s: Weiler/ohne Sim-Knoten (kein sim_ew)" % o["id"], "klasse weiler", o["klasse"], o["klasse"] == "weiler" and "sim_ew" not in o)
@@ -564,7 +661,7 @@ def pruefen(dir_, src, strikt=False, baseline=None, liste=None):
             uf[find(a)] = find(k["wege"][0])
     komp = {find(w["id"]) for w in wege}
     T.add("Wegenetz zusammenhaengend (Kreuzungen/Einmuendungen)", "1 Komponente", "%d, %d Knoten" % (len(komp), len(kn)), len(komp) == 1)
-    pruefe_welt_daten(T, orte_j, wege, geo)
+    pruefe_welt_daten(T, orte_j, wege, geo, inst)
     pruefe_platzierung(T, orte_j, inst, wege, dir_, strikt, baseline, liste)
     pruefe_allee(T, inst, wege)
     al = wd["chaussee"]["allee"]

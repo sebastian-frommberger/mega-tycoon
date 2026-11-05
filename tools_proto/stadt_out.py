@@ -11,7 +11,7 @@ from stadt_bau import HAUS, rot_zu
 from stadt_wege import (BRUECKE_LAENGE, BRUECKE_N, BRUECKE_S, BRUECKE_X, RINNE_BREITE, steigungsprofil)
 
 WEG_REIHENFOLGE = ["chaussee", "hauptstrasse", "dorfstrasse_sued", "dorfstrasse_nord", "gasse_kirch", "bachgasse", "marktstrasse",
-                   "gasse_lindenfurt", "muehlweg", "gutsweg", "hasenwinkelweg", "weiler_ast1", "weiler_ast2", "ostweg", "fischerpfad"]
+                   "gasse_lindenfurt", "muehlweg", "gutsweg", "hasenwinkelweg", "weiler_ast1", "weiler_ast2", "ostweg", "fischerpfad", "hofweg_hasenwinkel"]
 
 
 def schreibe_json(pfad, daten, zeilenweise=False):

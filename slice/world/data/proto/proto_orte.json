@@ -10,6 +10,7 @@
    "dorf_kleinstadt_kreuzung_m": 1639.61,
    "dorf_gut_m": 697.66,
    "dorf_muehle_m": 360.09,
+   "muehle_farm2_m": 1025.0,
    "weiler_kleinstadt_m": 978.19
   },
   "see_nutzung": {
@@ -636,6 +637,16 @@
    {
     "id": "k12",
     "typ": "t_einmuendung",
+    "x": 744.0,
+    "z": 806.0,
+    "wege": [
+     "weiler_ast2",
+     "hofweg_hasenwinkel"
+    ]
+   },
+   {
+    "id": "k13",
+    "typ": "t_einmuendung",
     "x": 1420.46,
     "z": 719.82,
     "wege": [
@@ -644,7 +655,7 @@
     ]
    }
   ],
-  "allee_baeume_n": 213
+  "allee_baeume_n": 159
  },
  "orte": [
   {
@@ -672,7 +683,12 @@
     1625.0,
     730.0
    ],
-   "r_max_m": 210.0
+   "r_max_m": 210.0,
+   "sim_knoten": true,
+   "sim_stufe": "dorf",
+   "sim_ew": 500,
+   "ew_ort": 244,
+   "ew_umland": 256
   },
   {
    "id": "hasenwinkel",
@@ -690,7 +706,9 @@
    "gebaeude_n": 6,
    "parzellen_n": 6,
    "luecken_n": 0,
-   "r_max_m": 80.0
+   "r_max_m": 80.0,
+   "sim_knoten": false,
+   "ew_ort": 48
   },
   {
    "id": "lindenfurt",
@@ -717,7 +735,13 @@
     267.43,
     241.01
    ],
-   "hinweis": "Ausschnitt: Markt (60x80 m Platz), Stadtkirche, 1 Tor, 1 Gasse, Mauerbogen R 200 m (70 % erhalten); die Stadt setzt sich ausserhalb des Kerns nach Westen fort. ew = Summe der Gebaeude im Ausschnitt."
+   "sim_knoten": true,
+   "sim_stufe": "kleinstadt",
+   "sim_ew": 2400,
+   "ew_ort": 2000,
+   "ew_umland": 400,
+   "ew_ausschnitt": 387,
+   "hinweis": "Ausschnitt: Markt (60x80 m Platz), Stadtkirche, 1 Tor, 1 Gasse, Mauerbogen R 200 m (70 % erhalten); die Stadt setzt sich ausserhalb des Kerns nach Westen fort. ew = Summe der Gebaeude im Ausschnitt (387, unveraendert, damit Schilder/Tooltip stabil bleiben); ew_ort = 2000 ist der Ort gesamt im Klassenband Kleinstadt (2.000-4.000), ew_umland 400 (Band 400-700), sim_ew = ew_ort + ew_umland = 2400 (WA-07)."
   }
  ],
  "industrie": [
@@ -749,6 +773,41 @@
    "abstand_dorf_m": 360.09,
    "zufahrt": "muehlweg",
    "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)"
+  },
+  {
+   "id": "hof_hasenwinkel",
+   "name": "Hof Hasenwinkel",
+   "typ": "getreidefarm",
+   "x": 640.0,
+   "z": 780.0,
+   "rot_deg": 75.42,
+   "hofform": "vierseithof_40x40",
+   "schlaege": [
+    {
+     "x": 650.0,
+     "z": 670.0,
+     "b": 125.0,
+     "t": 200.0
+    },
+    {
+     "x": 620.0,
+     "z": 880.0,
+     "b": 125.0,
+     "t": 200.0
+    }
+   ],
+   "lage": "ebene",
+   "abstand_dorf_m": 986.27,
+   "abstand_muehle_m": 1025.0,
+   "abstand_muehle_felder": 41.0,
+   "zufahrt": "hofweg_hasenwinkel",
+   "ladeplatz": {
+    "x": 669.1,
+    "z": 787.28,
+    "weg": "hofweg_hasenwinkel",
+    "abstand_netz_m": 0.0,
+    "hinweis": "Datenpunkt am Tor-Ende des Hofwegs; Kies-Hof, Rampe und Lagerhaufen folgen mit WA-08"
+   }
   }
  ],
  "gewaesser": [

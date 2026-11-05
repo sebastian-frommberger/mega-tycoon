@@ -38,6 +38,7 @@ func _lauf(s: Node, ticks: int) -> Array:
 func _run() -> void:
 	print("proto_sim_test")
 	var s: Node = (load(SZENE) as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	s.set("sim_aus", true)
 	root.add_child(s)
 	await process_frame

@@ -35,6 +35,7 @@ func _run() -> void:
 	ok(is_equal_approx(ProtoLicht.UMGEBUNG_ENERGIE, ALT_UMGEBUNG_ENERGIE), "ProtoLicht: Umgebungslicht 0,36")
 	# 2) Werte in der Welt-Szene
 	var s: Node = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	root.add_child(s)
 	await process_frame
 	var sun: DirectionalLight3D = s.sun

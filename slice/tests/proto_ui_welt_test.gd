@@ -33,6 +33,9 @@ func _nur() -> String:
 
 func _run() -> void:
 	print("proto_ui_welt_test")
+	var roh: Node = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	ok(roh.kette_modus == "leer", "Szenen-Default: Start ohne Kette (kette_modus = %s, PO-Entscheidung AT-08)" % roh.kette_modus)
+	roh.free()
 	s = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
 	s.kette_modus = "leer"
 	root.add_child(s)

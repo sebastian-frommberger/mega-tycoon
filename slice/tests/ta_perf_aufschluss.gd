@@ -5,6 +5,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var s: Node = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	root.add_child(s)
 	var pr := 1
 	if OS.get_cmdline_user_args().size() > 0:

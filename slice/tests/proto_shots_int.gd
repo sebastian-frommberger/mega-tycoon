@@ -12,6 +12,7 @@ var zeilen: Array = []
 
 func _initialize() -> void:
 	s = load("res://proto/prototyp_welt.tscn").instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	root.add_child(s)
 	_run.call_deferred()
 

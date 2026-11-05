@@ -27,6 +27,7 @@ func pruef(ok: bool, text: String) -> void:
 func _run() -> void:
 	print("proto_band_hoehe_test")
 	var s: Node = (load(SZENE) as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	s.sim_aus = true
 	root.add_child(s)
 	await process_frame

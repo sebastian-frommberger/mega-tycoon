@@ -82,8 +82,9 @@ var fahrzeuge = null                 # proto_fahrzeuge.gd
 var orte_json: Dictionary = {}
 var sim_aus := false                 # Tests: vor add_child setzen, dann keine Sim/Fahrzeuge
 ## AT-02: "fest" = feste Kette Farm → Mühle → Dorf (geschenkte Fahrzeuge, Stand S7/L1), "leer" = Start mit 6.000 $ ohne Kette
-## (Spieler-API). Nutzerargument --kette=leer|fest. Default bleibt "fest", solange L1 die feste Kette braucht.
-var kette_modus := "fest"
+## (Spieler-API). Nutzerargument --kette=leer|fest. S8 AT-08 (PO-Entscheidung): Default "leer", seit die Kauf-UI steht (ui_welt.gd);
+## Alttests und L1-Messungen setzen kette_modus = "fest" vor add_child oder starten mit --kette=fest.
+var kette_modus := "leer"
 var sim_tempo := 1                   # AT-05: Sim-Tempo 0 (Pause) | 1 | 2 | 4; Ticks je Sekunde = 10 × sim_tempo
 var tempo_vor_pause := 1             # Leertaste setzt dieses Tempo wieder ein
 var zeitlupe := 1.0                  # T: nur Ansicht, 1.0 oder 0.25 (multipliziert sim_tempo, nie schneller)

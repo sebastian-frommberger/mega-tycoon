@@ -93,6 +93,7 @@ func _run() -> void:
 		elif a.begins_with("--md="):
 			md = a.substr(5)
 	var s: Node = (load(SZENE) as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	root.add_child(s)
 	await process_frame
 	s.setze_preset(preset)

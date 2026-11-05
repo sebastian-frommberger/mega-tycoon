@@ -32,6 +32,21 @@ const FT_WELT := {
 	"bankrott": "Du bist bankrott, Käufe gehen nicht mehr. Starte neu über das Menü (Esc).",
 	"fuhrhalterei": "Unterhalt enthält Futter, Knecht, Stellmacher.",
 	"postkutsche": "Postkutschen fahren nur als Kulisse. Passagiere kommen in einer späteren Version.",
+	# AT-08 (AT-14 S2/S3)
+	"modus": "Linie von {name}: klicke das Ziel. Esc bricht ab.",
+	"linie_ok": "Linie {a} → {b} läuft. Fuhrwerk {n} ist unterwegs.",
+	"fuhrwerk_ok": "Fuhrwerk {n} gekauft: −{p}, Unterhalt +{u}/min. Linie bringt jetzt ca. {z}/min.",
+	"keine_verbindung": "Zwischen {a} und {b} gibt es keine Straße. Wähle ein Ziel am bestehenden Netz.",
+	"liefert_nichts": "{name} liefert nichts. Starte die Linie bei Farm, Mühle oder Lager.",
+	"keine_lizenz": "{name} hat keine Lizenz. Kaufe sie im Panel (Klick auf das Gebäude).",
+	"nimmt_nicht": "{ziel} nimmt {ware} nicht an. Wähle einen Abnehmer, der sie braucht.",
+	"fuhrwerk_geld": "Fuhrwerk kostet {x}, es fehlen {d}. Nimm Kredit oder warte auf Einnahmen.",
+	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
+	"gibt_es_schon": "Diese Linie gibt es schon. Füge ihr ein Fuhrwerk hinzu (+ Fuhrwerk).",
+	"ins_leere": "Klicke ein Gebäude an: erst die Quelle, dann das Ziel.",
+	"gleich": "Start und Ziel sind gleich. Wähle ein anderes Ziel.",
+	"frachtwagen_1830": "Frachtwagen gibt es erst ab 1830. Bis dahin kaufst du das Fuhrwerk.",
+	"linie_sonst": "Linie gerade nicht möglich. Bitte erneut klicken (Meldung an uns: {code}).",
 }
 
 var welt: Node = null                # prototyp_welt.gd
@@ -48,6 +63,15 @@ var knoepfe: Dictionary = {}         # Name -> Button im offenen Panel (Tests, p
 var klicks := 0                      # gezählte Spielerklicks (Welt + Knöpfe), Messgröße AT-08
 var orte_pos: Dictionary = {}        # Stationsname -> Vector3 (m, Gelände)
 var _refresh_t := 0.0
+var _bereiche: Dictionary = {}       # "panel" | "vorschau" | "modus" -> Knopf-IDs
+# AT-08: Linienbau
+var modus_von := ""                  # Quelle im Modus „Linie von hier“, "" = kein Modus
+var vorschau_ziel := ""              # Ziel der offenen Vorschau, "" = keine
+var vorschau_werte: Dictionary = {}  # Zahlen der Vorschau (Test gegen Spielwert)
+var modus_panel: PanelContainer
+var modus_hb: HBoxContainer
+var vorschau_panel: PanelContainer
+var vorschau_vb: VBoxContainer
 
 
 func einbauen(p_welt: Node) -> void:
@@ -59,6 +83,7 @@ func einbauen(p_welt: Node) -> void:
 	_orte_lesen()
 	_baue_panel()
 	_baue_toast()
+	_baue_linienbau()
 
 
 func _orte_lesen() -> void:
@@ -255,7 +280,7 @@ func _label(t: String, gr := 16, farbe := C_TEXT) -> Label:
 	return l
 
 
-func _knopf(t: String, id: String, f: Callable, primaer := false, grau := false) -> Button:
+func _knopf(t: String, id: String, f: Callable, primaer := false, grau := false, bereich := "panel") -> Button:
 	var b := Button.new()
 	b.text = t
 	b.name = id
@@ -272,15 +297,24 @@ func _knopf(t: String, id: String, f: Callable, primaer := false, grau := false)
 		klicks += 1
 		f.call())
 	knoepfe[id] = b
+	if not _bereiche.has(bereich):
+		_bereiche[bereich] = []
+	_bereiche[bereich].append(id)
 	return b
+
+
+func _bereich_leeren(bereich: String) -> void:
+	for id in _bereiche.get(bereich, []):
+		knoepfe.erase(id)
+	_bereiche[bereich] = []
 
 
 # ------------------------------------------------------------------ Meldungen
 
-func meldung(t: String) -> void:
+func meldung(t: String, dauer := TOAST_S) -> void:
 	toast_label.text = t
 	toast_panel.visible = true
-	toast_rest = TOAST_S
+	toast_rest = dauer
 	meldungen_log.append({"t_ms": Time.get_ticks_msec(), "text": t})
 
 
@@ -304,6 +338,13 @@ func _process(delta: float) -> void:
 ## Weltklick (Bildschirmposition). Gibt true zurück, wenn ein Ort getroffen wurde (oder ein Modus den Klick braucht).
 func welt_klick(pos: Vector2) -> bool:
 	var nm := ort_unter(pos)
+	if modus_von != "":
+		klicks += 1
+		if nm == "":
+			meldung(text("ins_leere"), 2.0)
+		else:
+			ziel_waehlen(nm)
+		return true
 	if nm == "":
 		return false
 	klicks += 1
@@ -336,6 +377,9 @@ func bildschirm_pos(nm: String) -> Vector2:
 ## Esc und andere Tasten. true = verbraucht (G5: Esc schließt zuerst das Panel, erst dann kommt das Menü).
 func eingabe(ev: InputEvent) -> bool:
 	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+		if modus_von != "" or vorschau_ziel != "":       # AT-14 S2: Esc bricht in jeder Stufe ohne Text ab
+			modus_ende()
+			return true
 		if auswahl != "":
 			schliessen()
 			return true
@@ -353,14 +397,14 @@ func oeffnen(nm: String) -> void:
 func schliessen() -> void:
 	auswahl = ""
 	panel.visible = false
-	knoepfe.clear()
+	_bereich_leeren("panel")
 
 
 func panel_neu() -> void:
 	for c in panel_vb.get_children():
 		panel_vb.remove_child(c)
 		c.queue_free()
-	knoepfe.clear()
+	_bereich_leeren("panel")
 	panel_werte = {"name": auswahl}
 	var site := site_of(auswahl)
 	if site < 0:
@@ -425,6 +469,7 @@ func _panel_industrie(site: int) -> void:
 			liste.append(a["name"])
 		panel_werte["abnehmer"] = liste
 	panel_vb.add_child(_knopf("Linie von hier", "linie_von_hier", linie_von_hier.bind(auswahl), e.licence_valid(site)))
+	_linien_ab(auswahl)
 
 
 func _lizenz_zeile(site: int) -> void:
@@ -533,6 +578,285 @@ func lizenz_fehlertext(nm: String, r: Dictionary) -> String:
 	return text("lizenz_sonst", {"code": f})
 
 
-## AT-08 setzt hier an (Modus „Linie von hier“). AT-07: Knopf vorhanden, Aktion meldet sich.
+
+
+# ------------------------------------------------------------------ AT-08 Linienbau
+
+func _baue_linienbau() -> void:
+	modus_panel = PanelContainer.new()
+	modus_panel.name = "LinienModus"
+	modus_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	modus_panel.add_theme_stylebox_override("panel", _stil(Color(0.12, 0.2, 0.14, 0.9), 8))
+	modus_panel.anchor_left = 0.5
+	modus_panel.anchor_right = 0.5
+	modus_panel.offset_top = 72.0
+	modus_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	modus_panel.visible = false
+	add_child(modus_panel)
+	modus_hb = HBoxContainer.new()
+	modus_hb.add_theme_constant_override("separation", 10)
+	modus_panel.add_child(modus_hb)
+	vorschau_panel = PanelContainer.new()
+	vorschau_panel.name = "Linienvorschau"
+	vorschau_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	vorschau_panel.add_theme_stylebox_override("panel", _stil(Color(0.1, 0.09, 0.08, 0.92), 12))
+	vorschau_panel.anchor_left = 0.5
+	vorschau_panel.anchor_right = 0.5
+	vorschau_panel.anchor_top = 1.0
+	vorschau_panel.anchor_bottom = 1.0
+	vorschau_panel.offset_bottom = -16.0
+	vorschau_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	vorschau_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	vorschau_panel.visible = false
+	add_child(vorschau_panel)
+	vorschau_vb = VBoxContainer.new()
+	vorschau_vb.add_theme_constant_override("separation", 4)
+	vorschau_panel.add_child(vorschau_vb)
+
+
+func _leeren(c: Node) -> void:
+	for k in c.get_children():
+		c.remove_child(k)
+		k.queue_free()
+
+
+## Modus „Linie von hier“ (S2a). Ohne Lizenz zeigt die Modusleiste den Grund und den Kauf (ein Klick, Modus bleibt).
 func linie_von_hier(nm: String) -> void:
-	meldung("Linie von %s: kommt mit AT-08." % nm)
+	var site := site_of(nm)
+	if site < 0 or ausgang(site) == "":
+		meldung(text("liefert_nichts", {"name": nm}))
+		return
+	modus_von = nm
+	vorschau_ziel = ""
+	vorschau_panel.visible = false
+	_bereich_leeren("vorschau")
+	modus_neu()
+
+
+func modus_neu() -> void:
+	_leeren(modus_hb)
+	_bereich_leeren("modus")
+	if modus_von == "":
+		modus_panel.visible = false
+		return
+	modus_hb.add_child(_label(text("modus", {"name": modus_von}), 16))
+	var site := site_of(modus_von)
+	if not ps.eco.licence_valid(site):
+		modus_hb.add_child(_label("Keine Lizenz.", 16, C_WARN))
+		var q: Dictionary = ps.eco.licence_quote(site, false)
+		var preis: int = int(q.get("zu_zahlen_cent", 0))
+		var b := _knopf("Lizenz kaufen %s" % geld(preis), "modus_lizenz", func():
+			lizenz_kaufen(modus_von)
+			modus_neu(), false, preis > ps.eco.cash_cent, "modus")
+		modus_hb.add_child(b)
+	modus_hb.add_child(_knopf("Abbrechen · Esc", "modus_abbrechen", modus_ende, false, false, "modus"))
+	modus_panel.visible = true
+
+
+func modus_ende() -> void:
+	modus_von = ""
+	vorschau_ziel = ""
+	vorschau_werte = {}
+	vorschau_panel.visible = false
+	_bereich_leeren("vorschau")
+	modus_neu()
+
+
+## Fahrzeuge (nicht verkauft) der Linie von → nach.
+func linien_fahrzeuge(von: String, nach: String) -> Array:
+	var a: int = int(ps.stationen[von]["knoten"])
+	var b: int = int(ps.stationen[nach]["knoten"])
+	return ps.fahrzeuge.filter(func(f): return int(f["von"]) == a and int(f["nach"]) == b and not f["verkauft"] and f["kauf_cent"] > 0)
+
+
+## Ziel im Modus angeklickt (S2b). Prüfreihenfolge: gleich → Verbindung → Annahme → Lizenz → Vorschau.
+func ziel_waehlen(nm: String) -> void:
+	var von := modus_von
+	if nm == von:
+		meldung(text("gleich"))
+		return
+	var sv := site_of(von)
+	var sz := site_of(nm)
+	var g: int = ps.eco.s_out_good[sv]
+	var v := route_vorschau(von, nm, 1)
+	if not v["ok"]:
+		meldung(text("keine_verbindung", {"a": von, "b": nm}))
+		return
+	if not nimmt_an(sz, g):
+		meldung(text("nimmt_nicht", {"ziel": nm, "ware": String(ps.eco.g_ids[g]).capitalize()}))
+		return
+	if not ps.eco.licence_valid(sv):
+		meldung(text("keine_lizenz", {"name": von}))
+		oeffnen(von)
+		return
+	var n_alt := linien_fahrzeuge(von, nm).size()
+	if n_alt > 0:
+		meldung(text("gibt_es_schon"))
+	vorschau_ziel = nm
+	vorschau_zeigen(von, nm, n_alt)
+
+
+## Routenvorschau (W3): Strecke, Fahrzeit, Ertrag je Fuhre, Netto/min (Schätzung), Preis, Unterhalt.
+## n = Zahl der Fuhrwerke auf der Linie nach dem Kauf. Schätzung: volle Frische, ohne Sättigung, Fahrzeit ohne Easing;
+## Fuhren je Minute höchstens Liefermenge der Quelle ÷ Ladung.
+func route_vorschau(von: String, nach: String, n: int) -> Dictionary:
+	var a: Dictionary = ps.stationen[von]
+	var b: Dictionary = ps.stationen[nach]
+	var route: Array = ps.sim.graph.find_path(int(a["knoten"]), int(b["knoten"]))
+	if route.is_empty():
+		return {"ok": false, "fehler": "keine_verbindung"}
+	var e = ps.eco
+	var d := fuhrwerk_def()
+	var sv := int(a["site"])
+	var sz := int(b["site"])
+	var g: int = e.s_out_good[sv]
+	var cap := int(d.get("kapazitaet_einheiten", 10))
+	var route_mm: int = ps.sim.graph.route_length(route)
+	var strecke_m: float = route_mm / ps.mm_pro_m
+	var v_nom: float = maxf(0.001, ps.profil("fuhrwerk").v_nom)
+	var fahr_ticks: float = strecke_m / v_nom
+	var load_ticks := int(e.slice.get("fahrzeug_ref", {}).get("load_ticks", 100))
+	var umlauf: float = 2.0 * fahr_ticks + 2.0 * load_ticks
+	var felder: int = e.luftlinie_felder(sv, sz)
+	var ertrag: int = e.yield_cent(g, felder, Economy.PROMILLE, cap * Economy.PROMILLE) if g >= 0 else 0
+	var fahrk: int = int(round(2.0 * route_mm / float(e.feld_mm))) * int(d.get("variabel_cent_pro_feld", 0))
+	var fuhren_fz: float = n * float(e.periode_ticks) / umlauf
+	var fuhren: float = minf(fuhren_fz, float(e.s_rate[sv]) / cap)
+	var fix := int(d.get("fix_cent_pro_periode", 0))
+	return {"ok": true, "strecke_m": roundi(strecke_m), "fahrzeit_s": roundi(fahr_ticks / 10.0), "felder": felder,
+		"ertrag_fuhre_cent": ertrag, "fahrkosten_fuhre_cent": fahrk, "fuhren_min": fuhren,
+		"netto_min_cent": roundi(fuhren * (ertrag - fahrk)) - n * fix, "preis_cent": int(d.get("kauf_cent", 0)), "fix_cent": fix,
+		"gut": String(e.g_ids[g]) if g >= 0 else "", "quelle_begrenzt": fuhren_fz > fuhren and n > 1, "quelle_rate": int(e.s_rate[sv])}
+
+
+func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
+	_leeren(vorschau_vb)
+	_bereich_leeren("vorschau")
+	var v := route_vorschau(von, nach, n_alt + 1)
+	vorschau_werte = v.duplicate()
+	vorschau_werte["von"] = von
+	vorschau_werte["nach"] = nach
+	vorschau_vb.add_child(_label("Linie: %s → %s (%s)%s" % [von, nach, String(v["gut"]).capitalize(),
+		(" · %d Fuhrwerk(e) fahren schon" % n_alt) if n_alt > 0 else ""], 18))
+	vorschau_vb.add_child(_label("Strecke %s m · Fahrzeit ~%d s · Ertrag je Fuhre %s · ca. %s%s/min" % [_tsd(v["strecke_m"]), v["fahrzeit_s"],
+		geld(v["ertrag_fuhre_cent"]), "+" if v["netto_min_cent"] >= 0 else "", geld(v["netto_min_cent"])], 16))
+	vorschau_vb.add_child(_label("Fuhrwerk: %s einmalig · Unterhalt %s/min · Fahrkosten %s je Fuhre" % [geld(v["preis_cent"]),
+		geld(v["fix_cent"]), geld(v["fahrkosten_fuhre_cent"])], 16))
+	if v["quelle_begrenzt"]:                                # F3.2: Hinweis, Kauf bleibt möglich
+		vorschau_vb.add_child(_label("▲ " + text("liefert_wenig", {"name": von, "x": v["quelle_rate"]}), 16, C_WARN))
+	vorschau_vb.add_child(_label("Schätzung: volle Frische, ohne Sättigung des Abnehmers.", 14, C_GRAU))
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 12)
+	var grau: bool = v["preis_cent"] > ps.eco.cash_cent
+	var t := ("+ Fuhrwerk · %s" if n_alt > 0 else "Anlegen · %s") % geld(v["preis_cent"])
+	var b := _knopf(t, "anlegen", anlegen, not grau, grau, "vorschau")
+	if grau:
+		b.tooltip_text = "Es fehlen %s." % fehlbetrag(v["preis_cent"] - ps.eco.cash_cent)
+	hb.add_child(b)
+	hb.add_child(_knopf("Abbrechen · Esc", "vorschau_abbrechen", modus_ende, false, false, "vorschau"))
+	vorschau_vb.add_child(hb)
+	vorschau_panel.visible = true
+
+
+## [Anlegen] in der Vorschau (S2c, A1: kauft das erste Fuhrwerk mit). Danach geht der Modus am Ziel weiter, wenn es liefert.
+func anlegen() -> Dictionary:
+	var von := String(vorschau_werte.get("von", ""))
+	var nach := String(vorschau_werte.get("nach", ""))
+	var r := fuhrwerk_kaufen(von, nach)
+	if r.get("ok", false):
+		var sz := site_of(nach)
+		if ausgang(sz) != "":
+			linie_von_hier(nach)                          # Kette weiter: Ziel ist die nächste Quelle (Esc beendet)
+		else:
+			modus_ende()
+		oeffnen(nach)
+	return r
+
+
+## Fuhrwerk auf der Linie von → nach kaufen (erste Linie oder + Fuhrwerk). Prüft Lizenz und Kasse vor der API,
+## jede Ablehnung der API wird übersetzt (nie stumm).
+func fuhrwerk_kaufen(von: String, nach: String) -> Dictionary:
+	if von == "" or nach == "":
+		meldung(text("ins_leere"))
+		return {"ok": false, "fehler": "keine_auswahl"}
+	var sv := site_of(von)
+	if sv >= 0 and ist_industrie(sv) and ps.eco.lic_required and not ps.eco.licence_valid(sv):
+		meldung(text("keine_lizenz", {"name": von}))       # API-Lücke: linie_anlegen prüft die Lizenz nicht (Bericht)
+		oeffnen(von)
+		return {"ok": false, "fehler": "keine_lizenz"}
+	var n_alt := linien_fahrzeuge(von, nach).size()
+	var r: Dictionary = ps.linie_anlegen(von, nach, "fuhrwerk")
+	if not r.get("ok", false):
+		meldung(linie_fehlertext(von, nach, r))
+		return r
+	_fahrzeuge_neu()
+	var v := route_vorschau(von, nach, n_alt + 1)
+	if n_alt == 0:
+		meldung(text("linie_ok", {"a": von, "b": nach, "n": r["vid"]}))
+	else:
+		meldung(text("fuhrwerk_ok", {"n": r["vid"], "p": geld(int(r["preis_cent"])), "u": geld(v["fix_cent"]),
+			"z": ("+" if v["netto_min_cent"] >= 0 else "") + geld(v["netto_min_cent"])}))
+	if vorschau_ziel != "" and modus_von == von:
+		vorschau_zeigen(von, nach, n_alt + 1)
+	if auswahl != "":
+		panel_neu()
+	return r
+
+
+func linie_fehlertext(von: String, nach: String, r: Dictionary) -> String:
+	var f := String(r.get("fehler", "?"))
+	match f:
+		"keine_verbindung":
+			return text("keine_verbindung", {"a": von, "b": nach})
+		"guthaben_reicht_nicht":
+			return text("fuhrwerk_geld", {"x": geld(int(fuhrwerk_def().get("kauf_cent", 0))), "d": fehlbetrag(int(r.get("fehlt_cent", 0)))})
+		"gleicher_ort":
+			return text("gleich")
+		"bankrott":
+			return text("bankrott")
+		"noch_nicht_verfuegbar":
+			return text("frachtwagen_1830")
+		"unbekannter_ort":
+			return text("ins_leere")
+	return text("linie_sonst", {"code": f})
+
+
+## Adapter (API-Lücke): proto_fahrzeuge.gd legt die Slots nur in bauen() an. Nach jedem Kauf baut die UI die Darstellung
+## neu (Zustand und Easing liegen in proto_sim, gehen also nicht verloren). Anforderung an Felix: fahrzeug_dazu(f).
+func _fahrzeuge_neu() -> void:
+	var alt = welt.fahrzeuge
+	var neu = preload("res://proto/proto_fahrzeuge.gd").new()
+	welt.add_child(neu)
+	neu.easing_an = welt.easing_an
+	neu.bauen(ps, welt.regelwerk)
+	welt.fahrzeuge = neu
+	if alt != null:
+		alt.queue_free()
+
+
+## Panel-Abschnitt „Linien ab hier“ (W4-Ausschnitt): je Ziel Fuhrwerke und [+ Fuhrwerk] (S3: ≤ 2 Klicks ab Panel).
+func _linien_ab(von: String) -> void:
+	var ziele := {}
+	var a: int = int(ps.stationen[von]["knoten"])
+	for f in ps.fahrzeuge:
+		if int(f["von"]) == a and not f["verkauft"] and f["kauf_cent"] > 0:
+			for nm in ps.stationen:
+				if int(ps.stationen[nm]["knoten"]) == int(f["nach"]):
+					ziele[nm] = int(ziele.get(nm, 0)) + 1
+	if ziele.is_empty():
+		return
+	_trenner()
+	panel_vb.add_child(_label("Linien ab hier:", 16, C_GRAU))
+	var preis := int(fuhrwerk_def().get("kauf_cent", 0))
+	for nm in ziele:
+		var hb := HBoxContainer.new()
+		var l := _label("→ %s · %d Fuhrwerk(e)" % [nm, ziele[nm]], 16)
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(l)
+		var grau: bool = preis > ps.eco.cash_cent
+		var b := _knopf("+ Fuhrwerk %s" % geld(preis), "plus_" + nm, fuhrwerk_kaufen.bind(von, nm), false, grau)
+		if grau:
+			b.tooltip_text = "Es fehlen %s." % fehlbetrag(preis - ps.eco.cash_cent)
+		hb.add_child(b)
+		panel_vb.add_child(hb)
+		panel_werte["linie_" + nm] = ziele[nm]

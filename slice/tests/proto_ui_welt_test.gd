@@ -45,6 +45,8 @@ func _run() -> void:
 	var nur := _nur()
 	if nur == "" or nur == "at07":
 		await _at07()
+	if nur == "" or nur == "at08":
+		await _at08()
 	print("Prüfungen OK: %d, FAIL: %d" % [n_ok, n_fail])
 	quit(0 if n_fail == 0 else 1)
 
@@ -240,6 +242,171 @@ func _at07() -> void:
 		await process_frame
 	ok(true, "3 Frames nach den Käufen ohne Fehler")
 
+
+# ------------------------------------------------------------------ AT-08
+
+func _neue_szene() -> void:
+	if s != null:
+		s.queue_free()
+		await process_frame
+	s = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	s.kette_modus = "leer"
+	root.add_child(s)
+	await process_frame
+	ui = s.ui_welt
+	ps = s.proto_sim
+	s.setze_tempo(0)
+
+
+func _at08() -> void:
+	print("  -- AT-08 Linie anlegen, Fuhrwerk kaufen, Routenvorschau")
+	await _neue_szene()
+	var e = ps.eco
+	var d: Dictionary = ps.vdef(ps.def_fuer("fuhrwerk"))
+	var preis := int(d["kauf_cent"])
+	ui.klicks = 0
+	var lizenzklicks := 0
+	# 1 Klick Gut Kuppenhof, 2 Lizenz, 3 Linie von hier, 4 Klick Erlenmühle, 5 Anlegen
+	_klick("Gut Kuppenhof")
+	_druecke("lizenz_kaufen")
+	lizenzklicks += 1
+	_druecke("linie_von_hier")
+	ok(ui.modus_von == "Gut Kuppenhof" and ui.modus_panel.visible, "Modus Linie von Gut Kuppenhof (Modusleiste sichtbar)")
+	_klick("Erlenmühle")
+	var v: Dictionary = ui.vorschau_werte
+	var a: Dictionary = ps.stationen["Gut Kuppenhof"]
+	var b: Dictionary = ps.stationen["Erlenmühle"]
+	var route: Array = ps.sim.graph.find_path(int(a["knoten"]), int(b["knoten"]))
+	var strecke := roundi(ps.sim.graph.route_length(route) / ps.mm_pro_m)
+	ok(ui.vorschau_panel.visible and v.get("nach", "") == "Erlenmühle", "Vorschau Gut Kuppenhof → Erlenmühle offen")
+	ok(v["preis_cent"] == preis and v["fix_cent"] == int(d["fix_cent_pro_periode"]) and v["strecke_m"] == strecke
+		and v["felder"] == e.luftlinie_felder(int(a["site"]), int(b["site"])),
+		"Vorschau = Spielwerte: Preis %s, Unterhalt %s/min, Strecke %d m, %d Felder" % [ui.geld(v["preis_cent"]), ui.geld(v["fix_cent"]), v["strecke_m"], v["felder"]])
+	var g: int = e.g_index["getreide"]
+	ok(v["ertrag_fuhre_cent"] == e.yield_cent(g, v["felder"], 1000, int(d["kapazitaet_einheiten"]) * 1000), "Ertrag je Fuhre %s = yield_cent (volle Frische, ohne Sättigung)" % ui.geld(v["ertrag_fuhre_cent"]))
+	var k0: int = e.cash_cent
+	_druecke("anlegen")
+	ok(k0 - e.cash_cent == v["preis_cent"] and ps.fahrzeuge.size() == 1 and s.fahrzeuge.mmis.size() == 1,
+		"Anlegen: Kasse −%d ¢ = Vorschaupreis ± 0, 1 Fuhrwerk, Darstellung neu gebaut" % (k0 - e.cash_cent))
+	ok(_letzte() == "Linie Gut Kuppenhof → Erlenmühle läuft. Fuhrwerk 1 ist unterwegs.", "Toast: %s" % _letzte())
+	ok(ui.modus_von == "Erlenmühle" and ui.auswahl == "Erlenmühle", "Kette: Modus geht an der Erlenmühle weiter, Panel Erlenmühle offen")
+	ok(ui.knoepfe.has("modus_lizenz"), "Modusleiste: Erlenmühle ohne Lizenz, Kauf-Knopf in der Leiste")
+	# keine Lizenz (Fehlerfall 3): Ziel klicken, bevor die Mühle lizenziert ist
+	var n_log: int = ui.meldungen_log.size()
+	var k_vor: int = ui.klicks
+	_klick("Erlenbach")
+	ok(ui.meldungen_log.size() == n_log + 1 and _letzte() == "Erlenmühle hat keine Lizenz. Kaufe sie im Panel (Klick auf das Gebäude)." and ps.fahrzeuge.size() == 1,
+		"Fehlerfall keine Lizenz: %s" % _letzte())
+	ui.klicks = k_vor                  # Fehlklick zählt nicht in den Erfolgsweg
+	# 6 Lizenz Mühle (Leiste), 7 Klick Erlenbach, 8 Anlegen
+	_druecke("modus_lizenz")
+	lizenzklicks += 1
+	_klick("Erlenbach")
+	k0 = e.cash_cent
+	_druecke("anlegen")
+	ok(ps.fahrzeuge.size() == 2 and k0 - e.cash_cent == preis and ui.modus_von == "" and ui.auswahl == "Erlenbach",
+		"Mehl-Linie Erlenmühle → Erlenbach angelegt (−%d ¢), Modus endet am Dorf" % (k0 - e.cash_cent))
+	var klicks_ges: int = ui.klicks
+	ok(klicks_ges - lizenzklicks <= 6, "Farm → Mühle → Dorf: %d Klicks gesamt, davon %d Lizenzklicks, %d Klicks ohne Lizenzen (Soll ≤ 6)" % [klicks_ges, lizenzklicks, klicks_ges - lizenzklicks])
+	# + Fuhrwerk aus dem Panel (≤ 2 Klicks)
+	ui.klicks = 0
+	_klick("Gut Kuppenhof")
+	ps.tick()                          # Fix der bisherigen Käufe ist gebucht (dirty → konto.fix_neu)
+	k0 = e.cash_cent
+	var fix0: int = ps.konto.running_cost_per_period
+	_druecke("plus_Erlenmühle")
+	ok(ui.klicks == 2 and ps.fahrzeuge.size() == 3 and k0 - e.cash_cent == preis, "+ Fuhrwerk: 2 Klicks ab Welt, Kasse −%d ¢ = Preis ± 0" % (k0 - e.cash_cent))
+	ps.tick()
+	ok(ps.konto.running_cost_per_period == fix0 + int(d["fix_cent_pro_periode"]) and _letzte().begins_with("Fuhrwerk 3 gekauft: −300 $, Unterhalt +60 $/min."),
+		"Fix je Minute +%s; Toast: %s" % [ui.geld(int(d["fix_cent_pro_periode"])), _letzte()])
+	ok(ui.panel_werte.get("linie_Erlenmühle", 0) == 2, "Panel: Linie → Erlenmühle mit 2 Fuhrwerken")
+	# Frames laufen mit den neuen Fahrzeugen
+	s.setze_tempo(4)
+	for i in 30:
+		await process_frame
+	s.setze_tempo(0)
+	ok(s.fahrzeuge.mmis["fuhrwerk"].multimesh.instance_count == 3, "30 Frames mit 3 Fuhrwerken (MultiMesh 3 Instanzen)")
+	# --- Fehlerfälle: kein Geld, keine Verbindung, weitere (nie stumm)
+	var echt: int = e.cash_cent
+	e.cash_cent = 100
+	ui.linie_von_hier("Gut Kuppenhof")
+	_klick("Erlenmühle")
+	ok(_letzte() == "Diese Linie gibt es schon. Füge ihr ein Fuhrwerk hinzu (+ Fuhrwerk)." and (ui.knoepfe["anlegen"] as Button).text.begins_with("+ Fuhrwerk"),
+		"F2.6 Linie gibt es schon: Text + Knopf „+ Fuhrwerk“")
+	var vt := ""
+	for c in ui.vorschau_vb.get_children():
+		if c is Label:
+			vt += (c as Label).text + "\n"
+	ok(vt.contains("▲ Gut Kuppenhof liefert nur 20 E/min. Ein weiteres Fuhrwerk bringt kaum mehr."), "F3.2 Hinweis in der Vorschau (Quelle begrenzt, Kauf bleibt möglich)")
+	var anl: Button = ui.knoepfe["anlegen"]
+	ok(anl.tooltip_text == "Es fehlen 299 $." and not anl.disabled, "Kein Geld: Knopf grau, klickbar, Tooltip %s" % anl.tooltip_text)
+	n_log = ui.meldungen_log.size()
+	_druecke("anlegen")
+	ok(ui.meldungen_log.size() == n_log + 1 and _letzte() == "Fuhrwerk kostet 300 $, es fehlen 299 $. Nimm Kredit oder warte auf Einnahmen." and ps.fahrzeuge.size() == 3 and e.cash_cent == 100,
+		"Fehlerfall kein Geld: %s" % _letzte())
+	e.cash_cent = echt
+	# keine Verbindung: Insel-Station auf einem Knoten ohne Kante (Testaufbau)
+	var nid: int = 0
+	for k in ps.sim.graph.nodes:
+		nid = maxi(nid, int(k) + 1)
+	var pa: Vector2i = ps.sim.graph.nodes[int(ps.stationen["Erlenbach"]["knoten"])]["pos"]
+	ps.sim.graph.add_node(nid, pa + Vector2i(4000000, 0), "Insel")
+	var sid: int = e.add_city_site(nid, String(e.s_city_id[ui.site_of("Erlenbach")]))
+	ps.stationen["Insel"] = {"knoten": nid, "site": sid, "k": e.s_station[sid], "id": "insel"}
+	ui.orte_pos["Insel"] = ui.orte_pos["Erlenbach"] + Vector3(60, 0, 0)
+	ui.linie_von_hier("Erlenmühle")
+	n_log = ui.meldungen_log.size()
+	_klick("Insel")
+	ok(ui.meldungen_log.size() == n_log + 1 and _letzte() == "Zwischen Erlenmühle und Insel gibt es keine Straße. Wähle ein Ziel am bestehenden Netz." and not ui.vorschau_panel.visible,
+		"Fehlerfall keine Verbindung: %s" % _letzte())
+	var r: Dictionary = ps.linie_anlegen("Erlenmühle", "Insel")
+	ok(not r["ok"] and ui.linie_fehlertext("Erlenmühle", "Insel", r) == _letzte(), "API keine_verbindung → derselbe Text")
+	# weitere Ablehnungen aus AT-14 S2
+	ui.linie_von_hier("Gut Kuppenhof")
+	_klick("Erlenbach")
+	ok(_letzte() == "Erlenbach nimmt Getreide nicht an. Wähle einen Abnehmer, der sie braucht.", "F2.4: %s" % _letzte())
+	_klick("Gut Kuppenhof")
+	ok(_letzte() == "Start und Ziel sind gleich. Wähle ein anderes Ziel.", "F2.8: %s" % _letzte())
+	_blick("Gut Kuppenhof")
+	_maus(ui.bildschirm_pos("Gut Kuppenhof") + Vector2(200, 200))
+	ok(_letzte() == "Klicke ein Gebäude an: erst die Quelle, dann das Ziel." and ui.modus_von == "Gut Kuppenhof", "F2.7 Klick ins Leere: %s, Modus bleibt" % _letzte())
+	ui.linie_von_hier("Erlenbach")
+	ok(_letzte() == "Erlenbach liefert nichts. Starte die Linie bei Farm, Mühle oder Lager." and ui.modus_von == "Gut Kuppenhof", "F2.2: %s" % _letzte())
+	ok(ui.fuhrwerk_kaufen("Hof Hasenwinkel", "Erlenmühle").get("fehler", "") == "keine_lizenz" and _letzte() == "Hof Hasenwinkel hat keine Lizenz. Kaufe sie im Panel (Klick auf das Gebäude)." and ui.auswahl == "Hof Hasenwinkel",
+		"F2.3 auch beim Kauf ohne Modus, Panel Hof Hasenwinkel öffnet")
+	# Esc: Modus ohne Text, dann Panel, dann Menü
+	ui.linie_von_hier("Gut Kuppenhof")
+	n_log = ui.meldungen_log.size()
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	s._unhandled_input(esc)
+	ok(ui.modus_von == "" and not ui.modus_panel.visible and ui.meldungen_log.size() == n_log and ui.auswahl != "", "Esc beendet den Modus ohne Text, Panel bleibt")
+	s._unhandled_input(esc)
+	ok(ui.auswahl == "" and s.is_inside_tree(), "Esc schließt danach das Panel")
+	# Vorschau gegen Messung nach 5 min (UX-2, nur gemessen, keine Abnahme hier)
+	await _vorschau_messung()
+
+
+## Eine Linie Kuppenhof → Mühle (1 Fuhrwerk) in neuer Szene: Vorschau ca. $/min gegen gemessenes Netto der Minuten 2–6.
+func _vorschau_messung() -> void:
+	await _neue_szene()
+	var e = ps.eco
+	ps.lizenz_kaufen("Gut Kuppenhof")
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	var vor: int = ui.vorschau_werte["netto_min_cent"]
+	ui.anlegen()
+	for i in 1200:
+		ps.tick()
+	var r0: int = e.revenue_total
+	var x0: int = ps.konto.expenses_total
+	for i in 3000:
+		ps.tick()
+	var netto: float = ((e.revenue_total - r0) - (ps.konto.expenses_total - x0)) / 5.0
+	var abw: float = (vor - netto) / maxf(1.0, absf(netto)) * 100.0
+	print("    MESSUNG Vorschau Kuppenhof → Mühle: ca. %s/min, gemessen %s/min (Minute 2–7), Abweichung %+.1f %%" % [ui.geld(vor), ui.geld(roundi(netto)), abw])
+	ok(true, "Vorschau-Messung ausgegeben (UX-2 ±5 %%: %s)" % ("ja" if absf(abw) <= 5.0 else "nein"))
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

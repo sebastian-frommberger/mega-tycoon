@@ -6,6 +6,7 @@ extends Control
 ## Ohne Menü: Tests laden main.tscn bzw. laufen mit -s (sehen dieses Menü nie); Bench (Feature „bench“ oder --bench)
 ## und --modus=neu|beispiel springen direkt ins Spiel. --welt=s7 wählt die Welt vor (Menü zeigt sie unten an).
 ## Phase 4 (Felix): Taste P oder Argument --proto öffnet die Prototyp-Welt (res://proto/prototyp_welt.tscn).
+## AT-06 (S8, Mira): Knopf „Welt spielen (Loop S8)“ unter den Karten lädt dieselbe Szene wie P (starte_welt()).
 
 const MainScript := preload("res://main.gd")
 const WorldSel := preload("res://world/welt.gd")
@@ -22,6 +23,7 @@ var welt := ""
 var markiert := 0
 var karten: Array = []          # Button je Karte
 var welt_label: Label
+var welt_knopf: Button          # AT-06: „Welt spielen (Loop S8)“, gleiche Szene wie Taste P
 
 
 func _ready() -> void:
@@ -85,6 +87,12 @@ func _baue() -> void:
 		b.add_child(rand)
 		reihe.add_child(b)
 		karten.append(b)
+	welt_knopf = Kit.button("Welt spielen (Loop S8)", "ButtonPrimary", "", starte_welt)
+	welt_knopf.name = "Knopf_Welt_S8"
+	welt_knopf.tooltip_text = "Prototyp-Welt mit Fuhrwerken, Tempo und Datum (Taste P)"
+	welt_knopf.custom_minimum_size = Vector2(320, 48)
+	welt_knopf.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(welt_knopf)
 	welt_label = Kit.label("", "LabelMuted")
 	welt_label.add_theme_color_override("font_color", ThemeBuilder.C["cream_muted"])
 	welt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -135,7 +143,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 			welt = "s7" if welt == "slice" else "slice"
 			_zeige_welt()
 		KEY_P:
-			get_tree().change_scene_to_file(PROTO)
+			starte_welt()
+
+
+## AT-06: Prototyp-Welt laden (Knopf und Taste P). Deferred, damit ein Knopfdruck das Menü nicht mitten im Signal abbaut.
+func starte_welt() -> void:
+	get_tree().change_scene_to_file.call_deferred(PROTO)
 
 
 ## Modus an main.gd übergeben und die Spielszene laden. Die Welt geht über Main.world_override (wie in den Tests).

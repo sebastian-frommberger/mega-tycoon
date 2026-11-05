@@ -37,6 +37,7 @@ func _run() -> void:
 	s.easing_geaendert.connect(func(a): signale["easing"] = a)
 	s.modelle_geaendert.connect(func(a): signale["modelle"] = a)
 	s.schilder_geaendert.connect(func(a): signale["schilder"] = a)
+	s.tempo_geaendert.connect(func(t): signale["tempo"] = t)
 	root.add_child(s)
 	await process_frame
 	var ms := (Time.get_ticks_usec() - t0) / 1000.0
@@ -112,9 +113,9 @@ func _run() -> void:
 	_key(KEY_F)
 	ok(s.folgen == -1, "F: nach dem letzten Fahrzeug wieder frei")
 	_key(KEY_T)
-	ok(is_equal_approx(s.sim_tempo, 0.25), "T: Bildtempo ¼×")
+	ok(is_equal_approx(s.zeitlupe, 0.25) and s.sim_tempo == 1, "T: Zeitlupe ¼× (nur Ansicht, sim_tempo bleibt 1)")
 	_key(KEY_T)
-	ok(is_equal_approx(s.sim_tempo, 1.0), "T: Bildtempo 1×")
+	ok(is_equal_approx(s.zeitlupe, 1.0), "T: Zeitlupe aus")
 	var z_an: Dictionary = s.zaehlung()
 	_key(KEY_M)
 	var z_aus: Dictionary = s.zaehlung()
@@ -135,9 +136,105 @@ func _run() -> void:
 	ok(not s.schilder_an and not s.schilder.sichtbar and signale.get("schilder", true) == false, "N: Schilder aus (kein Modal)")
 	_key(KEY_N)
 	ok(s.schilder_an and s.schilder.sichtbar, "N: Schilder wieder an")
+	await _at05_tempo()
 	# Fahrlinie am Szenen-Band (Schnittstelle für Easing)
 	var fl = s.strassen.fahrlinien[0]
 	var p: Vector3 = fl.strecke_punkt(fl.laenge * 0.5)
 	ok(fl.laenge > 0.0 and absf(p.y - s.hoehe_at(p.x, p.z)) < 15.0, "Fahrlinie 0: L %.0f m, Punkt auf Band-Höhe" % fl.laenge)
 	print("Prüfungen OK: %d, FAIL: %d" % [n_ok, n_fail])
 	quit(0 if n_fail == 0 else 1)
+
+
+# ------------------------------------------------------------------ AT-05: Pause, Tempo 1×/2×/4×, Datum
+
+## Ticks, die sim_schritt bei simulierten delta-Werten liefert (Akkumulator, ohne Wanduhr, ohne Rendering).
+func _sim_ticks(tempo: int, delta: float, sekunden: float) -> int:
+	s.setze_tempo(tempo)
+	s.sim_acc = 0.0
+	var t0: int = s.proto_sim.ticks
+	for i in int(round(sekunden / delta)):
+		s.sim_schritt(delta)
+	return s.proto_sim.ticks - t0
+
+
+## Wanduhr-Messung: lässt die Szene `sekunden` lang echte Frames laufen (_process der Szene tickt selbst).
+## Rückgabe: [Ticks, gemessene Sekunden, Frames]
+func _wanduhr(tempo: int, sekunden: float) -> Array:
+	s.setze_tempo(tempo)
+	s.sim_acc = 0.0
+	await process_frame
+	var t0 := Time.get_ticks_usec()
+	var tk0: int = s.proto_sim.ticks
+	var fr := 0
+	while (Time.get_ticks_usec() - t0) < int(sekunden * 1e6):
+		await process_frame
+		fr += 1
+	var dt_s := (Time.get_ticks_usec() - t0) / 1e6
+	return [s.proto_sim.ticks - tk0, dt_s, fr]
+
+
+func _at05_tempo() -> void:
+	print("  -- AT-05 Pause / Tempo / Datum")
+	if s.proto_sim == null:
+		ok(false, "AT-05: Sim fehlt")
+		return
+	ok(s.sim_tempo == 1 and s.TEMPI == [0, 1, 2, 4], "AT-05: Start-Tempo 1, erlaubte Stufen {0,1,2,4}")
+	# Tasten 1–5 bleiben Kamera-Presets, Tempo unberührt
+	s.setze_tempo(2)
+	_key(KEY_3)
+	ok(s.preset_aktiv == 3 and s.sim_tempo == 2, "AT-05: Taste 3 = Preset 3, Tempo bleibt 2× (Tasten 1–5 nicht belegt)")
+	_key(KEY_1)
+	s.setze_tempo(3)
+	ok(s.sim_tempo == 2, "AT-05: ungültige Stufe 3 wird ignoriert")
+	# Leertaste = Pause an/aus, zurück aufs vorherige Tempo
+	_key(KEY_SPACE)
+	ok(s.sim_tempo == 0 and signale.get("tempo", -1) == 0, "AT-05: Leertaste → Pause (Signal)")
+	_key(KEY_SPACE)
+	ok(s.sim_tempo == 2, "AT-05: Leertaste noch einmal → zurück auf 2×")
+	# Knöpfe im HUD
+	ok(s.tempo_knoepfe.size() == 4 and s.datum_label != null, "AT-05: HUD hat Knöpfe Pause/1×/2×/4× und Datum")
+	(s.tempo_knoepfe[4] as Button).pressed.emit()
+	ok(s.sim_tempo == 4 and (s.tempo_knoepfe[4] as Button).button_pressed and not (s.tempo_knoepfe[2] as Button).button_pressed, "AT-05: Knopf 4× setzt Tempo, nur er ist markiert")
+	(s.tempo_knoepfe[0] as Button).pressed.emit()
+	ok(s.sim_tempo == 0 and s.tempo_vor_pause == 4, "AT-05: Knopf Pause, merkt 4× für die Leertaste")
+	var fokus_aus := true
+	for b in s.tempo_knoepfe.values():
+		fokus_aus = fokus_aus and (b as Button).focus_mode == Control.FOCUS_NONE
+	ok(fokus_aus, "AT-05: alle Tempo-Knöpfe ohne Fokus (Leertaste löst nie einen Knopf aus)")
+	# Datum (Platzhalter: 600 Ticks = 1 Monat ab Startjahr)
+	const DT = preload("res://proto/prototyp_welt.gd")
+	ok(DT.datum_text(0, 1820) == "Jan 1820" and DT.datum_text(599, 1820) == "Jan 1820" and DT.datum_text(600, 1820) == "Feb 1820"
+		and DT.datum_text(7200, 1820) == "Jan 1821" and DT.datum_text(600 * 23, 1820) == "Dez 1821", "AT-05: Datum = Monat je 600 Ticks ab 1820")
+	var tk: int = s.proto_sim.ticks
+	s._hud_text()
+	ok(s.datum_label.text == DT.datum_text(tk, s.startjahr), "AT-05: HUD zeigt das Datum (%s bei Tick %d)" % [s.datum_label.text, tk])
+	# A) Akkumulator mit simulierten delta-Werten (deterministisch, ohne Wanduhr)
+	var pos0: Vector3 = s.proto_sim.fahrzeuge[0]["zustand"].pos
+	var n0 := _sim_ticks(0, 1.0 / 60.0, 10.0)
+	var pos1: Vector3 = s.proto_sim.fahrzeuge[0]["zustand"].pos
+	ok(n0 == 0 and pos1 == pos0, "AT-05 (simuliert): Pause, 600 Frames à 1/60 s → %d Ticks, Fahrzeug 0 steht (Δ %.4f m)" % [n0, pos1.distance_to(pos0)])
+	for fps in [60.0, 30.0, 20.0]:
+		for tempo in [1, 2, 4]:
+			var n := _sim_ticks(tempo, 1.0 / fps, 10.0)
+			var soll: int = 100 * int(tempo)
+			ok(n <= soll and n >= soll - 1, "AT-05 (simuliert): %d× bei %d fps, 10 s → %d Ticks (Soll %d, nie darüber)" % [tempo, int(fps), n, soll])
+	var n_slow := _sim_ticks(4, 0.5, 10.0)
+	ok(n_slow <= 20 * s.MAX_TICKS_JE_FRAME and n_slow <= 400, "AT-05 (simuliert): 4× bei 2 fps → %d Ticks (Deckel %d je Frame, nie > 400)" % [n_slow, s.MAX_TICKS_JE_FRAME])
+	# B) Wanduhr: echte Frames der Szene (headless: kein Rendering → fps nur Hinweis auf Schleifenrate)
+	s.setze_tempo(0)
+	var pos_vor: Vector3 = s.proto_sim.fahrzeuge[0]["zustand"].pos
+	var r0: Array = await _wanduhr(0, 10.0)
+	var pos2: Vector3 = s.proto_sim.fahrzeuge[0]["zustand"].pos
+	ok(r0[0] == 0 and pos2 == pos_vor, "AT-05 (Wanduhr): Pause, %.1f s, %d Frames → %d Ticks, Fahrzeug steht" % [r0[1], r0[2], r0[0]])
+	for tempo in [1, 2, 4]:
+		var sek := 5.0 if tempo == 4 else 3.0
+		var r: Array = await _wanduhr(tempo, sek)
+		var rate: float = r[0] / r[1]
+		var fps_m: float = r[2] / r[1]
+		var soll_r: float = 10.0 * float(tempo)
+		var txt := "AT-05 (Wanduhr): %d× → %.2f Ticks/s (Soll %.0f ± 1) bei %.0f fps, %d Ticks in %.2f s" % [tempo, rate, soll_r, fps_m, r[0], r[1]]
+		if fps_m >= 20.0:
+			ok(absf(rate - soll_r) <= 1.0, txt)
+		else:      # Software-GL (xvfb) schafft <20 fps: Soll nur bei ≥ 20 fps gefordert; nie schneller als 10 Hz × Tempo gilt immer
+			ok(rate <= soll_r + 1.0, txt + " [fps < 20: Soll nicht bewertbar, nur Obergrenze geprüft]")
+	s.setze_tempo(1)

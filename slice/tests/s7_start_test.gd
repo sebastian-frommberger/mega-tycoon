@@ -8,6 +8,7 @@ extends SceneTree
 
 const MainScript := preload("res://main.gd")
 const MENU := "res://start_menu.tscn"
+const PROTO := "res://proto/prototyp_welt.tscn"
 const Beispielnetz := preload("res://world/beispielnetz.gd")
 const Kit := preload("res://ui/ui_kit.gd")
 const FEHLERWORTE := ["Es fehlen", "reicht nicht", "Zu steil", "nicht anschließbar", "keine Verbindung", "Brücke geht nur",
@@ -99,6 +100,8 @@ func _run() -> void:
 		await _frames(6)
 		m = current_scene
 		await _beispiel(m, w)
+	# --- AT-06: Knopf „Welt spielen (Loop S8)“ startet die Prototyp-Welt (wie Taste P), 5 Starts
+	await _welt_starts()
 	# --- main.tscn direkt (Testweg): kein Menü, kein Beispiel
 	MainScript.start_mode = ""
 	MainScript.world_override = ""
@@ -147,6 +150,75 @@ func _beispiel(m: Node, w: String) -> void:
 		rb.pressed.emit()
 		await _frames(3)
 		ok(current_scene != null and current_scene.name == "StartMenu", "[%s] Neu starten → Startmenü" % w)
+
+
+## Echter Mausklick (Bewegung, Drücken, Loslassen) auf die Mitte eines Controls. Kein pressed.emit().
+func _klick(c: Control) -> void:
+	var p := c.get_global_rect().get_center()
+	var mv := InputEventMouseMotion.new()
+	mv.position = p
+	mv.global_position = p
+	root.push_input(mv)
+	await _frames(2)
+	for gedrueckt in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.position = p
+		ev.global_position = p
+		ev.pressed = gedrueckt
+		ev.button_mask = MOUSE_BUTTON_MASK_LEFT if gedrueckt else 0
+		root.push_input(ev)
+		await _frames(1)
+
+
+## Wartet (max. 40 Frames), bis die Prototyp-Welt als aktuelle Szene fertig gebaut ist.
+func _warte_welt() -> bool:
+	for i in 40:
+		await process_frame
+		var c := current_scene
+		if c != null and c.scene_file_path == PROTO and "lade_ms" in c and c.lade_ms > 0.0:
+			return true
+	return false
+
+
+func _welt_starts() -> void:
+	print("  -- AT-06 Welt-Knopf")
+	var mn := await _menu()
+	var kn: Button = mn.find_child("Knopf_Welt_S8", true, false)
+	ok(kn != null and kn.is_visible_in_tree() and kn.text.contains("Welt spielen") and kn.text.contains("Loop S8"),
+		"Menü: Knopf „Welt spielen (Loop S8)“ sichtbar (%s)" % (kn.text if kn != null else "fehlt"))
+	ok(mn.karten.size() == 2 and kn != null and not kn.disabled and kn.get_global_rect().size.y >= 40.0, "Menü: Knopf bedienbar, die zwei Karten bleiben")
+	if kn != null:
+		var r := kn.get_global_rect()
+		var vp := root.get_visible_rect()
+		ok(vp.encloses(r), "Menü: Knopf liegt im Fenster (%s in %s)" % [str(r), str(vp)])
+	await _shot("menu_welt_knopf.png")
+	var gut := 0
+	for i in 5:
+		mn = await _menu()
+		kn = mn.find_child("Knopf_Welt_S8", true, false)
+		if kn == null:
+			continue
+		await _klick(kn)
+		var da: bool = await _warte_welt()
+		var w := current_scene
+		if da and w.proto_sim != null and w.sim_tempo == 1 and w.cam != null:
+			gut += 1
+		if i == 0:
+			await _shot("welt_nach_knopf.png")
+		print("  INFO Start %d: Welt %s, Szene %s" % [i + 1, "da" if da else "NICHT da", w.scene_file_path if w != null else "keine"])
+		# Esc führt wie bisher zurück ins Menü (Rundreise)
+		_key(KEY_ESCAPE)
+		await _frames(3)
+	ok(gut == 5, "Knopf startet die Welt: %d/5 Starts (Szene %s, Sim da, Tempo 1×)" % [gut, PROTO])
+	# Taste P lädt dieselbe Szene
+	mn = await _menu()
+	_key(KEY_P)
+	var p_da: bool = await _warte_welt()
+	ok(p_da and current_scene.scene_file_path == PROTO, "Taste P lädt dieselbe Szene wie der Knopf")
+	_key(KEY_ESCAPE)
+	await _frames(3)
+	ok(current_scene != null and current_scene.name == "StartMenu", "Esc in der Welt → Startmenü")
 
 
 func _all(n: Node) -> Array:

@@ -52,6 +52,16 @@ func _run() -> void:
 		await _at08()
 	if nur == "" or nur == "at09":
 		await _at09()
+	if nur == "" or nur == "fk03":
+		await _fk03()
+	if nur == "" or nur == "fz04":
+		await _fz04()
+	if nur == "" or nur == "at10":
+		await _at10()
+	if nur == "" or nur == "at11":
+		await _at11()
+	if nur == "" or nur == "at13":
+		await _at13()
 	if nur == "layout":
 		await _at08_maus()
 		await _at09_layout()
@@ -273,13 +283,11 @@ func _at08() -> void:
 	var d: Dictionary = ps.vdef(ps.def_fuer("fuhrwerk"))
 	var preis := int(d["kauf_cent"])
 	ui.klicks = 0
-	var lizenzklicks := 0
-	# 1 Klick Gut Kuppenhof, 2 Lizenz, 3 Linie von hier, 4 Klick Erlenmühle, 5 Anlegen
+	# PO 05.11.: [Lizenz + Anlegen] in einem Knopf. 1 Kuppenhof, 2 Linie von hier, 3 Erlenmühle, 4 Lizenz + Anlegen,
+	# 5 Erlenbach (Kette geht an der Mühle weiter), 6 Lizenz + Anlegen
 	_klick("Gut Kuppenhof")
-	_druecke("lizenz_kaufen")
-	lizenzklicks += 1
 	_druecke("linie_von_hier")
-	ok(ui.modus_von == "Gut Kuppenhof" and ui.modus_panel.visible, "Modus Linie von Gut Kuppenhof (Modusleiste sichtbar)")
+	ok(ui.modus_von == "Gut Kuppenhof" and ui.modus_panel.visible and ui.knoepfe.has("modus_lizenz"), "Modus Linie von Gut Kuppenhof, Leiste zeigt fehlende Lizenz")
 	_klick("Erlenmühle")
 	var v: Dictionary = ui.vorschau_werte
 	var a: Dictionary = ps.stationen["Gut Kuppenhof"]
@@ -292,30 +300,35 @@ func _at08() -> void:
 		"Vorschau = Spielwerte: Preis %s, Unterhalt %s/min, Strecke %d m, %d Felder" % [ui.geld(v["preis_cent"]), ui.geld(v["fix_cent"]), v["strecke_m"], v["felder"]])
 	var g: int = e.g_index["getreide"]
 	ok(v["ertrag_fuhre_cent"] == e.yield_cent(g, v["felder"], 1000, int(d["kapazitaet_einheiten"]) * 1000), "Ertrag je Fuhre %s = yield_cent (volle Frische, ohne Sättigung)" % ui.geld(v["ertrag_fuhre_cent"]))
+	var lq: int = int(e.licence_quote(int(a["site"]), false)["zu_zahlen_cent"])
+	ok(v["mit_lizenz"] and v["lizenz_cent"] == lq and v["summe_cent"] == lq + preis and (ui.knoepfe["anlegen"] as Button).text == "Lizenz + Anlegen · %s" % ui.geld(lq + preis),
+		"Gemeinsamer Knopf: %s (Lizenz %s + Fuhrwerk)" % [(ui.knoepfe["anlegen"] as Button).text, ui.geld(lq)])
 	var k0: int = e.cash_cent
 	_druecke("anlegen")
-	ok(k0 - e.cash_cent == v["preis_cent"] and ps.fahrzeuge.size() == 1 and s.fahrzeuge.mmis.size() == 1,
-		"Anlegen: Kasse −%d ¢ = Vorschaupreis ± 0, 1 Fuhrwerk, Darstellung neu gebaut" % (k0 - e.cash_cent))
-	ok(_letzte() == "Linie Gut Kuppenhof → Erlenmühle läuft. Fuhrwerk 1 ist unterwegs.", "Toast: %s" % _letzte())
+	ok(k0 - e.cash_cent == v["summe_cent"] and ps.fahrzeuge.size() == 1 and s.fahrzeuge.mmis.size() == 1 and e.licence_valid(int(a["site"])),
+		"Lizenz + Anlegen: Kasse −%d ¢ = Vorschau ± 0, Lizenz gültig, 1 Fuhrwerk, Darstellung neu gebaut" % (k0 - e.cash_cent))
+	ok(_letzte() == "Lizenz Gut Kuppenhof gekauft. Linie nach Erlenmühle läuft, Fuhrwerk 1 ist unterwegs.", "Toast: %s" % _letzte())
 	ok(ui.modus_von == "Erlenmühle" and ui.auswahl == "Erlenmühle", "Kette: Modus geht an der Erlenmühle weiter, Panel Erlenmühle offen")
-	ok(ui.knoepfe.has("modus_lizenz"), "Modusleiste: Erlenmühle ohne Lizenz, Kauf-Knopf in der Leiste")
-	# keine Lizenz (Fehlerfall 3): Ziel klicken, bevor die Mühle lizenziert ist
-	var n_log: int = ui.meldungen_log.size()
-	var k_vor: int = ui.klicks
 	_klick("Erlenbach")
-	ok(ui.meldungen_log.size() == n_log + 1 and _letzte() == "Erlenmühle hat keine Lizenz. Kaufe sie im Panel (Klick auf das Gebäude)." and ps.fahrzeuge.size() == 1,
-		"Fehlerfall keine Lizenz: %s" % _letzte())
-	ui.klicks = k_vor                  # Fehlklick zählt nicht in den Erfolgsweg
-	# 6 Lizenz Mühle (Leiste), 7 Klick Erlenbach, 8 Anlegen
-	_druecke("modus_lizenz")
-	lizenzklicks += 1
-	_klick("Erlenbach")
+	var sm: int = int(ps.stationen["Erlenmühle"]["site"])
+	var lm: int = int(e.licence_quote(sm, false)["zu_zahlen_cent"])
+	ok(ui.vorschau_werte["summe_cent"] == lm + preis, "Vorschau Mühle → Erlenbach mit Lizenz %s" % ui.geld(lm))
 	k0 = e.cash_cent
 	_druecke("anlegen")
-	ok(ps.fahrzeuge.size() == 2 and k0 - e.cash_cent == preis and ui.modus_von == "" and ui.auswahl == "Erlenbach",
-		"Mehl-Linie Erlenmühle → Erlenbach angelegt (−%d ¢), Modus endet am Dorf" % (k0 - e.cash_cent))
-	var klicks_ges: int = ui.klicks
-	ok(klicks_ges - lizenzklicks <= 6, "Farm → Mühle → Dorf: %d Klicks gesamt, davon %d Lizenzklicks, %d Klicks ohne Lizenzen (Soll ≤ 6)" % [klicks_ges, lizenzklicks, klicks_ges - lizenzklicks])
+	ok(ps.fahrzeuge.size() == 2 and k0 - e.cash_cent == lm + preis and ui.modus_von == "" and ui.auswahl == "Erlenbach",
+		"Mehl-Linie Erlenmühle → Erlenbach angelegt (−%d ¢ = Lizenz + Fuhrwerk), Modus endet am Dorf" % (k0 - e.cash_cent))
+	ok(ui.klicks <= 6, "Farm → Mühle → Dorf ab Start ohne Lizenz: %d Klicks inkl. Lizenzen (Soll ≤ 6)" % ui.klicks)
+	# Lizenz + Anlegen ohne Geld: Text, nichts gekauft
+	var echt0: int = e.cash_cent
+	ui.linie_von_hier("Hof Hasenwinkel")
+	ui.ziel_waehlen("Erlenmühle")
+	e.cash_cent = 1000
+	var n_log: int = ui.meldungen_log.size()
+	_druecke("anlegen")
+	ok(ui.meldungen_log.size() == n_log + 1 and _letzte().begins_with("Lizenz und Fuhrwerk kosten") and not e.licence_valid(ui.site_of("Hof Hasenwinkel")) and ps.fahrzeuge.size() == 2,
+		"Lizenz + Anlegen ohne Geld: %s" % _letzte())
+	e.cash_cent = echt0
+	ui.modus_ende()
 	# + Fuhrwerk aus dem Panel (≤ 2 Klicks)
 	ui.klicks = 0
 	_klick("Gut Kuppenhof")
@@ -422,7 +435,7 @@ func _vorschau_messung() -> void:
 func _ticks(n: int) -> void:
 	s.setze_tempo(4)
 	var ziel: int = ps.ticks + n
-	while ps.ticks < ziel:
+	while ps.ticks < ziel and not ps.konto.bankrupt:
 		s.sim_acc = 0.0
 		s.sim_schritt(minf(0.2, (ziel - ps.ticks) / 40.0 + 0.0001))
 	s.setze_tempo(0)
@@ -592,16 +605,472 @@ func _at08_maus() -> void:
 	ui.klicks = 0
 	var n0: int = ui.meldungen_log.size()
 	await _echt_ort("Gut Kuppenhof")
-	await _echt_knopf("lizenz_kaufen")
 	await _echt_knopf("linie_von_hier")
 	await _echt_ort("Erlenmühle")
 	await _echt_knopf("anlegen")
-	await _echt_knopf("modus_lizenz")
 	await _echt_ort("Erlenbach")
 	await _echt_knopf("anlegen")
 	var texte: Array = ui.meldungen_log.slice(n0).map(func(m): return m["text"])
-	ok(ps.fahrzeuge.size() == 2 and ui.klicks == 8 and ps.eco.licence_valid(ui.site_of("Erlenmühle")),
-		"Echte Maus: Farm → Mühle → Dorf mit %d Klicks (2 davon Lizenz), %d Fuhrwerke; Meldungen %s" % [ui.klicks, ps.fahrzeuge.size(), str(texte)])
+	ok(ps.fahrzeuge.size() == 2 and ui.klicks == 6 and ps.eco.licence_valid(ui.site_of("Erlenmühle")),
+		"Echte Maus: Farm → Mühle → Dorf mit %d Klicks inkl. Lizenzen, %d Fuhrwerke; Meldungen %s" % [ui.klicks, ps.fahrzeuge.size(), str(texte)])
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenbach")
+	ui.ziel_waehlen("Erlenmühle")                 # Vorschau + Modusleiste offen, dazu Panel und Linienliste
+	ui.oeffnen("Erlenmühle")
+	ui.linien_neu()
+	for i in 3:
+		await process_frame
+	var vp := root.get_visible_rect().size
+	ok(ui.ziele.erfuellt("e1") and ui.ziele.erfuellt("e2") and ui.lbl_naechster.text.begins_with("Nächster Schritt: Warte"), "In der Pause: E-1/E-2 abgehakt, %s" % ui.lbl_naechster.text)
+	var zr: Rect2 = ui.ziele_panel.get_global_rect()
+	ok(zr.end.y <= ui.linien_panel.get_global_rect().position.y + 0.5 and not zr.intersects(ui.vorschau_panel.get_global_rect()) and zr.position.y >= 0.0,
+		"Zielliste über der Linienliste, ohne Überlappung (%s)" % str(zr))
+	var lr: Rect2 = ui.linien_panel.get_global_rect()
+	var ueber: bool = lr.intersects(ui.vorschau_panel.get_global_rect()) or lr.intersects(ui.modus_panel.get_global_rect()) or lr.intersects(ui.panel.get_global_rect())
+	ok(ui.linien_panel.visible and not ueber and lr.position.y >= 0.0 and lr.end.y <= vp.y and lr.end.x <= vp.x,
+		"Linienliste %s überlappt Vorschau, Modusleiste und Panel nicht" % str(lr))
+	var img := root.get_texture().get_image()
+	var pfad := OS.get_environment("UI_WELT_SHOT")
+	if pfad != "" and img != null:
+		img.save_png(pfad.replace(".png", "_linien.png"))
+	ui.modus_ende()
+
+# ------------------------------------------------------------------ FK-03
+
+func _fk03() -> void:
+	print("  -- FK-03 Firmenkauf C1 im Panel")
+	await _neue_szene()
+	var e = ps.eco
+	ps.lizenz_kaufen("Gut Kuppenhof")
+	ps.lizenz_kaufen("Erlenmühle")                 # Lizenzgebühr wird beim Kauf angerechnet
+	ps.linie_anlegen("Gut Kuppenhof", "Erlenmühle")
+	ui._fahrzeuge_neu()
+	var sm: int = ui.site_of("Erlenmühle")
+	ui.klicks = 0
+	_klick("Erlenmühle")
+	var q: Dictionary = ps.kauf_angebot("Erlenmühle")
+	var pt := _panel_text()
+	ok(ui.panel_werte["kauf_preis"] == q["preis_cent"] and ui.panel_werte["kauf_anrechnung"] == q["anrechnung_cent"] and q["anrechnung_cent"] > 0
+		and pt.contains("[Mühle kaufen · %s]" % ui.geld(q["preis_cent"])) and pt.contains("Lizenzgebühren angerechnet −%s" % ui.geld(q["anrechnung_cent"])),
+		"Knopf mit Preis %s und Anrechnung −%s = kauf_angebot" % [ui.geld(q["preis_cent"]), ui.geld(q["anrechnung_cent"])])
+	_druecke("kaufen")
+	pt = _panel_text()
+	var f: Dictionary = e.slice["fabrik"]
+	ok(ui.knoepfe.has("kauf_ok") and pt.contains("Unterhalt +%s/min · Werksmarge +%d %%" % [ui.geld(q["unterhalt_neu_cent_pro_periode"]), q["marge_promille"] / 10])
+		and pt.contains("Ausbau auf %d E/min für %s" % [f["factory_throughput_l2_einheiten_pro_periode"], ui.geld(f["factory_upgrade_cost_l2_cent"])])
+		and pt.contains("Lizenz entfällt"), "Bestätigung inline mit Folgen: Unterhalt %s/min, Marge %d %%, Ausbau %d E/min" % [ui.geld(q["unterhalt_neu_cent_pro_periode"]), q["marge_promille"] / 10, f["factory_throughput_l2_einheiten_pro_periode"]])
+	ok(e.s_owner[sm] == 0, "Nach dem 1. Klick noch nichts gekauft")
+	var k0: int = e.cash_cent
+	_druecke("kauf_ok")
+	ok(k0 - e.cash_cent == q["preis_cent"] and e.s_owner[sm] == 1 and ui.klicks == 3, "Kauf in %d Klicks, Kasse −%d ¢ = Vorschau ± 0, Mühle gehört dir" % [ui.klicks, k0 - e.cash_cent])
+	ok(_letzte() == "Erlenmühle gehört dir. Werksmarge +15 %%, Unterhalt %s/min. Ausbau auf 40 E/min: %s." % [ui.geld(q["unterhalt_neu_cent_pro_periode"]), ui.geld(f["factory_upgrade_cost_l2_cent"])], "Toast: %s" % _letzte())
+	ps.tick()
+	ui.kopf_neu()
+	var fix_soll: int = e.works_upkeep_cent_pro_periode()
+	for fz in ps.fahrzeuge:
+		fix_soll += ps.fix_eff(fz)
+	ok(ui.hud_werte["fix"] == fix_soll and ui.panel_werte.get("werk_unterhalt", -1) == e.works_upkeep_cent_pro_periode(), "HUD Fix %s/min = Fuhrwerke + Werksunterhalt" % ui.geld(fix_soll))
+	ok(_panel_text().contains("Lizenz: nicht nötig, gehört dir"), "Lizenzzeile: gehört dir")
+	# Ausbau
+	var a: Dictionary = ps.ausbau_angebot("Erlenmühle")
+	_druecke("ausbauen")
+	k0 = e.cash_cent
+	_druecke("ausbau_ok")
+	ok(k0 - e.cash_cent == a["kosten_cent"] and e.s_werksstufe[sm] == 2, "Ausbau: Kasse −%d ¢ = Vorschau, Stufe 2" % (k0 - e.cash_cent))
+	ok(_letzte().begins_with("Erlenmühle verarbeitet jetzt ") and _letzte().ends_with(" E/min. Liefere mehr Getreide."), "Toast: %s" % _letzte())
+	ui.ausbau_klick("Erlenmühle")
+	ok(_letzte() == "Erlenmühle hat schon die höchste Werksstufe dieser Version.", "Höchste Stufe: %s" % _letzte())
+	# Fehlertexte
+	var n_log: int = ui.meldungen_log.size()
+	ui.kauf_klick("Erlenmühle")
+	ok(_letzte() == "Erlenmühle gehört dir schon. Baue das Werk aus, wenn es geht.", "schon gekauft: %s" % _letzte())
+	ui.ausbau_klick("Hof Hasenwinkel")
+	ok(_letzte() == "Ausbauen geht erst nach dem Kauf. Kaufe zuerst Hof Hasenwinkel.", "F6.5: %s" % _letzte())
+	var echt: int = e.cash_cent
+	e.cash_cent = 1000
+	_klick("Hof Hasenwinkel")
+	var qh: Dictionary = ps.kauf_angebot("Hof Hasenwinkel")
+	_druecke("kaufen")
+	ok(not ui.knoepfe.has("kauf_ok") and _letzte() == "Kauf kostet %s, es fehlen %s. Gekauft wird nur aus der Kasse, nicht mit Kredit." % [ui.geld(qh["preis_cent"]), ui.fehlbetrag(qh["preis_cent"] - 1000)],
+		"F6.1 Geld: %s" % _letzte())
+	e.cash_cent = -100
+	ui.kauf_klick("Hof Hasenwinkel")
+	ok(_letzte() == "Die Kasse ist im Minus. Eine Firma kaufst du erst wieder ab 0 $.", "Kasse im Minus: %s" % _letzte())
+	e.cash_cent = echt
+	var sh: int = ui.site_of("Hof Hasenwinkel")
+	e.s_owner[sh] = 2                                # Testaufbau: reserviert (C2/KI, ab S9)
+	ui.kauf_klick("Hof Hasenwinkel")
+	ok(_letzte() == "Hof Hasenwinkel steht nicht zum Verkauf. Kaufbar sind Farmen und die Mühle.", "F6.3: %s" % _letzte())
+	e.s_owner[sh] = 0
+	# Kreditgeld: Kasse ≥ Preis, ohne Kredit zu wenig
+	while ps.sim.tick_count < 7200:
+		ps.tick()
+	for i in 4:
+		ps.kredit_aufnehmen()
+	qh = ps.kauf_angebot("Hof Hasenwinkel")
+	e.cash_cent = qh["preis_cent"] + 100
+	k0 = e.cash_cent
+	ui.kauf_klick("Hof Hasenwinkel")
+	ok(e.cash_cent == k0 and e.s_owner[sh] == 0 and _letzte() == "Kreditgeld kauft keine Firma: ohne Kredit fehlen dir %s. Warte auf Einnahmen." % ui.fehlbetrag(ps.credit.loan_cent - 100),
+		"F6.2 kredit_sperrt_firmenkauf: %s" % _letzte())
+	ok(ui.meldungen_log.size() == n_log + 6, "6 Ablehnungen, 6 Meldungen (nie stumm)")
+	var lang: Array = []
+	for m in ui.meldungen_log:
+		if String(m["text"]).length() > 90:
+			lang.append(m["text"])
+	ok(lang.is_empty(), "alle Meldungen ≤ 90 Zeichen %s" % str(lang))
+
+# ------------------------------------------------------------------ FZ-04
+
+func _fz04() -> void:
+	print("  -- FZ-04 Fahrzeugkarte")
+	await _neue_szene()
+	var e = ps.eco
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.modus_ende()
+	_klick("Gut Kuppenhof")
+	ok(ui.knoepfe.has("fz_1"), "Panel Gut Kuppenhof: Knopf F1 je Fuhrwerk der Linie")
+	ui.klicks = 0
+	_druecke("fz_1")
+	var f: Dictionary = ps.fahrzeug(1)
+	var pt := _panel_text()
+	ok(ui.auswahl == "#1" and ui.panel_werte["alter_jahre"] == 0 and ui.panel_werte["unterhalt"] == ps.fix_eff(f) and pt.contains("Unterhalt 60 $/min (+0 % durch Alter)"),
+		"Karte Fuhrwerk 1: Alter 0 J, Unterhalt 60 $/min = fix_eff")
+	# 10 Jahre (18.000 Ticks = 1830): Alterung, Ersetzen, Frachtwagen
+	while ps.sim.tick_count < 18000:
+		ps.tick()
+	ui.panel_neu()
+	pt = _panel_text()
+	var q: Dictionary = ps.ersetzen_angebot(1)
+	ok(ui.panel_werte["alter_jahre"] == ps.alter_jahre(f) and ps.alter_jahre(f) == 10 and ui.panel_werte["unterhalt"] == ps.fix_eff(f) and ui.panel_werte["aufschlag_pct"] == 50
+		and pt.contains("Alter 10 J von 15 J · 66 %"), "Nach 10 Jahren: Alter 10 J (66 %%), Unterhalt %s/min (+50 %%) = fix_eff" % ui.geld(ps.fix_eff(f)))
+	ok(ui.panel_werte["restwert"] == ps.restwert(f) and pt.contains("Restwert %s · neu %s · spart %s/min" % [ui.geld(q["restwert_cent"]), ui.geld(q["preis_cent"]), ui.geld(q["spart_cent_pro_periode"])]),
+		"Ersetzen-Zeile = ersetzen_angebot: Restwert %s, spart %s/min" % [ui.geld(q["restwert_cent"]), ui.geld(q["spart_cent_pro_periode"])])
+	ok(ui.knoepfe.has("ersetzen_frachtwagen_e1") and pt.contains("Ersetzen durch Frachtwagen"), "Ab 1830: Ersetzen durch Frachtwagen angeboten")
+	var echt: int = e.cash_cent
+	e.cash_cent = 100
+	ui.panel_neu()
+	var n_log: int = ui.meldungen_log.size()
+	_druecke("ersetzen_fuhrwerk_e1")
+	ok(ui.meldungen_log.size() == n_log + 1 and _letzte().begins_with("Ersetzen kostet ") and ps.fix_eff(f) == q["fix_alt_cent"], "F5.1: %s" % _letzte())
+	e.cash_cent = echt
+	ui.panel_neu()
+	var k0: int = e.cash_cent
+	var l0: int = ps.lieferungen.size()
+	_druecke("ersetzen_fuhrwerk_e1")
+	ok(k0 - e.cash_cent == q["netto_cent"] and ps.fix_eff(f) == int(ps.vdef("fuhrwerk_e1")["fix_cent_pro_periode"]) and ps.alter_jahre(f) == 0,
+		"Ersetzen: Kasse −%d ¢ = Vorschau netto ± 0, Unterhalt wieder %s/min, Alter 0" % [k0 - e.cash_cent, ui.geld(ps.fix_eff(f))])
+	ok(_letzte() == "Fuhrwerk 1 ersetzt: −%s nach Restwert. Unterhalt jetzt 60 $/min statt %s/min." % [ui.geld(q["netto_cent"]), ui.geld(q["fix_alt_cent"])], "Toast: %s" % _letzte())
+	for i in 1200:
+		ps.tick()
+	ok(ps.lieferungen.size() > l0 and not f["verkauft"], "Linie läuft weiter: %d Lieferungen in 1.200 Ticks nach dem Ersetzen" % (ps.lieferungen.size() - l0))
+	ok(ui.klicks <= 3, "Karte und Ersetzen in %d Klicks ab Panel (ohne Fehlversuch: 2)" % ui.klicks)
+	# Verkaufen mit Bestätigung
+	ui.panel_neu()
+	var rw: int = ps.restwert(f)
+	_druecke("verkaufen")
+	ok(not f["verkauft"] and ui.knoepfe.has("verkaufen_ok"), "Verkaufen: 1. Klick fragt inline nach")
+	k0 = e.cash_cent
+	_druecke("verkaufen_ok")
+	ok(f["verkauft"] and e.cash_cent - k0 == rw and _letzte() == "Fuhrwerk 1 verkauft: +%s Restwert. Die Linie hat noch 0 Fuhrwerk(e)." % ui.geld(rw), "Verkauft: +%d ¢ = Restwert, %s" % [e.cash_cent - k0, _letzte()])
+	ok(_panel_text().contains("Verkauft, steht still."), "Karte zeigt verkauft")
+
+# ------------------------------------------------------------------ AT-10
+
+func _at10() -> void:
+	print("  -- AT-10 Linienliste")
+	await _neue_szene()
+	var e = ps.eco
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.ziel_waehlen("Erlenbach")
+	ui.anlegen()
+	ui.modus_ende()
+	ui.linien_neu()
+	ok(ui.linien_panel.visible and ui.linien_werte.size() == 2, "Linienliste mit 2 Linien sichtbar")
+	_ticks(3600 - ps.ticks)
+	# Schnappschuss Fahrkosten-Felder je Fahrzeug am Beginn der Minute 7
+	var fl0 := {}
+	for f in ps.fahrzeuge:
+		fl0[f["vid"]] = ps.sim.v_fields[ps.sim.slot_of(f["vid"])]
+	var x0: int = ps.konto.expenses_total
+	var r0: int = e.revenue_total
+	var z0: int = ps.credit.interest_paid
+	_ticks(600)
+	ui.linien_neu()
+	ui.kopf_neu()
+	var summe := 0
+	var alle_ok := true
+	for k in ui.linien_werte:
+		var w: Dictionary = ui.linien_werte[k]
+		var soll := 0
+		for f in ps.fahrzeuge:
+			if ui.statistik.schluessel(f["von"], f["nach"]) != k:
+				continue
+			var ertrag := 0
+			for l in ps.lieferungen:
+				if int(l["vid"]) == int(f["vid"]) and int(l["tick"]) > 3600 and int(l["tick"]) <= 4200:
+					ertrag += int(l["cent"])
+			var i: int = ps.sim.slot_of(f["vid"])
+			var fahrk: int = (ps.sim.v_fields[i] - int(fl0[f["vid"]])) * ps.sim.v_var_cent[i]
+			soll += ertrag - fahrk - ps.fix_eff(f)
+		summe += int(w["gewinn"])
+		if absi(int(w["gewinn"]) - soll) > 1:
+			alle_ok = false
+		print("    Linie %s: Anzeige %d ¢, Soll Σ(Ertrag − Fahrkosten − fix_eff) %d ¢" % [k, w["gewinn"], soll])
+	ok(alle_ok, "Gewinn je Linie = Σ(Ertrag − Fahrkosten − fix_eff) ± 1 ¢ (Minute 7)")
+	var netto_kasse: int = (e.revenue_total - r0) - (ps.konto.expenses_total - x0)
+	ok(absi(summe - (netto_kasse + (ps.credit.interest_paid - z0) + e.works_upkeep_cent_pro_periode())) <= ui.linien_werte.size(),
+		"Σ Linien %d ¢ = Netto der Minute aus Konto %d ¢ (ohne Zins/Werk) ± %d ¢" % [summe, netto_kasse, ui.linien_werte.size()])
+	ok(ui.hud_werte.get("netto", 1 << 40) == netto_kasse, "HUD Netto = Kontonetto derselben Minute")
+	# zweites Mehl-Fuhrwerk: Erlenbach übersättigt
+	ui.fuhrwerk_kaufen("Erlenmühle", "Erlenbach")
+	_ticks(4800 - ps.ticks)
+	_ticks(1200)
+	ui.linien_neu()
+	var km: String = ui.statistik.schluessel(int(ps.stationen["Erlenmühle"]["knoten"]), int(ps.stationen["Erlenbach"]["knoten"]))
+	var w: Dictionary = ui.linien_werte[km]
+	var so: int = ui.site_of("Erlenbach")
+	var v_ort: int = ui.statistik.ort_v[so][-1]
+	var t := ""
+	for c in ui.linien_vb.get_children():
+		if c is Label:
+			t += (c as Label).text + "\n"
+	var sym := "■" if w["v_promille"] >= 1500 else ("▲" if w["v_promille"] >= 1000 else "●")
+	ok(absi(int(w["v_promille"]) - v_ort) <= 1 and w["ampel"] == (2 if v_ort >= 1500 else (1 if v_ort >= 1000 else 0)),
+		"Sättigung Mehl-Linie %d ‰ = V Erlenbach aus s_sat %d ‰, Ampel %d" % [w["v_promille"], v_ort, w["ampel"]])
+	ok(w["ampel"] >= 1 and w["x_cent"] > 0 and t.contains("%s Erlenbach %d %% · +%s/min nur mit neuem Abnehmer" % [sym, Economy_rdiv(w["v_promille"], 10), ui.geld(w["x_cent"])]),
+		"Zeile: %s Erlenbach %d %% · +%s/min nur mit neuem Abnehmer" % [sym, Economy_rdiv(w["v_promille"], 10), ui.geld(w["x_cent"])])
+	var fix_soll := 0
+	for f in ps.fahrzeuge:
+		if ui.statistik.schluessel(f["von"], f["nach"]) == km:
+			fix_soll += ps.fix_eff(f)
+	ok(w["n"] == 2 and w["fix"] == fix_soll and t.contains("Unterhalt %s/min · Alter %d J" % [ui.geld(w["fix"]), w["alter"]]),
+		"Unterhalt %s/min = Σ fix_eff (mit Alterung), Alter %d J, 2 Fuhrwerke" % [ui.geld(w["fix"]), w["alter"]])
+	ok(ui.knoepfe.has("l_fz_2") and ui.knoepfe.has("lplus_" + km), "Zeile hat [F2] (Karte) und [+ Fuhrwerk]")
+
+# ------------------------------------------------------------------ AT-11
+
+func _diag_faelle() -> Array:
+	return ui.diag_log.map(func(d): return d["fall"])
+
+
+func _at11() -> void:
+	print("  -- AT-11 Toast-Queue und A-08-Diagnosen")
+	await _neue_szene()
+	var e = ps.eco
+	var q = ui.toast_panel
+	q.set_process(false)                           # Zeit nur über weiter() (keine Wanduhr)
+	# 3 Meldungen im selben Tick: nacheinander, 0 verloren
+	var p0: int = q.protokoll.size()
+	ui.melden("Meldung A")
+	ui.melden("Meldung B", {"titel": "Erlenbach", "aktion": "Zum Ort", "aktion_id": "panel", "daten": "Erlenbach"})
+	ui.melden("Meldung C")
+	ok(q.gezeigt() == "Meldung A" and q.queue.size() == 2 and q.visible, "3 Meldungen in 1 Tick: A sichtbar, 2 warten")
+	var folge: Array = [q.gezeigt()]
+	for i in 3:
+		q.weiter(q.MAX_S + 0.01)
+		folge.append(q.gezeigt())
+	ok(folge == ["Meldung A", "Meldung B", "Meldung C", ""] and q.protokoll.size() - p0 == 3 and not q.visible,
+		"nacheinander %s, alle 3 im Protokoll, danach leer" % str(folge))
+	ok(q.dauer_fuer("x") <= 4.1 and q.dauer_fuer("x") >= 4.0 and q.dauer_fuer("x".repeat(200)) == 10.0, "Dauer 4–10 s nach Textlänge")
+	# Klick-Rückmeldung verdrängt eine Diagnose nicht endgültig
+	ui.melden("Diagnose D", {"titel": "Erlenmühle", "aktion": "Zur Linie", "aktion_id": "panel", "daten": "Erlenmühle"})
+	ui.meldung("Rückmeldung R")
+	ok(q.gezeigt() == "Rückmeldung R" and q.queue.size() == 1 and q.queue[0]["text"] == "Diagnose D", "Rückmeldung sofort, Diagnose kommt danach wieder")
+	q.weiter(10.01)
+	ok(q.gezeigt() == "Diagnose D" and q._knopf.visible and q._knopf.text == "Zur Linie", "Diagnose mit Titel und Aktionsknopf")
+	q._knopf.pressed.emit()
+	ok(ui.auswahl == "Erlenmühle" and q.gezeigt() == "", "Aktion [Zur Linie] öffnet das Panel (Szenario i: kein Kamerasprung)")
+	# Warnung bleibt stehen, bis aufgehoben; wartende Meldung kommt trotzdem dran
+	ui.melden("Warnung W", {"warn": "test", "titel": "Kasse"})
+	q.weiter(30.0)
+	ok(q.gezeigt() == "Warnung W", "Warnung bleibt nach 30 s stehen (nichts wartet)")
+	ui.melden("Meldung E")
+	q.weiter(10.01)
+	ok(q.gezeigt() == "Meldung E" and q.queue.size() == 1 and q.queue[0]["warn"] == "test", "Wartende Meldung kommt dran, Warnung stellt sich wieder an")
+	q.warnung_aufheben("test")
+	q.weiter(10.01)
+	ok(q.gezeigt() == "" and q.queue.is_empty(), "warnung_aufheben entfernt sie")
+	# --- Diagnosen im Spiel
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.ziel_waehlen("Erlenbach")
+	ui.anlegen()
+	ui.fuhrwerk_kaufen("Erlenmühle", "Erlenbach")
+	for i in 4:                                    # 5 Fuhrwerke auf 20 E/min: Verlust + Warten
+		ui.fuhrwerk_kaufen("Gut Kuppenhof", "Erlenmühle")
+	ui.modus_ende()
+	_ticks(4200)
+	var f: Array = _diag_faelle()
+	ok("D3" in f, "D3 Sättigung rot Erlenbach: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D3").map(func(d): return d["titel"] + ": " + d["text"])))
+	ok("D5" in f, "D5 Linie mit Verlust über 3 Minuten: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D5").map(func(d): return d["titel"] + ": " + d["text"])))
+	ok("D1" in f, "D1 wartet / fährt halb voll ab (Teilladung 3×): %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D1").map(func(d): return d["titel"] + ": " + d["text"]).slice(0, 1)))
+	# D7 Kasse: Kasse knapp machen (Testaufbau), dann eine Minute
+	ok(not ui.netto_verlauf.is_empty() and ui.netto_verlauf[-1] < 0, "Netto der letzten Minute negativ (%s)" % str(ui.netto_verlauf))
+	var echt_kasse: int = e.cash_cent
+	e.cash_cent = maxi(100, -int(ui.netto_verlauf[-1]) / 2)   # Testaufbau: Kasse reicht ~30 s
+	ui._kasse_pruefen()
+	f = _diag_faelle()
+	ok("D7" in f and q.queue.any(func(m): return m["warn"] == "kasse") or q.aktuell.get("warn", "") == "kasse",
+		"D7 Kasse reicht ≤ 90 s, Warnung steht: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D7").map(func(d): return d["titel"] + ": " + d["text"])))
+	e.cash_cent = echt_kasse + 5000000
+	ui._kasse_pruefen()
+	ok(not ui._diag.has("kasse") and ui.meldungen_log.any(func(m): return String(m["text"]).begins_with("Kasse reicht wieder.")), "Entwarnung, Warnung aufgehoben")
+	# D4 Lizenz endet < 3 min, Kasse reicht nicht; D4b/D1b Verlängerung scheitert
+	var sm: int = ui.site_of("Erlenmühle")
+	var kosten: int = int(e.licence_quote(sm, false)["kosten_cent"])
+	e.s_lic_until[sm] = ps.sim.tick_count + 1200
+	e._next_expiry = mini(e._next_expiry, e.s_lic_until[sm]) if e._next_expiry >= 0 else e.s_lic_until[sm]
+	e.cash_cent = kosten - 100
+	_ticks(10)
+	ok("D4" in _diag_faelle(), "D4 Lizenz endet: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D4").map(func(d): return d["titel"] + ": " + d["text"])))
+	e.cash_cent = 5000000
+	_ticks(e.s_lic_until[sm] - ps.sim.tick_count - 5)
+	e.cash_cent = kosten - 100                     # Testaufbau: Verlängerung scheitert an der Kasse
+	_ticks(30)
+	ok("D4b" in _diag_faelle() or "D1b" in _diag_faelle(), "D4b Lizenz abgelaufen: %s" % str(ui.diag_log.filter(func(d): return d["fall"] in ["D4b", "D1b"]).map(func(d): return d["titel"] + ": " + d["text"])))
+	e.cash_cent = 5000000
+	# D6 Lebensdauer (15 Jahre = 27.000 Ticks)
+	while ps.sim.tick_count < 27100 and not ps.konto.bankrupt:
+		ps.tick()
+	ui.diagnose(false)
+	ok("D6" in _diag_faelle(), "D6 Lebensdauer: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D6").map(func(d): return d["titel"] + ": " + d["text"]).slice(0, 1)))
+	var typen := {}
+	for d in ui.diag_log:
+		typen[d["fall"]] = true
+	var lang: Array = []
+	for d in ui.diag_log:
+		if String(d["text"]).length() > 90 or String(d["titel"]).length() > 30:
+			lang.append(d)
+	ok(typen.size() >= 6, "Katalog: %d verschiedene Diagnosefälle ausgelöst %s (Soll ≥ 6)" % [typen.size(), str(typen.keys())])
+	ok(lang.is_empty(), "%d Diagnosen, Titel ≤ 30 und Text ≤ 90 Zeichen %s" % [ui.diag_log.size(), str(lang)])
+	# 0 verloren: jede Diagnose ist gezeigt (Protokoll) oder wartet
+	var gezeigt := {}
+	for m in q.protokoll:
+		gezeigt[m["text"]] = true
+	for m in q.queue:
+		gezeigt[m["text"]] = true
+	var fehlt: Array = ui.diag_log.filter(func(d): return not gezeigt.has(d["text"]))
+	ok(fehlt.is_empty(), "0 verloren: alle %d Diagnosen im Protokoll oder in der Queue %s" % [ui.diag_log.size(), str(fehlt)])
+
+# ------------------------------------------------------------------ AT-13
+
+func _at13() -> void:
+	print("  -- AT-13 Ziele und Nächster Schritt")
+	await _neue_szene()
+	var e = ps.eco
+	var z = ui.ziele
+	ok(z.ziele.size() == 8 and z.ziele.map(func(x): return x["id"]) == ["e1", "e2", "e3", "e4", "e5", "e6", "f1", "f2"], "8 Ziele aus ziele_welt.json in Reihenfolge")
+	ui.kopf_neu()
+	ok(ui.lbl_naechster.text == "Nächster Schritt: Lizenz für Gut Kuppenhof holen (0 $): Panel öffnen, Lizenz kaufen.", ui.lbl_naechster.text)
+	ok(z.skillpunkte() == 0 and _ziele_text().contains("Ziele 0/8 · Skillpunkte 0") and _ziele_text().contains("○ E-1 Erste Lizenz: Gut Kuppenhof"), "Liste: 0/8, E-1 offen")
+	# falsches Objekt: Mehl-Linie zuerst hakt E-2 nicht (UX-6)
+	ui.linie_von_hier("Erlenmühle")
+	ui.ziel_waehlen("Erlenbach")
+	ui.anlegen()
+	_ticks(20)
+	ok(not z.erfuellt("e1") and not z.erfuellt("e2"), "Lizenz Mühle + Linie Mühle → Erlenbach: E-1 und E-2 bleiben offen (falsches Objekt)")
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.modus_ende()
+	_ticks(20)
+	ok(z.erfuellt("e1") and z.erfuellt("e2") and not z.erfuellt("e3"), "Lizenz + Linie Kuppenhof → Mühle: E-1, E-2 erfüllt, E-3 offen")
+	ok(ui.meldungen_log.any(func(m): return m["text"] == "Ziel erreicht: Erste Lizenz: Gut Kuppenhof. +1 Skillpunkt."), "Toast „Ziel erreicht … +1 Skillpunkt.“")
+	ui.kopf_neu()
+	ok(ui.lbl_naechster.text == "Nächster Schritt: Warte auf die erste Getreidelieferung an der Erlenmühle.", ui.lbl_naechster.text)
+	var t3 := -1
+	var t4 := -1
+	var serie := 0
+	var e6_soll := -1
+	for i in 60:
+		_ticks(50)
+		if ps.ticks / 600 != (ps.ticks - 50) / 600:     # Periodengrenze in diesem Schritt überschritten
+			var r := _e6_schritt(serie, e6_soll)
+			serie = r[0]
+			e6_soll = r[1]
+		if t3 < 0 and z.erfuellt("e3"):
+			t3 = ps.sim.tick_count
+		if t4 < 0 and z.erfuellt("e4"):
+			t4 = ps.sim.tick_count
+	var erste_getreide := -1
+	var mehl := 0
+	var mehl_tick := -1
+	for l in ps.lieferungen:
+		var f: Dictionary = ps.fahrzeug(int(l["vid"]))
+		if erste_getreide < 0 and int(f["nach"]) == int(ps.stationen["Erlenmühle"]["knoten"]):
+			erste_getreide = int(l["tick"])
+		if int(f["nach"]) == int(ps.stationen["Erlenbach"]["knoten"]):
+			mehl += int(l["menge"])
+			if mehl >= 10 and mehl_tick < 0:
+				mehl_tick = int(l["tick"])
+	ok(t3 >= erste_getreide and t3 - erste_getreide <= 60 and z.ziel("e3")["erfuellt_tick"] - erste_getreide <= 10,
+		"E-3 bei Tick %d, erste Getreidelieferung Tick %d (≤ 10 Ticks Prüftakt)" % [z.ziel("e3")["erfuellt_tick"], erste_getreide])
+	ok(z.erfuellt("e4") and z.ziel("e4")["erfuellt_tick"] - mehl_tick <= 10 and z.ziel("e4")["erfuellt_tick"] >= mehl_tick,
+		"E-4 bei Tick %d, 10 E Mehl in Erlenbach bei Tick %d" % [z.ziel("e4")["erfuellt_tick"], mehl_tick])
+	ok(not z.erfuellt("e5"), "E-5 offen (je Linie 1 Fuhrwerk)")
+	ui.fuhrwerk_kaufen("Erlenmühle", "Erlenbach")
+	_ticks(10)
+	ok(z.erfuellt("e5"), "E-5 nach zweitem Fuhrwerk auf einer Linie")
+	# E-6: 3 Minuten am Stück alle Linien ≥ 0, mindestens eine > 0
+	for i in 8:
+		_ticks(600 - ps.ticks % 600)
+		var r := _e6_schritt(serie, e6_soll)
+		serie = r[0]
+		e6_soll = r[1]
+	ok((e6_soll >= 0) == z.erfuellt("e6") and (e6_soll < 0 or z.ziel("e6")["erfuellt_tick"] == e6_soll),
+		"E-6 = eigene Nachrechnung aus der Linienstatistik (Soll Tick %d, Ist %d)" % [e6_soll, z.ziel("e6")["erfuellt_tick"]])
+	# F1/F2 mit Testwerten (Lindenfurt-Linie und 600 $/min liegen außerhalb dieses Tests)
+	var sl: int = ui.site_of("Lindenfurt")
+	var se: int = ui.site_of("Erlenbach")
+	ui.statistik.ort_v[se] = [900, 900, 900]
+	ui.statistik.ort_v[sl] = [400, 500, 500]
+	z.pruefen(false)
+	ok(not z.erfuellt("f1"), "F1 offen: Lindenfurt Mittel 466 ‰ < 500 (Testwerte)")
+	ui.statistik.ort_v[sl] = [500, 500, 500]
+	z.pruefen(false)
+	ok(z.erfuellt("f1"), "F1: Erlenbach und Lindenfurt je ≥ 500 ‰ im Mittel über 3 Minuten (Testwerte)")
+	for i in 4:
+		z.pruefen(true, z.f2_schwelle)
+	ok(not z.erfuellt("f2"), "F2 nach 4 Minuten ≥ Schwelle noch offen")
+	z.pruefen(true, z.f2_schwelle)
+	ok(z.erfuellt("f2") and ps.credit.loan_cent == 0, "F2 nach 5 Minuten ≥ %s ohne Kredit" % ui.geld(z.f2_schwelle))
+	ui.ziele_neu()
+	ui.kopf_neu()
+	var sp := 0
+	for x in z.ziele:
+		if x["erfuellt_tick"] >= 0:
+			sp += x["skillpunkte"]
+	ok(z.skillpunkte() == sp and _ziele_text().contains("Skillpunkte %d" % sp), "Skillpunkte %d = Σ erfüllter Ziele" % sp)
+	print("    Ziele: %s | %s" % [_ziele_text().replace("\n", " / "), ui.lbl_naechster.text])
+
+
+## Eigene Nachrechnung E-6 an einer Periodengrenze: alle Linien ≥ 0 und eine > 0, 3 Minuten am Stück.
+func _e6_schritt(serie: int, soll: int) -> Array:
+	var alle: bool = not ui.statistik.linien.is_empty()
+	var eine := false
+	for k in ui.statistik.linien:
+		var g := int(ui.statistik.linien[k]["gewinn"])
+		alle = alle and g >= 0
+		eine = eine or g > 0
+	serie = serie + 1 if alle and eine else 0
+	if serie >= 3 and soll < 0:
+		soll = ui.statistik.letzte_periode_tick           # Tick der Periodengrenze
+	return [serie, soll]
+
+
+func _ziele_text() -> String:
+	ui.ziele_neu()
+	var t := ""
+	for c in ui.ziele_vb.get_children():
+		if c is Label:
+			t += (c as Label).text + "\n"
+	return t
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

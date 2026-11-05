@@ -11,8 +11,14 @@ extends CanvasLayer
 ## (Aylin, AT-12). Platzhalter benannt: "{name}".format({...}).
 
 const Economy := preload("res://economy.gd")
+const Statistik := preload("res://proto/ui_welt_statistik.gd")   # AT-10
+const ToastQueue := preload("res://ui/toast_queue.gd")            # AT-11
+const Ziele := preload("res://proto/ui_welt_ziele.gd")           # AT-13
 
 const PANEL_B := 360.0
+const VORSCHAU_B := 640.0
+const LINIEN_B := 430.0
+const MITTE_VERSATZ := 50.0            # Vorschau/Modusleiste: Mitte der freien Fläche (links Linienliste, rechts Panel)
 const KLICK_RADIUS_PX := 44.0
 const TOAST_S := 6.0
 const C_TEXT := Color(0.96, 0.92, 0.84)
@@ -48,7 +54,56 @@ const FT_WELT := {
 	"tilgen_geld": "Zum Tilgen fehlen {x} in der Kasse. Warte auf Einnahmen.",
 	"tilgen_ok": "Kredit {x} getilgt, offen noch {r}.",
 	"kein_kredit": "Du hast keinen Kredit offen. Tilgen ist nicht nötig.",
+	# FK-03 (AT-14 S6)
+	"kauf_ok": "{name} gehört dir. Werksmarge +{m} %, Unterhalt {u}/min.{aus}",
+	"kauf_ok_ausbau": " Ausbau auf {d} E/min: {x}.",
+	"kauf_geld": "Kauf kostet {x}, es fehlen {d}. Gekauft wird nur aus der Kasse, nicht mit Kredit.",
+	"kauf_kredit": "Kreditgeld kauft keine Firma: ohne Kredit fehlen dir {d}. Warte auf Einnahmen.",
+	"kauf_nicht": "{name} steht nicht zum Verkauf. Kaufbar sind Farmen und die Mühle.",
+	"kauf_minus": "Die Kasse ist im Minus. Eine Firma kaufst du erst wieder ab 0 $.",
+	"kauf_schon": "{name} gehört dir schon. Baue das Werk aus, wenn es geht.",
+	"kauf_sonst": "Kauf gerade nicht möglich. Bitte erneut klicken (Meldung an uns: {code}).",
+	"ausbau_ok": "{name} verarbeitet jetzt {d} E/min. Liefere mehr Getreide.",
+	"ausbau_geld": "Ausbau kostet {x}, es fehlen {d}. Warte auf Einnahmen.",
+	"ausbau_kredit": "Kreditgeld zahlt keinen Ausbau: ohne Kredit fehlen dir {d}. Warte auf Einnahmen.",
+	"ausbau_vor_kauf": "Ausbauen geht erst nach dem Kauf. Kaufe zuerst {name}.",
+	"ausbau_max": "{name} hat schon die höchste Werksstufe dieser Version.",
+	"ausbau_roh": "{name} ist ein Rohstoffbetrieb. Ausbauen geht in dieser Version nur bei der Mühle.",
+	# FZ-04 (AT-14 S5)
+	"ersetzt": "{n} ersetzt: −{x} nach Restwert. Unterhalt jetzt {y}/min statt {z}/min.",
+	"ersetzen_geld": "Ersetzen kostet {x}, es fehlen {d}. Warte auf Einnahmen oder nimm Kredit.",
+	"ersetzen_nichts": "Ersetzen spart hier nichts ({z}/min). Behalte das Fuhrwerk.",
+	"ladung_zu_gross": "{n} hat mehr geladen, als der neue Wagen fasst. Ersetze nach dem Abladen.",
+	"verkauft": "{n} verkauft: +{r} Restwert. Die Linie hat noch {k} Fuhrwerk(e).",
+	"fz_sonst": "Das geht gerade nicht. Bitte erneut klicken (Meldung an uns: {code}).",
+	# AT-11 A-08-Diagnosen (AT-14 S4/S7), Titel = Ort/Linie, Text ≤ 90, eine Aktion
+	"d_wartet": "Fuhrwerk {n} wartet {t} s auf Ladung. Zu viele Fuhrwerke für {x} E/min.",
+	"d_halb": "Fuhrwerk {n} fährt nur halb voll ab. Zu viele Fuhrwerke für {x} E/min.",
+	"d_lizenz_ab": "Lizenz abgelaufen, die Fuhrwerke warten. Erneuern kostet {x}.",
+	"d_lizenz_ende": "Die Lizenz endet in {t} min. Verlängern kostet {x}, sonst stehen die Fuhrwerke.",
+	"d_gelb": "{ort} nimmt bald kein {ware} mehr ab ({p} %). Plane einen zweiten Abnehmer.",
+	"d_rot": "{ort} ist mit {ware} gesättigt ({p} %). Ein zweiter Abnehmer bringt +{x}/min.",
+	"d_verlust": "Verlust {x}/min (Fix {a}, Ertrag {b}). Kürzer fahren oder Fuhrwerk abziehen.",
+	"d_alt": "{j} Jahre alt: Unterhalt +{p} %. Ersetzen spart {z}/min.",
+	"d_kasse_vor12": "Größter Verlust: {posten} (−{x}/min). Löse die Linie auf.",
+	"d_kasse_kredit": "Größter Verlust: {posten}. Nimm Kredit oder löse die Linie auf.",
+	"d_kasse_voll": "Der Kredit ist voll. Löse {posten} auf oder verkaufe ein Fuhrwerk.",
+	"d_kasse_gut": "Kasse reicht wieder. Behalte {posten} im Auge.",
+	# AT-13 Ziele und Nächster Schritt
+	"ziel_ok": "Ziel erreicht: {name}.{sp}",
+	"ziel_sp": " +{n} Skillpunkt.",
+	"n_e1": "Lizenz für {farm} holen ({x}): Panel öffnen, Lizenz kaufen.",
+	"n_e2": "Linie {farm} → Erlenmühle anlegen ({x}): Linie von hier, Ziel klicken.",
+	"n_e3": "Warte auf die erste Getreidelieferung an der Erlenmühle.",
+	"n_e4": "Linie Erlenmühle → Erlenbach anlegen ({x}) und 10 E Mehl liefern.",
+	"n_e5": "Setze ein zweites Fuhrwerk auf eine Linie ({x}).",
+	"n_e6": "Jede Linie soll 3 Minuten am Stück Gewinn machen.",
+	"n_f1": "Versorge Erlenbach und Lindenfurt mit Mehl (je ≥ 50 % Bedarf, 3 min).",
+	"n_f2": "Halte {x}/min Netto ohne Kredit, 5 Minuten am Stück.",
+	"n_fertig": "Alle Ziele erreicht. Baue weiter aus oder kaufe die Mühle.",
 	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
+	"lizenz_linie_ok": "Lizenz {name} gekauft. Linie nach {b} läuft, Fuhrwerk {n} ist unterwegs.",
+	"lizenz_linie_geld": "Lizenz und Fuhrwerk kosten {x}, es fehlen {d}. Nimm Kredit oder warte.",
 	"gibt_es_schon": "Diese Linie gibt es schon. Füge ihr ein Fuhrwerk hinzu (+ Fuhrwerk).",
 	"ins_leere": "Klicke ein Gebäude an: erst die Quelle, dann das Ziel.",
 	"gleich": "Start und Ziel sind gleich. Wähle ein anderes Ziel.",
@@ -61,9 +116,7 @@ var ps = null                        # proto_sim.gd
 var auswahl := ""                    # Stationsname des offenen Panels, "" = zu
 var panel: PanelContainer
 var panel_vb: VBoxContainer
-var toast_panel: PanelContainer
-var toast_label: Label
-var toast_rest := 0.0
+var toast_panel                      # AT-11: ui/toast_queue.gd (PanelContainer)
 var meldungen_log: Array = []        # [{t_ms, text}] alle gezeigten Meldungen (Test: nie stumm)
 var panel_werte: Dictionary = {}     # zuletzt angezeigte Zahlen (Test gegen Spielwert)
 var knoepfe: Dictionary = {}         # Name -> Button im offenen Panel (Tests, play_welt)
@@ -71,6 +124,8 @@ var klicks := 0                      # gezählte Spielerklicks (Welt + Knöpfe),
 var orte_pos: Dictionary = {}        # Stationsname -> Vector3 (m, Gelände)
 var _refresh_t := 0.0
 var _taste_unten := false            # linke Maustaste gehalten (Neuaufbau des Panels würde den Klick verschlucken)
+var _kauf_bestaetigen := ""         # FK-03: Station mit offener Kaufbestätigung (inline, kein Modal)
+var _ausbau_bestaetigen := ""        # FK-03: Station mit offener Ausbaubestätigung
 var _bereiche: Dictionary = {}       # "panel" | "vorschau" | "modus" -> Knopf-IDs
 # AT-08: Linienbau
 var modus_von := ""                  # Quelle im Modus „Linie von hier“, "" = kein Modus
@@ -88,7 +143,16 @@ var lbl_netto: Label
 var lbl_fix: Label
 var lbl_kredit: Label
 var lbl_k: Label
+var lbl_naechster: Label             # AT-13
+var ziele = null                     # AT-13: proto/ui_welt_ziele.gd
+var ziele_panel: PanelContainer
+var ziele_vb: VBoxContainer
 var hud_werte: Dictionary = {}       # angezeigte HUD-Zahlen (Test gegen Spielwert)
+var statistik = null                # AT-10: proto/ui_welt_statistik.gd
+var links_vb: VBoxContainer          # AT-10/13: linke Spalte unten (Ziele, Linien)
+var linien_panel: PanelContainer
+var linien_vb: VBoxContainer
+var linien_werte: Dictionary = {}    # "von|nach" -> angezeigte Zahlen (Test gegen Spielwert)
 var _schnapp: Array = []             # Schnappschüsse an den letzten zwei Periodengrenzen
 
 
@@ -103,6 +167,10 @@ func einbauen(p_welt: Node) -> void:
 	_baue_toast()
 	_baue_linienbau()
 	_baue_kopfleiste()
+	statistik = Statistik.new(ps)
+	ziele = Ziele.new(ps, statistik)
+	_baue_links()
+	ziele_neu()
 
 
 func _orte_lesen() -> void:
@@ -204,6 +272,15 @@ func ort_saettigung_pct(site: int, kat: String) -> int:
 	return Economy.rdiv(ort_geliefert(site, kat) * 100, dem)
 
 
+## Darf die Quelle laden? Lizenz gültig oder Werk im Besitz (FK-02: Besitz ersetzt die Lizenz).
+func lizenz_ok(site: int) -> bool:
+	return ps.eco.licence_valid(site) or eigen(site)
+
+
+func eigen(site: int) -> bool:
+	return site >= 0 and int(ps.eco.s_owner[site]) == Economy.OWNER_SPIELER
+
+
 func lizenz_rest_min(site: int) -> int:
 	var rest: int = ps.eco.s_lic_until[site] - ps.sim.tick_count
 	return maxi(0, int(ceil(rest / float(periode()))))
@@ -262,7 +339,8 @@ func _baue_panel() -> void:
 	panel.anchor_right = 1.0
 	panel.offset_left = -PANEL_B - 12.0
 	panel.offset_right = -12.0
-	panel.offset_top = 72.0
+	panel.offset_top = 100.0                                 # unter Kopfleiste + „Nächster Schritt“
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN     # breiter Inhalt wächst nach links, nie aus dem Bild
 	panel.visible = false
 	add_child(panel)
 	panel_vb = VBoxContainer.new()
@@ -271,10 +349,8 @@ func _baue_panel() -> void:
 
 
 func _baue_toast() -> void:
-	toast_panel = PanelContainer.new()
-	toast_panel.name = "Toast"
-	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	toast_panel.add_theme_stylebox_override("panel", _stil(Color(0.08, 0.07, 0.06, 0.9), 10))
+	toast_panel = ToastQueue.new()
+	toast_panel.aktion_geklickt.connect(_toast_aktion)
 	toast_panel.anchor_left = 1.0
 	toast_panel.anchor_right = 1.0
 	toast_panel.anchor_top = 1.0
@@ -284,11 +360,7 @@ func _baue_toast() -> void:
 	toast_panel.offset_top = -96.0
 	toast_panel.offset_bottom = -12.0
 	toast_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	toast_panel.visible = false
 	add_child(toast_panel)
-	toast_label = _label("", 16)
-	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	toast_panel.add_child(toast_label)
 
 
 func _label(t: String, gr := 16, farbe := C_TEXT) -> Label:
@@ -330,26 +402,37 @@ func _bereich_leeren(bereich: String) -> void:
 
 # ------------------------------------------------------------------ Meldungen
 
-func meldung(t: String, dauer := TOAST_S) -> void:
-	toast_label.text = t
-	toast_panel.visible = true
-	toast_rest = dauer
+## Rückmeldung auf eine Spieleraktion: sofort sichtbar (AT-11: verdrängt nur eine einfache Rückmeldung, Diagnosen kommen danach).
+func meldung(t: String, dauer := -1.0) -> void:
+	var o := {"sofort": true}
+	if dauer > 0.0:
+		o["dauer"] = dauer
+	toast_panel.melden(t, o)
 	meldungen_log.append({"t_ms": Time.get_ticks_msec(), "text": t})
 
 
+## System- und Diagnosemeldung: hinten anstellen (AT-11, eine zugleich, 0 verloren).
+func melden(t: String, opts: Dictionary = {}) -> void:
+	toast_panel.melden(t, opts)
+	meldungen_log.append({"t_ms": Time.get_ticks_msec(), "text": t, "titel": String(opts.get("titel", ""))})
+
+
 func _process(delta: float) -> void:
-	if toast_rest > 0.0:
-		toast_rest -= delta
-		if toast_rest <= 0.0:
-			toast_panel.visible = false
 	if _sim_ok():
-		while not ps.meldungen.is_empty():                 # Sim-Meldungen (Freischaltung, Bankrott) als Toast
-			meldung(String(ps.meldungen.pop_front()))
+		while not ps.meldungen.is_empty():                 # Sim-Meldungen (Freischaltung, Bankrott) in die Queue
+			var m := String(ps.meldungen.pop_front())
+			if m.contains("Lebensdauer"):
+				continue                                     # FZ-03-Meldung kommt als Diagnose D6 (mit Aktion)
+			melden(m)
 	_refresh_t += delta
 	if _refresh_t >= 0.25:
 		_refresh_t = 0.0
 		if auswahl != "" and not _taste_unten:          # BUG-1-Muster: kein Neuaufbau, solange die linke Taste gehalten wird
 			panel_neu()
+		if not _taste_unten:
+			linien_neu()
+		if _sim_ok() and ziele != null:
+			_ziele_pruefen(false)                         # auch in der Pause: Kauf hakt sofort ab
 		kopf_neu()
 
 
@@ -414,6 +497,9 @@ func eingabe(ev: InputEvent) -> bool:
 # ------------------------------------------------------------------ Panel
 
 func oeffnen(nm: String) -> void:
+	if nm != auswahl:
+		_kauf_bestaetigen = ""
+		_ausbau_bestaetigen = ""
 	auswahl = nm
 	panel_neu()
 	panel.visible = true
@@ -431,6 +517,9 @@ func panel_neu() -> void:
 		c.queue_free()
 	_bereich_leeren("panel")
 	panel_werte = {"name": auswahl}
+	if auswahl.begins_with("#"):                           # FZ-04: Fahrzeugkarte im selben Panel
+		_panel_fahrzeug(int(auswahl.substr(1)))
+		return
 	var site := site_of(auswahl)
 	if site < 0:
 		panel_vb.add_child(_label(auswahl, 18))
@@ -477,6 +566,7 @@ func _panel_industrie(site: int) -> void:
 		panel_vb.add_child(_label("Eingang %s %d E · Bedarf %d E/min" % [String(e.g_ids[gi]).capitalize(), n, e.s_rate[site]], 16))
 	_trenner()
 	_lizenz_zeile(site)
+	_besitz_block(site)
 	var ab := abnehmer(site)
 	if not ab.is_empty():
 		_trenner()
@@ -493,7 +583,7 @@ func _panel_industrie(site: int) -> void:
 			panel_vb.add_child(_label("  %s  %d Felder (%d m)  %s%s" % [a["name"], a["felder"], a["m"], form, zus], 16))
 			liste.append(a["name"])
 		panel_werte["abnehmer"] = liste
-	panel_vb.add_child(_knopf("Linie von hier", "linie_von_hier", linie_von_hier.bind(auswahl), e.licence_valid(site)))
+	panel_vb.add_child(_knopf("Linie von hier", "linie_von_hier", linie_von_hier.bind(auswahl), lizenz_ok(site)))
 	_linien_ab(auswahl)
 
 
@@ -502,7 +592,9 @@ func _lizenz_zeile(site: int) -> void:
 	var q: Dictionary = e.licence_quote(site, false)
 	var hb := HBoxContainer.new()
 	var lt := ""
-	if e.licence_valid(site):
+	if eigen(site):
+		lt = "● Lizenz: nicht nötig, gehört dir"
+	elif e.licence_valid(site):
 		var t := lizenz_rest_min(site)
 		panel_werte["lizenz_rest_min"] = t
 		lt = "%s Lizenz: gilt noch %d min" % ["▲" if t < 3 else "●", t]
@@ -511,7 +603,7 @@ func _lizenz_zeile(site: int) -> void:
 	var l := _label(lt, 16)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(l)
-	if q.get("ok", false) and not e.licence_valid(site):
+	if q.get("ok", false) and not lizenz_ok(site):
 		var preis: int = q["zu_zahlen_cent"]
 		panel_werte["lizenz_preis"] = preis
 		var b := _knopf("Lizenz kaufen %s" % geld(preis), "lizenz_kaufen", lizenz_kaufen.bind(auswahl), false, preis > e.cash_cent)
@@ -617,6 +709,8 @@ func _baue_linienbau() -> void:
 	modus_panel.anchor_top = 1.0
 	modus_panel.anchor_bottom = 1.0
 	modus_panel.offset_bottom = -16.0
+	modus_panel.offset_left = MITTE_VERSATZ                # Mitte der freien Fläche zwischen Linienliste und Panel
+	modus_panel.offset_right = MITTE_VERSATZ
 	modus_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	modus_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	modus_panel.visible = false
@@ -633,6 +727,8 @@ func _baue_linienbau() -> void:
 	vorschau_panel.anchor_top = 1.0
 	vorschau_panel.anchor_bottom = 1.0
 	vorschau_panel.offset_bottom = -72.0                   # über der Modusleiste
+	vorschau_panel.offset_left = MITTE_VERSATZ - VORSCHAU_B / 2.0   # feste Breite, Texte brechen um
+	vorschau_panel.offset_right = MITTE_VERSATZ + VORSCHAU_B / 2.0
 	vorschau_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	vorschau_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	vorschau_panel.visible = false
@@ -669,7 +765,7 @@ func modus_neu() -> void:
 		return
 	modus_hb.add_child(_label(text("modus", {"name": modus_von}), 16))
 	var site := site_of(modus_von)
-	if not ps.eco.licence_valid(site):
+	if not lizenz_ok(site):
 		modus_hb.add_child(_label("Keine Lizenz.", 16, C_WARN))
 		var q: Dictionary = ps.eco.licence_quote(site, false)
 		var preis: int = int(q.get("zu_zahlen_cent", 0))
@@ -712,10 +808,6 @@ func ziel_waehlen(nm: String) -> void:
 		return
 	if not nimmt_an(sz, g):
 		meldung(text("nimmt_nicht", {"ziel": nm, "ware": String(ps.eco.g_ids[g]).capitalize()}))
-		return
-	if not ps.eco.licence_valid(sv):
-		meldung(text("keine_lizenz", {"name": von}))
-		oeffnen(von)
 		return
 	var n_alt := linien_fahrzeuge(von, nm).size()
 	if n_alt > 0:
@@ -775,14 +867,27 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 	vorschau_vb.add_child(_label("Schätzung: volle Frische, ohne Sättigung des Abnehmers.", 15, C_GRAU))
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 12)
-	var grau: bool = v["preis_cent"] > ps.eco.cash_cent
+	var sv := site_of(von)
+	var lic := 0                                            # PO 05.11.: [Lizenz + Anlegen] in einem Knopf
+	if not lizenz_ok(sv):
+		lic = int(ps.eco.licence_quote(sv, false).get("zu_zahlen_cent", 0))
+		vorschau_vb.add_child(_label("%s hat keine Lizenz: Lizenz %s, gilt %d min" % [von, geld(lic),
+			int(ps.eco.lic_duration) / periode()], 16, C_WARN))
+	vorschau_werte["lizenz_cent"] = lic
+	vorschau_werte["mit_lizenz"] = not lizenz_ok(sv)
+	var summe: int = int(v["preis_cent"]) + lic
+	vorschau_werte["summe_cent"] = summe
+	var grau: bool = summe > ps.eco.cash_cent
 	var t := ("+ Fuhrwerk · %s" if n_alt > 0 else "Anlegen · %s") % geld(v["preis_cent"])
+	if not lizenz_ok(sv):
+		t = "Lizenz + Anlegen · %s" % geld(summe)
 	var b := _knopf(t, "anlegen", anlegen, not grau, grau, "vorschau")
 	if grau:
-		b.tooltip_text = "Es fehlen %s." % fehlbetrag(v["preis_cent"] - ps.eco.cash_cent)
+		b.tooltip_text = "Es fehlen %s." % fehlbetrag(summe - ps.eco.cash_cent)
 	hb.add_child(b)
 	hb.add_child(_knopf("Abbrechen · Esc", "vorschau_abbrechen", modus_ende, false, false, "vorschau"))
 	vorschau_vb.add_child(hb)
+	_umbrechen(vorschau_vb)
 	vorschau_panel.visible = true
 
 
@@ -790,7 +895,18 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 func anlegen() -> Dictionary:
 	var von := String(vorschau_werte.get("von", ""))
 	var nach := String(vorschau_werte.get("nach", ""))
-	var r := fuhrwerk_kaufen(von, nach)
+	var sv := site_of(von)
+	var mit_lizenz := sv >= 0 and not lizenz_ok(sv)
+	if mit_lizenz:                                         # gemeinsamer Knopf: erst prüfen, dann Lizenz, dann Fuhrwerk
+		var summe := int(ps.eco.licence_quote(sv, false).get("zu_zahlen_cent", 0)) + int(fuhrwerk_def().get("kauf_cent", 0))
+		if summe > ps.eco.cash_cent:
+			meldung(text("lizenz_linie_geld", {"x": geld(summe), "d": fehlbetrag(summe - ps.eco.cash_cent)}))
+			return {"ok": false, "fehler": "guthaben_reicht_nicht"}
+		var rl: Dictionary = ps.lizenz_kaufen(von)
+		if not rl.get("ok", false):
+			meldung(lizenz_fehlertext(von, rl))
+			return rl
+	var r := fuhrwerk_kaufen(von, nach, mit_lizenz)
 	if r.get("ok", false):
 		var sz := site_of(nach)
 		if ausgang(sz) != "":
@@ -803,12 +919,12 @@ func anlegen() -> Dictionary:
 
 ## Fuhrwerk auf der Linie von → nach kaufen (erste Linie oder + Fuhrwerk). Prüft Lizenz und Kasse vor der API,
 ## jede Ablehnung der API wird übersetzt (nie stumm).
-func fuhrwerk_kaufen(von: String, nach: String) -> Dictionary:
+func fuhrwerk_kaufen(von: String, nach: String, mit_lizenz := false) -> Dictionary:
 	if von == "" or nach == "":
 		meldung(text("ins_leere"))
 		return {"ok": false, "fehler": "keine_auswahl"}
 	var sv := site_of(von)
-	if sv >= 0 and ist_industrie(sv) and ps.eco.lic_required and not ps.eco.licence_valid(sv):
+	if sv >= 0 and ist_industrie(sv) and ps.eco.lic_required and not lizenz_ok(sv):
 		meldung(text("keine_lizenz", {"name": von}))       # API-Lücke: linie_anlegen prüft die Lizenz nicht (Bericht)
 		oeffnen(von)
 		return {"ok": false, "fehler": "keine_lizenz"}
@@ -819,7 +935,9 @@ func fuhrwerk_kaufen(von: String, nach: String) -> Dictionary:
 		return r
 	_fahrzeuge_neu()
 	var v := route_vorschau(von, nach, n_alt + 1)
-	if n_alt == 0:
+	if mit_lizenz:
+		meldung(text("lizenz_linie_ok", {"name": von, "b": nach, "n": r["vid"]}))
+	elif n_alt == 0:
 		meldung(text("linie_ok", {"a": von, "b": nach, "n": r["vid"]}))
 	else:
 		meldung(text("fuhrwerk_ok", {"n": r["vid"], "p": geld(int(r["preis_cent"])), "u": geld(v["fix_cent"]),
@@ -881,13 +999,15 @@ func _linien_ab(von: String) -> void:
 		var l := _label("→ %s · %d Fuhrwerk(e)" % [nm, ziele[nm]], 16)
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hb.add_child(l)
+		panel_vb.add_child(hb)
+		panel_werte["linie_" + nm] = ziele[nm]
+		var zeile := _fz_knoepfe(linien_fahrzeuge(von, nm))
 		var grau: bool = preis > ps.eco.cash_cent
 		var b := _knopf("+ Fuhrwerk %s" % geld(preis), "plus_" + nm, fuhrwerk_kaufen.bind(von, nm), false, grau)
 		if grau:
 			b.tooltip_text = "Es fehlen %s." % fehlbetrag(preis - ps.eco.cash_cent)
-		hb.add_child(b)
-		panel_vb.add_child(hb)
-		panel_werte["linie_" + nm] = ziele[nm]
+		zeile.add_child(b)
+		panel_vb.add_child(zeile)
 
 
 # ------------------------------------------------------------------ AT-09 Kopfleiste (HUD Welt)
@@ -909,7 +1029,13 @@ func _baue_kopfleiste() -> void:
 	add_child(kopf)
 	kopf_hb = HBoxContainer.new()
 	kopf_hb.add_theme_constant_override("separation", 14)
-	kopf.add_child(kopf_hb)
+	var kopf_vb := VBoxContainer.new()                       # AT-13: zweite Zeile „Nächster Schritt“
+	kopf_vb.add_theme_constant_override("separation", 2)
+	kopf.add_child(kopf_vb)
+	kopf_vb.add_child(kopf_hb)
+	lbl_naechster = _label("", 16, C_OK)
+	lbl_naechster.name = "NaechsterSchritt"
+	kopf_vb.add_child(lbl_naechster)
 	lbl_kasse = _label("", 18)
 	lbl_kasse.name = "Kasse"
 	kopf_hb.add_child(lbl_kasse)
@@ -920,7 +1046,7 @@ func _baue_kopfleiste() -> void:
 	kopf_hb.add_child(lbl_netto)
 	lbl_fix = _label("", 16)
 	lbl_fix.name = "Fix"
-	lbl_fix.tooltip_text = "Unterhalt aller Fuhrwerke je Minute"
+	lbl_fix.tooltip_text = "Unterhalt aller Fuhrwerke und eigenen Werke je Minute"
 	lbl_fix.mouse_filter = Control.MOUSE_FILTER_PASS
 	kopf_hb.add_child(lbl_fix)
 	lbl_kredit = _label("", 16)
@@ -949,7 +1075,7 @@ func _baue_kopfleiste() -> void:
 	# altes Prototyp-HUD (Zählung, Hilfe) unter die Kopfleiste
 	if welt.hud != null:
 		var pc: Control = welt.hud.get_parent().get_parent()
-		pc.position.y = 64.0
+		pc.position.y = 100.0
 	_schnapp_neu()
 	kopf_neu()
 
@@ -962,8 +1088,18 @@ func _schnapp_neu() -> void:
 
 ## Aus sim_schritt nach jedem Tick (prototyp_welt.gd): Schnappschuss genau an der Periodengrenze.
 func nach_tick() -> void:
-	if _sim_ok() and ps.sim.tick_count % periode() == 0:
+	if not _sim_ok():
+		return
+	statistik.nach_tick()
+	_warte_zaehlen()
+	if ps.sim.tick_count % periode() == 0:
 		_schnapp_neu()
+		_netto_verlauf_neu()
+		diagnose(true)
+		_ziele_pruefen(true)
+	elif ps.sim.tick_count % 10 == 0:
+		diagnose(false)
+		_ziele_pruefen(false)
 
 
 func kopf_neu() -> void:
@@ -1003,6 +1139,8 @@ func kopf_neu() -> void:
 		tb.visible = ps.credit.loan_cent > 0
 		tb.text = "Tilgen %s" % geld(mini(ps.credit.step_cent, ps.credit.loan_cent))
 	lbl_k.text = "k=%d" % ps.tempo_k
+	if ziele != null and lbl_naechster != null:
+		lbl_naechster.text = "Nächster Schritt: " + naechster_text()
 
 
 func kredit_aufnehmen() -> int:
@@ -1036,3 +1174,737 @@ func kredit_tilgen() -> int:
 		meldung(text("tilgen_ok", {"x": geld(a), "r": geld(ps.credit.loan_cent)}))
 	kopf_neu()
 	return a
+
+
+# ------------------------------------------------------------------ FK-03 Firmenkauf C1 (Panel-Block „Besitz“)
+
+## Ausbaustufe 2 vor dem Kauf (Vorschau der Folgen): Kosten und Durchsatz aus economy_slice.json fabrik.
+func _ausbau_l2(site: int) -> Dictionary:
+	if ps.eco.s_raw[site] == 1 or ps.eco.s_out_good[site] < 0:
+		return {}
+	var f: Dictionary = ps.eco.slice.get("fabrik", {})
+	return {"kosten_cent": int(f.get("factory_upgrade_cost_l2_cent", 0)), "durchsatz": int(f.get("factory_throughput_l2_einheiten_pro_periode", 0))}
+
+
+func _typname(site: int) -> String:
+	return {"getreidefarm": "Farm", "muehle": "Mühle"}.get(String(ps.eco.i_ids[ps.eco.s_def[site]]), "Betrieb")
+
+
+func _besitz_block(site: int) -> void:
+	var nm := auswahl
+	var e = ps.eco
+	_trenner()
+	if eigen(site):
+		var stufe: int = int(e.s_werksstufe[site])
+		panel_werte["werksstufe"] = stufe
+		panel_werte["werk_unterhalt"] = int(e.upkeep_per_level) * stufe
+		panel_vb.add_child(_label("Besitz: gehört dir · Werksstufe %d · Unterhalt %s/min" % [stufe, geld(int(e.upkeep_per_level) * stufe)], 16, C_OK))
+		var a: Dictionary = ps.ausbau_angebot(nm)
+		if not a.get("ok", false):
+			var f := String(a.get("fehler", ""))
+			if f == "hoechste_stufe":
+				panel_vb.add_child(_label("Höchste Werksstufe dieser Version.", 15, C_GRAU))
+			return
+		panel_werte["ausbau_kosten"] = int(a["kosten_cent"])
+		panel_werte["ausbau_durchsatz"] = int(a["durchsatz_neu"])
+		if _ausbau_bestaetigen == nm:
+			panel_vb.add_child(_label("Ausbau auf %d E/min für %s" % [a["durchsatz_neu"], geld(a["kosten_cent"])], 16))
+			panel_vb.add_child(_label("· Unterhalt danach %s/min (+%s)" % [geld(a["unterhalt_neu_cent_pro_periode"]),
+				geld(int(a["unterhalt_neu_cent_pro_periode"]) - int(e.upkeep_per_level) * stufe)], 16))
+			var hb := HBoxContainer.new()
+			hb.add_child(_knopf("Ausbauen · %s" % geld(a["kosten_cent"]), "ausbau_ok", ausbau_bestaetigt.bind(nm), true))
+			hb.add_child(_knopf("Abbrechen", "ausbau_ab", func():
+				_ausbau_bestaetigen = ""
+				panel_neu()))
+			panel_vb.add_child(hb)
+		else:
+			var frei: int = e.cash_cent - int(ps.credit.loan_cent)
+			var b := _knopf("Werk ausbauen auf %d E/min · %s" % [a["durchsatz_neu"], geld(a["kosten_cent"])], "ausbauen",
+				ausbau_klick.bind(nm), false, frei < int(a["kosten_cent"]))
+			panel_vb.add_child(b)
+		return
+	var q: Dictionary = ps.kauf_angebot(nm)
+	if not q.get("ok", false):
+		panel_vb.add_child(_label("Besitz: nicht käuflich", 16, C_GRAU))
+		return
+	var preis: int = q["preis_cent"]
+	panel_werte["kauf_preis"] = preis
+	panel_werte["kauf_anrechnung"] = int(q["anrechnung_cent"])
+	panel_werte["kauf_unterhalt"] = int(q["unterhalt_neu_cent_pro_periode"])
+	panel_werte["kauf_marge_pct"] = int(q["marge_promille"]) / 10
+	panel_vb.add_child(_label("Besitz: gehört nicht dir", 16))
+	var neben := "Unterhalt +%s/min" % geld(q["unterhalt_neu_cent_pro_periode"])
+	if int(q["anrechnung_cent"]) > 0:
+		neben = "Lizenzgebühren angerechnet −%s · %s" % [geld(q["anrechnung_cent"]), neben]
+	if bool(q.get("rabatt_erster_kauf", false)):
+		neben += " · Erstkauf-Rabatt"
+	if _kauf_bestaetigen == nm and bool(q["kaufbar"]):
+		var aus := _ausbau_l2(site)
+		panel_vb.add_child(_label("%s kaufen für %s? Das folgt daraus:" % [nm, geld(preis)], 16))
+		panel_vb.add_child(_label("· Unterhalt +%s/min · Werksmarge +%d %%" % [geld(q["unterhalt_neu_cent_pro_periode"]), int(q["marge_promille"]) / 10], 16))
+		panel_vb.add_child(_label("· Lizenz entfällt, die Fuhrwerke laden ohne", 16))
+		if not aus.is_empty():
+			panel_werte["kauf_ausbau_kosten"] = aus["kosten_cent"]
+			panel_werte["kauf_ausbau_durchsatz"] = aus["durchsatz"]
+			panel_vb.add_child(_label("· Danach Ausbau auf %d E/min für %s möglich" % [aus["durchsatz"], geld(aus["kosten_cent"])], 16))
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 10)
+		hb.add_child(_knopf("Kaufen · %s" % geld(preis), "kauf_ok", kauf_bestaetigt.bind(nm), true))
+		hb.add_child(_knopf("Abbrechen", "kauf_ab", func():
+			_kauf_bestaetigen = ""
+			panel_neu()))
+		panel_vb.add_child(hb)
+	else:
+		var b := _knopf("%s kaufen · %s" % [_typname(site), geld(preis)], "kaufen", kauf_klick.bind(nm), false, not bool(q["kaufbar"]))
+		if not bool(q["kaufbar"]):
+			b.tooltip_text = kauf_fehlertext(nm, {"fehler": q["grund"], "fehlt_cent": preis - int(q["guthaben_ohne_kredit_cent"])})
+		panel_vb.add_child(b)
+	var l := _label(neben, 15, C_GRAU)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel_vb.add_child(l)
+
+
+## 1. Klick auf [… kaufen]: Bestätigung inline mit Folgen, oder Grund als Text (nie stumm).
+func kauf_klick(nm: String) -> void:
+	var q: Dictionary = ps.kauf_angebot(nm)
+	if not q.get("ok", false) or not bool(q.get("kaufbar", false)):
+		var g := String(q.get("grund", q.get("fehler", "?")))
+		meldung(kauf_fehlertext(nm, {"fehler": g, "fehlt_cent": int(q.get("preis_cent", 0)) - int(q.get("guthaben_ohne_kredit_cent", 0))}))
+		return
+	_kauf_bestaetigen = nm
+	panel_neu()
+
+
+## 2. Klick [Kaufen · x $]: firma_kaufen. Kasse ändert sich um den Vorschaupreis (Test).
+func kauf_bestaetigt(nm: String) -> Dictionary:
+	_kauf_bestaetigen = ""
+	var site := site_of(nm)
+	var q: Dictionary = ps.kauf_angebot(nm)
+	var r: Dictionary = ps.firma_kaufen(nm)
+	if r.get("ok", false):
+		var aus := _ausbau_l2(site)
+		var zus := ""
+		if not aus.is_empty():
+			zus = text("kauf_ok_ausbau", {"d": aus["durchsatz"], "x": geld(aus["kosten_cent"])})
+		meldung(text("kauf_ok", {"name": nm, "m": int(q.get("marge_promille", 0)) / 10, "u": geld(int(q.get("unterhalt_neu_cent_pro_periode", 0))), "aus": zus}))
+	else:
+		meldung(kauf_fehlertext(nm, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func kauf_fehlertext(nm: String, r: Dictionary) -> String:
+	var f := String(r.get("fehler", "?"))
+	var d := fehlbetrag(int(r.get("fehlt_cent", 0)))
+	match f:
+		"guthaben_reicht_nicht":
+			var q: Dictionary = ps.kauf_angebot(nm)
+			return text("kauf_geld", {"x": geld(int(q.get("preis_cent", 0))), "d": d})
+		"kredit_sperrt_firmenkauf":
+			return text("kauf_kredit", {"d": d})
+		"besitzer_reserviert", "kein_betrieb":
+			return text("kauf_nicht", {"name": nm})
+		"kasse_im_minus":
+			return text("kauf_minus")
+		"schon_gekauft":
+			return text("kauf_schon", {"name": nm})
+		"bankrott":
+			return text("bankrott")
+	return text("kauf_sonst", {"code": f})
+
+
+func ausbau_klick(nm: String) -> void:
+	var a: Dictionary = ps.ausbau_angebot(nm)
+	if not a.get("ok", false):
+		meldung(ausbau_fehlertext(nm, a))
+		return
+	var frei: int = ps.eco.cash_cent - int(ps.credit.loan_cent)
+	if frei < int(a["kosten_cent"]):
+		var f := "kredit_sperrt_firmenausbau" if ps.credit.loan_cent > 0 and ps.eco.cash_cent >= int(a["kosten_cent"]) else "guthaben_reicht_nicht"
+		meldung(ausbau_fehlertext(nm, {"fehler": f, "fehlt_cent": int(a["kosten_cent"]) - frei}))
+		return
+	_ausbau_bestaetigen = nm
+	panel_neu()
+
+
+func ausbau_bestaetigt(nm: String) -> Dictionary:
+	_ausbau_bestaetigen = ""
+	var r: Dictionary = ps.werk_ausbauen(nm)
+	if r.get("ok", false):
+		meldung(text("ausbau_ok", {"name": nm, "d": r["durchsatz"]}))
+	else:
+		meldung(ausbau_fehlertext(nm, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func ausbau_fehlertext(nm: String, r: Dictionary) -> String:
+	var f := String(r.get("fehler", "?"))
+	match f:
+		"guthaben_reicht_nicht":
+			var a: Dictionary = ps.ausbau_angebot(nm)
+			return text("ausbau_geld", {"x": geld(int(a.get("kosten_cent", 0))), "d": fehlbetrag(int(r.get("fehlt_cent", 0)))})
+		"kredit_sperrt_firmenausbau":
+			return text("ausbau_kredit", {"d": fehlbetrag(int(r.get("fehlt_cent", 0)))})
+		"nicht_im_besitz":
+			return text("ausbau_vor_kauf", {"name": nm})
+		"hoechste_stufe":
+			return text("ausbau_max", {"name": nm})
+		"nur_verarbeiter":
+			return text("ausbau_roh", {"name": nm})
+		"kasse_im_minus":
+			return text("kauf_minus")
+		"bankrott":
+			return text("bankrott")
+	return text("kauf_sonst", {"code": f})
+
+
+# ------------------------------------------------------------------ FZ-04 Fahrzeugkarte (W5)
+
+var _verkauf_bestaetigen := -1       # vid mit offener Verkaufsbestätigung
+
+## Knopfzeile [Fuhrwerk n] je Fahrzeug einer Linie: öffnet die Fahrzeugkarte.
+func _fz_knoepfe(liste: Array) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	for f in liste:
+		var b := _knopf("F%d" % int(f["vid"]), "fz_%d" % int(f["vid"]), fahrzeug_oeffnen.bind(int(f["vid"])))
+		b.tooltip_text = "%s: Karte mit Alter, Unterhalt, Ersetzen" % f["name"]
+		hb.add_child(b)
+	return hb
+
+
+func fahrzeug_oeffnen(vid: int) -> void:
+	_verkauf_bestaetigen = -1
+	oeffnen("#%d" % vid)
+
+
+func _stationsname(knoten: int) -> String:
+	for nm in ps.stationen:
+		if int(ps.stationen[nm]["knoten"]) == knoten:
+			return nm
+	return "?"
+
+
+func _panel_fahrzeug(vid: int) -> void:
+	var f: Dictionary = ps.fahrzeug(vid)
+	var kopf := HBoxContainer.new()
+	var von := _stationsname(int(f.get("von", -1)))
+	var nach := _stationsname(int(f.get("nach", -1)))
+	var gut := ausgang(site_of(von)).capitalize() if site_of(von) >= 0 else ""
+	var d: Dictionary = ps.vdef(String(f.get("def_id", "")))
+	var titel := _label("%s (%s)" % [f.get("name", "?"), gut], 18)
+	titel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	kopf.add_child(titel)
+	kopf.add_child(_knopf("x", "schliessen", func(): oeffnen(von)))
+	panel_vb.add_child(kopf)
+	panel_vb.add_child(_label("%s · Linie %s → %s" % [String(d.get("name", "?")), von, nach], 16, C_GRAU))
+	if f.is_empty() or f["verkauft"]:
+		panel_vb.add_child(_label("Verkauft, steht still.", 16, C_GRAU))
+		panel_werte["verkauft"] = true
+		return
+	var alter: int = ps.alter_jahre(f)
+	var ld := int(d.get("lebensdauer_jahre", 0))
+	var pct := alter * 100 / maxi(1, ld)
+	panel_werte["alter_jahre"] = alter
+	panel_werte["lebensdauer_pct"] = pct
+	var hb := HBoxContainer.new()
+	hb.add_child(_label("Alter %d J von %d J · %d %%" % [alter, ld, pct], 16, C_BAD if pct >= 100 else (C_WARN if pct >= 80 else C_TEXT)))
+	var bar := ProgressBar.new()
+	bar.min_value = 0
+	bar.max_value = 100
+	bar.value = mini(100, pct)
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(90, 14)
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(bar)
+	panel_vb.add_child(hb)
+	var fe: int = ps.fix_eff(f)
+	var fix := int(f.get("fix_cent", 0))
+	var aufschlag := (fe - fix) * 100 / maxi(1, fix)
+	panel_werte["unterhalt"] = fe
+	panel_werte["aufschlag_pct"] = aufschlag
+	panel_vb.add_child(_label("Unterhalt %s/min (+%d %% durch Alter)" % [geld(fe), aufschlag], 16))
+	panel_werte["restwert"] = ps.restwert(f)
+	_trenner()
+	var defs: Array = [String(f["def_id"])]
+	for id in ["frachtwagen_e1"]:                          # FZ-05: Folgemodell, sobald verfügbar
+		if id != String(f["def_id"]) and not ps.vdef(id).is_empty() and ps.kalenderjahr() >= int(ps.vdef(id).get("verfuegbar_ab_jahr", 9999)):
+			defs.append(id)
+	for id in defs:
+		var q: Dictionary = ps.ersetzen_angebot(vid, id)
+		if not q.get("ok", false):
+			continue
+		var nm := String(ps.vdef(id).get("name", id))
+		panel_werte["ersetzen_" + id] = q
+		panel_vb.add_child(_label("Ersetzen durch %s: Restwert %s · neu %s · spart %s/min" % [nm, geld(q["restwert_cent"]),
+			geld(q["preis_cent"]), geld(q["spart_cent_pro_periode"])], 16))
+		if int(q["spart_cent_pro_periode"]) <= 0 and id == String(f["def_id"]):
+			panel_vb.add_child(_label("▲ " + text("ersetzen_nichts", {"z": geld(q["spart_cent_pro_periode"])}), 15, C_WARN))
+		var b := _knopf("Ersetzen%s · %s" % ["" if id == String(f["def_id"]) else " durch " + nm, geld(q["netto_cent"])],
+			"ersetzen_" + id, ersetzen.bind(vid, id), false, not bool(q["kaufbar"]))
+		if not bool(q["kaufbar"]):
+			b.tooltip_text = "Es fehlen %s." % fehlbetrag(int(q["netto_cent"]) - ps.eco.cash_cent)
+		panel_vb.add_child(b)
+	_trenner()
+	if _verkauf_bestaetigen == vid:
+		var hv := HBoxContainer.new()
+		hv.add_child(_label("Verkaufen? Die Ladung verfällt.", 16, C_WARN))
+		hv.add_child(_knopf("Verkaufen · +%s" % geld(ps.restwert(f)), "verkaufen_ok", verkaufen.bind(vid)))
+		hv.add_child(_knopf("Behalten", "verkaufen_ab", func():
+			_verkauf_bestaetigen = -1
+			panel_neu()))
+		panel_vb.add_child(hv)
+	else:
+		panel_vb.add_child(_knopf("Verkaufen · +%s" % geld(ps.restwert(f)), "verkaufen", func():
+			_verkauf_bestaetigen = vid
+			panel_neu()))
+
+
+func ersetzen(vid: int, def_id: String) -> Dictionary:
+	var f: Dictionary = ps.fahrzeug(vid)
+	var fa: int = ps.fix_eff(f) if not f.is_empty() else 0
+	var r: Dictionary = ps.fahrzeug_ersetzen(vid, def_id)
+	if r.get("ok", false):
+		meldung(text("ersetzt", {"n": f["name"], "x": geld(int(r["netto_cent"])), "y": geld(ps.fix_eff(f)), "z": geld(fa)}))
+	else:
+		meldung(fz_fehlertext(f, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func verkaufen(vid: int) -> Dictionary:
+	_verkauf_bestaetigen = -1
+	var f: Dictionary = ps.fahrzeug(vid)
+	var r: Dictionary = ps.fahrzeug_verkaufen(vid)
+	if r.get("ok", false):
+		var rest := linien_fahrzeuge(_stationsname(int(f["von"])), _stationsname(int(f["nach"]))).size()
+		meldung(text("verkauft", {"n": f["name"], "r": geld(int(r["restwert_cent"])), "k": rest}))
+	else:
+		meldung(fz_fehlertext(f, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func fz_fehlertext(f: Dictionary, r: Dictionary) -> String:
+	var fe := String(r.get("fehler", "?"))
+	match fe:
+		"guthaben_reicht_nicht":
+			var q: Dictionary = ps.ersetzen_angebot(int(f.get("vid", -1)))
+			return text("ersetzen_geld", {"x": geld(int(q.get("netto_cent", 0))), "d": fehlbetrag(int(r.get("fehlt_cent", 0)))})
+		"noch_nicht_verfuegbar":
+			return text("frachtwagen_1830")
+		"ladung_zu_gross":
+			return text("ladung_zu_gross", {"n": f.get("name", "?")})
+		"bankrott":
+			return text("bankrott")
+	return text("fz_sonst", {"code": fe})
+
+
+# ------------------------------------------------------------------ AT-10 Linienliste (W4, Szenario i: ohne Sortieren)
+
+func _baue_links() -> void:
+	links_vb = VBoxContainer.new()
+	links_vb.name = "LinkeSpalte"
+	links_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	links_vb.anchor_top = 1.0
+	links_vb.anchor_bottom = 1.0
+	links_vb.offset_left = 12.0
+	links_vb.offset_bottom = -12.0
+	links_vb.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	links_vb.add_theme_constant_override("separation", 8)
+	add_child(links_vb)
+	ziele_panel = PanelContainer.new()
+	ziele_panel.name = "Ziele"
+	ziele_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ziele_panel.add_theme_stylebox_override("panel", _stil(Color(0.1, 0.09, 0.08, 0.82), 8))
+	ziele_panel.custom_minimum_size = Vector2(LINIEN_B, 0)
+	links_vb.add_child(ziele_panel)
+	ziele_vb = VBoxContainer.new()
+	ziele_vb.add_theme_constant_override("separation", 0)
+	ziele_panel.add_child(ziele_vb)
+	linien_panel = PanelContainer.new()
+	linien_panel.name = "Linienliste"
+	linien_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	linien_panel.add_theme_stylebox_override("panel", _stil(Color(0.1, 0.09, 0.08, 0.88), 10))
+	linien_panel.custom_minimum_size = Vector2(LINIEN_B, 0)
+	linien_panel.size = Vector2(LINIEN_B, 0)
+	linien_panel.visible = false
+	links_vb.add_child(linien_panel)
+	linien_vb = VBoxContainer.new()
+	linien_vb.add_theme_constant_override("separation", 3)
+	linien_panel.add_child(linien_vb)
+
+
+## Sättigung einer Linie am Ziel (nur Orte): economy.saett_linie mit den Einheiten der letzten Minute
+## (diese Linie, andere Linien zum selben Ort zuerst). {} wenn das Ziel kein Ort ist.
+func linie_saettigung(k: String) -> Dictionary:
+	var z: Dictionary = statistik.linien[k]
+	var e = ps.eco
+	var ziel: int = e.site_of_node(int(z["nach"]))
+	var quelle: int = e.site_of_node(int(z["von"]))
+	if ziel < 0 or e.s_kind[ziel] != Economy.K_STADT or quelle < 0:
+		return {}
+	var g: int = e.s_out_good[quelle]
+	var andere := 0
+	for k2 in statistik.linien:
+		var z2: Dictionary = statistik.linien[k2]
+		if k2 != k and int(z2["nach"]) == int(z["nach"]) and e.s_out_good[e.site_of_node(int(z2["von"]))] == g:
+			andere += int(z2["units"])
+	return e.saett_linie(ziel, quelle, g, int(z["units"]), andere)
+
+
+func linien_neu() -> void:
+	if linien_vb == null or not _sim_ok():
+		return
+	_leeren(linien_vb)
+	_bereich_leeren("linien")
+	linien_werte = {}
+	var gruppen := {}                                         # aktuelle Linien (auch ohne volle Minute)
+	for f in ps.fahrzeuge:
+		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0:
+			continue
+		var k: String = statistik.schluessel(int(f["von"]), int(f["nach"]))
+		if not gruppen.has(k):
+			gruppen[k] = []
+		gruppen[k].append(f)
+	linien_panel.visible = not gruppen.is_empty()
+	if gruppen.is_empty():
+		return
+	linien_vb.add_child(_label("Linien (Netto der letzten Minute)", 16, C_GRAU))
+	for k in gruppen:
+		var fz: Array = gruppen[k]
+		var von := _stationsname(int(fz[0]["von"]))
+		var nach := _stationsname(int(fz[0]["nach"]))
+		var gut := ausgang(site_of(von)).capitalize()
+		var alter := 0
+		var fix := 0
+		for f in fz:
+			alter = maxi(alter, ps.alter_jahre(f))
+			fix += ps.fix_eff(f)
+		var w := {"alter": alter, "fix": fix, "n": fz.size()}
+		linien_vb.add_child(_label("%s → %s (%s) · %d Fuhrwerk(e)" % [von, nach, gut, fz.size()], 16))
+		var zeile := ""
+		var farbe := C_TEXT
+		if statistik.linien.has(k):
+			var z: Dictionary = statistik.linien[k]
+			w["gewinn"] = int(z["gewinn"])
+			w["ertrag"] = int(z["ertrag"])
+			w["fahrk"] = int(z["fahrk"])
+			var gw: int = z["gewinn"]
+			zeile = "Netto %s%s/min" % ["+" if gw > 0 else "", geld(gw)]
+			farbe = C_BAD if gw < 0 else C_TEXT
+		else:
+			zeile = "Netto — $/min"
+		zeile += " · Unterhalt %s/min · Alter %d J" % [geld(fix), alter]
+		var sz := ""
+		var sfarbe := C_TEXT
+		if statistik.linien.has(k):
+			var sa := linie_saettigung(k)
+			if sa.get("ok", false):
+				w["v_promille"] = int(sa["v_promille"])
+				w["ampel"] = int(sa["ampel"])
+				w["x_cent"] = int(sa["x_cent"])
+				var pct: int = Economy.rdiv(int(sa["v_promille"]), 10)
+				if int(sa["ampel"]) >= 1:
+					sz = "%s %s %d %% · +%s/min nur mit neuem Abnehmer" % ["■" if int(sa["ampel"]) >= 2 else "▲", nach, pct, geld(int(sa["x_cent"]))]
+					sfarbe = C_BAD if int(sa["ampel"]) >= 2 else C_WARN
+				else:
+					sz = "● %s %d %%" % [nach, pct]
+		linien_vb.add_child(_label(zeile, 15, farbe))
+		if sz != "":
+			linien_vb.add_child(_label(sz, 15, sfarbe))
+		var hb := _fz_knoepfe_bereich(fz, "linien")
+		var preis := int(fuhrwerk_def().get("kauf_cent", 0))
+		hb.add_child(_knopf("+ Fuhrwerk %s" % geld(preis), "lplus_" + k, fuhrwerk_kaufen.bind(von, nach), false, preis > ps.eco.cash_cent, "linien"))
+		linien_vb.add_child(hb)
+		linien_werte[k] = w
+	_umbrechen(linien_vb)
+
+
+func _fz_knoepfe_bereich(liste: Array, bereich: String) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	for f in liste:
+		var b := _knopf("F%d" % int(f["vid"]), "l_fz_%d" % int(f["vid"]), fahrzeug_oeffnen.bind(int(f["vid"])), false, false, bereich)
+		b.tooltip_text = "%s: Karte mit Alter, Unterhalt, Ersetzen" % f["name"]
+		hb.add_child(b)
+	return hb
+
+
+## Labels in einem Container umbrechen lassen (feste Breite des Elternpanels statt Überlauf).
+func _umbrechen(c: Node) -> void:
+	for k in c.get_children():
+		if k is Label:
+			(k as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+
+# ------------------------------------------------------------------ AT-11 A-08-Diagnosen (nur Welt)
+
+const WARTE_TICKS := 300               # 30 s an der Quelle ohne Ladung
+const KASSE_WARN_S := 90.0             # A5: Warnschwelle 90 s (Design §2.5)
+var _warte: Dictionary = {}            # vid -> Ticks am Stück im Zustand „wartet auf Ladung“
+var _halb: Dictionary = {}             # vid -> Abfahrten am Stück mit < 50 % Ladung
+var _st_vor: Dictionary = {}           # vid -> Zustand im letzten Tick
+var _diag: Dictionary = {}             # Schlüssel -> true, solange der Fall besteht (Flanke: nur beim Eintritt melden)
+var _lic_ev_idx := 0
+var _ld_idx := 0
+var netto_verlauf: Array = []          # Netto der letzten Minuten (Cent), für die Kassenprognose
+var diag_log: Array = []               # [{fall, titel, text}] ausgelöste Diagnosen (Test)
+
+
+func _warte_zaehlen() -> void:
+	for f in ps.fahrzeuge:
+		if f["verkauft"]:
+			continue
+		var vid := int(f["vid"])
+		var i: int = ps.sim.slot_of(vid)
+		var st: int = ps.sim.v_state[i]
+		if st == 3:                                       # SimWorld.S_WARTET_LADUNG (core/sim_world.gd)
+			_warte[vid] = int(_warte.get(vid, 0)) + 1
+		else:
+			_warte[vid] = 0
+		# Teilladung (OE-01 Ersatz-Vorschlag): Abfahrt an der Quelle mit < 50 % Ladung, 3 Umläufe am Stück
+		if int(_st_vor.get(vid, -1)) == 3 and st == 1 and ps.sim.v_leg[i] == 0:
+			if ps.sim.v_cargo[i] * 1000 < ps.sim.v_cargo_cap[i] * 500:
+				_halb[vid] = int(_halb.get(vid, 0)) + 1
+			else:
+				_halb[vid] = 0
+		_st_vor[vid] = st
+
+
+func _netto_verlauf_neu() -> void:
+	if hud_werte.has("netto") or _schnapp.size() == 2:
+		kopf_neu()
+	if hud_werte.has("netto"):
+		netto_verlauf.append(int(hud_werte["netto"]))
+		while netto_verlauf.size() > 2:
+			netto_verlauf.pop_front()
+
+
+func _diag_melden(fall: String, schluessel: String, titel: String, t: String, aktion: String, aktion_id: String, daten, form := "warn") -> void:
+	if _diag.get(schluessel, false):
+		return
+	_diag[schluessel] = true
+	diag_log.append({"fall": fall, "titel": titel, "text": t})
+	melden(t, {"titel": titel, "aktion": aktion, "aktion_id": aktion_id, "daten": daten, "form": form})
+
+
+func _diag_ende(schluessel: String) -> void:
+	_diag.erase(schluessel)
+
+
+func _ware_ort(site: int) -> String:
+	var e = ps.eco
+	for g in e.g_ids.size():
+		if String(e.g_cat[g]) in ort_korb(site):
+			return String(e.g_ids[g]).capitalize()
+	return "Ware"
+
+
+## Diagnosen prüfen. periode_ende: Fälle, die an der Minute hängen (Sättigung, Verlust, Kasse).
+func diagnose(periode_ende: bool) -> void:
+	var e = ps.eco
+	# D1 wartet auf Ladung (> 30 s); ohne Lizenz an der Quelle stattdessen „Lizenz abgelaufen“
+	for f in ps.fahrzeuge:
+		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0:
+			continue
+		var w: int = _warte.get(f["vid"], 0)
+		var quelle := _stationsname(int(f["von"]))
+		var sq := site_of(quelle)
+		var key := "wartet_%d" % int(f["vid"])
+		if w >= WARTE_TICKS:
+			if sq >= 0 and not lizenz_ok(sq):
+				_diag_melden("D1b", "lizenz_ab_%d" % sq, quelle, text("d_lizenz_ab", {"x": geld(int(e.licence_quote(sq, false).get("kosten_cent", 0)))}),
+					"Erneuern", "lizenz", quelle, "bad")
+			else:
+				_diag_melden("D1", key, quelle, text("d_wartet", {"n": f["vid"], "t": w / 10, "x": e.s_rate[sq] if sq >= 0 else 0}),
+					"Zur Linie", "panel", quelle)
+		elif int(_halb.get(f["vid"], 0)) >= 3 and sq >= 0:
+			_diag_melden("D1", key, quelle, text("d_halb", {"n": f["vid"], "x": e.s_rate[sq]}), "Zur Linie", "panel", quelle)
+		elif w == 0 and int(_halb.get(f["vid"], 0)) == 0:
+			_diag_ende(key)
+	# D4 Lizenz endet < 3 min und die Kasse reicht nicht für die Verlängerung; D4b Verlängerung gescheitert (lic_events)
+	while _lic_ev_idx < e.lic_events.size():
+		var ev: Dictionary = e.lic_events[_lic_ev_idx]
+		_lic_ev_idx += 1
+		if not bool(ev.get("ok", true)):
+			var nm := _stationsname(int(e.s_node[int(ev["site"])]))
+			_diag.erase("lizenz_ab_%d" % int(ev["site"]))
+			_diag_melden("D4b", "lizenz_ab_%d" % int(ev["site"]), nm, text("d_lizenz_ab", {"x": geld(int(ev.get("cent", 0)))}), "Erneuern", "lizenz", nm, "bad")
+	for nm in ps.stationen:
+		var site := int(ps.stationen[nm]["site"])
+		if site < 0 or not ist_industrie(site):
+			continue
+		var key := "lizenz_ende_%d" % site
+		if e.licence_valid(site) and not eigen(site):
+			var rest: int = e.s_lic_until[site] - ps.sim.tick_count
+			var kosten := int(e.licence_quote(site, false).get("kosten_cent", 0))
+			if rest < 3 * periode() and e.cash_cent < kosten:
+				_diag_melden("D4", key, nm, text("d_lizenz_ende", {"t": lizenz_rest_min(site), "x": geld(kosten)}), "Zum Betrieb", "panel", nm)
+			else:
+				_diag_ende(key)
+		else:
+			_diag_ende(key)
+		if lizenz_ok(site):
+			_diag_ende("lizenz_ab_%d" % site)
+	# D6 Lebensdauer erreicht (FZ-03)
+	while _ld_idx < ps.lebensdauer_erreicht.size():
+		var le: Dictionary = ps.lebensdauer_erreicht[_ld_idx]
+		_ld_idx += 1
+		var f: Dictionary = ps.fahrzeug(int(le["vid"]))
+		if f.is_empty() or f["verkauft"]:
+			continue
+		var fix := int(f.get("fix_cent", 0))
+		var q: Dictionary = ps.ersetzen_angebot(int(le["vid"]))
+		_diag_melden("D6", "alt_%d_%d" % [int(le["vid"]), int(le["tick"])], String(f["name"]), text("d_alt", {"j": ps.alter_jahre(f),
+			"p": (ps.fix_eff(f) - fix) * 100 / maxi(1, fix), "z": geld(int(q.get("spart_cent_pro_periode", 0)))}), "Ersetzen", "fahrzeug", int(le["vid"]))
+	if not periode_ende:
+		return
+	# D2/D3 Sättigung am Ort (V der eben beendeten Minute): gelb ≥ 100 %, rot ≥ 150 %
+	for site in statistik.ort_v:
+		var v: int = statistik.ort_v[site][-1]
+		var nm := _stationsname(int(e.s_node[site]))
+		var p := Economy.rdiv(v, 10)
+		if v >= 1500:
+			_diag_ende("gelb_%d" % site)
+			var x := 0
+			for k in statistik.linien:
+				if int(statistik.linien[k]["nach"]) == int(e.s_node[site]):
+					x += int(linie_saettigung(k).get("x_cent", 0))
+			_diag_melden("D3", "rot_%d" % site, nm, text("d_rot", {"ort": nm, "ware": _ware_ort(site), "p": p, "x": geld(x)}), "Zum Ort", "panel", nm, "bad")
+		elif v >= 1000:
+			_diag_ende("rot_%d" % site)
+			_diag_melden("D2", "gelb_%d" % site, nm, text("d_gelb", {"ort": nm, "ware": _ware_ort(site), "p": p}), "Zum Ort", "panel", nm)
+		else:
+			_diag_ende("gelb_%d" % site)
+			_diag_ende("rot_%d" % site)
+	# D5 Linie mit Verlust über 3 Minuten
+	for k in statistik.linien:
+		var z: Dictionary = statistik.linien[k]
+		var key: String = "verlust_" + k
+		if statistik.verlust_serie(k) >= 3:
+			var von := _stationsname(int(z["von"]))
+			_diag_melden("D5", key, "%s → %s" % [von, _stationsname(int(z["nach"]))], text("d_verlust", {"x": geld(-int(z["gewinn"])),
+				"a": geld(int(z["fix"])), "b": geld(int(z["ertrag"]))}), "Zur Linie", "panel", von, "bad")
+		elif int(z["gewinn"]) >= 0:
+			_diag_ende(key)
+	_kasse_pruefen()
+
+
+## D7 Kasse reicht ≤ 90 s (Prognose: Kasse ÷ Verlust je Sekunde aus den letzten 2 Minuten). Warnung bleibt stehen (G2).
+func _kasse_pruefen() -> void:
+	var e = ps.eco
+	var posten := ""
+	var schlecht := 1 << 40
+	for k in statistik.linien:
+		if int(statistik.linien[k]["gewinn"]) < schlecht:
+			schlecht = int(statistik.linien[k]["gewinn"])
+			posten = "%s → %s" % [_stationsname(int(statistik.linien[k]["von"])), _stationsname(int(statistik.linien[k]["nach"]))]
+	var reicht := INF
+	if not netto_verlauf.is_empty():
+		var mittel := 0.0
+		for n in netto_verlauf:
+			mittel += float(n)
+		mittel /= netto_verlauf.size()
+		if mittel < 0.0:
+			reicht = maxf(0.0, float(e.cash_cent)) / (-mittel / 60.0)
+	hud_werte["kasse_reicht_s"] = reicht
+	if reicht <= KASSE_WARN_S and posten != "":
+		if _diag.get("kasse", false):
+			return
+		var t := ""
+		var aktion := "Zur Linie"
+		var aid := "panel"
+		var daten: Variant = posten.get_slice(" → ", 0)
+		if ps.sim.tick_count < int(ps.credit.from_ticks):
+			t = text("d_kasse_vor12", {"posten": posten, "x": geld(-schlecht)})
+		elif ps.credit.borrow_amount(ps.sim.tick_count) > 0:
+			t = text("d_kasse_kredit", {"posten": posten})
+			aktion = "Kredit"
+			aid = "kredit"
+		else:
+			t = text("d_kasse_voll", {"posten": posten})
+		_diag["kasse"] = true
+		var titel := "Kasse reicht ~%d s" % int(reicht)
+		diag_log.append({"fall": "D7", "titel": titel, "text": t})
+		melden(t, {"titel": titel, "aktion": aktion, "aktion_id": aid, "daten": daten, "form": "bad", "warn": "kasse"})
+	elif _diag.get("kasse", false) and reicht > KASSE_WARN_S:
+		_diag.erase("kasse")
+		toast_panel.warnung_aufheben("kasse")
+		melden(text("d_kasse_gut", {"posten": posten}), {"titel": "Kasse", "form": "ok"})
+
+
+## Aktion im Diagnose-Toast (Szenario i: kein Kamerasprung, die Aktion öffnet Panel/Karte oder kauft).
+func _toast_aktion(id: String, daten: Variant) -> void:
+	klicks += 1
+	match id:
+		"panel":
+			oeffnen(String(daten))
+		"lizenz":
+			oeffnen(String(daten))
+			lizenz_kaufen(String(daten))
+		"fahrzeug":
+			fahrzeug_oeffnen(int(daten))
+		"kredit":
+			kredit_aufnehmen()
+
+
+# ------------------------------------------------------------------ AT-13 Ziele und Nächster Schritt (Szenario i: Textliste)
+
+func _ziele_pruefen(periode_ende: bool) -> void:
+	ziele.pruefen(periode_ende, hud_werte.get("netto", null) if periode_ende else null)
+	for id in ziele.neu_erfuellt:
+		var z: Dictionary = ziele.ziel(id)
+		var sp := text("ziel_sp", {"n": z["skillpunkte"]}) if int(z["skillpunkte"]) > 0 else ""
+		melden(text("ziel_ok", {"name": z["name"], "sp": sp}), {"titel": "Ziel " + ziele.kurz(id), "form": "ok"})
+	if not ziele.neu_erfuellt.is_empty():
+		ziele_neu()
+
+
+## „Nächster Schritt“ für das erste offene Ziel, mit Preis aus dem Spiel.
+func naechster_text() -> String:
+	var z: Dictionary = ziele.naechstes()
+	if z.is_empty():
+		return text("n_fertig")
+	var e = ps.eco
+	var preis := int(fuhrwerk_def().get("kauf_cent", 0))
+	var farm := "Gut Kuppenhof"
+	match String(z["id"]):
+		"e1":
+			return text("n_e1", {"farm": farm, "x": geld(int(e.licence_quote(site_of(farm), false).get("zu_zahlen_cent", 0)))})
+		"e2":
+			var lic := 0 if lizenz_ok(site_of(farm)) else int(e.licence_quote(site_of(farm), false).get("zu_zahlen_cent", 0))
+			return text("n_e2", {"farm": farm, "x": geld(preis + lic)})
+		"e4":
+			var sm := site_of("Erlenmühle")
+			var lm := 0 if lizenz_ok(sm) else int(e.licence_quote(sm, false).get("zu_zahlen_cent", 0))
+			return text("n_e4", {"x": geld(preis + lm)})
+		"e5":
+			return text("n_e5", {"x": geld(preis)})
+		"f2":
+			return text("n_f2", {"x": geld(ziele.f2_schwelle)})
+	return text("n_" + String(z["id"]))
+
+
+func ziele_neu() -> void:
+	if ziele_vb == null:
+		return
+	_leeren(ziele_vb)
+	var fertig := 0
+	for z in ziele.ziele:
+		if int(z["erfuellt_tick"]) >= 0:
+			fertig += 1
+	ziele_vb.add_child(_label("Ziele %d/%d · Skillpunkte %d" % [fertig, ziele.ziele.size(), ziele.skillpunkte()], 15, C_GRAU))
+	for z in ziele.ziele:
+		var ok_: bool = int(z["erfuellt_tick"]) >= 0
+		var zus := " (Minute %d)" % (int(z["erfuellt_tick"]) / periode()) if ok_ else ""
+		ziele_vb.add_child(_label("%s %s %s%s" % ["●" if ok_ else "○", ziele.kurz(z["id"]), z["name"], zus], 15, C_OK if ok_ else C_TEXT))
+	_umbrechen(ziele_vb)
+	if lbl_naechster != null:
+		lbl_naechster.text = "Nächster Schritt: " + naechster_text()

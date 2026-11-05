@@ -1,0 +1,245 @@
+extends SceneTree
+## S8 AT-07/AT-08/AT-09 (Mira): Welt-UI der Prototyp-Szene gegen die Spielwerte (headless).
+## godot --headless --path slice -s res://tests/proto_ui_welt_test.gd [-- --nur=at07|at08|at09]
+## Start ohne Kette (kette_modus "leer", 6.000 $). Weltklicks als echte InputEventMouseButton (Drücken + Loslassen) an die
+## projizierte Ortsmitte über _unhandled_input der Szene; Knöpfe headless per pressed.emit() (Layout/echte Maus: xvfb-Test).
+
+var n_ok := 0
+var n_fail := 0
+var s: Node
+var ui
+var ps
+
+
+func ok(c: bool, t: String) -> void:
+	if c:
+		n_ok += 1
+		print("  OK   ", t)
+	else:
+		n_fail += 1
+		print("  FAIL ", t)
+
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _nur() -> String:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--nur="):
+			return a.substr(6)
+	return ""
+
+
+func _run() -> void:
+	print("proto_ui_welt_test")
+	s = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	s.kette_modus = "leer"
+	root.add_child(s)
+	await process_frame
+	ui = s.ui_welt
+	ps = s.proto_sim
+	ok(ui != null and ps != null and ps.eco != null and ps.eco.company_started, "Szene ohne Kette: UiWelt da, Firma gegründet")
+	ok(ps.eco.cash_cent == 600000 and ps.fahrzeuge.is_empty(), "Start 6.000 $, 0 Fahrzeuge (Kasse %d ¢)" % ps.eco.cash_cent)
+	s.setze_tempo(0)                   # Pause: Zahlen ändern sich nur, wenn der Test tickt
+	var nur := _nur()
+	if nur == "" or nur == "at07":
+		await _at07()
+	print("Prüfungen OK: %d, FAIL: %d" % [n_ok, n_fail])
+	quit(0 if n_fail == 0 else 1)
+
+
+# ------------------------------------------------------------------ Hilfen
+
+func _blick(nm: String, abstand := 700.0) -> void:
+	var p: Vector3 = ui.orte_pos[nm]
+	s.ziel = Vector3(p.x, 0, p.z)
+	s.abstand = abstand
+	s.gier = 0.0
+	s._kamera_anwenden()
+
+
+## Echter Weltklick: Drücken + Loslassen an der projizierten Ortsmitte (+ Versatz).
+func _klick(nm: String, versatz := Vector2.ZERO) -> void:
+	_blick(nm)
+	var pos: Vector2 = ui.bildschirm_pos(nm) + versatz
+	_maus(pos)
+
+
+func _maus(pos: Vector2) -> void:
+	for gedrueckt in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = gedrueckt
+		ev.position = pos
+		s._unhandled_input(ev)
+
+
+func _druecke(id: String) -> bool:
+	if not ui.knoepfe.has(id):
+		print("    (Knopf fehlt: %s, da: %s)" % [id, str(ui.knoepfe.keys())])
+		return false
+	(ui.knoepfe[id] as Button).pressed.emit()
+	return true
+
+
+func _panel_text() -> String:
+	var t := ""
+	var st: Array = [ui.panel_vb]
+	while not st.is_empty():
+		var n: Node = st.pop_front()
+		if n is Label:
+			t += (n as Label).text + "\n"
+		elif n is Button:
+			t += "[" + (n as Button).text + "]\n"
+		for c in n.get_children():
+			st.append(c)
+	return t
+
+
+func _letzte() -> String:
+	return ui.meldungen_log[-1]["text"] if not ui.meldungen_log.is_empty() else ""
+
+
+## Fahrzeug-Darstellung nach API-Käufen außerhalb der UI neu bauen (wie der Adapter in ui_welt).
+func _fz_neu() -> void:
+	var alt = s.fahrzeuge
+	var neu = preload("res://proto/proto_fahrzeuge.gd").new()
+	s.add_child(neu)
+	neu.bauen(ps, s.regelwerk)
+	s.fahrzeuge = neu
+	alt.queue_free()
+
+
+# ------------------------------------------------------------------ AT-07
+
+func _at07() -> void:
+	print("  -- AT-07 Welt-Panel")
+	var e = ps.eco
+	ok(not ui.panel.visible and ui.panel.mouse_filter == Control.MOUSE_FILTER_STOP and ui.toast_panel.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"Panel zu; Panel STOP (Klicks nicht in die Welt), Toast IGNORE")
+	# Klick daneben (60 px) öffnet nichts
+	_klick("Gut Kuppenhof", Vector2(60, 60))
+	ok(ui.auswahl == "", "Klick 60 px neben Gut Kuppenhof öffnet nichts")
+	# Ziehen ist kein Klick
+	_blick("Gut Kuppenhof")
+	var p0: Vector2 = ui.bildschirm_pos("Gut Kuppenhof")
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.position = p0
+	s._unhandled_input(ev)
+	var ev2 := InputEventMouseButton.new()
+	ev2.button_index = MOUSE_BUTTON_LEFT
+	ev2.pressed = false
+	ev2.position = p0 + Vector2(30, 0)
+	s._unhandled_input(ev2)
+	ok(ui.auswahl == "", "Ziehen (30 px) öffnet kein Panel")
+	_klick("Gut Kuppenhof")
+	ok(ui.auswahl == "Gut Kuppenhof" and ui.panel.visible, "Klick auf Gut Kuppenhof öffnet das Panel")
+	# --- Farm: Bestand, Rate, Lizenz
+	for i in 1200:
+		ps.tick()
+	ui.panel_neu()
+	var site: int = ui.site_of("Gut Kuppenhof")
+	e.sync_all(ps.sim)                 # Spielwert: Rohstoffbestand nachgezogen (economy-Lesesicht)
+	var b_spiel: int = ps.sim.st_stock[e.s_station[site]]
+	var pt := _panel_text()
+	ok(ui.panel_werte["bestand"] == b_spiel and pt.contains("Bestand %d E" % b_spiel), "Farm Bestand %d E = Spielwert %d (Tick %d)" % [ui.panel_werte["bestand"], b_spiel, ps.sim.tick_count])
+	ok(ui.panel_werte["rate"] == e.s_rate[site] and pt.contains("liefert %d E/min" % e.s_rate[site]), "Farm liefert %d E/min = s_rate" % e.s_rate[site])
+	ok(pt.contains("Lizenz: keine"), "Lizenzzeile: keine")
+	var q: Dictionary = e.licence_quote(site, false)
+	ok(ui.panel_werte["lizenz_preis"] == q["zu_zahlen_cent"] and pt.contains("[Lizenz kaufen %s]" % ui.geld(q["zu_zahlen_cent"])),
+		"Vorschaupreis Lizenz %s = licence_quote" % ui.geld(q["zu_zahlen_cent"]))
+	ok(ui.panel_werte.get("abnehmer", []) == ["Erlenmühle"], "Abnehmer in Reichweite: %s" % str(ui.panel_werte.get("abnehmer", [])))
+	var k0: int = e.cash_cent
+	var vor: int = ui.panel_werte["lizenz_preis"]
+	ok(_druecke("lizenz_kaufen"), "Knopf Lizenz kaufen")
+	ok(k0 - e.cash_cent == vor and e.licence_valid(site), "Lizenzkauf Kuppenhof: Kasse −%d ¢ = Vorschau %d ¢ ± 0" % [k0 - e.cash_cent, vor])
+	ok(_letzte().begins_with("Lizenz für Gut Kuppenhof gekauft, sie gilt 30 min."), "Toast: %s" % _letzte())
+	pt = _panel_text()
+	var rest: int = int(ceil((e.s_lic_until[site] - ps.sim.tick_count) / 600.0))
+	ok(ui.panel_werte["lizenz_rest_min"] == rest and pt.contains("gilt noch %d min" % rest), "Lizenz gilt noch %d min = s_lic_until" % rest)
+	ui.lizenz_kaufen("Gut Kuppenhof")
+	ok(_letzte() == "Gut Kuppenhof ist schon lizenziert, noch %d min." % rest, "F1.3: %s" % _letzte())
+	# --- Mühle: Preis > 0, zu wenig Geld (F1.1), Kauf
+	_klick("Erlenmühle")
+	var sm: int = ui.site_of("Erlenmühle")
+	var qm: Dictionary = e.licence_quote(sm, false)
+	ok(ui.auswahl == "Erlenmühle" and ui.panel_werte["lizenz_preis"] == qm["zu_zahlen_cent"] and qm["zu_zahlen_cent"] > 0,
+		"Mühle: Vorschaupreis %s = licence_quote (> 0)" % ui.geld(qm["zu_zahlen_cent"]))
+	ok(ui.panel_werte["bedarf"] == e.s_rate[sm] and ui.panel_werte.has("eingang_getreide") and ui.panel_werte["eingang_getreide"] == e.s_inbuf[sm][e.g_index["getreide"]],
+		"Mühle: Bedarf %d E/min = Durchsatz, Eingang Getreide %d E = s_inbuf" % [ui.panel_werte["bedarf"], ui.panel_werte["eingang_getreide"]])
+	ok(ui.panel_werte["bestand"] == ui.bestand(sm) and ui.bestand(sm) == ps.sim.st_stock[e.s_station[sm]], "Mühle: Bestand Mehl %d E = st_stock" % ui.panel_werte["bestand"])
+	var echt: int = e.cash_cent
+	e.cash_cent = qm["zu_zahlen_cent"] - 150     # Test: 1,50 $ zu wenig
+	ui.panel_neu()
+	var lk: Button = ui.knoepfe["lizenz_kaufen"]
+	ok(lk.tooltip_text == "Es fehlen 2 $." and not lk.disabled, "Knopf grau, aber klickbar; Tooltip nennt Fehlbetrag (%s)" % lk.tooltip_text)
+	var k1: int = e.cash_cent
+	_druecke("lizenz_kaufen")
+	ok(e.cash_cent == k1 and not e.licence_valid(sm) and _letzte() == "Lizenz kostet %s, es fehlen 2 $. Kredit gibt es erst ab Minute 12." % ui.geld(qm["zu_zahlen_cent"]),
+		"F1.1 (vor Minute 12): %s" % _letzte())
+	e.cash_cent = echt
+	ui.panel_neu()
+	k0 = e.cash_cent
+	vor = ui.panel_werte["lizenz_preis"]
+	_druecke("lizenz_kaufen")
+	ok(k0 - e.cash_cent == vor and e.licence_valid(sm), "Lizenzkauf Mühle: Kasse −%d ¢ = Vorschau %d ¢ ± 0" % [k0 - e.cash_cent, vor])
+	# --- Ort und HQ
+	_klick("Erlenbach")
+	var so: int = ui.site_of("Erlenbach")
+	pt = _panel_text()
+	ok(ui.auswahl == "Erlenbach" and ui.panel_werte["bedarf"] == e.city_demand(so) and pt.contains("Bedarf %d E/min" % e.city_demand(so)),
+		"Erlenbach: Bedarf %d E/min = city_demand" % e.city_demand(so))
+	ok(ui.panel_werte["einwohner"] == int(e.c_index[e.s_city_id[so]]["einwohner_anzahl"]), "Erlenbach: Einwohner %d = Sim (sim_ew)" % ui.panel_werte["einwohner"])
+	ok(pt.contains("Lizenz: nicht nötig") and not ui.knoepfe.has("lizenz_kaufen") and not ui.knoepfe.has("linie_von_hier"), "Ort: Lizenz nicht nötig, kein Kauf-/Linienknopf")
+	ui.lizenz_kaufen("Erlenbach")
+	ok(_letzte() == "Erlenbach braucht keine Lizenz. Lege direkt eine Linie dorthin.", "F1.4: %s" % _letzte())
+	var d: Dictionary = ps.vdef(ps.def_fuer("fuhrwerk"))
+	ok(ui.ist_hq(so) and pt.contains("Fuhrhalterei") and pt.contains("Unterhalt enthält Futter, Knecht, Stellmacher.")
+		and ui.panel_werte["fuhrwerk_preis"] == int(d["kauf_cent"]) and ui.panel_werte["fuhrwerk_fix"] == int(d["fix_cent_pro_periode"])
+		and pt.contains("Fuhrwerk %s · Unterhalt %s/min" % [ui.geld(int(d["kauf_cent"])), ui.geld(int(d["fix_cent_pro_periode"]))]),
+		"HQ Erlenbach: Fuhrhalterei-Eintrag, Fuhrwerk %s, Unterhalt %s/min = vehicles.json" % [ui.geld(int(d["kauf_cent"])), ui.geld(int(d["fix_cent_pro_periode"]))])
+	_klick("Lindenfurt")
+	ok(ui.auswahl == "Lindenfurt" and not ui.ist_hq(ui.site_of("Lindenfurt")) and not _panel_text().contains("Fuhrhalterei"), "Lindenfurt: kein HQ-Eintrag")
+	# --- Sättigung gegen Spielwert: Linien über die API, Ticks bis Mehl in Erlenbach ankommt
+	var r1: Dictionary = ps.linie_anlegen("Gut Kuppenhof", "Erlenmühle")
+	var r2: Dictionary = ps.linie_anlegen("Erlenmühle", "Erlenbach")
+	_fz_neu()
+	var kat: String = e.g_cat[e.g_index["mehl"]]
+	var gefunden := false
+	for i in 9000:
+		ps.tick()
+		if i % 50 == 0 and ui.ort_geliefert(so, kat) > 0:
+			gefunden = true
+			break
+	_klick("Erlenbach")
+	var per: int = ps.sim.tick_count / e.periode_ticks
+	var geliefert: int = e.s_sat[so].get(kat, 0) if e.s_sat_period[so] == per else 0
+	var pct: int = Economy_rdiv(geliefert * 100, e.city_demand(so))
+	pt = _panel_text()
+	ok(r1["ok"] and r2["ok"] and gefunden and ui.panel_werte["geliefert_" + kat] == geliefert and ui.panel_werte["saettigung_" + kat] == pct
+		and pt.contains("%s: %d %% (%d von %d E diese Minute)" % [kat.capitalize(), pct, geliefert, e.city_demand(so)]),
+		"Erlenbach Sättigung %s %d %% (%d E) = s_sat (Tick %d)" % [kat, pct, geliefert, ps.sim.tick_count])
+	_klick("Erlenmühle")
+	ok(_panel_text().contains("Erlenbach") and _panel_text().contains("%d %%" % pct), "Mühle-Panel: Abnehmer Erlenbach mit Sättigung %d %%" % pct)
+	# --- Esc: erst Panel zu, Szene bleibt
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	s._unhandled_input(esc)
+	ok(ui.auswahl == "" and not ui.panel.visible and s.is_inside_tree(), "Esc schließt das Panel, die Szene bleibt (G5)")
+	# --- alle Meldungen ≤ 90 Zeichen mit echten Werten
+	var lang: Array = []
+	for m in ui.meldungen_log:
+		if String(m["text"]).length() > 90:
+			lang.append(m["text"])
+	ok(lang.is_empty(), "%d Meldungen, alle ≤ 90 Zeichen mit eingesetzten Werten %s" % [ui.meldungen_log.size(), str(lang)])
+	for i in 3:
+		await process_frame
+	ok(true, "3 Frames nach den Käufen ohne Fehler")
+
+
+static func Economy_rdiv(z: int, n: int) -> int:
+	return preload("res://economy.gd").rdiv(z, maxi(1, n))

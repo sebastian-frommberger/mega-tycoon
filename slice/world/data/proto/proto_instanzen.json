@@ -1047,5 +1047,13 @@
 {"typ":"eiche","x":305.98,"z":272.81,"rot_deg":-47.7,"parzelle":"allee","ort":"chaussee","rolle":"allee"},
 {"typ":"eiche","x":313.87,"z":260.96,"rot_deg":-71.4,"parzelle":"allee","ort":"chaussee","rolle":"allee"},
 {"typ":"laubbaum","x":296.07,"z":267.22,"rot_deg":-74.04,"parzelle":"allee","ort":"chaussee","rolle":"allee"},
-{"typ":"laubbaum","x":302.92,"z":255.17,"rot_deg":-126.81,"parzelle":"allee","ort":"chaussee","rolle":"allee"}
+{"typ":"laubbaum","x":302.92,"z":255.17,"rot_deg":-126.81,"parzelle":"allee","ort":"chaussee","rolle":"allee"},
+{"typ":"gutshof","x":640.0,"z":780.0,"rot_deg":75.42,"parzelle":"hof_p01","b":40.0,"ort":"hof_hasenwinkel","t":40.0},
+{"typ":"flaeche_hof","x":640.0,"z":780.0,"rot_deg":75.42,"parzelle":"hof_p01","b":30.0,"ort":"hof_hasenwinkel","t":30.0},
+{"typ":"heuhaufen","x":653.6,"z":791.01,"rot_deg":-81.9,"parzelle":"hof_p01","ort":"hof_hasenwinkel"},
+{"typ":"heuhaufen","x":656.1,"z":781.76,"rot_deg":73.7,"parzelle":"hof_p01","ort":"hof_hasenwinkel"},
+{"typ":"heuhaufen","x":659.21,"z":790.28,"rot_deg":-14.28,"parzelle":"hof_p01","ort":"hof_hasenwinkel"},
+{"typ":"holzstapel","x":664.78,"z":776.11,"rot_deg":75.42,"parzelle":"hof_p01","ort":"hof_hasenwinkel"},
+{"typ":"flaeche_schlag","x":650.0,"z":670.0,"rot_deg":0.0,"parzelle":"hof_p01","b":125.0,"ort":"hof_hasenwinkel","t":200.0},
+{"typ":"flaeche_schlag","x":620.0,"z":880.0,"rot_deg":0.0,"parzelle":"hof_p01","b":125.0,"ort":"hof_hasenwinkel","t":200.0}
 ]

@@ -108,6 +108,51 @@ def richtungswechsel(poly):
     return m
 
 
+KLASSEN_SIM = {  # Regelwerk ortsklassen (slice/world/data/proto/regelwerk.json): ort_ew, umland_ew, sim_ew
+    "dorf": ((150, 350), (250, 550), (400, 900)),
+    "kleinstadt": ((2000, 4000), (400, 700), (2400, 4700)),
+}
+NACHFRAGE_MULT = {"dorf": 2.0, "kleinstadt": 1.0}   # economy_slice.json saettigung.demand_mult_promille_je_stufe / 1000; 1 Einheit je 100 EW und Periode (Min.)
+
+
+def pruefe_welt_daten(T, orte_j, wege, geo):
+    """WA-07: Farm 2, Ladeplatz-Datenpunkt, sim_ew je Ort (Klassenband, Nachfrage)."""
+    ind = orte_j["industrie"]
+    mu = [i for i in ind if i["typ"] == "wassermuehle"][0]
+    farmen = [i for i in ind if i["typ"] == "getreidefarm"]
+    T.add("Getreidefarmen (Kuppenhof + Farm 2)", ">= 2", len(farmen), len(farmen) >= 2)
+    for f in farmen[1:]:
+        fl = math.hypot(f["x"] - mu["x"], f["z"] - mu["z"]) / 25.0
+        T.add("Farm %s: Felder von der Muehle (Luftlinie)" % f["id"], "35..50", "%.1f" % fl, 35.0 <= fl <= 50.0)
+    for f in farmen:
+        T.add("Farm %s: Mittelpunkt Ebene/Aue (nicht Rinne/See, Hang <= 3 %%)" % f["id"], "ja",
+              "rinne %.0f m, see %.0f m, Hang %.1f %%" % (geo.rinne_abstand(f["x"], f["z"]), geo.see_abstand(f["x"], f["z"]), geo.steigung(f["x"], f["z"])),
+              geo.rinne_abstand(f["x"], f["z"]) > 0.5 and geo.see_abstand(f["x"], f["z"]) > 0.5 and geo.steigung(f["x"], f["z"]) <= 3.0)
+    for f in farmen[1:]:
+        lp = f.get("ladeplatz")
+        if not lp:
+            T.add("Farm %s: Ladeplatz-Datenpunkt" % f["id"], "vorhanden", "fehlt", False)
+            continue
+        dmin = min(poly_abstand((lp["x"], lp["z"]), [tuple(p) for p in w["punkte"]])[0] for w in wege)
+        T.add("Farm %s: Ladeplatz <= 8 m vom Wegnetz" % f["id"], "<= 8 m", "%.1f m" % dmin, dmin <= 8.0)
+        fl = math.hypot(lp["x"] - f["x"], lp["z"] - f["z"])
+        T.add("Farm %s: Ladeplatz <= 40 m vom Hof (Halt = Hof)" % f["id"], "<= 40 m", "%.1f m" % fl, fl <= 40.0)
+    for o in orte_j["orte"]:
+        if not o.get("sim_knoten"):
+            T.add("Ort %s: Weiler/ohne Sim-Knoten (kein sim_ew)" % o["id"], "klasse weiler", o["klasse"], o["klasse"] == "weiler" and "sim_ew" not in o)
+            continue
+        kl = o["sim_stufe"]
+        (e_lo, e_hi), (u_lo, u_hi), (s_lo, s_hi) = KLASSEN_SIM[kl]
+        ew_ort, ew_um, sim = o["ew_ort"], o["ew_umland"], o["sim_ew"]
+        T.add("Ort %s (%s): Ort-EW im Klassenband" % (o["id"], kl), "%d..%d" % (e_lo, e_hi), ew_ort, e_lo <= ew_ort <= e_hi)
+        T.add("Ort %s: Umland-EW im Klassenband" % o["id"], "%d..%d" % (u_lo, u_hi), ew_um, u_lo <= ew_um <= u_hi)
+        T.add("Ort %s: sim_ew = Ort + Umland, im Band" % o["id"], "%d..%d" % (s_lo, s_hi), "%d (%d + %d)" % (sim, ew_ort, ew_um), ew_ort + ew_um == sim and s_lo <= sim <= s_hi)
+        nach = sim * NACHFRAGE_MULT[kl] / 100.0
+        soll = {"erlenbach": (10.0, 2.0), "lindenfurt": (24.0, 3.0)}.get(o["id"])
+        if soll:
+            T.add("Ort %s: Nachfrage E/min (berechnet aus sim_ew)" % o["id"], "%.0f +- %.0f" % soll, "%.1f" % nach, abs(nach - soll[0]) <= soll[1])
+
+
 def pruefen(dir_, src):
     geo = Gelaende(src)
     T = Tabelle()
@@ -148,7 +193,9 @@ def pruefen(dir_, src):
           zm.get("kirche_stadt", 0) == 1 and zm.get("rathaus", 0) == 1 and sum(1 for x in inst if x["typ"] == "stadttor") == 1)
     mp = [x for x in inst if x["typ"] == "flaeche_marktplatz"]
     T.add("Marktplatz 60 x 80 m", "80 x 60", ("%s x %s" % (mp[0]["b"], mp[0]["t"])) if mp else "fehlt", bool(mp) and mp[0]["b"] == 80.0 and mp[0]["t"] == 60.0)
-    T.add("Gutshof Vierseithof 40 x 40", "1x", [(x["b"], x["t"]) for x in inst if x["typ"] == "gutshof"], len([x for x in inst if x["typ"] == "gutshof" and x["b"] == 40.0]) == 1)
+    n_farm = len([f for f in orte_j["industrie"] if f["typ"] == "getreidefarm"])
+    T.add("Gutshof Vierseithof 40 x 40 (je Farm einer)", "%dx" % n_farm, [(x["b"], x["t"]) for x in inst if x["typ"] == "gutshof"],
+          len([x for x in inst if x["typ"] == "gutshof" and x["b"] == 40.0]) == n_farm)
     T.add("Wassermuehle am Bach/Muehlteich", "1x", sum(1 for x in inst if x["typ"] == "wassermuehle"), sum(1 for x in inst if x["typ"] == "wassermuehle") == 1)
     mu = [x for x in inst if x["typ"] == "wassermuehle"][0]
     T.add("Muehle: Bachabstand (Achse) / Teichabstand", "<= 30 m / <= 150 m", "%.0f / %.0f" % (geo.bach_abstand(mu["x"], mu["z"]),
@@ -262,6 +309,7 @@ def pruefen(dir_, src):
             uf[find(a)] = find(k["wege"][0])
     komp = {find(w["id"]) for w in wege}
     T.add("Wegenetz zusammenhaengend (Kreuzungen/Einmuendungen)", "1 Komponente", "%d, %d Knoten" % (len(komp), len(kn)), len(komp) == 1)
+    pruefe_welt_daten(T, orte_j, wege, geo)
     al = wd["chaussee"]["allee"]
     T.info("Allee: Abschnitte / Baeume / Laenge", "%d / %d / %.0f m" % (len(al), sum(1 for x in inst if x["parzelle"] == "allee"), sum(a["laenge_m"] for a in al)))
     # Chaussee Dorf-Kreuzung

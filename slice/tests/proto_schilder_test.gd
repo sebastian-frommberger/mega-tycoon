@@ -70,7 +70,7 @@ func _run() -> void:
 		else:
 			ind_n += 1
 	ok(orte_n == s.orte.size() and orte_n == 3, "ein Schild je Ort (%d) aus proto_orte.json" % orte_n)
-	ok(ind_n == 2, "zwei Industrie-Plaketten (Gutshof, Mühle): %d" % ind_n)
+	ok(ind_n == 3, "drei Industrie-Plaketten (Gutshof, Mühle, Hof Hasenwinkel; WA-07 Farm 2): %d" % ind_n)
 	var t_e: Dictionary = sch.texte("erlenbach")
 	var t_l: Dictionary = sch.texte("lindenfurt")
 	var t_h: Dictionary = sch.texte("hasenwinkel")
@@ -214,7 +214,7 @@ func _run() -> void:
 	# ---- Gelände fehlt: kein Absturz
 	var ohne = Schilder.bauen(s, s.cam, s.orte, null)
 	ohne.aktualisiere(true)
-	ok(ohne.liste().size() == 5, "ohne Gelände-Objekt: 5 Schilder, Höhe 0 (kein Absturz)")
+	ok(ohne.liste().size() == 6, "ohne Gelände-Objekt: 6 Schilder, Höhe 0 (kein Absturz)")
 	ohne.queue_free()
 
 	# ---- Tooltip Einzugsgebiet

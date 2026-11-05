@@ -1,0 +1,26 @@
+# Baseline-Laufzeiten in Sekunden (gemessen, Wanduhr, Sandbox 2 vCPU, headless), Stand s8 fbe6a2f. Quelle der Timeouts in regress_fast.sh: timeout = max(60, 3 x Wert).
+slice_test_soa 5.6
+slice_test_alt 5.6
+parity_test 5.6
+s11_test 0.7
+d07_abnahme_ui 16.3
+d07_abnahme_kredit 5.3
+d07_abnahme_parity 4.8
+d07_abnahme_lager 4.3
+d07_abnahme_hq 2.0
+d08_lizenzfaktor 1.4
+s7_boot_default 2.2
+s7_boot_arg 1.7
+proto_terrain_test 0.7
+ta_import_test 0.2
+proto_epochen_test 0.3
+proto_strassenband_test 0.3
+proto_welt_test 1.2
+proto_easing_test 6.3
+proto_sim_test 1.6
+proto_band_hoehe_test 1.2
+proto_schilder_test 1.3
+proto_fixpass_test 1.2
+proto_mass 1.5
+d08_bankrott_n20 22.0
+d07_regression 523.7

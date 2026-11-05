@@ -158,7 +158,7 @@ fi
 
 # --- 2g) QT-01b (S8): Proto-Suiten (Welt/Prototyp). Ausgabe außerhalb res:// bzw. in $LOGS, damit getrackte CSV-Dateien unberührt bleiben.
 for ps in proto_terrain_test ta_import_test proto_epochen_test proto_strassenband_test proto_welt_test proto_easing_test proto_sim_test \
-          proto_band_hoehe_test proto_schilder_test proto_fixpass_test proto_mass; do
+          proto_band_hoehe_test proto_schilder_test proto_fixpass_test proto_licht_test proto_ui_welt_test s8_fk02_test proto_mass; do
   extra=""
   [ "$ps" = proto_easing_test ] && extra="-- --csv=$HERE/$LOGS/proto_easing.csv"
   [ "$ps" = proto_mass ] && extra="-- --csv=$HERE/$LOGS/proto_mass.csv"

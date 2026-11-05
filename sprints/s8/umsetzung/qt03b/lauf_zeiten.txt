@@ -1,0 +1,9 @@
+k=1 fk=an exit=0 wanduhr=136 s load=3.85
+k=1 fk=aus exit=0 wanduhr=98 s load=3.22
+k=4 fk=an exit=0 wanduhr=79 s load=2.39
+k=4 fk=aus exit=0 wanduhr=107 s load=4.24
+k=8 fk=an exit=0 wanduhr=88 s load=4.86
+k=8 fk=aus exit=0 wanduhr=83 s load=4.95
+k=20 fk=an exit=0 wanduhr=54 s load=4.68
+k=20 fk=aus exit=0 wanduhr=74 s load=6.03
+FERTIG

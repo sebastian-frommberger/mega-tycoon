@@ -1,0 +1,2 @@
+a-Bisektion k=8 n=20 Ziel f2min 25.0 Intervall [1000; 5077] (k_eff 5.077) Toleranz 50 ‰
+  a= 1000 ‰  Bankrott 20/20  F2 erreicht 0/20  F2-Minute P50 inf  Netto5(Min 30) P50 0 $/min

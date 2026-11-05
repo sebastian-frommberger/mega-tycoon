@@ -1,0 +1,5 @@
+x k=1 exit=0 wanduhr=24 s
+x k=4 exit=0 wanduhr=44 s
+x k=8 exit=0 wanduhr=56 s
+x k=20 exit=0 wanduhr=213 s
+FERTIG

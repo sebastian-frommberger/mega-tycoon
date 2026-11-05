@@ -1,0 +1,27 @@
+
+=== Scan a für k=1: X1/X2 je Gut (Regel: Maximum Netto/E bei d 40-80, d=150 <= 80 % des Maximums, d 20/40 >= 0; X2 Netto/E sinkt >= 20 %) ===
+a= 1000  get: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (2%)   |   meh: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (1%)
+a= 1100  get: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (2%)   |   meh: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (1%)
+a= 1200  get: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (2%)   |   meh: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (1%)
+a= 1300  get: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (2%)   |   meh: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (0%)
+a= 1400  get: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (1%)   |   meh: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (0%)
+a= 1500  get: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (1%)   |   meh: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (0%)
+a= 1600  get: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (1%)   |   meh: X1 rot  (max@150, d150=100%, >=0:j) X2 rot  (0%)
+
+=== Scan a für k=4: X1/X2 je Gut (Regel: Maximum Netto/E bei d 40-80, d=150 <= 80 % des Maximums, d 20/40 >= 0; X2 Netto/E sinkt >= 20 %) ===
+a= 1000  get: X1 rot  (max@100, d150=86%, >=0:j) X2 GRÜN (84%)   |   meh: X1 GRÜN (max@80, d150=76%, >=0:j) X2 GRÜN (32%)
+a= 1100  get: X1 rot  (max@100, d150=97%, >=0:j) X2 GRÜN (66%)   |   meh: X1 rot  (max@100, d150=80%, >=0:j) X2 GRÜN (30%)
+a= 1200  get: X1 rot  (max@150, d150=100%, >=0:j) X2 GRÜN (55%)   |   meh: X1 rot  (max@100, d150=82%, >=0:j) X2 GRÜN (28%)
+a= 1300  get: X1 rot  (max@150, d150=100%, >=0:j) X2 GRÜN (47%)   |   meh: X1 rot  (max@100, d150=84%, >=0:j) X2 GRÜN (27%)
+a= 1400  get: X1 rot  (max@150, d150=100%, >=0:j) X2 GRÜN (41%)   |   meh: X1 rot  (max@100, d150=86%, >=0:j) X2 GRÜN (25%)
+a= 1500  get: X1 rot  (max@150, d150=100%, >=0:j) X2 GRÜN (27%)   |   meh: X1 rot  (max@100, d150=87%, >=0:j) X2 GRÜN (24%)
+a= 1600  get: X1 rot  (max@150, d150=100%, >=0:j) X2 GRÜN (24%)   |   meh: X1 rot  (max@100, d150=88%, >=0:j) X2 GRÜN (24%)
+
+=== Scan a für k=8: X1/X2 je Gut (Regel: Maximum Netto/E bei d 40-80, d=150 <= 80 % des Maximums, d 20/40 >= 0; X2 Netto/E sinkt >= 20 %) ===
+a= 1000  get: X1 rot  (max@60, d150=-%, >=0:n) X2 rot  (-%)   |   meh: X1 GRÜN (max@60, d150=-109%, >=0:j) X2 GRÜN (144%)
+a= 1100  get: X1 rot  (max@60, d150=-1405680%, >=0:n) X2 GRÜN (2385014%)   |   meh: X1 GRÜN (max@60, d150=-75%, >=0:j) X2 GRÜN (123%)
+a= 1200  get: X1 rot  (max@60, d150=-104%, >=0:n) X2 GRÜN (473%)   |   meh: X1 GRÜN (max@60, d150=-52%, >=0:j) X2 GRÜN (110%)
+a= 1300  get: X1 rot  (max@60, d150=36%, >=0:n) X2 GRÜN (237%)   |   meh: X1 GRÜN (max@60, d150=-36%, >=0:j) X2 GRÜN (100%)
+a= 1400  get: X1 rot  (max@60, d150=82%, >=0:j) X2 GRÜN (158%)   |   meh: X1 GRÜN (max@60, d150=-23%, >=0:j) X2 GRÜN (92%)
+a= 1500  get: X1 rot  (max@150, d150=100%, >=0:j) X2 GRÜN (118%)   |   meh: X1 GRÜN (max@60, d150=-13%, >=0:j) X2 GRÜN (86%)
+a= 1600  get: X1 rot  (max@150, d150=100%, >=0:j) X2 GRÜN (95%)   |   meh: X1 GRÜN (max@60, d150=-5%, >=0:j) X2 GRÜN (81%)

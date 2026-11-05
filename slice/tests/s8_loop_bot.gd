@@ -54,6 +54,12 @@ var PARAM := {
 	"plan_lindenfurt_min": 10,
 	"plan_fk_min": 14,
 	"plan_farm2": 1,                # 1 = Farm 2 laut Fahrplan ab Minute 20, 0 = nie
+	"plan_fk": 1,                   # 1 = Plan-Bot kauft die Mühle (FK-02), 0 = nie (Vergleichslauf "ohne Kauf", gleicher Seed)
+	"plan_ausbau": 1,               # 1 = nach dem Kauf Werksstufe 2 (sobald Kasse ohne Kredit >= Kosten + Reserve)
+	"plan_mehl_dorf2": 15,          # Mehlmenge E/min Mühle -> Dorf nach Ausbau (vorher 10; Dorfnachfrage ca. 18)
+	"plan_mehl_stadt2": 25,         # Mehlmenge E/min Mühle -> Stadt nach Ausbau (vorher 10)
+	"normal_fk_min": 28,            # normal kauft die Mühle spät (ab Minute N + Reaktion 0..3), 0 = nie
+	"naiv_fk_pct": 0,               # naiv: Anteil Läufe, die die Mühle kaufen (ab Minute 10, ohne Reserve), Setzung 0 = "ohne"
 }
 
 # ------------------------------------------------------------------ Aufruf-Parameter
@@ -68,6 +74,10 @@ var gate := false
 var det_check := true
 var verbose := false
 var saett_pm := SAETT_PM_DEFAULT
+var a_pm := 1000                    # --a= : Ertragsfaktor tempo_ausgleich_promille als Überschreibung im Bot (economy_proto.json bleibt unberührt)
+var fk_global := true               # --fk=aus : Firmenkauf für alle Strategien aus (Vergleichslauf)
+var alterung_override := -1         # --alterung=aus|an : ProtoSim.alterung_an (Attributionslauf, Testwerkzeug)
+var deckel_override := -1           # --deckel=N : eco.inbuf_cap_perioden (0 = Mühlendeckel aus; Attributionslauf, Testwerkzeug)
 
 # ------------------------------------------------------------------ Welt (einmal geladen)
 var szene: Node
@@ -144,6 +154,25 @@ var rw_last := 0
 var recon_fehler := 0               # Periodenabgleich Kassendelta/Netto verletzt
 var recon_text := ""
 var mutant := ""                    # --mutant=det|recon: absichtlich kaputt, der Wächter muss rot werden
+var bonus_total := 0                # --a=: Σ zusätzlicher Ertrag (Cent), vom Bot in die Kasse gebucht
+var fk_total := 0                   # Σ Firmenkauf + Ausbau (Cent); ProtoSim.kauf_total zählt sie NICHT (Befund)
+var fk_last := 0
+var fk_kauf_tick := -1
+var fk_preis := 0
+var fk_ausbau_tick := -1
+var fk_ausbau_cent := 0
+var fk_grund := ""                  # letzter Ablehnungsgrund (kauf_angebot.grund)
+var fk_kauf_pending := false
+var ersetzt_n := 0
+var ersetzt_erst := -1
+var ersetzt_spart := 0              # Σ spart_cent_pro_periode der Ersetzungen
+var ev8_fm_tick := -1               # Ereignis 8 (a): Folgemodell freigeschaltet
+var ev8_alter_tick := -1            # Ereignis 8 (b): Fuhrwerk-Unterhalt >= +40 % (Alter >= 8 Jahre)
+var ers_angebot_tick := -1          # erstes ersetzen_angebot ok (Plan-Bot, ältestes Fuhrwerk >= 8 Jahre)
+var ers_spart_tick := -1            # erstes Angebot mit spart_cent_pro_periode > 0
+var kasse_tief_tick := -1
+var serie: Array = []               # Zeilen der Serien-CSV (je Periode)
+var serie_aktiv := true
 
 
 func _initialize() -> void:
@@ -166,6 +195,14 @@ func _initialize() -> void:
 			saett_pm = int(a.substr(11))
 		elif a == "--gate":
 			gate = true
+		elif a.begins_with("--a="):
+			a_pm = int(a.substr(4))
+		elif a.begins_with("--alterung="):
+			alterung_override = 0 if a.substr(11) == "aus" else 1
+		elif a.begins_with("--deckel="):
+			deckel_override = int(a.substr(9))
+		elif a.begins_with("--fk="):
+			fk_global = a.substr(5) != "aus"
 		elif a == "--ohne_det":
 			det_check = false
 		elif a == "--v":
@@ -254,8 +291,15 @@ func _run() -> void:
 			for zl in zeiten:
 				fz.store_line(zl)
 			fz.close()
+			var fs := FileAccess.open(csv_pfad + ".serie.csv", FileAccess.WRITE)
+			fs.store_line("strategie,seed,periode,netto_op_cent,netto_kasse_cent,kasse_cent,kredit_cent,ertrag_cent,fahrzeuge_gebaut")
+			for s2 in je_strat:
+				for rr in je_strat[s2]:
+					for sz in rr["serie"]:
+						fs.store_line(sz)
+			fs.close()
 			var fm := FileAccess.open(csv_pfad + ".meta.txt", FileAccess.WRITE)
-			fm.store_line("Godot %s, Szene proto, tempo_k %d, jahr_ticks %d, startkapital_dollar_override %d, minuten %d, takt %d, saett_pm %d" % [Engine.get_version_info()["string"], _tempo_k(), _jahr_ticks(), startkapital_dollar, minuten, takt, saett_pm])
+			fm.store_line("Godot %s, Szene proto, tempo_k %d, jahr_ticks %d, startkapital_dollar_override %d, minuten %d, takt %d, saett_pm %d, a_pm %d, fk_global %s, alterung_override %d, deckel_override %d" % [Engine.get_version_info()["string"], _tempo_k(), _jahr_ticks(), startkapital_dollar, minuten, takt, saett_pm, a_pm, str(fk_global), alterung_override, deckel_override])
 			fm.store_line("n %d, seed0 %d, Strategien %s" % [n_lauefe, seed0, str(liste)])
 			fm.store_line("PARAM " + JSON.stringify(PARAM))
 			fm.store_line("Firmenkauf-Schnittstelle: " + fk_status)
@@ -324,7 +368,9 @@ func _ziele_laden() -> void:
 func _csv_kopf() -> String:
 	return "strategie,seed,tempo_k,startkapital_cent,ticks,bankrott,bankrott_min,z_e1,z_e2,z_e3,z_e4,z_e5,z_e6_alle,z_e6_eine,z_f1,z_f2_op,z_f2_kasse," \
 		+ "ev1,ev2,ev3,ev4,ev5,ev6,ev7,ev8,ev3_spec,luecke_max_min,luecke_bei_min,luecke_ohne_ev3_min,fz_max,fz_ende,lieferungen,ertrag_cent,kasse_ende_cent,kasse_tief_5_20_cent," \
-		+ "kredit_max_cent,kredit_ende_cent,netto5_op_min30_cent,netto5_kasse_min30_cent,fehl_api,pruefsumme"
+		+ "kredit_max_cent,kredit_ende_cent,netto5_op_min30_cent,netto5_kasse_min30_cent,fehl_api,pruefsumme," \
+		+ "fk_kauf_min,fk_preis_cent,fk_ausbau_min,fk_ausbau_cent,ersetzt_n,ersetzt_erst_min,ev8_erst_min,tief_min,a_pm,bonus_cent,fk_grund," \
+		+ "ev8_folgemodell_min,ev8_alter_min,ers_angebot_min,ers_spart_min"
 
 
 func _min_text(tick: int) -> String:
@@ -357,8 +403,8 @@ func _lauf(s: String, sd: int) -> Dictionary:
 	var sum_l := 0
 	for L in ps.lieferungen:
 		sum_l += int(L["cent"])
-	if sum_l != ps.eco.revenue_total:
-		fehler += " Abgleich: Σ Lieferungen %d != revenue_total %d" % [sum_l, ps.eco.revenue_total]
+	if sum_l + bonus_total != ps.eco.revenue_total:
+		fehler += " Abgleich: Σ Lieferungen %d + Bonus %d != revenue_total %d" % [sum_l, bonus_total, ps.eco.revenue_total]
 	var br: int = 1 if ps.konto.bankrupt else 0
 	var kasse_ende: int = ps.eco.cash_cent
 	var zeile := "%s,%d,%d,%d,%d,%d,%s" % [s, sd, ps.tempo_k, _startkapital_cent(), ende, br, _min_text(ps.bankrott_tick)]
@@ -378,10 +424,15 @@ func _lauf(s: String, sd: int) -> Dictionary:
 		api_n += int(api_abl[k])
 	zeile += ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [fz_max, fz_ende, ps.lieferungen.size(), ps.eco.revenue_total, kasse_ende, tief,
 		kredit_max, ps.credit.loan_cent, netto5_op_min30, netto5_kasse_min30, api_n, ps.pruefsumme()]
+	zeile += ",%s,%d,%s,%d,%d,%s,%s,%s,%d,%d,%s" % [_min_text(fk_kauf_tick), fk_preis, _min_text(fk_ausbau_tick), fk_ausbau_cent, ersetzt_n,
+		_min_text(ersetzt_erst), _min_text(ev_erst[8]), _min_text(kasse_tief_tick), a_pm, bonus_total, fk_grund if fk_kauf_tick < 0 else ""]
+	zeile += ",%s,%s,%s,%s" % [_min_text(ev8_fm_tick), _min_text(ev8_alter_tick), _min_text(ers_angebot_tick), _min_text(ers_spart_tick)]
 	return {"zeile": zeile, "pruefsumme": ps.pruefsumme(), "ticks": ende, "bankrott": br, "bankrott_tick": ps.bankrott_tick,
 		"z": z.duplicate(), "ev_n": Array(ev_n), "gmax": gmax, "gbei": gbei, "gmax3": int(g3[0]), "strategie": s, "seed": sd, "fehler": fehler,
 		"fz_max": fz_max, "kasse_ende": kasse_ende, "tief": tief, "api_abl": api_abl.duplicate(), "api_aufrufe": api_aufrufe,
-		"n5_op": netto5_op_min30, "n5_kasse": netto5_kasse_min30}
+		"n5_op": netto5_op_min30, "n5_kasse": netto5_kasse_min30,
+		"fk_kauf": fk_kauf_tick, "fk_ausbau": fk_ausbau_tick, "fk_preis": fk_preis, "ersetzt_erst": ersetzt_erst, "ersetzt_n": ersetzt_n, "ev8": ev_erst[8],
+		"serie": serie.duplicate()}
 
 
 ## Größte Lücke zwischen zwei Ereignissen im Fenster [luecke_von_min, luecke_bis_min] min (Ränder zählen als Ereignis),
@@ -421,6 +472,10 @@ func _reset(s: String, sd: int) -> void:
 	ps = ProtoSim.new(szene.regelwerk)
 	ps.graph_bauen(szene.strassen)
 	ps.spiel_starten(orte)
+	if alterung_override >= 0:
+		ps.alterung_an = alterung_override == 1
+	if deckel_override >= 0:
+		ps.eco.inbuf_cap_perioden = deckel_override
 	if startkapital_dollar > 0:
 		ps.eco.cash_cent = startkapital_dollar * 100       # Testwerkzeug setzt das Startkapital (W24-Variation 3.000/4.500/6.000 $)
 	gesamt_ticks = minuten * PERIODE
@@ -476,6 +531,23 @@ func _reset(s: String, sd: int) -> void:
 	tilge_ok = true
 	rw_total = 0
 	rw_last = 0
+	bonus_total = 0
+	fk_total = 0
+	fk_last = 0
+	fk_kauf_tick = -1
+	fk_preis = 0
+	fk_ausbau_tick = -1
+	fk_ausbau_cent = 0
+	fk_grund = ""
+	ersetzt_n = 0
+	ersetzt_erst = -1
+	ersetzt_spart = 0
+	ev8_fm_tick = -1
+	ev8_alter_tick = -1
+	ers_angebot_tick = -1
+	ers_spart_tick = -1
+	kasse_tief_tick = -1
+	serie = []
 	recon_fehler = 0
 	recon_text = ""
 	_fk_status_pruefen()
@@ -494,7 +566,10 @@ func _strategie_ziehen() -> void:
 				"x_mehl": rng.randi_range(0, 1),
 				"rest": rng.randi_range(0, int(PARAM["naiv_rest_max"])) * 10000,
 				"fz_max": rng.randi_range(6, int(PARAM["naiv_fz_max"])),
+				"fk": false,
 			}
+			if int(PARAM["naiv_fk_pct"]) > 0:
+				naiv["fk"] = rng.randi_range(0, 99) < int(PARAM["naiv_fk_pct"])      # zieht nur bei Param > 0: Standardläufe bleiben RNG-gleich
 		"normal":
 			normal = {
 				"bau": rng.randi_range(1, 3),
@@ -608,19 +683,65 @@ func _verkaufe(vid: int) -> bool:
 	return true
 
 
-## FK-02 (Firmenkauf) ist noch nicht gemergt. Schnittstelle vorbereitet, nichts erfunden: Der Bot ruft KEINE Methode auf, solange
-## die Signatur nicht bekannt ist. tech.md 6a nennt als Vorschlag economy.buy_site(site) -> {ok, cent, fehler}; das ist ein Plan, kein Code.
-## Sobald FK-02 gemergt ist: hier eintragen, dann liefert der Plan-Bot die Messpunkte ev4 (kauf C1), ev7 (Deckel) und den Kaufzeitpunkt.
+## FK-02 (Firmenkauf C1) ist in ProtoSim angebunden (s8 de75721): kauf_angebot / firma_kaufen / ausbau_angebot / werk_ausbauen.
+## Der Bot nutzt nur diese vier Aufrufe (wie die UI). Kaufbedingung des Bots: Angebot "kaufbar" (Guthaben ohne Kredit >= Preis) UND
+## Kasse nach dem Kauf >= Reserve des Spielertyps. Bucht ProtoSim den Kauf nicht in kauf_total, führt der Bot fk_total selbst (Abgleich).
 func _fk_status_pruefen() -> void:
-	if ps.eco.has_method("buy_site"):
-		fk_status = "economy.buy_site gefunden, Signatur NICHT geprüft, Bot ruft sie nicht auf (QT-03 nach FK-02 anbinden)"
-	else:
-		fk_status = "API fehlt (kein economy.buy_site in diesem Stand): Plan-Bot überspringt Firmenkauf und Ausbau, fk_versuche zählt nur"
+	fk_status = "angebunden: kauf_angebot/firma_kaufen/ausbau_angebot/werk_ausbauen" if ps.has_method("firma_kaufen") else "API fehlt (kein firma_kaufen)"
 
 
-func _fk_kaufen(_name: String) -> Dictionary:
+func _fk_kaufen(name: String, reserve: int) -> Dictionary:
 	fk_versuche += 1
-	return {"ok": false, "fehler": "fk_api_nicht_angebunden"}
+	api_aufrufe += 1
+	var q: Dictionary = ps.kauf_angebot(name)
+	if not q.get("ok", false):
+		fk_grund = String(q.get("fehler", "?"))
+		_abl("fk_angebot_" + fk_grund)
+		return q
+	fk_grund = String(q.get("grund", ""))
+	if not bool(q.get("kaufbar", false)):
+		return {"ok": false, "fehler": fk_grund}
+	var preis: int = int(q["preis_cent"])
+	if _cash() - preis < reserve:
+		fk_grund = "reserve"
+		return {"ok": false, "fehler": "reserve"}
+	api_aufrufe += 1
+	var r: Dictionary = ps.firma_kaufen(name)
+	if r.get("ok", false):
+		fk_total += int(r["bezahlt_cent"])
+		fk_preis = int(r["bezahlt_cent"])
+		fk_kauf_tick = ps.sim.tick_count
+		fk_grund = ""
+	else:
+		fk_grund = String(r.get("fehler", "?"))
+		_abl("fk_kauf_" + fk_grund)
+	return r
+
+
+func _fk_ausbauen(name: String, reserve: int) -> Dictionary:
+	var q: Dictionary = ps.ausbau_angebot(name)
+	if not q.get("ok", false):
+		return q
+	var kosten: int = int(q["kosten_cent"])
+	var frei: int = _cash() - int(ps.credit.loan_cent)
+	if frei < kosten or _cash() - kosten < reserve:
+		return {"ok": false, "fehler": "reserve"}
+	api_aufrufe += 1
+	var r: Dictionary = ps.werk_ausbauen(name)
+	if r.get("ok", false):
+		fk_total += int(r["bezahlt_cent"])
+		fk_ausbau_cent = int(r["bezahlt_cent"])
+		fk_ausbau_tick = ps.sim.tick_count
+	else:
+		_abl("fk_ausbau_" + String(r.get("fehler", "?")))
+	return r
+
+
+func _fk_schritt(t: int, reserve: int, ausbau: bool, ausbau_wartezeit_min: float) -> void:
+	if fk_kauf_tick < 0:
+		_fk_kaufen(MUEHLE, reserve)
+	elif ausbau and fk_ausbau_tick < 0 and float(t - fk_kauf_tick) / 600.0 >= ausbau_wartezeit_min:
+		_fk_ausbauen(MUEHLE, reserve)
 
 
 # ---------- Bedarf und Kredit
@@ -677,6 +798,14 @@ func _tilge(ueberschuss_cent: int) -> void:
 		guard += 1
 
 
+## Mehlmenge je Abnehmer (E/min): 10 bei Werksstufe 1 (Mühle 20 E/min), nach Ausbau (40 E/min) die Parameter plan_mehl_*2.
+func _mehl_rate(ziel: String) -> float:
+	var ms: int = int(ps.stationen[MUEHLE]["site"])
+	if int(ps.eco.s_werksstufe[ms]) >= 2:
+		return float(PARAM["plan_mehl_dorf2"]) if ziel == DORF else float(PARAM["plan_mehl_stadt2"])
+	return 10.0
+
+
 # ====================================================================== Strategien (ein Entscheidungstakt)
 
 func _takt(t: int) -> void:
@@ -730,6 +859,8 @@ func _takt_naiv(t: int) -> void:
 			break
 		var g: Dictionary = gruppen[keys[rng.randi_range(0, keys.size() - 1)]]
 		_kaufe(g["von"], g["nach"])
+	if fk_global and bool(naiv["fk"]) and m >= 10.0:
+		_fk_schritt(t, 0, false, 0.0)
 	if ps.credit.loan_cent > 0:
 		_tilge(300000 + ps.credit.step_cent)
 
@@ -747,11 +878,13 @@ func _takt_normal(t: int) -> void:
 	if not (lic_haben.has(FARM1) and lic_haben.has(MUEHLE)):
 		return
 	_sorge(FARM1, MUEHLE, _bedarf(FARM1, MUEHLE, 20.0) + int(normal["x_farm"]), res, false)
-	_sorge(MUEHLE, DORF, _bedarf(MUEHLE, DORF, 10.0) + int(normal["x_mehl"]), res, borrow)
+	_sorge(MUEHLE, DORF, _bedarf(MUEHLE, DORF, _mehl_rate(DORF)) + int(normal["x_mehl"]), res, borrow)
 	var linden := _v_letzte(DORF) >= saett_pm and m >= 3.0 + float(normal["reaktion"])
 	linden = linden or m >= 12.0
 	if linden and _n_fz(MUEHLE, DORF) > 0:
-		_sorge(MUEHLE, STADT, _bedarf(MUEHLE, STADT, 10.0) + int(normal["x_mehl"]), res, borrow)
+		_sorge(MUEHLE, STADT, _bedarf(MUEHLE, STADT, _mehl_rate(STADT)) + int(normal["x_mehl"]), res, borrow)
+	if fk_global and int(PARAM["normal_fk_min"]) > 0 and m >= float(PARAM["normal_fk_min"]) + float(normal["reaktion"]):
+		_fk_schritt(t, res, true, 3.0)
 	if ps.credit.loan_cent > 0:
 		_tilge(int(PARAM["normal_tilge"]) + ps.credit.step_cent)
 
@@ -774,14 +907,14 @@ func _takt_plan(t: int) -> void:
 			_sorge(FARM1, MUEHLE, _bedarf(FARM1, MUEHLE, 20.0), res, kredit_ok)
 	# Min 3-6: Mehl ins Dorf
 	if m >= 3.0 + j1 and lic_haben.has(MUEHLE) and _n_fz(FARM1, MUEHLE) > 0:
-		_sorge(MUEHLE, DORF, _bedarf(MUEHLE, DORF, 10.0), res, kredit_ok)
+		_sorge(MUEHLE, DORF, _bedarf(MUEHLE, DORF, _mehl_rate(DORF)), res, kredit_ok)
 	# Min 10-14: Dorf gesättigt oder Minute plan_lindenfurt_min -> Lindenfurt anbinden (F1)
 	if m >= float(PARAM["plan_lindenfurt_min"]) + j2 or (m >= 6.0 + j2 and _v_letzte(DORF) >= saett_pm):
 		if _n_fz(MUEHLE, DORF) > 0:
-			_sorge(MUEHLE, STADT, _bedarf(MUEHLE, STADT, 10.0), res, kredit_ok)
-	# Min 14: Firmenkauf Mühle + Ausbau (FK-02): nur Schnittstelle
-	if m >= float(PARAM["plan_fk_min"]) + j3 and fk_versuche == 0:
-		_fk_kaufen(MUEHLE)
+			_sorge(MUEHLE, STADT, _bedarf(MUEHLE, STADT, _mehl_rate(STADT)), res, kredit_ok)
+	# Min 14: Firmenkauf Mühle (FK-02), danach Ausbau; versucht es jeden Takt, bis es geht (Bedingung: kaufbar + Reserve)
+	if fk_global and int(PARAM["plan_fk"]) == 1 and m >= float(PARAM["plan_fk_min"]) + j3 and lic_haben.has(MUEHLE):
+		_fk_schritt(t, res, int(PARAM["plan_ausbau"]) == 1, 0.0)
 	# Min 20: Farm 2 (Lizenz + Linie)
 	if int(PARAM["plan_farm2"]) == 1 and m >= float(PARAM["plan_farm2_min"]) + j3 and _n_fz(MUEHLE, DORF) > 0:
 		if not lic_haben.has(FARM2) and _cash() - 7000 >= res:
@@ -804,26 +937,42 @@ func _frachtwagen_frei() -> bool:
 
 
 func _ersetzen(res: int, borrow_ok: bool) -> void:
-	var alt_id := ""
+	# FZ-04: ersetzen_angebot / fahrzeug_ersetzen (Linie läuft weiter). Der Plan-Bot ersetzt Fuhrwerke ab 8 Kalenderjahren, wenn das Angebot
+	# Unterhalt spart und die Reserve bleibt; höchstens eins je Takt.
+	var alt_id := -1
 	var best_alter := -1
 	for f in ps.fahrzeuge:
 		if f["verkauft"] or String(f["def_id"]) != "fuhrwerk_e1":
 			continue
 		var alter: int = ps.sim.tick_count - int(f["kauf_tick"])
-		if ps.kalender.alter_jahre(alter) >= 8 and alter > best_alter:
+		if ps.alter_jahre(f) >= 8 and alter > best_alter:
 			best_alter = alter
-			alt_id = str(f["vid"])
-	if alt_id == "":
+			alt_id = int(f["vid"])
+	if alt_id < 0:
 		return
-	var f2: Dictionary = ps.fahrzeug(int(alt_id))
-	var von: String = node_name[int(f2["von"])]
-	var nach: String = node_name[int(f2["nach"])]
-	var preis := _preis_fz("frachtwagen_e1")
-	var rw: int = ps.restwert(f2)
-	if not _beschaffe(preis - rw, res, borrow_ok):
+	api_aufrufe += 1
+	var q: Dictionary = ps.ersetzen_angebot(alt_id, "frachtwagen_e1")
+	if not q.get("ok", false):
+		_abl("ersetzen_angebot_" + String(q.get("fehler", "?")))
 		return
-	if _verkaufe(int(alt_id)):
-		_kaufe(von, nach, "frachtwagen_e1")
+	if ers_angebot_tick < 0:
+		ers_angebot_tick = ps.sim.tick_count
+	if int(q["spart_cent_pro_periode"]) <= 0:
+		return
+	if ers_spart_tick < 0:
+		ers_spart_tick = ps.sim.tick_count
+	if not _beschaffe(int(q["netto_cent"]), res, borrow_ok):
+		return
+	api_aufrufe += 1
+	var r: Dictionary = ps.fahrzeug_ersetzen(alt_id, "frachtwagen_e1")
+	if not r.get("ok", false):
+		_abl("ersetzen_" + String(r.get("fehler", "?")))
+		return
+	rw_total += int(r["restwert_cent"])
+	ersetzt_n += 1
+	ersetzt_spart += int(q["spart_cent_pro_periode"])
+	if ersetzt_erst < 0:
+		ersetzt_erst = ps.sim.tick_count
 
 
 # ====================================================================== Beobachtung: Ereignisse und Ziele
@@ -853,6 +1002,8 @@ func _beobachten(t: int) -> void:
 		fs_idx += 1
 		if not ps.vdef(String(fs["id"])).is_empty():
 			_ev(8, int(fs["tick"]))            # Ereignis 8: Folgemodell verfügbar
+			if ev8_fm_tick < 0:
+				ev8_fm_tick = int(fs["tick"])
 	if t == ps.credit.from_ticks and ps.credit.active:
 		_ev(5, t)
 	if t % 50 == 0:
@@ -869,10 +1020,18 @@ func _lieferung(L: Dictionary) -> void:
 	var f: Dictionary = ps.fahrzeug(int(L["vid"]))
 	var von: String = node_name.get(int(f["von"]), "?")
 	var nach: String = node_name.get(int(f["nach"]), "?")
-	ertrag_p += int(L["cent"])
+	var cent_l: int = int(L["cent"])
+	if a_pm != 1000:
+		# --a=: Ertrag x a/1000 als Überschreibung im Bot. Bonus (Rundung halb auf) kommt einen Tick nach der Lieferung in die Kasse.
+		var bonus: int = (cent_l * (a_pm - 1000) + (500 if a_pm >= 1000 else -500)) / 1000
+		ps.eco.cash_cent += bonus
+		ps.eco.revenue_total += bonus
+		bonus_total += bonus
+		cent_l += bonus
+	ertrag_p += cent_l
 	var k := _gruppe_key(von, nach)
 	if gruppen.has(k):
-		gruppen[k]["ertrag"] += int(L["cent"])
+		gruppen[k]["ertrag"] += cent_l
 	if L["gut"] == "getreide" and nach == MUEHLE:
 		getreide_muehle += int(L["menge"])
 		if getreide_muehle >= 1:
@@ -908,7 +1067,7 @@ func _alle_50(t: int) -> void:
 	var ms: int = int(ps.stationen[MUEHLE]["site"])
 	var gi: int = ps.eco.g_ids.find("getreide")
 	var stau: int = int(ps.eco.s_inbuf[ms].get(gi, 0))
-	var deckel: bool = stau > 2 * int(ps.eco.s_rate[ms])
+	var deckel: bool = ps.eco.inbuf_full(ms) if int(ps.eco.inbuf_cap_perioden) > 0 else stau > 2 * int(ps.eco.s_rate[ms])
 	if deckel and not deckel_aktiv:
 		_ev(7, t)
 	deckel_aktiv = deckel
@@ -921,7 +1080,9 @@ func _alle_50(t: int) -> void:
 		var bp: int = int(d.get("alterung_unterhalt_bp_pro_jahr", 0))
 		if bp > 0 and ps.kalender.alter_jahre(alter) * bp >= 4000 and not fz_alt_aktiv.has(vid):
 			fz_alt_aktiv[vid] = true
-			_ev(8, t)                          # Ereignis 8: Unterhalt >= +40 % (Formel FZ-03, im Sim-Code noch nicht aktiv)
+			_ev(8, t)                          # Ereignis 8: Unterhalt >= +40 % (FZ-03, im Sim aktiv)
+			if ev8_alter_tick < 0:
+				ev8_alter_tick = t
 		var i: int = ps.sim.slot_of(vid)
 		if ps.sim.v_lwait[i] > 600:
 			if not e3_spec_aktiv.has(vid):
@@ -930,7 +1091,9 @@ func _alle_50(t: int) -> void:
 		else:
 			e3_spec_aktiv.erase(vid)
 	if t >= 5 * PERIODE and t <= 20 * PERIODE:
-		kasse_tief_5_20 = mini(kasse_tief_5_20, _cash())
+		if _cash() < kasse_tief_5_20:
+			kasse_tief_5_20 = _cash()
+			kasse_tief_tick = t
 
 
 func _ziele_pruefen(t: int) -> void:
@@ -972,7 +1135,7 @@ func _periodenende(t: int) -> void:
 	# --- Netto je Periode
 	var ertrag: int = ps.eco.revenue_total - rev_last
 	var fahrk: int = ps.fahrkosten_total - fahrk_last
-	var kauf: int = ps.kauf_total - kauf_last
+	var kauf: int = (ps.kauf_total - kauf_last) + (fk_total - fk_last)      # Firmenkauf/Ausbau stehen nicht in ps.kauf_total
 	var zins: int = ps.credit.interest_paid - zins_last
 	var fix_zins: int = ps.konto.expenses_total - exp_last - kauf - fahrk
 	var fix: int = fix_zins - zins
@@ -989,9 +1152,11 @@ func _periodenende(t: int) -> void:
 	rw_last = rw_total
 	netto_op.append(n_op)
 	netto_kasse.append(n_ka)
+	serie.append("%s,%d,%d,%d,%d,%d,%d,%d,%d" % [strat, seed_nr, per, n_op, n_ka, cash, ps.credit.loan_cent, ertrag, ps.fahrzeuge.size()])
 	rev_last = ps.eco.revenue_total
 	fahrk_last = ps.fahrkosten_total
 	kauf_last = ps.kauf_total
+	fk_last = fk_total
 	zins_last = ps.credit.interest_paid
 	exp_last = ps.konto.expenses_total
 	lizpaid_last = ps.eco.licence_paid_total
@@ -1058,7 +1223,24 @@ func _periodenende(t: int) -> void:
 			kaufart_unten[ka] = false
 		else:
 			kaufart_unten[ka] = true
-	# Kaufart C1 (Betrieb kaufen) und Ausbau Werksstufe 2 (200.000 Cent): Preis erst mit FK-02 bekannt (Schnittstelle fehlt), nicht erzeugt.
+	# Kaufart C1 (Betrieb kaufen) und Ausbau Werksstufe 2: Guthaben ohne Kredit gegen Preis (FK-02), je Kaufart eine Flanke
+	var frei: int = cash - int(ps.credit.loan_cent)
+	var qk: Dictionary = ps.kauf_angebot(MUEHLE)
+	if qk.get("ok", false) and String(qk.get("grund", "")) != "schon_gekauft":
+		_ev4_flanke("firma_" + MUEHLE, frei, int(qk["preis_cent"]), t)
+	var qa: Dictionary = ps.ausbau_angebot(MUEHLE)
+	if qa.get("ok", false):
+		_ev4_flanke("ausbau_" + MUEHLE, frei, int(qa["kosten_cent"]), t)
+
+
+func _ev4_flanke(ka: String, guthaben: int, preis: int, t: int) -> void:
+	var unten: bool = bool(kaufart_unten.get(ka, false))
+	if guthaben >= preis:
+		if unten:
+			_ev(4, t)
+		kaufart_unten[ka] = false
+	else:
+		kaufart_unten[ka] = true
 
 
 # ====================================================================== Auswertung

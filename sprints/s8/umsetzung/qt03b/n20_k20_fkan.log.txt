@@ -1,0 +1,75 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PROTO_WELT stufen { "lies_daten": 6.152, "baue_gelaende": 321.317, "baue_wege": 388.937, "baue_modelle": 606.327, "baue_fahrzeuge": 606.33, "baue_schilder": 614.166 } sim []
+PROTO_WELT lade_ms 626.2 terrain=TA wege=16 instanzen=1003 knoten=13 bruecken=1 fahrzeuge=0 kette=aus
+s8_loop_bot: n=20, Strategien ["naiv", "normal", "plan"], Seeds 1..20, 45 min, Takt 300 Ticks, Szene laden 798 ms
+  Determinismus naiv Seed 1: gleich (Prüfsumme -2385055336008988115 / -2385055336008988115)
+  Determinismus normal Seed 1: gleich (Prüfsumme 1033664789570439534 / 1033664789570439534)
+  Determinismus plan Seed 1: gleich (Prüfsumme -4328200984953222888 / -4328200984953222888)
+CSV: /tmp/claude-0/gd/s8work/qt3/sprints/s8/umsetzung/qt03b/n20_k20_fkan.csv (60 Zeilen)
+== naiv (n=20, tempo_k 20)
+  Bankrott: 20/20 = 100.0 % (Wilson 95 %: 83.9-100.0 %), Minute P50 7.2 (nur Bankrotte)
+  Ziele (erste Minute; erreicht/n; P25/P50/P75 unter den Erreichern):
+    e1        20/20   P25   1.0  P50   2.0  P75   3.0
+    e2        10/20   P25   1.0  P50   2.0  P75   3.0
+    e3        10/20   P25   2.2  P50   3.5  P75   4.5
+    e4         5/20   P25   3.7  P50   5.7  P75   6.7
+    e5        20/20   P25   1.0  P50   2.0  P75   3.0
+    e6_alle    0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    e6_eine    0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f1         0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f2_op      0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f2_kasse   0/20   P25  -1.0  P50  -1.0  P75  -1.0
+  Ereignisse je Lauf (Mittel) 1..8: [3.25, 0.65, 0.05, 0.0, 0.2, 0.0, 0.0, 0.0]; ev3 nach Spec (v_lwait > 600) ungezählt in Lücke
+  größte Ereignislücke Min 2-45: P50 3.1 min, P90 7.0 min, Max 9.0 min; Läufe mit Lücke <= 3.0 min: 9/20
+  größte Lücke OHNE Ereignis 3 (Ersatzdefinition [E], feuert häufig): P50 3.1 min, P90 7.0 min, Max 9.0 min
+  Kasse Tiefpunkt Min 5-20 (min je Lauf): P50 17 $ (W24-Kriterium: P50 < 2.000 $), Fuhrwerke max P50 10
+  Netto operativ 5-Perioden-Mittel Min 30: P50 0 $/min (F2-Schwelle 600 $/min), n_Bankrott zählt als 0 (Wert 0)
+  Ablehnungen der Spieler-API (Bot-Aufrufe): {  }
+  Sprint-Band: VERLETZT
+== normal (n=20, tempo_k 20)
+  Bankrott: 20/20 = 100.0 % (Wilson 95 %: 83.9-100.0 %), Minute P50 7.4 (nur Bankrotte)
+  Ziele (erste Minute; erreicht/n; P25/P50/P75 unter den Erreichern):
+    e1        20/20   P25   1.0  P50   2.0  P75   2.0
+    e2        20/20   P25   1.0  P50   2.0  P75   2.0
+    e3        20/20   P25   2.2  P50   3.2  P75   3.2
+    e4        19/20   P25   4.7  P50   5.4  P75   5.7
+    e5        20/20   P25   1.0  P50   2.0  P75   2.0
+    e6_alle    0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    e6_eine    0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f1         0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f2_op      0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f2_kasse   0/20   P25  -1.0  P50  -1.0  P75  -1.0
+  Ereignisse je Lauf (Mittel) 1..8: [4.95, 1.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]; ev3 nach Spec (v_lwait > 600) ungezählt in Lücke
+  größte Ereignislücke Min 2-45: P50 2.0 min, P90 3.2 min, Max 3.2 min; Läufe mit Lücke <= 3.0 min: 13/20
+  größte Lücke OHNE Ereignis 3 (Ersatzdefinition [E], feuert häufig): P50 2.0 min, P90 3.2 min, Max 3.2 min
+  Kasse Tiefpunkt Min 5-20 (min je Lauf): P50 29 $ (W24-Kriterium: P50 < 2.000 $), Fuhrwerke max P50 10
+  Netto operativ 5-Perioden-Mittel Min 30: P50 0 $/min (F2-Schwelle 600 $/min), n_Bankrott zählt als 0 (Wert 0)
+  Ablehnungen der Spieler-API (Bot-Aufrufe): {  }
+  Sprint-Band: eingehalten (bei n < 300 nur Info)
+== plan (n=20, tempo_k 20)
+  Bankrott: 20/20 = 100.0 % (Wilson 95 %: 83.9-100.0 %), Minute P50 8.5 (nur Bankrotte)
+  Ziele (erste Minute; erreicht/n; P25/P50/P75 unter den Erreichern):
+    e1        20/20   P25   0.0  P50   0.5  P75   0.5
+    e2        20/20   P25   0.0  P50   0.5  P75   0.5
+    e3        20/20   P25   1.2  P50   1.7  P75   1.7
+    e4        20/20   P25   4.3  P50   5.3  P75   5.3
+    e5        20/20   P25   0.0  P50   0.5  P75   0.5
+    e6_alle    0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    e6_eine    0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f1         0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f2_op      0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f2_kasse   0/20   P25  -1.0  P50  -1.0  P75  -1.0
+  Ereignisse je Lauf (Mittel) 1..8: [5.0, 1.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]; ev3 nach Spec (v_lwait > 600) ungezählt in Lücke
+  größte Ereignislücke Min 2-45: P50 3.1 min, P90 4.3 min, Max 4.3 min; Läufe mit Lücke <= 3.0 min: 5/20
+  größte Lücke OHNE Ereignis 3 (Ersatzdefinition [E], feuert häufig): P50 3.1 min, P90 4.3 min, Max 4.3 min
+  Kasse Tiefpunkt Min 5-20 (min je Lauf): P50 19 $ (W24-Kriterium: P50 < 2.000 $), Fuhrwerke max P50 9
+  Netto operativ 5-Perioden-Mittel Min 30: P50 0 $/min (F2-Schwelle 600 $/min), n_Bankrott zählt als 0 (Wert 0)
+  Ablehnungen der Spieler-API (Bot-Aufrufe): {  }
+  Sprint-Band: VERLETZT
+Parameter: {"naiv_bau_max":4,"naiv_fehl_pct":50,"naiv_fk_pct":0,"naiv_fz_max":14,"naiv_rest_max":8,"naiv_vergessen_pct":50,"normal_extra_pct":50,"normal_fk_min":28,"normal_reserve":150000,"normal_tilge":150000,"plan_ausbau":1,"plan_farm2":1,"plan_farm2_min":20,"plan_fk":1,"plan_fk_min":14,"plan_jitter":2,"plan_lindenfurt_min":10,"plan_mehl_dorf2":15,"plan_mehl_stadt2":25,"plan_reserve":150000}
+Firmenkauf-Schnittstelle (FK-02): angebunden: kauf_angebot/firma_kaufen/ausbau_angebot/werk_ausbauen
+LAUFZEIT 60 Läufe: Summe 20.0 s, Mittel 333 ms/Lauf, Max 648 ms; Gesamtlauf inkl. Determinismus-Doppel 22.3 s, Szene laden 0.8 s
+HOCHRECHNUNG n=300 (Mittel x 300 x 3 Strategien, linear): 5.0 min; n=150: 2.5 min (Annahme: Laufzeit je Lauf unabhängig von n, gleiche Last)
+Determinismus: OK 
+s8_loop_bot Exit 0

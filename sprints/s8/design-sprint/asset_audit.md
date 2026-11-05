@@ -88,3 +88,10 @@ Fazit: **Zukauf ist für den Prototyp nicht nötig.** Fantasy Town + Nature + Tr
 - **Maßstab:** Faktoren sind aus Referenzobjekten geschätzt (±20 %) und müssen im Spiel nebeneinander geprüft werden: Haus, Fuhrwerk, Lok, Baum, Straße auf einem Feld. Die Pivots sind uneinheitlich (Fantasy-Wände stehen am Rand, Nature-Tiles in der Mitte), also beim Import normieren.
 - **Polygone:** Die Kits sind sehr leicht (Median 64–416 Tris). Teuer sind nur Car Kit (Ø 1.190), City Industrial (Ø 1.162) und Commercial (max 5.246). Ein modulares Fantasy-Haus hat 20–40 Teile, also 2–4k Tris, aber auch 20–40 Draw Calls. **Bei der Montage mergen** (eine Mesh-Datei je Prefab) und Bäume, Felder und Streuobjekte als MultiMesh setzen. Bei 300 Häusern ≈ 1 Mio. Tris ist das unkritisch, wenn gemergt und mit LOD bzw. Sichtweitenbegrenzung.
 - **Modularität:** Wir verlassen uns auf eigene Prefabs. Das Stadtwachstum (S→L) braucht zu jeder Stufe ein passendes Prefab, Aufwand siehe Abschnitt 2.
+
+## 5. Eigene prozedurale Texturen (S8, TA)
+
+| Datei | Zweck | Erzeugung | Lizenz |
+|---|---|---|---|
+| `slice/world/data/proto/proto_detail.png` (512 × 512 RGBA8, mit Mipmaps 1,4 MB VRAM) | WA-04 Detailtextur Gras/Erde im Gelände-Shader | `tools_proto/ta_boden_detail.py`, FFT-Bandpass-Rauschen, Seed 4041 | prozedural, eigene Erzeugung, keine Fremdlizenz |
+| Makro-Variation, Übergangsmaske, Ackerschläge, Feldrain (`proto_terrain.gdshader`) | WA-04 | im Shader berechnet (Wertrauschen, Voronoi), keine Datei | prozedural, eigene Erzeugung, keine Fremdlizenz |

@@ -9,10 +9,11 @@ Mittel = Mittelwert aller Fahrten. m/s = 505 ÷ Mittel. Soll [R] aus AT-04: Hinf
 |---|---|---|---|---|---|---|---|---|
 | A | 4 | | | | | | 13,6 ± 2 | |
 | B | 8 | | | | | | 27,1 ± 3 | |
+| C | 20 | | | | | | 68 ± 7 | |
 
 - **Plausibilität:** B ÷ A liegt bei etwa 2 (1,6 bis 2,4). Sonst lief eine Variante nicht mit dem gedachten k (bei fehlendem Argument k = 1: 3,4 s). HUD zeigt k noch nicht (Annahme A7 in AT-14): im Zweifel nachfragen.
-- **Einordnung [R]:** Schritt eines Pferdes ca. 5 km/h = 1,4 m/s, also rund 6 min für 505 m. A entspricht ca. 135 km/h, B ca. 68 km/h im Bild. Beide sind ein Vielfaches vom echten Tempo (Zwei Uhren rafft). Antwortet Basti „beide zu schnell“, kommen k = 16 (ca. 34 km/h) oder 32 (ca. 17 km/h) in Frage. Das steht nicht in `varianten [4, 6, 8]`, E5 ist schon bei k = 4/8 rot (AT-04): Entscheid Jonas/TA, nicht automatisch.
-- **Regel:** A besser → k = 4 · B besser → k = 8 · „teils/zwischen“ oder keine Antwort bis Tag 5 → k = 6 (Jonas, ergebnis D2) · beide zu schnell oder zu langsam → Rückfrage, Variante nachlegen.
+- **Einordnung [R]:** Schritt eines Pferdes ca. 5 km/h = 1,4 m/s, also rund 6 min für 505 m. A entspricht ca. 135 km/h, B ca. 68 km/h im Bild. Beide sind ein Vielfaches vom echten Tempo (Zwei Uhren rafft). Weil Basti 1× „viel zu schnell“ fand, gibt es Variante C mit k = 20 (ca. 27 km/h; k muss 600 ganzzahlig teilen, k = 16 geht nicht). Sie steht nicht in `varianten [4, 6, 8]`, E5 ist schon bei k = 4/8 rot und bei höherem k vermutlich schlechter (AT-04): Entscheid Jonas/TA, nicht automatisch. Auch bei höherem k verschiebt sich das Verhältnis Fahrzeit/Ladezeit weiter (OE-02).
+- **Regel:** A besser → k = 4 · B besser → k = 8 · C besser → k = 20 (Rückfrage an Felix/TA wegen E5, Ertragsausgleich a größer) · „teils/zwischen“ oder keine Antwort bis Tag 5 → k = 6 (Jonas, ergebnis D2) · beide zu schnell oder zu langsam → Rückfrage, Variante nachlegen.
 
 **Ergebnis k:** ______ (Quelle: Basti, Datum, Karte L1)
 

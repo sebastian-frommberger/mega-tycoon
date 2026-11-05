@@ -54,6 +54,8 @@ func _run() -> void:
 		await _at09()
 	if nur == "" or nur == "fk03":
 		await _fk03()
+	if nur == "" or nur == "fz04":
+		await _fz04()
 	if nur == "layout":
 		await _at08_maus()
 		await _at09_layout()
@@ -690,6 +692,63 @@ func _fk03() -> void:
 		if String(m["text"]).length() > 90:
 			lang.append(m["text"])
 	ok(lang.is_empty(), "alle Meldungen ≤ 90 Zeichen %s" % str(lang))
+
+# ------------------------------------------------------------------ FZ-04
+
+func _fz04() -> void:
+	print("  -- FZ-04 Fahrzeugkarte")
+	await _neue_szene()
+	var e = ps.eco
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.modus_ende()
+	_klick("Gut Kuppenhof")
+	ok(ui.knoepfe.has("fz_1"), "Panel Gut Kuppenhof: Knopf F1 je Fuhrwerk der Linie")
+	ui.klicks = 0
+	_druecke("fz_1")
+	var f: Dictionary = ps.fahrzeug(1)
+	var pt := _panel_text()
+	ok(ui.auswahl == "#1" and ui.panel_werte["alter_jahre"] == 0 and ui.panel_werte["unterhalt"] == ps.fix_eff(f) and pt.contains("Unterhalt 60 $/min (+0 % durch Alter)"),
+		"Karte Fuhrwerk 1: Alter 0 J, Unterhalt 60 $/min = fix_eff")
+	# 10 Jahre (18.000 Ticks = 1830): Alterung, Ersetzen, Frachtwagen
+	while ps.sim.tick_count < 18000:
+		ps.tick()
+	ui.panel_neu()
+	pt = _panel_text()
+	var q: Dictionary = ps.ersetzen_angebot(1)
+	ok(ui.panel_werte["alter_jahre"] == ps.alter_jahre(f) and ps.alter_jahre(f) == 10 and ui.panel_werte["unterhalt"] == ps.fix_eff(f) and ui.panel_werte["aufschlag_pct"] == 50
+		and pt.contains("Alter 10 J von 15 J · 66 %"), "Nach 10 Jahren: Alter 10 J (66 %%), Unterhalt %s/min (+50 %%) = fix_eff" % ui.geld(ps.fix_eff(f)))
+	ok(ui.panel_werte["restwert"] == ps.restwert(f) and pt.contains("Restwert %s · neu %s · spart %s/min" % [ui.geld(q["restwert_cent"]), ui.geld(q["preis_cent"]), ui.geld(q["spart_cent_pro_periode"])]),
+		"Ersetzen-Zeile = ersetzen_angebot: Restwert %s, spart %s/min" % [ui.geld(q["restwert_cent"]), ui.geld(q["spart_cent_pro_periode"])])
+	ok(ui.knoepfe.has("ersetzen_frachtwagen_e1") and pt.contains("Ersetzen durch Frachtwagen"), "Ab 1830: Ersetzen durch Frachtwagen angeboten")
+	var echt: int = e.cash_cent
+	e.cash_cent = 100
+	ui.panel_neu()
+	var n_log: int = ui.meldungen_log.size()
+	_druecke("ersetzen_fuhrwerk_e1")
+	ok(ui.meldungen_log.size() == n_log + 1 and _letzte().begins_with("Ersetzen kostet ") and ps.fix_eff(f) == q["fix_alt_cent"], "F5.1: %s" % _letzte())
+	e.cash_cent = echt
+	ui.panel_neu()
+	var k0: int = e.cash_cent
+	var l0: int = ps.lieferungen.size()
+	_druecke("ersetzen_fuhrwerk_e1")
+	ok(k0 - e.cash_cent == q["netto_cent"] and ps.fix_eff(f) == int(ps.vdef("fuhrwerk_e1")["fix_cent_pro_periode"]) and ps.alter_jahre(f) == 0,
+		"Ersetzen: Kasse −%d ¢ = Vorschau netto ± 0, Unterhalt wieder %s/min, Alter 0" % [k0 - e.cash_cent, ui.geld(ps.fix_eff(f))])
+	ok(_letzte() == "Fuhrwerk 1 ersetzt: −%s nach Restwert. Unterhalt jetzt 60 $/min statt %s/min." % [ui.geld(q["netto_cent"]), ui.geld(q["fix_alt_cent"])], "Toast: %s" % _letzte())
+	for i in 1200:
+		ps.tick()
+	ok(ps.lieferungen.size() > l0 and not f["verkauft"], "Linie läuft weiter: %d Lieferungen in 1.200 Ticks nach dem Ersetzen" % (ps.lieferungen.size() - l0))
+	ok(ui.klicks <= 3, "Karte und Ersetzen in %d Klicks ab Panel (ohne Fehlversuch: 2)" % ui.klicks)
+	# Verkaufen mit Bestätigung
+	ui.panel_neu()
+	var rw: int = ps.restwert(f)
+	_druecke("verkaufen")
+	ok(not f["verkauft"] and ui.knoepfe.has("verkaufen_ok"), "Verkaufen: 1. Klick fragt inline nach")
+	k0 = e.cash_cent
+	_druecke("verkaufen_ok")
+	ok(f["verkauft"] and e.cash_cent - k0 == rw and _letzte() == "Fuhrwerk 1 verkauft: +%s Restwert. Die Linie hat noch 0 Fuhrwerk(e)." % ui.geld(rw), "Verkauft: +%d ¢ = Restwert, %s" % [e.cash_cent - k0, _letzte()])
+	ok(_panel_text().contains("Verkauft, steht still."), "Karte zeigt verkauft")
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

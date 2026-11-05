@@ -63,6 +63,13 @@ const FT_WELT := {
 	"ausbau_vor_kauf": "Ausbauen geht erst nach dem Kauf. Kaufe zuerst {name}.",
 	"ausbau_max": "{name} hat schon die höchste Werksstufe dieser Version.",
 	"ausbau_roh": "{name} ist ein Rohstoffbetrieb. Ausbauen geht in dieser Version nur bei der Mühle.",
+	# FZ-04 (AT-14 S5)
+	"ersetzt": "{n} ersetzt: −{x} nach Restwert. Unterhalt jetzt {y}/min statt {z}/min.",
+	"ersetzen_geld": "Ersetzen kostet {x}, es fehlen {d}. Warte auf Einnahmen oder nimm Kredit.",
+	"ersetzen_nichts": "Ersetzen spart hier nichts ({z}/min). Behalte das Fuhrwerk.",
+	"ladung_zu_gross": "{n} hat mehr geladen, als der neue Wagen fasst. Ersetze nach dem Abladen.",
+	"verkauft": "{n} verkauft: +{r} Restwert. Die Linie hat noch {k} Fuhrwerk(e).",
+	"fz_sonst": "Das geht gerade nicht. Bitte erneut klicken (Meldung an uns: {code}).",
 	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
 	"lizenz_linie_ok": "Lizenz {name} gekauft. Linie nach {b} läuft, Fuhrwerk {n} ist unterwegs.",
 	"lizenz_linie_geld": "Lizenz und Fuhrwerk kosten {x}, es fehlen {d}. Nimm Kredit oder warte.",
@@ -462,6 +469,9 @@ func panel_neu() -> void:
 		c.queue_free()
 	_bereich_leeren("panel")
 	panel_werte = {"name": auswahl}
+	if auswahl.begins_with("#"):                           # FZ-04: Fahrzeugkarte im selben Panel
+		_panel_fahrzeug(int(auswahl.substr(1)))
+		return
 	var site := site_of(auswahl)
 	if site < 0:
 		panel_vb.add_child(_label(auswahl, 18))
@@ -943,6 +953,7 @@ func _linien_ab(von: String) -> void:
 		hb.add_child(b)
 		panel_vb.add_child(hb)
 		panel_werte["linie_" + nm] = ziele[nm]
+		panel_vb.add_child(_fz_knoepfe(linien_fahrzeuge(von, nm)))
 
 
 # ------------------------------------------------------------------ AT-09 Kopfleiste (HUD Welt)
@@ -1276,3 +1287,148 @@ func ausbau_fehlertext(nm: String, r: Dictionary) -> String:
 		"bankrott":
 			return text("bankrott")
 	return text("kauf_sonst", {"code": f})
+
+
+# ------------------------------------------------------------------ FZ-04 Fahrzeugkarte (W5)
+
+var _verkauf_bestaetigen := -1       # vid mit offener Verkaufsbestätigung
+
+## Knopfzeile [Fuhrwerk n] je Fahrzeug einer Linie: öffnet die Fahrzeugkarte.
+func _fz_knoepfe(liste: Array) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	for f in liste:
+		var b := _knopf("F%d" % int(f["vid"]), "fz_%d" % int(f["vid"]), fahrzeug_oeffnen.bind(int(f["vid"])))
+		b.tooltip_text = "%s: Karte mit Alter, Unterhalt, Ersetzen" % f["name"]
+		hb.add_child(b)
+	return hb
+
+
+func fahrzeug_oeffnen(vid: int) -> void:
+	_verkauf_bestaetigen = -1
+	oeffnen("#%d" % vid)
+
+
+func _stationsname(knoten: int) -> String:
+	for nm in ps.stationen:
+		if int(ps.stationen[nm]["knoten"]) == knoten:
+			return nm
+	return "?"
+
+
+func _panel_fahrzeug(vid: int) -> void:
+	var f: Dictionary = ps.fahrzeug(vid)
+	var kopf := HBoxContainer.new()
+	var von := _stationsname(int(f.get("von", -1)))
+	var nach := _stationsname(int(f.get("nach", -1)))
+	var gut := ausgang(site_of(von)).capitalize() if site_of(von) >= 0 else ""
+	var d: Dictionary = ps.vdef(String(f.get("def_id", "")))
+	var titel := _label("%s (%s)" % [f.get("name", "?"), gut], 18)
+	titel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	kopf.add_child(titel)
+	kopf.add_child(_knopf("x", "schliessen", func(): oeffnen(von)))
+	panel_vb.add_child(kopf)
+	panel_vb.add_child(_label("%s · Linie %s → %s" % [String(d.get("name", "?")), von, nach], 16, C_GRAU))
+	if f.is_empty() or f["verkauft"]:
+		panel_vb.add_child(_label("Verkauft, steht still.", 16, C_GRAU))
+		panel_werte["verkauft"] = true
+		return
+	var alter: int = ps.alter_jahre(f)
+	var ld := int(d.get("lebensdauer_jahre", 0))
+	var pct := alter * 100 / maxi(1, ld)
+	panel_werte["alter_jahre"] = alter
+	panel_werte["lebensdauer_pct"] = pct
+	var hb := HBoxContainer.new()
+	hb.add_child(_label("Alter %d J von %d J · %d %%" % [alter, ld, pct], 16, C_BAD if pct >= 100 else (C_WARN if pct >= 80 else C_TEXT)))
+	var bar := ProgressBar.new()
+	bar.min_value = 0
+	bar.max_value = 100
+	bar.value = mini(100, pct)
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(90, 14)
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(bar)
+	panel_vb.add_child(hb)
+	var fe: int = ps.fix_eff(f)
+	var fix := int(f.get("fix_cent", 0))
+	var aufschlag := (fe - fix) * 100 / maxi(1, fix)
+	panel_werte["unterhalt"] = fe
+	panel_werte["aufschlag_pct"] = aufschlag
+	panel_vb.add_child(_label("Unterhalt %s/min (+%d %% durch Alter)" % [geld(fe), aufschlag], 16))
+	panel_werte["restwert"] = ps.restwert(f)
+	_trenner()
+	var defs: Array = [String(f["def_id"])]
+	for id in ["frachtwagen_e1"]:                          # FZ-05: Folgemodell, sobald verfügbar
+		if id != String(f["def_id"]) and not ps.vdef(id).is_empty() and ps.kalenderjahr() >= int(ps.vdef(id).get("verfuegbar_ab_jahr", 9999)):
+			defs.append(id)
+	for id in defs:
+		var q: Dictionary = ps.ersetzen_angebot(vid, id)
+		if not q.get("ok", false):
+			continue
+		var nm := String(ps.vdef(id).get("name", id))
+		panel_werte["ersetzen_" + id] = q
+		panel_vb.add_child(_label("Ersetzen durch %s: Restwert %s · neu %s · spart %s/min" % [nm, geld(q["restwert_cent"]),
+			geld(q["preis_cent"]), geld(q["spart_cent_pro_periode"])], 16))
+		if int(q["spart_cent_pro_periode"]) <= 0 and id == String(f["def_id"]):
+			panel_vb.add_child(_label("▲ " + text("ersetzen_nichts", {"z": geld(q["spart_cent_pro_periode"])}), 15, C_WARN))
+		var b := _knopf("Ersetzen%s · %s" % ["" if id == String(f["def_id"]) else " durch " + nm, geld(q["netto_cent"])],
+			"ersetzen_" + id, ersetzen.bind(vid, id), false, not bool(q["kaufbar"]))
+		if not bool(q["kaufbar"]):
+			b.tooltip_text = "Es fehlen %s." % fehlbetrag(int(q["netto_cent"]) - ps.eco.cash_cent)
+		panel_vb.add_child(b)
+	_trenner()
+	if _verkauf_bestaetigen == vid:
+		var hv := HBoxContainer.new()
+		hv.add_child(_label("Verkaufen? Die Ladung verfällt.", 16, C_WARN))
+		hv.add_child(_knopf("Verkaufen · +%s" % geld(ps.restwert(f)), "verkaufen_ok", verkaufen.bind(vid)))
+		hv.add_child(_knopf("Behalten", "verkaufen_ab", func():
+			_verkauf_bestaetigen = -1
+			panel_neu()))
+		panel_vb.add_child(hv)
+	else:
+		panel_vb.add_child(_knopf("Verkaufen · +%s" % geld(ps.restwert(f)), "verkaufen", func():
+			_verkauf_bestaetigen = vid
+			panel_neu()))
+
+
+func ersetzen(vid: int, def_id: String) -> Dictionary:
+	var f: Dictionary = ps.fahrzeug(vid)
+	var fa: int = ps.fix_eff(f) if not f.is_empty() else 0
+	var r: Dictionary = ps.fahrzeug_ersetzen(vid, def_id)
+	if r.get("ok", false):
+		meldung(text("ersetzt", {"n": f["name"], "x": geld(int(r["netto_cent"])), "y": geld(ps.fix_eff(f)), "z": geld(fa)}))
+	else:
+		meldung(fz_fehlertext(f, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func verkaufen(vid: int) -> Dictionary:
+	_verkauf_bestaetigen = -1
+	var f: Dictionary = ps.fahrzeug(vid)
+	var r: Dictionary = ps.fahrzeug_verkaufen(vid)
+	if r.get("ok", false):
+		var rest := linien_fahrzeuge(_stationsname(int(f["von"])), _stationsname(int(f["nach"]))).size()
+		meldung(text("verkauft", {"n": f["name"], "r": geld(int(r["restwert_cent"])), "k": rest}))
+	else:
+		meldung(fz_fehlertext(f, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func fz_fehlertext(f: Dictionary, r: Dictionary) -> String:
+	var fe := String(r.get("fehler", "?"))
+	match fe:
+		"guthaben_reicht_nicht":
+			var q: Dictionary = ps.ersetzen_angebot(int(f.get("vid", -1)))
+			return text("ersetzen_geld", {"x": geld(int(q.get("netto_cent", 0))), "d": fehlbetrag(int(r.get("fehlt_cent", 0)))})
+		"noch_nicht_verfuegbar":
+			return text("frachtwagen_1830")
+		"ladung_zu_gross":
+			return text("ladung_zu_gross", {"n": f.get("name", "?")})
+		"bankrott":
+			return text("bankrott")
+	return text("fz_sonst", {"code": fe})

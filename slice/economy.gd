@@ -73,6 +73,7 @@ var warehouse_cap := 0
 var warehouse_yield := 0
 var stamp_persists := true
 var skill_bonus := 0                     # B_skill in Promille; Skills nicht in F-16
+var ertrag_a_promille := 1000            # S8 FX3 (W2): Ertragsausgleich a (economy_proto.json tempo_ausgleich_promille), nur Welt
 var basket: Dictionary = {}              # stage_id -> Array[kategorie_id]
 var speed_stufen: Array = []
 
@@ -386,7 +387,10 @@ func f_saett_promille(s_promille: int) -> int:
 ## (bei konstantem F_sätt = M × F_sätt). Eine Division durch 10^12.
 ## extra_promille (S8 FK-02): Werksmarge auf Lose aus eigenem Werk, additiv zu B_skill; 0 = Formel wie bisher.
 func yield_cent(g: int, d_felder: int, fz: int, fs_sum: int, extra_promille: int = 0) -> int:
-	return muldiv_e12(g_price[g] * d_eff_x1000(d_felder), fz * fs_sum * (PROMILLE + skill_bonus + extra_promille))
+	var c := muldiv_e12(g_price[g] * d_eff_x1000(d_felder), fz * fs_sum * (PROMILLE + skill_bonus + extra_promille))
+	if ertrag_a_promille != PROMILLE:                 # S8 FX3 (W2): Ertragsausgleich a nur in der Welt (apply_proto); Slice: Zweig nie
+		c = rdiv(c * ertrag_a_promille, PROMILLE)
+	return c
 
 
 func luftlinie_felder(a: int, b: int) -> int:
@@ -708,6 +712,7 @@ func _load_kauf() -> void:
 ## Welt-Overlay (economy_proto.json, Abschnitt firmenkauf_c1). Der Slice ruft das nie (bitgleich). Aufruf nach
 ## load_from, vor oder nach add_industry_site (Rückfall W3 wird auf bestehende Mühlen nachgezogen).
 func apply_proto(proto: Dictionary) -> void:
+	ertrag_a_promille = int(proto.get("tempo_ausgleich_promille", PROMILLE))   # S8 FX3: a, Ertrag × a / 1000 (yield_cent)
 	var c: Dictionary = proto.get("firmenkauf_c1", {})
 	inbuf_cap_perioden = int(c.get("eingangspuffer_deckel_perioden", 0))
 	buy_owned_step = int(c.get("preisaufschlag_je_werk_promille", buy_owned_step))

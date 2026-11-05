@@ -1,12 +1,15 @@
 #!/bin/bash
 # QT-02 (S8, Daniel): Flaky-Rate. Volle Regression N-mal hintereinander (nachts), Tabelle "Rot je Suite und Lauf".
 # Aufruf (aus slice/ oder von überall):
-#   tests/flaky_nacht.sh [--n=5] [--stufe=voll|schnell] [--out=<ordner>] [--godot=<pfad>] [--spikes=<pfad>] [--nur-auswerten=<ordner>]
+#   tests/flaky_nacht.sh [--n=5] [--stufe=voll|schnell|beide] [--out=<ordner>] [--godot=<pfad>] [--spikes=<pfad>] [--nur-auswerten=<ordner>]
 #   Nachts im Hintergrund:  setsid nohup tests/flaky_nacht.sh --n=5 --out=/tmp/claude-0/flaky_$(date +%F) > /tmp/claude-0/flaky.log 2>&1 &
 # Stufen:
-#   voll     (Default) je Lauf d07_regression.sh (24 Zeilen inkl. d08 n=100, perf_s7, Spikes) UND regress_fast.sh (Proto-Suiten, d07_abnahme-Blöcke,
-#            s7_boot, statische Checks). Messung QT-01a: ca. 524 s + ca. 100 s je Lauf, 5 Läufe ca. 1 h (Sandbox, ohne Parallellast).
-#   schnell  je Lauf nur regress_fast.sh (Test des Werkzeugs, ca. 1-2 min je Lauf).
+#   voll     (Default) je Lauf d07_regression.sh = die volle Regression (nach QT-01b: Bestand, d07_abnahme, d08 n=100, s7_*, perf_s7, Spikes,
+#            Statik UND die 11 Proto-Suiten; 35 Zeilen). Messung QT-01: 524 s (24 Zeilen, ohne Last) bzw. 720 s (35 Zeilen, Loadavg bis 3,6) je Lauf,
+#            5 Läufe also ca. 45-60 min (Sandbox).
+#   schnell  je Lauf nur regress_fast.sh (QT-01b, ca. 70-115 s je Lauf; Test des Werkzeugs und Zwischenstufe).
+#   beide    je Lauf d07_regression.sh UND regress_fast.sh (fast hat zusätzlich die statischen Kassen-/Tempo-Checks und Namen je Block; doppelt
+#            gerechnete Suiten erscheinen mit Präfix d07:/fast: getrennt, das erhöht die Zellenzahl, nicht die Aussagekraft).
 # Ausgabe in <out> (Default /tmp/claude-0/flaky_<Datum>):
 #   lauf<i>/d07_regression_summary.md, lauf<i>/fast_summary.md, lauf<i>/info.txt (Exit-Codes, Dauer, Loadavg vor/nach), bei Rot zusätzlich lauf<i>/logs/
 #   flaky_tabelle.md   Tabelle Rot je Suite und Lauf, Flake-Rate, Ticketliste
@@ -57,7 +60,7 @@ for lp in laeufe:
     kopf.append(nr)
     erg = {}
     for quelle, datei in (("d07", "d07_regression_summary.md"), ("fast", "fast_summary.md")):
-        if stufe == "schnell" and quelle == "d07":
+        if (stufe == "schnell" and quelle == "d07") or (stufe == "voll" and quelle == "fast"):
             continue
         r = parse(os.path.join(lp, datei), quelle)
         if r is None:
@@ -129,20 +132,22 @@ for i in $(seq 1 "$N"); do
   if [ -f "$D/fertig" ]; then echo "Lauf $i bereits fertig, übersprungen"; continue; fi
   rm -rf "$D"; mkdir -p "$D"
   T0=$(date +%s); LOAD0=$(cut -d' ' -f1-3 /proc/loadavg)
-  r1="-"; r2="-"
+  r1=0; r2=0
   rm -f tests/d07_regression_summary.md tests/fast_summary.md
-  if [ "$STUFE" = voll ]; then
+  if [ "$STUFE" = voll ] || [ "$STUFE" = beide ]; then
     bash tests/d07_regression.sh "$G" "$SPIKES" > "$D/d07_stdout.txt" 2>&1; r1=$?
     cp -f tests/d07_regression_summary.md "$D/" 2>/dev/null
   fi
-  bash tests/regress_fast.sh "$G" > "$D/fast_stdout.txt" 2>&1; r2=$?
-  cp -f tests/fast_summary.md "$D/" 2>/dev/null
+  if [ "$STUFE" = schnell ] || [ "$STUFE" = beide ]; then
+    bash tests/regress_fast.sh "$G" > "$D/fast_stdout.txt" 2>&1; r2=$?
+    cp -f tests/fast_summary.md "$D/" 2>/dev/null
+  fi
   if [ "$r1" != 0 ] || [ "$r2" != 0 ]; then
     mkdir -p "$D/logs"; cp -r tests/d07_logs "$D/logs/" 2>/dev/null; cp -r tests/fast_logs "$D/logs/" 2>/dev/null
   fi
   T1=$(date +%s)
   { echo "- Start $(date -d @"$T0" '+%F %T'), Dauer $((T1-T0)) s, Loadavg vor/nach: $LOAD0 / $(cut -d' ' -f1-3 /proc/loadavg)"
-    echo "- Exit d07_regression.sh: $r1, regress_fast.sh: $r2"
+    echo "- Stufe $STUFE, Exit d07_regression.sh: $r1, regress_fast.sh: $r2 (0 = grün oder nicht gelaufen)"
     echo "- Git: $(git -C "$HERE" rev-parse --short HEAD 2>/dev/null), Godot: $("$G" --version 2>/dev/null | head -1)"; } > "$D/info.txt"
   date +%s > "$D/fertig"
   echo "Lauf $i/$N fertig: Dauer $((T1-T0)) s, Exit d07=$r1 fast=$r2"

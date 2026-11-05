@@ -130,6 +130,8 @@ class Routenlinie extends RefCounted:
 	var r_uebergang_min := INF               # kleinster Bogen an Weg-Übergängen
 	var rand_start := 0.0                    # Sackgasse am Anfang/Ende: Fahrzeugmitte hält so weit vor dem Bandende (m)
 	var rand_ende := 0.0
+	var stufe2 := false                      # FZ-09: Geraden bis 1 + Überhöhung gestreckt (dichtes Leg, s. _kurvenzone)
+	var spaet_ticks := 0.0                   # FZ-09: erwartete Verspätung am Halt (Ticks), Rest-Defizit / v_nom
 	var quer := PackedFloat32Array()         # Wanken (rad, + = linke Modellseite höher) aus dem Quergefälle des Bands
 
 	func _i(s: float) -> Vector2:
@@ -515,6 +517,21 @@ static func _kurvenzone(rl: Routenlinie, prof: Profil) -> void:
 	f = _kasten(f, 3)
 	for k in n:
 		f[k] = clampf(minf(f[k], maxf(rl.f_lim[k], 1.0 + prof.ueb) if rl.f_lim[k] >= 0.999 else rl.f_lim[k]), 0.2, 1.0 + prof.ueb)
+	# FZ-09: Restdefizit (Zeit, die die Überhöhung neben der Zone nicht einholt) nur auf die Geraden (f_lim ≥ 0,999)
+	# legen. Vorher skalierte skala auch die Kurve: dp/du = f · skala > f_lim, das Kurvenlimit im Folger kappte das
+	# Bildtempo, und der Rückstand landete in u (feste Meter je Zone, also k-fach in Ticks: E5 B rot bei k = 4/8/20).
+	# Stufe 1 bis (1 + Überhöhung) / (1 + Aufholen): der Folger behält auf der Geraden Luft zum Aufholen (Anfahr-Rampe,
+	# Rückstand ≈ W/4 Ticks). Stufe 2 bis 1 + Überhöhung: holt mehr Defizit ein, aber die Luft fehlt. Je Leg gewinnt die
+	# Stufe mit der kleineren erwarteten Verspätung am Halt (Rest-Defizit / v_nom; Stufe 2 zusätzlich W/4 Ticks).
+	var frei := rl.laenge - _zeit_auf(rl, f, true)
+	var f1 := _geraden_strecken(rl, f, frei, (1.0 + prof.ueb) / (1.0 + prof.aufholen))
+	var f2 := _geraden_strecken(rl, f, frei, 1.0 + prof.ueb)
+	rl.spaet_ticks = maxf(0.0, _zeit_auf(rl, f1, false) - frei) / prof.v_nom
+	var spaet2 := maxf(0.0, _zeit_auf(rl, f2, false) - frei) / prof.v_nom + prof.w * 0.25
+	rl.stufe2 = rl.spaet_ticks > 1e-3 and spaet2 < rl.spaet_ticks
+	if rl.stufe2:
+		rl.spaet_ticks = spaet2
+	f = f2 if rl.stufe2 else f1
 	rl.f = f
 	# φ⁻¹: U(p) = ∫ dp / f, normiert auf U(L) = L (Zeit über das Leg exakt erhalten)
 	var U := PackedFloat32Array()
@@ -538,6 +555,33 @@ static func _kurvenzone(rl: Routenlinie, prof: Profil) -> void:
 			j += 1
 		var seg := maxf(U[j + 1] - U[j], 1e-6) if n > 1 else 1.0
 		rl.p_von_u[m] = lerpf(ps[j], ps[mini(j + 1, n - 1)], clampf((u - U[j]) / seg, 0.0, 1.0)) if n > 1 else 0.0
+
+
+## FZ-09: Geraden (f_lim ≥ 0,999) so strecken, dass ihre Bildzeit in die freie Zeit passt, f ≤ f_deckel (Kopie).
+static func _geraden_strecken(rl: Routenlinie, f_in: PackedFloat32Array, frei: float, f_deckel: float) -> PackedFloat32Array:
+	var f := f_in.duplicate()
+	for _it in 6:
+		var t_rest := _zeit_auf(rl, f, false)
+		if frei <= 1e-6 or t_rest <= frei * 1.0001:
+			break
+		var c := t_rest / frei
+		for k in f.size():
+			if rl.f_lim[k] >= 0.999:
+				f[k] = maxf(f[k], minf(f[k] * c, f_deckel))
+	return f
+
+
+## FZ-09: Bildzeit (m bei v_nom) ∫ dp / f auf den Zonen (zone = true: Segment mit f_lim < 0,999) bzw. den Geraden.
+static func _zeit_auf(rl: Routenlinie, f: PackedFloat32Array, zone: bool) -> float:
+	var n := f.size()
+	var t := 0.0
+	for k in range(1, n):
+		var ist_zone := rl.f_lim[k - 1] < 0.999 or rl.f_lim[k] < 0.999
+		if ist_zone != zone:
+			continue
+		var ds := DS if k < n - 1 else maxf(rl.laenge - (n - 2) * DS, 1e-6)
+		t += ds * 0.5 * (1.0 / f[k - 1] + 1.0 / f[k])
+	return t
 
 
 static func _fenster_min(a: PackedFloat32Array, w: int) -> PackedFloat32Array:

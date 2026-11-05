@@ -61,5 +61,144 @@
     "startkapital_kriterium_text": "W24: 6.000 $ bleibt nur, wenn Kasse P50 Plan-Bot zwischen Minute 5 und 20 unter 2.000 $ faellt",
     "bankrott_band_text": "OE-03: Naiv 10-30 %, Plan <= 5 %, n = 300, Wilson-Intervall",
     "fk02_bot_text": "FK-02: Kauf amortisiert in 8-20 min; Plan-Bot kauft Muehle zwischen Minute 14 und 25; Schneeball: Netto-$/min verdoppelt sich nicht schneller als in 10 min nach dem 1. Kauf"
+  },
+  "kalibrierung_aktiv_set": null,
+  "kalibrierung_sets_text": "OE-02/03 (Tobias): Kandidaten je tempo_k. Auswahl mit Nutzerargument --oe_set=<name> (economy.apply_proto; Bot/Exploit nehmen die Fahrzeuge aus 'fahrzeuge'). kalibrierung_aktiv_set = null: im Spiel nicht aktiv. a (tempo_ausgleich_promille) bleibt 1000, der Ausgleich steckt in Preisen und Fahrzeugkosten. Werte: Modell (OE-02.md) + Bot-Messung.",
+  "kalibrierung_sets": {
+    "k4": {
+      "tempo_k": 4,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k4",
+        "frachtwagen": "frachtwagen_k4"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 38,
+        "mehl": 85
+      }
+    },
+    "k8": {
+      "tempo_k": 8,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k8",
+        "frachtwagen": "frachtwagen_k8"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 24,
+        "mehl": 105
+      }
+    },
+    "k20": {
+      "tempo_k": 20,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k20",
+        "frachtwagen": "frachtwagen_k20"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 16,
+        "mehl": 160
+      }
+    },
+    "k4a": {
+      "tempo_k": 4,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k4",
+        "frachtwagen": "frachtwagen_k4"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 38,
+        "mehl": 85
+      },
+      "startkapital_cent": 450000
+    },
+    "k4b": {
+      "tempo_k": 4,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k4",
+        "frachtwagen": "frachtwagen_k4"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 38,
+        "mehl": 95
+      },
+      "startkapital_cent": 450000
+    },
+    "k8a": {
+      "tempo_k": 8,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k8",
+        "frachtwagen": "frachtwagen_k8"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 24,
+        "mehl": 120
+      }
+    },
+    "k8b": {
+      "tempo_k": 8,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k8",
+        "frachtwagen": "frachtwagen_k8"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 28,
+        "mehl": 120
+      }
+    },
+    "k20a": {
+      "tempo_k": 20,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k20",
+        "frachtwagen": "frachtwagen_k20"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 24,
+        "mehl": 220
+      }
+    },
+    "k20b": {
+      "tempo_k": 20,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k20",
+        "frachtwagen": "frachtwagen_k20"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 30,
+        "mehl": 300
+      }
+    },
+    "k4c": {
+      "tempo_k": 4,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k4",
+        "frachtwagen": "frachtwagen_k4"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 38,
+        "mehl": 95
+      },
+      "startkapital_cent": 400000
+    },
+    "k8c": {
+      "tempo_k": 8,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k8v2",
+        "frachtwagen": "frachtwagen_k8v2"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 24,
+        "mehl": 130
+      }
+    },
+    "k8d": {
+      "tempo_k": 8,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k8v2",
+        "frachtwagen": "frachtwagen_k8v2"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 24,
+        "mehl": 150
+      }
+    }
   }
 }

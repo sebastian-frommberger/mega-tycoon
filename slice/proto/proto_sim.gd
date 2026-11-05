@@ -22,6 +22,7 @@ extends RefCounted
 const SimWorld := preload("res://core/sim_world.gd")
 const Economy := preload("res://economy.gd")
 const Easing := preload("res://proto/proto_easing.gd")
+const Konto := preload("res://core/konto.gd")          # AT-01 (S8, W12): Buchungen über konto.charge
 const SLICE_JSON := "res://data/economy_slice.json"
 const CONSTS_JSON := "res://data/economy_constants.json"
 const VEHICLES_JSON := "res://data/vehicles.json"
@@ -30,6 +31,7 @@ const START_GETREIDE := 10
 
 var sim = null                       # SimWorld
 var eco = null                       # Economy oder null (synthetische Tests)
+var konto = Konto.new()              # AT-01: Ausgaben (Fahrkosten); AT-02 ergänzt Fix/Zins/Bankrott
 var strassen = null                  # proto_strassenband.gd
 var regelwerk: Dictionary = {}
 var mm_pro_m := 40.0
@@ -430,7 +432,8 @@ func tick() -> void:
 	ticks += 1
 	if sim.line_cost_cent != 0:
 		if eco != null:
-			eco.cash_cent -= sim.line_cost_cent          # wie main.charge()
+			konto.eco = eco
+			konto.charge(sim.line_cost_cent)             # AT-01 (W12): wie main.charge()
 		sim.line_cost_cent = 0
 	if not sim.line_events.is_empty():
 		for ev in sim.line_events:

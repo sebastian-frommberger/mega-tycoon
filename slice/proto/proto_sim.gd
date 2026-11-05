@@ -33,6 +33,7 @@ const RESTWERT_MIN_PM := 200
 const SLICE_JSON := "res://data/economy_slice.json"
 const CONSTS_JSON := "res://data/economy_constants.json"
 const VEHICLES_JSON := "res://data/vehicles.json"
+const PROTO_JSON := "res://data/economy_proto.json"   # FK-02: Welt-Overlay (firmenkauf_c1: Mühlendeckel, Aufschlag, Rückfall W3)
 const MAX_WAIT_TICKS := 50           # main.gd TRUCK_MAX_WAIT_TICKS
 const START_GETREIDE := 10
 
@@ -449,6 +450,10 @@ func oeko_laden() -> bool:
 		fehler.append("Ökonomie-JSON: " + ", ".join(eco.errors))
 		eco = null
 		return false
+	if FileAccess.file_exists(PROTO_JSON):
+		var pj = JSON.parse_string(FileAccess.get_file_as_string(PROTO_JSON))
+		if pj is Dictionary:
+			eco.apply_proto(pj)                   # FK-02: nur die Welt, der Slice ruft das nie
 	eco.attach(sim)
 	sim.feld_mm = eco.feld_mm
 	konto.eco = eco
@@ -702,7 +707,7 @@ func _fix_neu() -> void:
 	var liste: Array = []
 	for f in fahrzeuge:
 		liste.append(fix_eff(f))
-	konto.fix_neu(liste, 0, 0)
+	konto.fix_neu(liste, eco.works_upkeep_cent_pro_periode() if eco != null else 0, 0)   # FK-02: Werksunterhalt über konto
 	_fix_dirty = false
 
 
@@ -728,6 +733,76 @@ func _jahreswechsel(jahr: int) -> void:
 		else:
 			freischaltungen.append({"tick": sim.tick_count, "jahr": jahr, "id": id})
 			meldungen.append("Neu verfügbar: %s" % String(_vdefs.get(id, {}).get("name", id)))
+
+
+# ------------------------------------------------------------------ Firmenkauf C1 (FK-02, API für Mira)
+
+func _site_von(name: String) -> int:
+	return int(stationen[name]["site"]) if stationen.has(name) else -1
+
+
+## Vorschau Kauf: Preis wie buy_site (economy.buy_quote), dazu Folgen und ob der Kauf jetzt geht.
+## {ok, preis_cent, werkspreis_cent, anrechnung_cent, lizenz_gezahlt_cent, rabatt_erster_kauf, felder_hq, faktor_*,
+##  unterhalt_neu_cent_pro_periode, marge_promille, lizenz_entfaellt, guthaben_ohne_kredit_cent, kaufbar, grund}
+func kauf_angebot(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var site := _site_von(name)
+	var q: Dictionary = eco.buy_quote(site)
+	if not q["ok"]:
+		return q
+	var frei: int = eco.cash_cent - (credit.loan_cent if eco.buy_credit_blocks else 0)
+	q["unterhalt_neu_cent_pro_periode"] = eco.upkeep_per_level * int(eco.s_werksstufe[site])
+	q["marge_promille"] = eco.works_margin
+	q["lizenz_entfaellt"] = true
+	q["guthaben_ohne_kredit_cent"] = frei
+	var preis: int = q["preis_cent"]
+	var grund := ""
+	if int(eco.s_owner[site]) == 1:
+		grund = "schon_gekauft"
+	elif int(eco.s_owner[site]) != 0:
+		grund = "besitzer_reserviert"
+	elif eco.cash_cent < 0:
+		grund = "kasse_im_minus"
+	elif eco.buy_only_balance and frei < preis:
+		grund = "kredit_sperrt_firmenkauf" if eco.cash_cent >= preis else "guthaben_reicht_nicht"
+	q["kaufbar"] = grund == ""
+	q["grund"] = grund
+	return q
+
+
+## Kauf: economy.buy_site mit konto (Buchung als Ausgabe) und credit (Kreditgeld kauft keine Firma).
+func firma_kaufen(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var r: Dictionary = eco.buy_site(_site_von(name), konto, credit)
+	if r.get("ok", false):
+		_fix_dirty = true
+	return r
+
+
+## Vorschau Ausbau: {ok, stufe_neu, kosten_cent, durchsatz_neu, unterhalt_neu_cent_pro_periode} oder {ok: false, fehler}.
+func ausbau_angebot(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	return eco.upgrade_quote(_site_von(name))
+
+
+func werk_ausbauen(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var r: Dictionary = eco.upgrade_site(_site_von(name), konto, credit)
+	if r.get("ok", false):
+		_fix_dirty = true
+	return r
+
+
+func werksunterhalt_cent_pro_periode() -> int:
+	return eco.works_upkeep_cent_pro_periode() if eco != null else 0
 
 
 # ------------------------------------------------------------------ Tick

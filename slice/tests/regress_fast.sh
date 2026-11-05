@@ -66,7 +66,7 @@ godot_step s7_boot_default auto -s res://tests/s7_boot.gd
 godot_step s7_boot_arg auto -s res://tests/s7_boot.gd -- --welt=s7
 # --- 4) Proto-Suiten (Ausgabe außerhalb res://: proto_mass schreibt sonst nach sprints/ und ändert getrackte Dateien)
 for s in proto_terrain_test ta_import_test proto_epochen_test proto_strassenband_test proto_welt_test proto_sim_test \
-         proto_band_hoehe_test proto_schilder_test proto_fixpass_test; do
+         proto_band_hoehe_test proto_schilder_test proto_fixpass_test s8_fk02_test; do   # s8_fk02_test: FK-02/OE-05 (Felix 05.11., FK-02.md Offen 7)
   godot_step "$s" auto -s res://tests/$s.gd
 done
 godot_step proto_easing_test auto -s res://tests/proto_easing_test.gd -- --csv="$HERE/$LOGS/proto_easing.csv"

@@ -93,6 +93,8 @@ func _run() -> void:
 	var c1: int = ps.pruefsumme()
 	var r2 := _lauf(s, TICKS)
 	pruef(c1 == r2[1], "deterministisch: zweiter Lauf gleiche Prüfsumme (%d)" % c1)
+	if ps.tempo_k == 1:
+		pruef(c1 == FEST_PRUEFSUMME, "FK-02: feste Kette ohne Kauf unverändert gegen Stand vor FK-02-Verdrahtung (%d, Soll %d)" % [c1, FEST_PRUEFSUMME])
 	_at02(s)
 	print("Prüfungen OK: %d, FAIL: %d" % [n_ok, n_fail])
 	quit(0 if n_fail == 0 else 1)
@@ -192,6 +194,7 @@ func _at02(s: Node) -> void:
 	_at02_kalender(s)
 	_fz02(s)
 	_at03(s)
+	_fk02(s)
 
 
 ## Kredit wie d07 --only=kredit (gespiegelt: B0, B1, B2, B6, B7 verkürzt, B8, B13).
@@ -406,3 +409,50 @@ func _at03(s: Node) -> void:
 	pruef(lz.get("ok", false) and r.get("ok", false) and menge > 0,
 		"AT-03 2. Farm liefert: Hof Hasenwinkel → Erlenmühle %d Getreide in 3000 Ticks (Knoten %d, %.1f m vom Ladeplatz, Lizenz %s, Linie %s)" % [
 		menge, int(st2.get("knoten", -1)), float(st2.get("abstand_m", -1.0)), str(lz.get("fehler", "ok")), str(r.get("fehler", "ok"))])
+
+
+## Prüfsumme der festen Kette (6.000 Ticks, k = 1) auf s8 8f9fb6f vor der FK-02-Verdrahtung (gemessen 05.11.2026).
+const FEST_PRUEFSUMME := -6753726287387273337
+
+
+## FK-02 in ProtoSim: Kauf bucht Kasse um den Vorschaupreis ± 0, Werksunterhalt je Periode über konto, Ausbau, Kredit sperrt.
+func _fk02(s: Node) -> void:
+	var ps = _neu(s, true)
+	_bis(ps, 600)
+	var q: Dictionary = ps.kauf_angebot(MUEHLE)
+	var c0: int = ps.eco.cash_cent
+	var r: Dictionary = ps.firma_kaufen(MUEHLE)
+	pruef(q.get("ok", false) and q["kaufbar"] and r.get("ok", false) and ps.eco.cash_cent == c0 - int(q["preis_cent"]) and int(q["preis_cent"]) > 0,
+		"FK-02 Kauf Mühle: Vorschau %d ¢ (Werk %d, Anrechnung %d, Erstrabatt %s), Kasse %d → %d (Δ = Vorschau ± 0)" % [
+		int(q.get("preis_cent", -1)), int(q.get("werkspreis_cent", -1)), int(q.get("anrechnung_cent", -1)), str(q.get("rabatt_erster_kauf", "?")), c0, ps.eco.cash_cent])
+	var sum_fix := 0
+	for f in ps.fahrzeuge:
+		sum_fix += ps.fix_eff(f)
+	var up: int = ps.werksunterhalt_cent_pro_periode()
+	_bis(ps, 1200)
+	var e0: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid - int(q["preis_cent"])
+	_bis(ps, 1800)
+	var e1: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid - int(q["preis_cent"])
+	pruef(up == int(q["unterhalt_neu_cent_pro_periode"]) and up == 2000 and e1 - e0 == sum_fix + up and ps.konto.running_cost_per_period == sum_fix + up,
+		"FK-02 Werksunterhalt %d ¢/Periode über konto: Periode gebucht %d ¢ = Fahrzeuge %d + Werk %d" % [up, e1 - e0, sum_fix, up])
+	var aq: Dictionary = ps.ausbau_angebot(MUEHLE)
+	var c1: int = ps.eco.cash_cent
+	var ar: Dictionary = ps.werk_ausbauen(MUEHLE)
+	_bis(ps, 2400)
+	var e2: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid - int(q["preis_cent"]) - int(aq.get("kosten_cent", 0))
+	pruef(aq.get("ok", false) and ar.get("ok", false) and c1 - int(aq["kosten_cent"]) == c1 - int(ar["bezahlt_cent"]) and int(ps.eco.s_werksstufe[ps.stationen[MUEHLE]["site"]]) == 2
+		and ps.werksunterhalt_cent_pro_periode() == 4000 and e2 - e1 == sum_fix + 4000,
+		"FK-02 Ausbau Stufe 2: %d ¢ (Vorschau %d), Durchsatz %d, Unterhalt 4000 ¢, Periode gebucht %d ¢" % [int(ar.get("bezahlt_cent", -1)), int(aq.get("kosten_cent", -1)), int(ar.get("durchsatz", -1)), e2 - e1])
+	pruef(not ps.firma_kaufen(MUEHLE)["ok"] and not ps.kauf_angebot(MUEHLE)["kaufbar"] and ps.kauf_angebot(MUEHLE)["grund"] == "schon_gekauft", "FK-02 zweiter Kauf abgelehnt (schon_gekauft)")
+	# Kreditgeld kauft keine Firma
+	var pk = _neu(s, true)
+	_bis(pk, 7200)
+	for i in 4:
+		pk.kredit_aufnehmen()
+	var qk: Dictionary = pk.kauf_angebot(MUEHLE)
+	pk.eco.cash_cent = int(qk["preis_cent"]) + 1000          # Kasse reicht nur mit Kreditgeld
+	qk = pk.kauf_angebot(MUEHLE)
+	var ck: int = pk.eco.cash_cent
+	var rk: Dictionary = pk.firma_kaufen(MUEHLE)
+	pruef(not qk["kaufbar"] and qk["grund"] == "kredit_sperrt_firmenkauf" and not rk["ok"] and rk["fehler"] == "kredit_sperrt_firmenkauf" and pk.eco.cash_cent == ck,
+		"FK-02 Kreditgeld kauft keine Firma: Kasse %d ¢, Kredit %d ¢, Vorschau-Grund %s, Kauf %s, Kasse unverändert" % [ck, pk.credit.loan_cent, qk["grund"], rk.get("fehler", "ok")])

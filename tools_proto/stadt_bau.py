@@ -39,6 +39,10 @@ PARZ = {
     "schmiede": (15.0, 20.0),
     "kirche_dorf": (37.5, 37.5),
 }
+BAULINIE_MIN_M = 3.2     # WA-10: Dorf-Baulinie 3..15 m (Validator, Toleranz 0,5 m): Haupthaus mindestens so weit vom Wegrand
+JR_MAX_GRAD = 4.0         # WA-10: Drehung des Haupthauses gegen die Parzelle (Bezugslinie +-10 Grad inkl. Wegkruemmung)
+KIRCHE_V_FRONT = 6.0     # WA-10: Vorderkante Dorfkirche 6 m hinter der Parzellen-Vorderkante
+HAUPTHAUS = ("kate", "bauernhof", "grosshof", "handwerkerhaus", "gasthaus", "schmiede")
 GEBAEUDE_TYPEN = set(HAUS) | {"nebengebaeude"}
 
 
@@ -157,9 +161,17 @@ def baue_hofstelle(szene, ort, pid, typ, P, eu, ev, W, T, rng, ohne_haus=False, 
         ju = rng.uniform(-2.0, 2.0) if jit else 0.0
         jv = rng.uniform(-1.0, 1.0) if jit else 0.0
         jr = rng.uniform(-8.0, 8.0) if jit else 0.0
+        # WA-10 Baulinie/Bezugslinie: Haupthaus mindestens BAULINIE_MIN_M hinter der Wegkante (Parzellen-Vorderkante liegt 0,5 m vom Wegrand,
+        # die Drehung hebt die vordere Ecke um (b/2) sin(jr)) und Drehung gegen die Parzelle auf JR_MAX_GRAD begrenzt. Zufallszahlen unveraendert gezogen.
+        if typ_ in HAUPTHAUS:
+            jr = max(-JR_MAX_GRAD, min(JR_MAX_GRAD, jr))
+            vmin = ht / 2.0 + BAULINIE_MIN_M - 0.5 + (hb / 2.0) * math.sin(math.radians(abs(jr)))
+            v = max(v, vmin - jv) if jit else max(v, vmin)
         x, z = lokal_zu_welt(P, eu, ev, u + ju, v + jv)
         if fremd(obb_ecken(x, z, hb, ht, rot0 + jr + extra_rot)):
             ju = jv = jr = 0.0
+            if typ_ in HAUPTHAUS:
+                v = max(v, ht / 2.0 + BAULINIE_MIN_M - 0.5)
             x, z = lokal_zu_welt(P, eu, ev, u, v)
         d = szene.add(typ_, x, z, rot0 + jr + extra_rot, pid, ort, b=hb, t=ht, **kw)
         erz.append(d)
@@ -261,7 +273,7 @@ def baue_hofstelle(szene, ort, pid, typ, P, eu, ev, W, T, rng, ohne_haus=False, 
         prop("holzstapel", -hw + 2.0, 13.0)
         prop("fass", hw - 2.0, 4.5)
     elif typ == "kirche_dorf":
-        h = haus(typ, 0.0, T / 2.0 + 2.0, jit=False)
+        h = haus(typ, 0.0, HAUS[typ][1] / 2.0 + KIRCHE_V_FRONT, jit=False)      # WA-10: Dorfkirche 3-15 m hinter dem Wegrand (vorher Parzellenmitte, 16,3 m)
         flaeche("kirchhof", -hw + 0.5, hw - 0.5, 0.5, T - 0.5)
         baum("laubbaum", -hw + 4.0, 5.0)
         baum("laubbaum", hw - 4.0, 5.0)

@@ -447,7 +447,7 @@ STADT_PARZ = {  # Front, Tiefe (m): 8-12 m Front (05 Abschnitt 3e), geschlossene
 }
 
 
-MARKTSTRASSE_RA = 7.5       # WA-10 Baulinie Kleinstadt 0-3 m: Achsabstand der Parzellenkante (Strasse 6 m = Wegrand bei 3,0 m, Luecke 1,5 m); vorher 7,5 (Luecke 4,5 m)
+MARKTSTRASSE_RA = 4.5       # WA-10 Baulinie Kleinstadt 0-3 m: Achsabstand der Parzellenkante (Strasse 6 m = Wegrand bei 3,0 m, Luecke 1,5 m); vorher 7,5 (Luecke 4,5 m)
 
 
 def markt_rahmen():
@@ -823,6 +823,7 @@ def bauen(src=SRC_DEFAULT):
     br_boxen = [(BRUECKE_S[0], BRUECKE_N[1], BRUECKE_S[0], BRUECKE_S[1]), (BACHBRUECKE[0], BACHBRUECKE[1], BACHBRUECKE[0], BACHBRUECKE[1])]
     anderes = [w for k, w in wo.items() if k != "chaussee"]
     n_allee, allee_abs = allee_bauen(geo, szene, wo["chaussee"].punkte, br_boxen, [(K[0], K[1], 150.0), (TOR[0], TOR[1], 30.0)], anderes)
+    n_bezug = bezug_ausrichten(szene, wo)     # WA-10 Bezugslinie, rein geometrisch
     farm2 = farm2_bauen(geo, szene, wo)       # WA-07, bewusst zuletzt: bestehende Instanzen/Wege/Zufallsstroeme bleiben bitgleich
     ladeplaetze = ladeplaetze_bauen(geo, szene, wo, ol_d, ol_w, ol_m)     # WA-08, rein geometrisch (kein Zufallsstrom)
     return geo, szene, wo, TOR, chaussee_roh, dict(farm2=farm2, allee=(n_allee, allee_abs), dorf=ol_d, weiler=ol_w, markt=ol_m, see=see, luecken=luecken, mauer=mauer, n_schlag=n_schlag,
@@ -863,6 +864,54 @@ def steigung_entschaerfen(geo, punkte, ziel_pct, rng, schritt=5.0, iterationen=3
             ctrl, best = c, o
     neu = glatt(ctrl, schritt, 8)
     return [tuple(map(float, q)) for q in r[:i0]] + [tuple(map(float, q)) for q in neu] + [tuple(map(float, q)) for q in r[i1 + 1:]]
+
+
+BEZUG_AUSLOESER_GRAD = 8.0     # WA-10: Haupthaus mit mehr als so viel Abweichung zur naechsten Wegtangente wird nachgedreht
+BEZUG_KORR_MAX_GRAD = 6.0      # ... um hoechstens so viel (Gebaeude bleibt in seiner Parzelle)
+
+
+def _winkel_abw(rot_deg, p, q):
+    r = math.radians(rot_deg)
+    ab = math.degrees(math.atan2(-math.sin(r), math.cos(r)))
+    ar = math.degrees(math.atan2(q[1] - p[1], q[0] - p[0]))
+    d = (ab - ar) % 90.0
+    return min(d, 90.0 - d)
+
+
+def bezug_ausrichten(szene, wo):
+    """WA-10 Bezugslinie (Traufe/Giebel +-10 Grad zur naechsten Wegtangente): an gekruemmten Wegen (Gasse Kirch) weicht die Parzellenachse von der Tangente
+    am naechsten Wegpunkt ab. Haupthaeuser darueber werden um die Abweichung (max. BEZUG_KORR_MAX_GRAD) nachgedreht, sofern der gedrehte Footprint
+    kein anderes Gebaeude beruehrt. Rein geometrisch, kein Zufallsstrom."""
+    haupt = set(HAUS) - {"nebengebaeude", "stadttor"}
+    n = 0
+    for d in szene.inst:
+        if d["typ"] not in haupt or "b" not in d or d["ort"] not in ("erlenbach", "hasenwinkel", "lindenfurt"):
+            continue
+        best = None
+        for w in wo.values():
+            dist, k, _ = poly_abstand((d["x"], d["z"]), w.punkte)
+            if best is None or dist < best[0]:
+                best = (dist, w, k)
+        _, w, k = best
+        abw = _winkel_abw(d["rot_deg"], w.punkte[k], w.punkte[k + 1])
+        if abw <= BEZUG_AUSLOESER_GRAD:
+            continue
+        c = min(abw, BEZUG_KORR_MAX_GRAD)
+        for rot_neu in sorted((d["rot_deg"] + c, d["rot_deg"] - c), key=lambda r: _winkel_abw(r, w.punkte[k], w.punkte[k + 1])):
+            if _winkel_abw(rot_neu, w.punkte[k], w.punkte[k + 1]) >= abw:
+                continue
+            e_neu = obb_ecken(d["x"], d["z"], d["b"], d["t"], rot_neu)
+            e_alt = obb_ecken(d["x"], d["z"], d["b"], d["t"], d["rot_deg"])
+            andere = [f for f in szene.foot if not (f[1] == d["typ"] and f[2] == d["parzelle"] and abs(sum(q[0] for q in f[0]) / 4.0 - d["x"]) < 0.01)]
+            if any(obb_ueberlappt(e_neu, f[0]) for f in andere):
+                continue
+            for i, f in enumerate(szene.foot):
+                if f[1] == d["typ"] and f[2] == d["parzelle"] and abs(sum(q[0] for q in f[0]) / 4.0 - d["x"]) < 0.01:
+                    szene.foot[i] = (e_neu, f[1], f[2], f[3])
+            d["rot_deg"] = r2(((rot_neu + 180.0) % 360.0) - 180.0)
+            n += 1
+            break
+    return n
 
 
 # ---------------------------------------------------------------- WA-08 Ladeplaetze

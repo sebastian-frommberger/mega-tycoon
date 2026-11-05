@@ -5,7 +5,7 @@
 #   Nachts im Hintergrund:  setsid nohup tests/flaky_nacht.sh --n=5 --out=/tmp/claude-0/flaky_$(date +%F) > /tmp/claude-0/flaky.log 2>&1 &
 # Stufen:
 #   voll     (Default) je Lauf d07_regression.sh = die volle Regression (nach QT-01b: Bestand, d07_abnahme, d08 n=100, s7_*, perf_s7, Spikes,
-#            Statik UND die 11 Proto-Suiten; 35 Zeilen; seit QT-03c plus s8_bot_smoke und s8_exploit_smoke = 37 Zeilen). Messung QT-01: 524 s (24 Zeilen, ohne Last) bzw. 720 s (35 Zeilen, Loadavg bis 3,6) je Lauf,
+#            Statik UND die 11 Proto-Suiten; 35 Zeilen in QT-01b; QT-03c: gemessen 40 Zeilen inkl. s8_bot_smoke und s8_exploit_smoke, 734 s bei Loadavg ca. 2). Messung QT-01: 524 s (24 Zeilen, ohne Last) bzw. 720 s (35 Zeilen, Loadavg bis 3,6) je Lauf,
 #            5 Läufe also ca. 45-60 min (Sandbox).
 #   schnell  je Lauf nur regress_fast.sh (QT-01b, ca. 70-115 s je Lauf; Test des Werkzeugs und Zwischenstufe).
 #   beide    je Lauf d07_regression.sh UND regress_fast.sh (fast hat zusätzlich die statischen Kassen-/Tempo-Checks und Namen je Block; doppelt

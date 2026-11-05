@@ -86,12 +86,12 @@ Hinweise: `--a=` überschreibt `tempo_ausgleich_promille` aus der JSON (Priorit�
 - `slice/tests/s8_bot_smoke.sh bot`: Bot n = 2 × 3 Strategien, k = 1. Sechs Prüfungen: Exit 0, keine `ERROR`-Zeile, Determinismus OK, Kassen-/Lieferungs-Abgleich ohne Meldung, 6 CSV-Zeilen, gleiche Feldzahl in jeder Zeile. Misst keine Bänder.
 - `slice/tests/s8_bot_smoke.sh exploit`: X1 mit zwei Strecken, Getreide, k = 1: zweimal gleiche CSV (deterministisch), `--a=2000` gibt dieselbe Liefermenge E und 2 × Ertrag. Sechs Prüfungen.
 - Eingebunden als Zeilen `s8_bot_smoke (QT-03c)` und `s8_exploit_smoke (QT-03c)` in `d07_regression.sh` (§2h, nach den Proto-Suiten) und als `s8_bot_smoke`/`s8_exploit_smoke` in `regress_fast.sh`. Timeout = 3 × Baseline (`laufzeiten.txt`: Bot 50 s, Exploit 8 s; gemessen 35 s bzw. 8 s bei Loadavg 2 bis 3).
-- `flaky_nacht.sh` ruft `d07_regression.sh` (Stufe voll) bzw. `regress_fast.sh` und liest deren Zusammenfassungen: die neuen Zeilen sind ohne Änderung der Auswertung dabei (voll: 37 statt 35 Zeilen). Ich habe nur den Kommentar im Kopf angepasst.
+- `flaky_nacht.sh` ruft `d07_regression.sh` (Stufe voll) bzw. `regress_fast.sh` und liest deren Zusammenfassungen: die neuen Zeilen sind ohne Änderung der Auswertung dabei (voll: gemessen 40 Zeilen). Ich habe nur den Kommentar im Kopf angepasst.
 - **Wächter einmal absichtlich rot gemacht (gemessen):** Exploit mit `--a=1500` statt 2000 → "Ertrag = 2 ×" FAIL (5/6); Bot mit wieder falscher Formatzeile → "keine ERROR-Zeile" und "gleiche Feldzahl" FAIL (4/6), Exit 0 des Bots allein hätte es nicht gezeigt.
 - **Messung des Gesamtlaufs:** siehe §6.
 
 ## 6. Regressionslauf mit den neuen Zeilen
-ERGEBNIS_REGRESSION
+`slice/tests/flaky_nacht.sh --n=1 --stufe=beide` (nohup, Log): **1 Lauf, Exit d07 = 0, Exit fast = 0, 864 s Wanduhr** (Loadavg vor/nach 2,0 / 2,2). `d07_regression.sh` 734 s, **40 Zeilen alle OK** (davon `s8_bot_smoke` 16,5 s und `s8_exploit_smoke` 4,3 s, beide 6/6); `regress_fast.sh` 130 s (Ziel < 300 s), **30 Zeilen alle OK** (Bot 16,5 s, Exploit 4,2 s). Flaky-Tabelle: 70 Zellen, 0 rot, 0,00 %. Ein Lauf kann keine Flakiness zeigen (QT-02): Die Zeilen sind aufgenommen und ein Mal grün, nicht 10/10. Die Zeiten liegen unter dem Bot-Timeout (50 s Baseline → 150 s). Git-Stand des Laufs ce84121 (vor den letzten Berichts-Commits; Code unverändert). Logs: `qt03c/flaky1/`.
 
 ## 7. Grenzen
 - Die Gleichheit Emulation = Haken ist an 160 Läufen gezeigt (a = 1.000, 1.572, 3.133). Nicht gezeigt: andere a, andere Strategien bei a ≠ 1.000, `naiv`/`normal` mit `--a`.

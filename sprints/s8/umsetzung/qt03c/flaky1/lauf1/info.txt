@@ -1,0 +1,3 @@
+- Start 2026-11-05 11:27:57, Dauer 864 s, Loadavg vor/nach: 2.00 1.97 1.94 / 1.83 2.18 2.18
+- Stufe beide, Exit d07_regression.sh: 0, regress_fast.sh: 0 (0 = grün oder nicht gelaufen)
+- Git: ce84121, Godot: 4.7.2.stable.official.ed1daf0bf

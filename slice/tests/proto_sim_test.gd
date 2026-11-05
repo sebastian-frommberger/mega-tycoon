@@ -422,7 +422,7 @@ func _at03(s: Node) -> void:
 
 
 ## Prüfsumme der festen Kette (6.000 Ticks, k = 1) auf s8 8f9fb6f vor der FK-02-Verdrahtung (gemessen 05.11.2026).
-const FEST_PRUEFSUMME := 1803066295721950847   # S8 05.11.: neu gesetzt nach WA-08 (Durchgangs-Ladeplatz Muehle, Gutsweg bis Hoftor) und WA-10 (Weltdaten); vorher -6753726287387273337 (FK-02-Stand 8f9fb6f)
+const FEST_PRUEFSUMME := 1078369192135197259   # S8 05.11. FX4: neu nach Ladeplatz-Halt Option (b) (Fuhrwerke am Ladeplatz der Orte, Kutsche/HQ am Ortsknoten); vorher 1803066295721950847 (WA-08/10)
 
 
 ## FK-02 in ProtoSim: Kauf bucht Kasse um den Vorschaupreis ± 0, Werksunterhalt je Periode über konto, Ausbau, Kredit sperrt.

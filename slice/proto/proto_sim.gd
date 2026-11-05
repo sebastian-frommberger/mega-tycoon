@@ -389,6 +389,13 @@ func _lkw() -> Dictionary:
 	return _vdef
 
 
+## FX4: Lager-Slot am Knoten für die Kulisse (Postkutsche); vorhandene Station wird wiederverwendet, kein Eintrag in stationen.
+func _halt_station(knoten: int) -> int:
+	if not sim._station_of.has(knoten):
+		sim.add_station(knoten, "Halt k%d" % knoten, 0, 0, 0)
+	return int(sim._station_of[knoten])
+
+
 ## Station ohne Ökonomie (synthetische Tests): Lager-Slot am Knoten.
 func station_leer(name: String, knoten: int) -> int:
 	sim.add_station(knoten, name, 0, 0, 0)
@@ -422,7 +429,7 @@ func kette_aufbauen(orte: Dictionary, extra_fuhrwerke := 0) -> bool:
 	var s_muehle: int = _reg["s_muehle"]
 	var s_dorf: int = _reg["s_dorf"]
 	var s_stadt: int = _reg["s_stadt"]
-	if not eco.start_company_at(n_dorf, "dorf"):
+	if not eco.start_company_at(n_dorf, "dorf"):                   # HQ an der Dorf-Station (UI ist_hq vergleicht Site-Position)
 		fehler.append("Kette: Firma nicht gegründet")
 	for s in [s_farm, s_muehle]:
 		var r: Dictionary = eco.buy_licence(s)
@@ -433,7 +440,10 @@ func kette_aufbauen(orte: Dictionary, extra_fuhrwerke := 0) -> bool:
 	linie("fuhrwerk", "Fuhrwerk 1 (Getreide)", n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
 	linie("fuhrwerk", "Fuhrwerk 2 (Mehl)", n_muehle, n_dorf, eco.s_station[s_muehle], eco.s_station[s_dorf])
 	if s_stadt >= 0:
-		linie("postkutsche", "Postkutsche", n_dorf, n_stadt, eco.s_station[s_dorf], eco.s_station[s_stadt], true)
+		# FX4 (Option b): Postkutsche (Kulisse, W21) hält wie bisher an den Ortsknoten, nicht am Ladeplatz
+		var m_dorf: int = _reg["m_dorf"]
+		var m_stadt: int = _reg["m_stadt"]
+		linie("postkutsche", "Postkutsche", m_dorf, m_stadt, _halt_station(m_dorf), _halt_station(m_stadt), true)
 	for x in extra_fuhrwerke:
 		if x % 2 == 0:
 			linie("fuhrwerk", "Fuhrwerk Bench %d" % x, n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
@@ -476,7 +486,8 @@ const ORT_FALLBACK := {"dorf": "dorf_agrar", "kleinstadt": "kleinstadt_a", "mark
 var uebersprungen: Array = []        # AT-03: [Name, Grund] nicht registrierter Einträge
 
 func orte_registrieren(orte: Dictionary) -> bool:
-	_reg = {"n_farm": -1, "n_muehle": -1, "n_dorf": -1, "n_stadt": -1, "s_farm": -1, "s_muehle": -1, "s_dorf": -1, "s_stadt": -1}
+	_reg = {"n_farm": -1, "n_muehle": -1, "n_dorf": -1, "n_stadt": -1, "s_farm": -1, "s_muehle": -1, "s_dorf": -1, "s_stadt": -1,
+		"m_dorf": -1, "m_stadt": -1}
 	for ind in orte.get("industrie", []):
 		var nm := String(ind.get("name", ind.get("id", "?")))
 		var def: String = IND_TYP.get(String(ind.get("typ", "")), "")
@@ -513,19 +524,29 @@ func orte_registrieren(orte: Dictionary) -> bool:
 			uebersprungen.append([nm, "Klasse %s ohne Stadt-Typ" % klasse])
 			continue
 		var c := Vector2(float(o["x"]), float(o["z"]))
-		var n := knoten_naechst(c, true, float(o.get("r_m", 200.0)))
-		if n < 0:
-			n = knoten_naechst(c)
+		var n_mitte := knoten_naechst(c, true, float(o.get("r_m", 200.0)))
+		if n_mitte < 0:
+			n_mitte = knoten_naechst(c)
+		# FX4 (PO 05.11., Option b): Wirtschafts-Station (Fuhrwerke, HQ) am Ladeplatz (WA-08); Ortsknoten bleibt für die Postkutsche
+		var n := n_mitte
+		var olp = o.get("ladeplatz", null)
+		if olp is Dictionary and olp.has("x"):
+			var lp := Vector2(float(olp["x"]), float(olp["z"]))
+			var n_lp := knoten_halt(lp)
+			if n_lp >= 0 and eco.site_of_node(n_lp) < 0:
+				n = n_lp
+				c = lp
 		if n < 0 or eco.site_of_node(n) >= 0:
 			uebersprungen.append([nm, "kein freier Knoten"])
 			continue
 		var site: int = eco.add_city_site(n, city_id)
 		stationen[nm] = {"knoten": n, "site": site, "k": eco.s_station[site], "id": city_id, "ort_id": String(o.get("id", "")),
-			"abstand_m": c.distance_to(Vector2(knoten_pos[n].x, knoten_pos[n].z))}
+			"abstand_m": c.distance_to(Vector2(knoten_pos[n].x, knoten_pos[n].z)), "knoten_mitte": n_mitte}
 		var rolle := "dorf" if stufe == "dorf" else "stadt"
 		if int(_reg["s_" + rolle]) < 0:
 			_reg["n_" + rolle] = n
 			_reg["s_" + rolle] = site
+			_reg["m_" + rolle] = n_mitte
 	if int(_reg["s_farm"]) < 0 or int(_reg["s_muehle"]) < 0 or int(_reg["s_dorf"]) < 0:
 		fehler.append("Kette: Farm/Mühle/Dorf fehlt in proto_orte.json")
 		return false
@@ -541,7 +562,7 @@ func spiel_starten(orte: Dictionary) -> bool:
 		return false
 	if not orte_registrieren(orte):
 		return false
-	if not eco.start_company_at(_reg["n_dorf"], "dorf"):
+	if not eco.start_company_at(_reg["n_dorf"], "dorf"):          # HQ an der Dorf-Station (FX4: Ladeplatz)
 		fehler.append("Start: Firma nicht gegründet")
 		return false
 	return true

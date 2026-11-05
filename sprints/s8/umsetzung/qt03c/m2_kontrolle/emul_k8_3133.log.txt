@@ -1,0 +1,32 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PROTO_WELT stufen { "lies_daten": 7.125, "baue_gelaende": 292.263, "baue_wege": 364.837, "baue_modelle": 592.518, "baue_fahrzeuge": 592.523, "baue_schilder": 600.805 } sim []
+PROTO_WELT lade_ms 612.3 terrain=TA wege=16 instanzen=1005 knoten=13 bruecken=1 fahrzeuge=0 kette=aus
+s8_loop_bot: n=20, Strategien ["plan"], Seeds 1..20, 45 min, Takt 300 Ticks, Szene laden 829 ms
+CSV: /tmp/claude-0/qt4out/m2/emul_k8_3133.csv (20 Zeilen)
+== plan (n=20, tempo_k 8)
+  Bankrott: 0/20 = 0.0 % (Wilson 95 %: 0.0-16.1 %), Minute P50 -1.0 (nur Bankrotte)
+  Ziele (erste Minute; erreicht/n; P25/P50/P75 unter den Erreichern):
+    e1        20/20   P25   0.0  P50   0.5  P75   0.5
+    e2        20/20   P25   0.0  P50   0.5  P75   0.5
+    e3        20/20   P25   0.6  P50   1.1  P75   1.1
+    e4        20/20   P25   3.7  P50   4.7  P75   4.7
+    e5        20/20   P25   0.0  P50   0.5  P75   0.5
+    e6_alle   19/20   P25   5.0  P50   6.0  P75   6.0
+    e6_eine   20/20   P25   5.0  P50   6.0  P75   6.0
+    f1        20/20   P25   9.0  P50  10.0  P75  11.0
+    f2_op      0/20   P25  -1.0  P50  -1.0  P75  -1.0
+    f2_kasse   0/20   P25  -1.0  P50  -1.0  P75  -1.0
+  Ereignisse je Lauf (Mittel) 1..8: [6.95, 16.2, 0.65, 0.0, 1.0, 1.0, 0.0, 20.9]; ev3 nach Spec (v_lwait > 600) ungezählt in Lücke
+  größte Ereignislücke Min 2-45: P50 4.0 min, P90 5.0 min, Max 8.0 min; Läufe mit Lücke <= 3.0 min: 0/20
+  größte Lücke OHNE Ereignis 3 (Ersatzdefinition [E], feuert häufig): P50 5.0 min, P90 6.0 min, Max 8.0 min
+  Kasse Tiefpunkt Min 5-20 (min je Lauf): P50 2869 $ (W24-Kriterium: P50 < 2.000 $), Fuhrwerke max P50 22
+  Netto operativ 5-Perioden-Mittel Min 30: P50 1143 $/min (F2-Schwelle 600 $/min), n_Bankrott zählt als 0 (Wert 0)
+  Ablehnungen der Spieler-API (Bot-Aufrufe): {  }
+  Sprint-Band: VERLETZT
+Parameter: {"naiv_bau_max":4,"naiv_fehl_pct":50,"naiv_fk_pct":0,"naiv_fz_max":14,"naiv_rest_max":8,"naiv_vergessen_pct":50,"normal_extra_pct":50,"normal_fk_min":28,"normal_reserve":150000,"normal_tilge":150000,"plan_ausbau":1,"plan_farm2":1,"plan_farm2_min":20,"plan_fk":1,"plan_fk_min":14,"plan_jitter":2,"plan_lindenfurt_min":10,"plan_mehl_dorf2":15,"plan_mehl_stadt2":25,"plan_reserve":150000}
+Firmenkauf-Schnittstelle (FK-02): angebunden: kauf_angebot/firma_kaufen/ausbau_angebot/werk_ausbauen
+LAUFZEIT 20 Läufe: Summe 64.5 s, Mittel 3227 ms/Lauf, Max 3406 ms; Gesamtlauf inkl. Determinismus-Doppel 64.5 s, Szene laden 0.8 s
+HOCHRECHNUNG n=300 (Mittel x 300 x 1 Strategien, linear): 16.1 min; n=150: 8.1 min (Annahme: Laufzeit je Lauf unabhängig von n, gleiche Last)
+Determinismus: OK (nicht geprüft: --ohne_det)
+s8_loop_bot Exit 0

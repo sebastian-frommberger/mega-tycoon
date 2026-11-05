@@ -1,0 +1,5 @@
+alt k=1 exit=0
+alt k=4 exit=0
+alt a k4 exit=0
+alt a k8 exit=0
+FERTIG

@@ -21,6 +21,13 @@ uniform float streifen_m = 10.0;            // Ackerstreifen 8-15 m (08 b)
 uniform vec4 gewaesser[4];                  // (x, z, r_aussen, pegel) stehende Gewaesser
 uniform int gewaesser_n = 0;
 uniform float ufer_hoehe_m = 0.35;           // Saum ueber dem Pegel
+// WA-03b Relief (RL-1), Werte setzt ProtoLicht.terrain_parameter(); Standard 0 = aus (Rueckfall, A/B):
+uniform float schummer_staerke = 0.0;        // Hangschummerung: Helligkeit +-s auf Haengen ab schummer_voll_hang Neigung
+uniform vec2 schummer_richtung = vec2(0.7071, 0.7071);   // xz-Laufrichtung des Sonnenlichts (normiert)
+uniform float schummer_voll_hang = 0.15;     // |n.xz| (~ Neigung), ab der die Schummerung voll wirkt; darunter linear
+uniform float toenung_staerke = 0.0;         // Hoehentoenung: Tal satter (gruener), Kuppe trockener (gelblich, entsaettigt)
+uniform float hoehe_tal_m = 40.0;
+uniform float hoehe_kuppe_m = 110.0;
 
 varying vec3 w_pos;
 varying vec3 w_nrm;
@@ -68,6 +75,13 @@ void fragment() {
 	} else if (id == 11) {     // Wasserklasse: sichtbar ist dort nur das Ufer (Wasser kommt als eigenes Mesh)
 		col = c_ufer;
 	}
+	// WA-03b Hoehentoenung (0 Texturzugriffe, Hoehe aus w_pos.y): hn -1 Tal .. +1 Kuppe
+	if (id != 11 && toenung_staerke > 0.0) {
+		float hn = smoothstep(hoehe_tal_m, hoehe_kuppe_m, w_pos.y) * 2.0 - 1.0;
+		vec3 satt = col * vec3(1.0 - 0.5 * toenung_staerke, 1.0, 1.0 - 0.5 * toenung_staerke);
+		vec3 trocken = mix(col, vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))) * vec3(1.08, 1.0, 0.78), toenung_staerke);
+		col = hn < 0.0 ? mix(col, satt, -hn) : mix(col, trocken, hn);
+	}
 	// stehende Gewaesser: Ufersaum nach Hoehe ueber Pegel
 	for (int i = 0; i < gewaesser_n; i++) {
 		vec4 g = gewaesser[i];
@@ -79,6 +93,9 @@ void fragment() {
 	// Fels an steilen Flanken (fein)
 	float hang = 1.0 - normalize(w_nrm).y;
 	col = mix(col, c_fels * (0.94 + 0.12 * vnoise(p * 0.05)), smoothstep(fels_ab_hang, fels_voll_hang, hang));
+	// WA-03b Hangschummerung (lichtunabhaengig, flache Flaeche unveraendert): +s zur Sonne, -s abgewandt
+	vec3 n = normalize(w_nrm);
+	col *= 1.0 + schummer_staerke * dot(n.xz, -schummer_richtung) / max(length(n.xz), schummer_voll_hang);
 	ALBEDO = col;
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.12;

@@ -286,6 +286,7 @@ func _material() -> ShaderMaterial:
 		arr.append(Vector4.ZERO)
 	m.set_shader_parameter("gewaesser", arr)
 	m.set_shader_parameter("gewaesser_n", mini(gewaesser.size(), 4))
+	ProtoLicht.terrain_parameter(m)              # WA-03b: Hangschummerung + Hoehentoenung passend zur Sonne
 	return m
 
 

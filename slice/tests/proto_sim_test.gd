@@ -163,7 +163,12 @@ func _at02(s: Node) -> void:
 	var fix_p: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid - e0
 	pruef(sum_fix > 0 and fix_p == sum_fix and ps.konto.running_cost_per_period == sum_fix,
 		"A6 Fix je Periode = Σ fix_eff: gebucht %d ¢ in 600 Ticks, Σ %d ¢, laufend %d ¢" % [fix_p, sum_fix, ps.konto.running_cost_per_period])
-	pruef(ps.lieferungen.size() > 0, "A7 gekaufte Linie liefert (%d Lieferungen in 600 Ticks)" % ps.lieferungen.size())
+	# FZ-09: bei k = 20 (0,75 m/Tick) braucht die erste Fahrt länger als 600 Ticks; dann weiter bis zur ersten Lieferung,
+	# höchstens 600 × k Ticks (bei k ≤ 8 liegt die Lieferung schon im Fenster, der Test läuft unverändert)
+	var t_a7: int = ps.sim.tick_count
+	while ps.lieferungen.is_empty() and ps.sim.tick_count < t_a7 + 600 * (ps.tempo_k - 1) and not ps.konto.bankrupt:
+		ps.tick()
+	pruef(ps.lieferungen.size() > 0, "A7 gekaufte Linie liefert (%d Lieferungen in %d Ticks)" % [ps.lieferungen.size(), 600 + ps.sim.tick_count - t_a7])
 	# A8 Restwert W20
 	var f0: Dictionary = ps.fahrzeuge[0]
 	var ld: int = ps.lebensdauer_ticks(f0)

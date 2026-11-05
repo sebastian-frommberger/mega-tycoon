@@ -113,7 +113,9 @@ static func fluss_mesh(t) -> MeshInstance3D:
 					uv.append(Vector2(-(c1 - c0) * M, dzv).normalized() * FLIESS_MS)
 				vi.append(vid[key])
 			idx.append_array([vi[0], vi[1], vi[2], vi[1], vi[3], vi[2]])
-	return _instanz("Fluss", v, col, uv, idx, _material(0.35))
+	var fm := _material(0.35)
+	t.ufer_sdf_parameter(fm)                  # WA-05: glatte Uferlinie aus dem Distanzfeld (nur Fluss)
+	return _instanz("Fluss", v, col, uv, idx, fm)
 
 
 ## Uferradius mit Rauschen wie tools_proto/ta_export.py (ufer_radius)
@@ -162,7 +164,9 @@ static func steh_mesh(t, g: Dictionary) -> MeshInstance3D:
 					uv.append(Vector2.ZERO)
 				vi.append(vid[key])
 			idx.append_array([vi[0], vi[1], vi[2], vi[1], vi[3], vi[2]])
-	var mi := _instanz(String(g["name"]).capitalize(), v, col, uv, idx, _material(0.3))
+	var sm := _material(0.3)
+	t.ufer_sdf_parameter(sm)                  # WA-05: glatte Uferlinie aus dem Distanzfeld
+	var mi := _instanz(String(g["name"]).capitalize(), v, col, uv, idx, sm)
 	return mi
 
 

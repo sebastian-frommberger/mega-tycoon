@@ -24,6 +24,11 @@ uniform float fliess_periode_s = 8.0;    // Phasenlänge des Fließversatzes (Fl
 uniform float fresnel_staerke = 0.55;    // Anteil Himmelsfarbe bei streifendem Blick
 uniform float fresnel_basis = 0.04;
 uniform float rauheit = 0.3;
+// WA-05 Ufer aus Distanzfeld (nur Fluss): Wasser endet an der glatten Uferlinie (discard), Tiefe am Ufer aus dem Abstand
+uniform sampler2D ufer_sdf : filter_linear, repeat_disable;
+uniform bool ufer_sdf_an = false;
+uniform vec4 sdf_rect = vec4(-1002.5, -1002.5, 4005.0, 3605.0);
+uniform float ufer_neigung = 0.12;      // m Tiefe je m Abstand zur Uferlinie (nur im Uferstreifen)
 
 varying vec3 w_pos;
 varying float tiefe;
@@ -61,6 +66,13 @@ vec2 wellen_grad(vec2 q, out float n0) {
 void fragment() {
 	float d = max(tiefe, 0.0);
 	vec2 p = w_pos.xz;
+	if (ufer_sdf_an) {
+		float s = texture(ufer_sdf, (p - sdf_rect.xy) / sdf_rect.zw).r * 255.0 / 4.0 - 32.0;
+		if (s > 0.0) {
+			discard;
+		}
+		d = mix(-s * ufer_neigung, d, smoothstep(10.0, 25.0, -s));
+	}
 	// Fließen ohne wachsenden Versatz: zwei Phasen (Flowmap-Prinzip), Versatz bleibt <= fliess_periode_s × Tempo
 	float ph1 = fract(TIME / fliess_periode_s);
 	float ph2 = fract(TIME / fliess_periode_s + 0.5);

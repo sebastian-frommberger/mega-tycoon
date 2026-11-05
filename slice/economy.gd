@@ -165,6 +165,10 @@ var werk_max_stufe := 1                  # fabrik.factory_max_level_slice_stufe
 # ---- S8 FK-02 Welt-Overlay (economy_proto.json, apply_proto); 0 = aus, Slice liest die Datei nicht ----
 var inbuf_cap_perioden := 0              # Eingangspuffer-Deckel Verarbeiter = s_rate × N Perioden
 var muehle_rate_fest := 0                # Rückfall W3: Durchsatz Mühle fest (Einheiten/Periode)
+var oe_set := ""                         # OE-02/03: aktives Kalibrier-Set (economy_proto.json kalibrierung_sets), "" = keins
+var oe_set_daten: Dictionary = {}
+var upgrade_cost_l2_override := -1       # OE-02/03: Ausbaukosten Werksstufe 2 aus dem Set, -1 = economy_slice.json
+var demand_factor := PROMILLE            # OE-02/03: Nachfrage-Faktor (Promille) aus dem Set, 1000 = unverändert
 
 var _simref: WeakRef = null           # schwache Referenz: sim.economy hält das Modul, kein Ref-Zyklus
 
@@ -399,6 +403,8 @@ func _felder(dx: int, dy: int) -> int:
 
 func city_demand(site: int) -> int:
 	var mult: int = int(demand_mult.get(s_stage[site], PROMILLE))   # S6: Stufen-Multiplikator (fehlende Stufe = 1000 ‰)
+	if demand_factor != PROMILLE:                                     # OE-02/03 Set (nur Welt)
+		return rdiv(int(c_index[s_city_id[site]]["einwohner_anzahl"]) * demand_per_100 * mult * demand_factor, 100 * PROMILLE * PROMILLE)
 	return rdiv(int(c_index[s_city_id[site]]["einwohner_anzahl"]) * demand_per_100 * mult, 100 * PROMILLE)
 
 
@@ -712,10 +718,48 @@ func apply_proto(proto: Dictionary) -> void:
 	inbuf_cap_perioden = int(c.get("eingangspuffer_deckel_perioden", 0))
 	buy_owned_step = int(c.get("preisaufschlag_je_werk_promille", buy_owned_step))
 	muehle_rate_fest = int(c.get("rueckfall_w3_muehle_durchsatz_einheiten_pro_periode", 0))
+	_apply_oe_set(proto)
 	if muehle_rate_fest > 0:
 		for site in range(s_kind.size()):
 			if s_kind[site] == K_INDUSTRIE and i_ids[s_def[site]] == "muehle":
 				s_rate[site] = muehle_rate_fest
+
+
+## OE-02/03: Kalibrier-Set aus economy_proto.json `kalibrierung_sets.<name>` (nur Welt). Auswahl: Nutzerargument `--oe_set=<name>`
+## (Bot/Exploit-Läufe), sonst `kalibrierung_aktiv_set` (null = keins, Standard). Felder (alle optional, ganzzahlig):
+##   preise_cent_pro_einheit_feld {gut_id: Cent}, startkapital_cent, eingangspuffer_deckel_perioden, werksunterhalt_cent_je_stufe,
+##   ausbau_kosten_l2_cent, nachfrage_faktor_promille. Fahrzeuge stehen als eigene Datensätze in vehicles.json (`fahrzeuge` im Set).
+func _apply_oe_set(proto: Dictionary) -> void:
+	var sets = proto.get("kalibrierung_sets", {})
+	var name := ""
+	if proto.get("kalibrierung_aktiv_set") is String:
+		name = proto["kalibrierung_aktiv_set"]
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--oe_set="):
+			name = a.substr(9)
+	if name == "" or name == "aus":
+		return
+	if not (sets is Dictionary) or not sets.has(name):
+		_err("Kalibrier-Set unbekannt: %s" % name)
+		push_error("Kalibrier-Set unbekannt: %s" % name)
+		return
+	var st: Dictionary = sets[name]
+	oe_set = name
+	oe_set_daten = st
+	var pr: Dictionary = st.get("preise_cent_pro_einheit_feld", {})
+	for gid in pr:
+		if g_index.has(gid):
+			g_price[g_index[gid]] = int(pr[gid])
+	if st.has("startkapital_cent"):
+		start_capital_json = int(st["startkapital_cent"])
+	if st.has("eingangspuffer_deckel_perioden"):
+		inbuf_cap_perioden = int(st["eingangspuffer_deckel_perioden"])
+	if st.has("werksunterhalt_cent_je_stufe"):
+		upkeep_per_level = int(st["werksunterhalt_cent_je_stufe"])
+	if st.has("ausbau_kosten_l2_cent"):
+		upgrade_cost_l2_override = int(st["ausbau_kosten_l2_cent"])
+	if st.has("nachfrage_faktor_promille"):
+		demand_factor = int(st["nachfrage_faktor_promille"])
 
 
 ## Werksmarge: Lose, deren Ursprung ein eigenes Werk ist (lot[1]).
@@ -801,7 +845,8 @@ func upgrade_quote(site: int) -> Dictionary:
 	if neu > werk_max_stufe:
 		return {"ok": false, "fehler": "hoechste_stufe"}
 	var f: Dictionary = slice.get("fabrik", {})
-	return {"ok": true, "stufe_neu": neu, "kosten_cent": int(f.get("factory_upgrade_cost_l%d_cent" % neu, 0)),
+	var kosten: int = upgrade_cost_l2_override if neu == 2 and upgrade_cost_l2_override >= 0 else int(f.get("factory_upgrade_cost_l%d_cent" % neu, 0))
+	return {"ok": true, "stufe_neu": neu, "kosten_cent": kosten,
 		"durchsatz_neu": int(f.get("factory_throughput_l%d_einheiten_pro_periode" % neu, 0)),
 		"unterhalt_neu_cent_pro_periode": upkeep_per_level * neu}
 

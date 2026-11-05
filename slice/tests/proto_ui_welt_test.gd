@@ -60,6 +60,8 @@ func _run() -> void:
 		await _at10()
 	if nur == "" or nur == "at11":
 		await _at11()
+	if nur == "" or nur == "at13":
+		await _at13()
 	if nur == "layout":
 		await _at08_maus()
 		await _at09_layout()
@@ -619,6 +621,10 @@ func _at08_maus() -> void:
 	for i in 3:
 		await process_frame
 	var vp := root.get_visible_rect().size
+	ok(ui.ziele.erfuellt("e1") and ui.ziele.erfuellt("e2") and ui.lbl_naechster.text.begins_with("Nächster Schritt: Warte"), "In der Pause: E-1/E-2 abgehakt, %s" % ui.lbl_naechster.text)
+	var zr: Rect2 = ui.ziele_panel.get_global_rect()
+	ok(zr.end.y <= ui.linien_panel.get_global_rect().position.y + 0.5 and not zr.intersects(ui.vorschau_panel.get_global_rect()) and zr.position.y >= 0.0,
+		"Zielliste über der Linienliste, ohne Überlappung (%s)" % str(zr))
 	var lr: Rect2 = ui.linien_panel.get_global_rect()
 	var ueber: bool = lr.intersects(ui.vorschau_panel.get_global_rect()) or lr.intersects(ui.modus_panel.get_global_rect()) or lr.intersects(ui.panel.get_global_rect())
 	ok(ui.linien_panel.visible and not ueber and lr.position.y >= 0.0 and lr.end.y <= vp.y and lr.end.x <= vp.x,
@@ -951,6 +957,120 @@ func _at11() -> void:
 		gezeigt[m["text"]] = true
 	var fehlt: Array = ui.diag_log.filter(func(d): return not gezeigt.has(d["text"]))
 	ok(fehlt.is_empty(), "0 verloren: alle %d Diagnosen im Protokoll oder in der Queue %s" % [ui.diag_log.size(), str(fehlt)])
+
+# ------------------------------------------------------------------ AT-13
+
+func _at13() -> void:
+	print("  -- AT-13 Ziele und Nächster Schritt")
+	await _neue_szene()
+	var e = ps.eco
+	var z = ui.ziele
+	ok(z.ziele.size() == 8 and z.ziele.map(func(x): return x["id"]) == ["e1", "e2", "e3", "e4", "e5", "e6", "f1", "f2"], "8 Ziele aus ziele_welt.json in Reihenfolge")
+	ui.kopf_neu()
+	ok(ui.lbl_naechster.text == "Nächster Schritt: Lizenz für Gut Kuppenhof holen (0 $): Panel öffnen, Lizenz kaufen.", ui.lbl_naechster.text)
+	ok(z.skillpunkte() == 0 and _ziele_text().contains("Ziele 0/8 · Skillpunkte 0") and _ziele_text().contains("○ E-1 Erste Lizenz: Gut Kuppenhof"), "Liste: 0/8, E-1 offen")
+	# falsches Objekt: Mehl-Linie zuerst hakt E-2 nicht (UX-6)
+	ui.linie_von_hier("Erlenmühle")
+	ui.ziel_waehlen("Erlenbach")
+	ui.anlegen()
+	_ticks(20)
+	ok(not z.erfuellt("e1") and not z.erfuellt("e2"), "Lizenz Mühle + Linie Mühle → Erlenbach: E-1 und E-2 bleiben offen (falsches Objekt)")
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.modus_ende()
+	_ticks(20)
+	ok(z.erfuellt("e1") and z.erfuellt("e2") and not z.erfuellt("e3"), "Lizenz + Linie Kuppenhof → Mühle: E-1, E-2 erfüllt, E-3 offen")
+	ok(ui.meldungen_log.any(func(m): return m["text"] == "Ziel erreicht: Erste Lizenz: Gut Kuppenhof. +1 Skillpunkt."), "Toast „Ziel erreicht … +1 Skillpunkt.“")
+	ui.kopf_neu()
+	ok(ui.lbl_naechster.text == "Nächster Schritt: Warte auf die erste Getreidelieferung an der Erlenmühle.", ui.lbl_naechster.text)
+	var t3 := -1
+	var t4 := -1
+	var serie := 0
+	var e6_soll := -1
+	for i in 60:
+		_ticks(50)
+		if ps.ticks / 600 != (ps.ticks - 50) / 600:     # Periodengrenze in diesem Schritt überschritten
+			var r := _e6_schritt(serie, e6_soll)
+			serie = r[0]
+			e6_soll = r[1]
+		if t3 < 0 and z.erfuellt("e3"):
+			t3 = ps.sim.tick_count
+		if t4 < 0 and z.erfuellt("e4"):
+			t4 = ps.sim.tick_count
+	var erste_getreide := -1
+	var mehl := 0
+	var mehl_tick := -1
+	for l in ps.lieferungen:
+		var f: Dictionary = ps.fahrzeug(int(l["vid"]))
+		if erste_getreide < 0 and int(f["nach"]) == int(ps.stationen["Erlenmühle"]["knoten"]):
+			erste_getreide = int(l["tick"])
+		if int(f["nach"]) == int(ps.stationen["Erlenbach"]["knoten"]):
+			mehl += int(l["menge"])
+			if mehl >= 10 and mehl_tick < 0:
+				mehl_tick = int(l["tick"])
+	ok(t3 >= erste_getreide and t3 - erste_getreide <= 60 and z.ziel("e3")["erfuellt_tick"] - erste_getreide <= 10,
+		"E-3 bei Tick %d, erste Getreidelieferung Tick %d (≤ 10 Ticks Prüftakt)" % [z.ziel("e3")["erfuellt_tick"], erste_getreide])
+	ok(z.erfuellt("e4") and z.ziel("e4")["erfuellt_tick"] - mehl_tick <= 10 and z.ziel("e4")["erfuellt_tick"] >= mehl_tick,
+		"E-4 bei Tick %d, 10 E Mehl in Erlenbach bei Tick %d" % [z.ziel("e4")["erfuellt_tick"], mehl_tick])
+	ok(not z.erfuellt("e5"), "E-5 offen (je Linie 1 Fuhrwerk)")
+	ui.fuhrwerk_kaufen("Erlenmühle", "Erlenbach")
+	_ticks(10)
+	ok(z.erfuellt("e5"), "E-5 nach zweitem Fuhrwerk auf einer Linie")
+	# E-6: 3 Minuten am Stück alle Linien ≥ 0, mindestens eine > 0
+	for i in 8:
+		_ticks(600 - ps.ticks % 600)
+		var r := _e6_schritt(serie, e6_soll)
+		serie = r[0]
+		e6_soll = r[1]
+	ok((e6_soll >= 0) == z.erfuellt("e6") and (e6_soll < 0 or z.ziel("e6")["erfuellt_tick"] == e6_soll),
+		"E-6 = eigene Nachrechnung aus der Linienstatistik (Soll Tick %d, Ist %d)" % [e6_soll, z.ziel("e6")["erfuellt_tick"]])
+	# F1/F2 mit Testwerten (Lindenfurt-Linie und 600 $/min liegen außerhalb dieses Tests)
+	var sl: int = ui.site_of("Lindenfurt")
+	var se: int = ui.site_of("Erlenbach")
+	ui.statistik.ort_v[se] = [900, 900, 900]
+	ui.statistik.ort_v[sl] = [400, 500, 500]
+	z.pruefen(false)
+	ok(not z.erfuellt("f1"), "F1 offen: Lindenfurt Mittel 466 ‰ < 500 (Testwerte)")
+	ui.statistik.ort_v[sl] = [500, 500, 500]
+	z.pruefen(false)
+	ok(z.erfuellt("f1"), "F1: Erlenbach und Lindenfurt je ≥ 500 ‰ im Mittel über 3 Minuten (Testwerte)")
+	for i in 4:
+		z.pruefen(true, z.f2_schwelle)
+	ok(not z.erfuellt("f2"), "F2 nach 4 Minuten ≥ Schwelle noch offen")
+	z.pruefen(true, z.f2_schwelle)
+	ok(z.erfuellt("f2") and ps.credit.loan_cent == 0, "F2 nach 5 Minuten ≥ %s ohne Kredit" % ui.geld(z.f2_schwelle))
+	ui.ziele_neu()
+	ui.kopf_neu()
+	var sp := 0
+	for x in z.ziele:
+		if x["erfuellt_tick"] >= 0:
+			sp += x["skillpunkte"]
+	ok(z.skillpunkte() == sp and _ziele_text().contains("Skillpunkte %d" % sp), "Skillpunkte %d = Σ erfüllter Ziele" % sp)
+	print("    Ziele: %s | %s" % [_ziele_text().replace("\n", " / "), ui.lbl_naechster.text])
+
+
+## Eigene Nachrechnung E-6 an einer Periodengrenze: alle Linien ≥ 0 und eine > 0, 3 Minuten am Stück.
+func _e6_schritt(serie: int, soll: int) -> Array:
+	var alle: bool = not ui.statistik.linien.is_empty()
+	var eine := false
+	for k in ui.statistik.linien:
+		var g := int(ui.statistik.linien[k]["gewinn"])
+		alle = alle and g >= 0
+		eine = eine or g > 0
+	serie = serie + 1 if alle and eine else 0
+	if serie >= 3 and soll < 0:
+		soll = ui.statistik.letzte_periode_tick           # Tick der Periodengrenze
+	return [serie, soll]
+
+
+func _ziele_text() -> String:
+	ui.ziele_neu()
+	var t := ""
+	for c in ui.ziele_vb.get_children():
+		if c is Label:
+			t += (c as Label).text + "\n"
+	return t
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

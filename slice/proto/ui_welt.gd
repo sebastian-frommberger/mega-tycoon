@@ -13,6 +13,7 @@ extends CanvasLayer
 const Economy := preload("res://economy.gd")
 const Statistik := preload("res://proto/ui_welt_statistik.gd")   # AT-10
 const ToastQueue := preload("res://ui/toast_queue.gd")            # AT-11
+const Ziele := preload("res://proto/ui_welt_ziele.gd")           # AT-13
 
 const PANEL_B := 360.0
 const VORSCHAU_B := 640.0
@@ -88,6 +89,18 @@ const FT_WELT := {
 	"d_kasse_kredit": "Größter Verlust: {posten}. Nimm Kredit oder löse die Linie auf.",
 	"d_kasse_voll": "Der Kredit ist voll. Löse {posten} auf oder verkaufe ein Fuhrwerk.",
 	"d_kasse_gut": "Kasse reicht wieder. Behalte {posten} im Auge.",
+	# AT-13 Ziele und Nächster Schritt
+	"ziel_ok": "Ziel erreicht: {name}.{sp}",
+	"ziel_sp": " +{n} Skillpunkt.",
+	"n_e1": "Lizenz für {farm} holen ({x}): Panel öffnen, Lizenz kaufen.",
+	"n_e2": "Linie {farm} → Erlenmühle anlegen ({x}): Linie von hier, Ziel klicken.",
+	"n_e3": "Warte auf die erste Getreidelieferung an der Erlenmühle.",
+	"n_e4": "Linie Erlenmühle → Erlenbach anlegen ({x}) und 10 E Mehl liefern.",
+	"n_e5": "Setze ein zweites Fuhrwerk auf eine Linie ({x}).",
+	"n_e6": "Jede Linie soll 3 Minuten am Stück Gewinn machen.",
+	"n_f1": "Versorge Erlenbach und Lindenfurt mit Mehl (je ≥ 50 % Bedarf, 3 min).",
+	"n_f2": "Halte {x}/min Netto ohne Kredit, 5 Minuten am Stück.",
+	"n_fertig": "Alle Ziele erreicht. Baue weiter aus oder kaufe die Mühle.",
 	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
 	"lizenz_linie_ok": "Lizenz {name} gekauft. Linie nach {b} läuft, Fuhrwerk {n} ist unterwegs.",
 	"lizenz_linie_geld": "Lizenz und Fuhrwerk kosten {x}, es fehlen {d}. Nimm Kredit oder warte.",
@@ -130,6 +143,10 @@ var lbl_netto: Label
 var lbl_fix: Label
 var lbl_kredit: Label
 var lbl_k: Label
+var lbl_naechster: Label             # AT-13
+var ziele = null                     # AT-13: proto/ui_welt_ziele.gd
+var ziele_panel: PanelContainer
+var ziele_vb: VBoxContainer
 var hud_werte: Dictionary = {}       # angezeigte HUD-Zahlen (Test gegen Spielwert)
 var statistik = null                # AT-10: proto/ui_welt_statistik.gd
 var links_vb: VBoxContainer          # AT-10/13: linke Spalte unten (Ziele, Linien)
@@ -151,7 +168,9 @@ func einbauen(p_welt: Node) -> void:
 	_baue_linienbau()
 	_baue_kopfleiste()
 	statistik = Statistik.new(ps)
+	ziele = Ziele.new(ps, statistik)
 	_baue_links()
+	ziele_neu()
 
 
 func _orte_lesen() -> void:
@@ -320,7 +339,7 @@ func _baue_panel() -> void:
 	panel.anchor_right = 1.0
 	panel.offset_left = -PANEL_B - 12.0
 	panel.offset_right = -12.0
-	panel.offset_top = 72.0
+	panel.offset_top = 100.0                                 # unter Kopfleiste + „Nächster Schritt“
 	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN     # breiter Inhalt wächst nach links, nie aus dem Bild
 	panel.visible = false
 	add_child(panel)
@@ -412,6 +431,8 @@ func _process(delta: float) -> void:
 			panel_neu()
 		if not _taste_unten:
 			linien_neu()
+		if _sim_ok() and ziele != null:
+			_ziele_pruefen(false)                         # auch in der Pause: Kauf hakt sofort ab
 		kopf_neu()
 
 
@@ -1008,7 +1029,13 @@ func _baue_kopfleiste() -> void:
 	add_child(kopf)
 	kopf_hb = HBoxContainer.new()
 	kopf_hb.add_theme_constant_override("separation", 14)
-	kopf.add_child(kopf_hb)
+	var kopf_vb := VBoxContainer.new()                       # AT-13: zweite Zeile „Nächster Schritt“
+	kopf_vb.add_theme_constant_override("separation", 2)
+	kopf.add_child(kopf_vb)
+	kopf_vb.add_child(kopf_hb)
+	lbl_naechster = _label("", 16, C_OK)
+	lbl_naechster.name = "NaechsterSchritt"
+	kopf_vb.add_child(lbl_naechster)
 	lbl_kasse = _label("", 18)
 	lbl_kasse.name = "Kasse"
 	kopf_hb.add_child(lbl_kasse)
@@ -1048,7 +1075,7 @@ func _baue_kopfleiste() -> void:
 	# altes Prototyp-HUD (Zählung, Hilfe) unter die Kopfleiste
 	if welt.hud != null:
 		var pc: Control = welt.hud.get_parent().get_parent()
-		pc.position.y = 64.0
+		pc.position.y = 100.0
 	_schnapp_neu()
 	kopf_neu()
 
@@ -1069,8 +1096,10 @@ func nach_tick() -> void:
 		_schnapp_neu()
 		_netto_verlauf_neu()
 		diagnose(true)
+		_ziele_pruefen(true)
 	elif ps.sim.tick_count % 10 == 0:
 		diagnose(false)
+		_ziele_pruefen(false)
 
 
 func kopf_neu() -> void:
@@ -1110,6 +1139,8 @@ func kopf_neu() -> void:
 		tb.visible = ps.credit.loan_cent > 0
 		tb.text = "Tilgen %s" % geld(mini(ps.credit.step_cent, ps.credit.loan_cent))
 	lbl_k.text = "k=%d" % ps.tempo_k
+	if ziele != null and lbl_naechster != null:
+		lbl_naechster.text = "Nächster Schritt: " + naechster_text()
 
 
 func kredit_aufnehmen() -> int:
@@ -1488,6 +1519,15 @@ func _baue_links() -> void:
 	links_vb.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	links_vb.add_theme_constant_override("separation", 8)
 	add_child(links_vb)
+	ziele_panel = PanelContainer.new()
+	ziele_panel.name = "Ziele"
+	ziele_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ziele_panel.add_theme_stylebox_override("panel", _stil(Color(0.1, 0.09, 0.08, 0.82), 8))
+	ziele_panel.custom_minimum_size = Vector2(LINIEN_B, 0)
+	links_vb.add_child(ziele_panel)
+	ziele_vb = VBoxContainer.new()
+	ziele_vb.add_theme_constant_override("separation", 0)
+	ziele_panel.add_child(ziele_vb)
 	linien_panel = PanelContainer.new()
 	linien_panel.name = "Linienliste"
 	linien_panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1813,3 +1853,58 @@ func _toast_aktion(id: String, daten: Variant) -> void:
 			fahrzeug_oeffnen(int(daten))
 		"kredit":
 			kredit_aufnehmen()
+
+
+# ------------------------------------------------------------------ AT-13 Ziele und Nächster Schritt (Szenario i: Textliste)
+
+func _ziele_pruefen(periode_ende: bool) -> void:
+	ziele.pruefen(periode_ende, hud_werte.get("netto", null) if periode_ende else null)
+	for id in ziele.neu_erfuellt:
+		var z: Dictionary = ziele.ziel(id)
+		var sp := text("ziel_sp", {"n": z["skillpunkte"]}) if int(z["skillpunkte"]) > 0 else ""
+		melden(text("ziel_ok", {"name": z["name"], "sp": sp}), {"titel": "Ziel " + ziele.kurz(id), "form": "ok"})
+	if not ziele.neu_erfuellt.is_empty():
+		ziele_neu()
+
+
+## „Nächster Schritt“ für das erste offene Ziel, mit Preis aus dem Spiel.
+func naechster_text() -> String:
+	var z: Dictionary = ziele.naechstes()
+	if z.is_empty():
+		return text("n_fertig")
+	var e = ps.eco
+	var preis := int(fuhrwerk_def().get("kauf_cent", 0))
+	var farm := "Gut Kuppenhof"
+	match String(z["id"]):
+		"e1":
+			return text("n_e1", {"farm": farm, "x": geld(int(e.licence_quote(site_of(farm), false).get("zu_zahlen_cent", 0)))})
+		"e2":
+			var lic := 0 if lizenz_ok(site_of(farm)) else int(e.licence_quote(site_of(farm), false).get("zu_zahlen_cent", 0))
+			return text("n_e2", {"farm": farm, "x": geld(preis + lic)})
+		"e4":
+			var sm := site_of("Erlenmühle")
+			var lm := 0 if lizenz_ok(sm) else int(e.licence_quote(sm, false).get("zu_zahlen_cent", 0))
+			return text("n_e4", {"x": geld(preis + lm)})
+		"e5":
+			return text("n_e5", {"x": geld(preis)})
+		"f2":
+			return text("n_f2", {"x": geld(ziele.f2_schwelle)})
+	return text("n_" + String(z["id"]))
+
+
+func ziele_neu() -> void:
+	if ziele_vb == null:
+		return
+	_leeren(ziele_vb)
+	var fertig := 0
+	for z in ziele.ziele:
+		if int(z["erfuellt_tick"]) >= 0:
+			fertig += 1
+	ziele_vb.add_child(_label("Ziele %d/%d · Skillpunkte %d" % [fertig, ziele.ziele.size(), ziele.skillpunkte()], 15, C_GRAU))
+	for z in ziele.ziele:
+		var ok_: bool = int(z["erfuellt_tick"]) >= 0
+		var zus := " (Minute %d)" % (int(z["erfuellt_tick"]) / periode()) if ok_ else ""
+		ziele_vb.add_child(_label("%s %s %s%s" % ["●" if ok_ else "○", ziele.kurz(z["id"]), z["name"], zus], 15, C_OK if ok_ else C_TEXT))
+	_umbrechen(ziele_vb)
+	if lbl_naechster != null:
+		lbl_naechster.text = "Nächster Schritt: " + naechster_text()

@@ -188,6 +188,17 @@
         "getreide": 24,
         "mehl": 130
       }
+    },
+    "k8d": {
+      "tempo_k": 8,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k8v2",
+        "frachtwagen": "frachtwagen_k8v2"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 24,
+        "mehl": 150
+      }
     }
   }
 }

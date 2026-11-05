@@ -57,7 +57,7 @@ var gesperrt_log: Array = []         # AT-02 (W10): [{tick, jahr, id, grund}] un
 var meldungen: Array = []            # AT-02: Texte für Toasts (die Welt liest und leert)
 var bankrott_tick := -1
 var fahrkosten_total := 0            # AT-02: Σ Fahrkosten (Cent), Testspur/HUD
-var kauf_total := 0                  # AT-02: Σ Kaufpreise (Cent)
+var kauf_total := 0                  # AT-02/FX3: Σ Käufe (Cent): Fahrzeuge, Ersetzen, Firmenkauf, Werksausbau
 var _fix_dirty := false
 var lebensdauer_erreicht: Array = []  # FZ-03: [{tick, vid}]
 var alterung_an := true              # FZ-03: Unterhalt steigt je Kalenderjahr (aus nur für den Zwei-Uhren-Test)
@@ -456,6 +456,9 @@ func oeko_laden() -> bool:
 		var pj = JSON.parse_string(FileAccess.get_file_as_string(PROTO_JSON))
 		if pj is Dictionary:
 			eco.apply_proto(pj)                   # FK-02: nur die Welt, der Slice ruft das nie
+	for arg in OS.get_cmdline_user_args():          # FX3: --a=<Promille> überschreibt tempo_ausgleich_promille (Bot, Kalibrierung)
+		if arg.begins_with("--a=") and arg.substr(4).is_valid_int():
+			eco.ertrag_a_promille = int(arg.substr(4))
 	eco.attach(sim)
 	sim.feld_mm = eco.feld_mm
 	konto.eco = eco
@@ -857,6 +860,7 @@ func firma_kaufen(name: String) -> Dictionary:
 		return _nein(g)
 	var r: Dictionary = eco.buy_site(_site_von(name), konto, credit)
 	if r.get("ok", false):
+		kauf_total += int(r.get("bezahlt_cent", 0))  # FX3 (QT-03b): Käufe inkl. Firmenkauf
 		_fix_dirty = true
 	return r
 
@@ -875,6 +879,7 @@ func werk_ausbauen(name: String) -> Dictionary:
 		return _nein(g)
 	var r: Dictionary = eco.upgrade_site(_site_von(name), konto, credit)
 	if r.get("ok", false):
+		kauf_total += int(r.get("bezahlt_cent", 0))  # FX3 (QT-03b): Käufe inkl. Werksausbau
 		_fix_dirty = true
 	return r
 

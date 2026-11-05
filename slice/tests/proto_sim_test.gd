@@ -203,6 +203,7 @@ func _at02(s: Node) -> void:
 	_at03(s)
 	_fk02(s)
 	_fz03(s)
+	_fx3(s)
 
 
 ## Kredit wie d07 --only=kredit (gespiegelt: B0, B1, B2, B6, B7 verkürzt, B8, B13).
@@ -440,16 +441,16 @@ func _fk02(s: Node) -> void:
 		sum_fix += ps.fix_eff(f)
 	var up: int = ps.werksunterhalt_cent_pro_periode()
 	_bis(ps, 1200)
-	var e0: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid - int(q["preis_cent"])
+	var e0: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid   # FX3: kauf_total enthält den Firmenkauf
 	_bis(ps, 1800)
-	var e1: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid - int(q["preis_cent"])
+	var e1: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid
 	pruef(up == int(q["unterhalt_neu_cent_pro_periode"]) and up == 2000 and e1 - e0 == sum_fix + up and ps.konto.running_cost_per_period == sum_fix + up,
 		"FK-02 Werksunterhalt %d ¢/Periode über konto: Periode gebucht %d ¢ = Fahrzeuge %d + Werk %d" % [up, e1 - e0, sum_fix, up])
 	var aq: Dictionary = ps.ausbau_angebot(MUEHLE)
 	var c1: int = ps.eco.cash_cent
 	var ar: Dictionary = ps.werk_ausbauen(MUEHLE)
 	_bis(ps, 2400)
-	var e2: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid - int(q["preis_cent"]) - int(aq.get("kosten_cent", 0))
+	var e2: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - ps.credit.interest_paid
 	pruef(aq.get("ok", false) and ar.get("ok", false) and c1 - int(aq["kosten_cent"]) == c1 - int(ar["bezahlt_cent"]) and int(ps.eco.s_werksstufe[ps.stationen[MUEHLE]["site"]]) == 2
 		and ps.werksunterhalt_cent_pro_periode() == 4000 and e2 - e1 == sum_fix + 4000,
 		"FK-02 Ausbau Stufe 2: %d ¢ (Vorschau %d), Durchsatz %d, Unterhalt 4000 ¢, Periode gebucht %d ¢" % [int(ar.get("bezahlt_cent", -1)), int(aq.get("kosten_cent", -1)), int(ar.get("durchsatz", -1)), e2 - e1])
@@ -528,3 +529,31 @@ func _fz03(s: Node) -> void:
 		10 * pf.jahr_ticks - 1, 10 * pf.jahr_ticks, pf.sim.v_cargo_cap[i2], pf.fix_eff(pf.fahrzeug(v2))])
 	var lk: Dictionary = pf.linie_anlegen(FARM, MUEHLE, "fuhrwerk", "frachtwagen_e1")
 	pruef(lk.get("ok", false), "FZ-05 Frachtwagen ab 1830 auch neu kaufbar (%s)" % str(lk.get("fehler", "ok")))
+
+
+## FX3: Ertragsausgleich a (W2) und kauf_total inkl. Firmenkauf/Ausbau.
+func _fx3(s: Node) -> void:
+	var a1 = _neu(s, true)
+	var a2 = _neu(s, true)
+	pruef(a1.eco.ertrag_a_promille == 1000, "FX3 a aus economy_proto.json = %d ‰ (Standard)" % a1.eco.ertrag_a_promille)
+	a2.eco.ertrag_a_promille = 2000
+	_bis(a1, 6000)
+	_bis(a2, 6000)
+	var gleich: bool = a1.lieferungen.size() == a2.lieferungen.size() and a1.lieferungen.size() > 0
+	var max_abw := 0
+	for i in mini(a1.lieferungen.size(), a2.lieferungen.size()):
+		var l1: Dictionary = a1.lieferungen[i]
+		var l2: Dictionary = a2.lieferungen[i]
+		if l1["tick"] != l2["tick"] or l1["menge"] != l2["menge"] or l1["gut"] != l2["gut"]:
+			gleich = false
+		max_abw = maxi(max_abw, absi(int(l2["cent"]) - 2 * int(l1["cent"])))
+	pruef(gleich and max_abw <= 1 and a1.eco.units_paid == a2.eco.units_paid,
+		"FX3 a = 2000 ‰: %d Lieferungen gleich (Tick, Menge, Gut), Ertrag je Lieferung × 2 (max. Abweichung %d ¢), Einheiten %d = %d; Ertrag %d → %d ¢" % [
+		a1.lieferungen.size(), max_abw, a1.eco.units_paid, a2.eco.units_paid, a1.eco.revenue_total, a2.eco.revenue_total])
+	var pk = _neu(s, true)
+	_bis(pk, 600)
+	var k0: int = pk.kauf_total
+	var r: Dictionary = pk.firma_kaufen(MUEHLE)
+	var u: Dictionary = pk.werk_ausbauen(MUEHLE)
+	pruef(r.get("ok", false) and u.get("ok", false) and pk.kauf_total == k0 + int(r["bezahlt_cent"]) + int(u["bezahlt_cent"]),
+		"FX3 kauf_total zählt Firmenkauf %d + Ausbau %d ¢ mit (%d → %d)" % [int(r.get("bezahlt_cent", -1)), int(u.get("bezahlt_cent", -1)), k0, pk.kauf_total])

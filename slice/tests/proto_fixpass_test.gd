@@ -34,6 +34,7 @@ func _run() -> void:
 	ok(absf(prof.halt_rand_m() - (prof.laenge_m * 0.5 + Easing.HALT_LUFT_M)) < 1e-4, "M2 Halt-Rand = halbe Gespannlänge + Luft (%.2f m)" % prof.halt_rand_m())
 
 	var s: Node = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	root.add_child(s)
 	await process_frame
 	root.size = Vector2i(1600, 900)

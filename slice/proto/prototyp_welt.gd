@@ -40,6 +40,7 @@ const Epochen := preload("res://proto/proto_epochen.gd")
 const ProtoSim := preload("res://proto/proto_sim.gd")
 const Fahrzeuge := preload("res://proto/proto_fahrzeuge.gd")
 const StelleMerken := preload("res://proto/stelle_merken.gd")     # WA-02: F12
+const UiWelt := preload("res://proto/ui_welt.gd")               # S8 AT-07ff. (Mira): Welt-Panel, Linienbau, Kopfleiste
 const STUB := "res://proto/proto_terrain_stub.gd"
 const TA_TERRAIN := "res://world/proto_terrain.gd"
 const DATEN := "res://world/data/proto/"
@@ -81,8 +82,9 @@ var fahrzeuge = null                 # proto_fahrzeuge.gd
 var orte_json: Dictionary = {}
 var sim_aus := false                 # Tests: vor add_child setzen, dann keine Sim/Fahrzeuge
 ## AT-02: "fest" = feste Kette Farm → Mühle → Dorf (geschenkte Fahrzeuge, Stand S7/L1), "leer" = Start mit 6.000 $ ohne Kette
-## (Spieler-API). Nutzerargument --kette=leer|fest. Default bleibt "fest", solange L1 die feste Kette braucht.
-var kette_modus := "fest"
+## (Spieler-API). Nutzerargument --kette=leer|fest. S8 AT-08 (PO-Entscheidung): Default "leer", seit die Kauf-UI steht (ui_welt.gd);
+## Alttests und L1-Messungen setzen kette_modus = "fest" vor add_child oder starten mit --kette=fest.
+var kette_modus := "leer"
 var sim_tempo := 1                   # AT-05: Sim-Tempo 0 (Pause) | 1 | 2 | 4; Ticks je Sekunde = 10 × sim_tempo
 var tempo_vor_pause := 1             # Leertaste setzt dieses Tempo wieder ein
 var zeitlupe := 1.0                  # T: nur Ansicht, 1.0 oder 0.25 (multipliziert sim_tempo, nie schneller)
@@ -113,6 +115,8 @@ var hud: Label
 var hud_an := true
 var _hud_t := 0.0
 var _drag := 0                       # 0 nichts, 1 schieben, 2 drehen
+var ui_welt = null                   # S8 AT-07: proto/ui_welt.gd (nur mit Sim)
+var _klick_start := Vector2(-1, -1)  # AT-07: Linksklick ohne Ziehen = Weltklick
 
 
 static func datei(name: String) -> String:
@@ -155,6 +159,9 @@ func _ready() -> void:
 	schilder = ProtoSchilder.bauen(self, cam, orte, terrain)
 	tz["baue_schilder"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_hud()
+	if proto_sim != null and proto_sim.eco != null:     # AT-07: Welt-UI über dem HUD
+		ui_welt = UiWelt.new()
+		ui_welt.einbauen(self)
 	_presets_berechnen()
 	setze_preset(1)
 	lade_ms = (Time.get_ticks_usec() - t0) / 1000.0
@@ -271,6 +278,8 @@ func sim_schritt(delta: float) -> void:
 	var n := 0
 	while sim_acc >= 1.0 and n < MAX_TICKS_JE_FRAME:
 		proto_sim.tick()
+		if ui_welt != null:
+			ui_welt.nach_tick()                # AT-09: Netto/min tick-genau je Spielminute
 		sim_acc -= 1.0
 		n += 1
 	if sim_acc >= 1.0:
@@ -453,6 +462,9 @@ func vollbild_umschalten() -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
+	if ui_welt != null and ui_welt.eingabe(ev):          # AT-07 (G5): Esc schließt zuerst Panel/Modus
+		get_viewport().set_input_as_handled()
+		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		var k: int = ev.keycode
 		if k >= KEY_1 and k <= KEY_5:
@@ -497,6 +509,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_kamera_anwenden()
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			_drag = 1 if mb.pressed else 0
+			if mb.pressed:
+				_klick_start = mb.position
+			elif ui_welt != null and _klick_start.x >= 0.0 and mb.position.distance_to(_klick_start) < 6.0:
+				ui_welt.welt_klick(mb.position)              # AT-07: Loslassen ohne Ziehen = Klick
 		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			_drag = 2 if mb.pressed else 0
 	elif ev is InputEventMouseMotion and _drag != 0:

@@ -73,6 +73,7 @@ func _run() -> void:
 	# Szene laden (Ladezeit = Instanziieren + _ready)
 	var t0 := Time.get_ticks_usec()
 	var s: Node = (load(SZENE) as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	root.add_child(s)
 	await process_frame
 	var wand_ms := (Time.get_ticks_usec() - t0) / 1000.0

@@ -302,6 +302,7 @@ func _run() -> void:
 	pruef("E1", c_an == c_aus and c_aus == c_ohne and psA.sim.tick_count == psA3.sim.tick_count, "A Prüfsumme an = aus = ohne Darstellung", "%d" % c_an)
 	# ---------------- Teil B: Szene, echte Kette
 	var s: Node = (load(SZENE) as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	s.sim_aus = true
 	root.add_child(s)
 	await process_frame

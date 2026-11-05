@@ -33,6 +33,7 @@ func _run() -> void:
 	print("proto_welt_test")
 	var t0 := Time.get_ticks_usec()
 	s = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	s.wasser_modus_geaendert.connect(func(m): signale["wasser"] = m)
 	s.easing_geaendert.connect(func(a): signale["easing"] = a)
 	s.modelle_geaendert.connect(func(a): signale["modelle"] = a)

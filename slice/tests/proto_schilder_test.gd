@@ -52,6 +52,7 @@ func _terrain_farben() -> Dictionary:
 func _run() -> void:
 	print("proto_schilder_test")
 	s = (load("res://proto/prototyp_welt.tscn") as PackedScene).instantiate()
+	s.kette_modus = "fest"              # S8 AT-08: Szenen-Default ist "leer"; dieser Test misst die feste Kette
 	root.add_child(s)
 	await process_frame
 	root.size = Vector2i(1600, 900)

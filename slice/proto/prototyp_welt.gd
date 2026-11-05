@@ -80,6 +80,9 @@ var proto_sim = null                 # proto_sim.gd (Welle 2)
 var fahrzeuge = null                 # proto_fahrzeuge.gd
 var orte_json: Dictionary = {}
 var sim_aus := false                 # Tests: vor add_child setzen, dann keine Sim/Fahrzeuge
+## AT-02: "fest" = feste Kette Farm → Mühle → Dorf (geschenkte Fahrzeuge, Stand S7/L1), "leer" = Start mit 6.000 $ ohne Kette
+## (Spieler-API). Nutzerargument --kette=leer|fest. Default bleibt "fest", solange L1 die feste Kette braucht.
+var kette_modus := "fest"
 var sim_tempo := 1                   # AT-05: Sim-Tempo 0 (Pause) | 1 | 2 | 4; Ticks je Sekunde = 10 × sim_tempo
 var tempo_vor_pause := 1             # Leertaste setzt dieses Tempo wieder ein
 var zeitlupe := 1.0                  # T: nur Ansicht, 1.0 oder 0.25 (multipliziert sim_tempo, nie schneller)
@@ -87,7 +90,8 @@ var sim_acc := 0.0
 var tempo_knoepfe := {}              # Tempo -> Button im Welt-HUD
 var datum_label: Label
 const TEMPI := [0, 1, 2, 4]
-## Kalender-Platzhalter bis FZ-02 (Zwei-Uhren): 1 Monat = 600 Ticks ab Startjahr (Januar), nur Anzeige.
+## Alter Kalender-Platzhalter (AT-05): 1 Monat = 600 Ticks. Seit FZ-02 zeigt das HUD proto_sim.kalender (Monat = 150 Ticks);
+## datum_text bleibt für Szenen ohne Sim (sim_aus).
 const TICKS_JE_MONAT := 600
 const MONATE := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 var folgen := -1
@@ -240,9 +244,13 @@ func _baue_fahrzeuge() -> void:
 		return
 	var t0 := Time.get_ticks_usec()
 	proto_sim = ProtoSim.new(regelwerk)
+	proto_sim.kalender.startjahr = startjahr          # FZ-02: Kalender der Welt (jahr_ticks 1.800), Startjahr der Szene
 	proto_sim.graph_bauen(strassen)
 	var t1 := Time.get_ticks_usec()
-	var ok: bool = proto_sim.kette_aufbauen(orte_json)
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--kette=") and a.substr(8) in ["leer", "fest"]:
+			kette_modus = a.substr(8)
+	var ok: bool = proto_sim.spiel_starten(orte_json) if kette_modus == "leer" else proto_sim.kette_aufbauen(orte_json)
 	quellen["sim_ms"] = [(t1 - t0) / 1000.0, (Time.get_ticks_usec() - t1) / 1000.0]
 	if not ok:
 		push_warning("Prototyp: Sim-Kette unvollständig: " + "; ".join(PackedStringArray(proto_sim.fehler.map(func(x): return str(x)))))
@@ -579,7 +587,7 @@ func _hud_text() -> void:
 	for t in tempo_knoepfe:
 		(tempo_knoepfe[t] as Button).set_pressed_no_signal(t == sim_tempo)
 	if datum_label != null:
-		datum_label.text = datum_text(proto_sim.ticks if proto_sim != null else 0, startjahr)
+		datum_label.text = proto_sim.kalender.datum_text(proto_sim.ticks) if proto_sim != null else datum_text(0, startjahr)   # FZ-02
 	var z := zaehlung()
 	var live := ""
 	if z["live_dreiecke"] > 0:
@@ -590,7 +598,7 @@ func _hud_text() -> void:
 		for f in proto_sim.fahrzeuge:
 			zeilen.append(proto_sim.zustand_text(f))
 		var kasse: int = proto_sim.eco.cash_cent if proto_sim.eco != null else 0
-		fz = "Sim-Kette %s · Tick %d · Lieferungen %d · Kasse %d €\n%s\n" % ["Farm → Mühle → Dorf" if proto_sim.kette_ok else "UNVOLLSTÄNDIG",
+		fz = "Sim-Kette %s · Tick %d · Lieferungen %d · Kasse %d €\n%s\n" % ["Farm → Mühle → Dorf" if proto_sim.kette_ok else ("leer (Start ohne Kette)" if kette_modus == "leer" else "UNVOLLSTÄNDIG"),
 			proto_sim.ticks, proto_sim.lieferungen.size(), kasse / 100, "  ·  ".join(PackedStringArray(zeilen))]
 	hud.text = "Prototyp Welt · Welle 2 (schlank) · Startjahr %d (%s) · Tempo %s\n" % [startjahr, welt_epoche.get("epoche_id", "?"), "Pause" if sim_tempo == 0 else "%d×" % sim_tempo] \
 		+ "Ansicht %d %s · Abstand %d m%s\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand),

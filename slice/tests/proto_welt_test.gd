@@ -207,7 +207,7 @@ func _at05_tempo() -> void:
 		and DT.datum_text(7200, 1820) == "Jan 1821" and DT.datum_text(600 * 23, 1820) == "Dez 1821", "AT-05: Datum = Monat je 600 Ticks ab 1820")
 	var tk: int = s.proto_sim.ticks
 	s._hud_text()
-	ok(s.datum_label.text == DT.datum_text(tk, s.startjahr), "AT-05: HUD zeigt das Datum (%s bei Tick %d)" % [s.datum_label.text, tk])
+	ok(s.datum_label.text == s.proto_sim.kalender.datum_text(tk), "AT-05/FZ-02: HUD zeigt das Kalenderdatum (%s bei Tick %d)" % [s.datum_label.text, tk])
 	# A) Akkumulator mit simulierten delta-Werten (deterministisch, ohne Wanduhr)
 	var pos0: Vector3 = s.proto_sim.fahrzeuge[0]["zustand"].pos
 	var n0 := _sim_ticks(0, 1.0 / 60.0, 10.0)

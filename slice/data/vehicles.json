@@ -10,6 +10,12 @@
       "kapazitaet_einheiten": 6, "tempo_mm_pro_tick": 1000, "lebensdauer_ticks": 216000, "epoche": 1, "nur_massengut": false },
     { "id": "schiff_e1", "name": "Raddampfer", "typ": "schiff", "kauf_cent": 300000, "fix_cent_pro_periode": 40000, "variabel_cent_pro_feld": 10,
       "kapazitaet_einheiten": 200, "tempo_mm_pro_tick": 400, "lebensdauer_ticks": 288000, "alterung_unterhalt_bp_pro_jahr": 500, "epoche": 1, "nur_massengut": true,
-      "braucht_infrastruktur": { "id": "hafen", "kauf_cent": 250000 } }
+      "braucht_infrastruktur": { "id": "hafen", "kauf_cent": 250000 } },
+    { "id": "fuhrwerk_e1", "name": "Fuhrwerk", "typ": "fuhrwerk", "kategorie": "fuhrwerk", "kauf_cent": 30000, "fix_cent_pro_periode": 6000, "variabel_cent_pro_feld": 4,
+      "kapazitaet_einheiten": 10, "lebensdauer_jahre": 15, "alterung_unterhalt_bp_pro_jahr": 500, "verfuegbar_ab_jahr": 1820, "epoche": 1, "nur_massengut": false,
+      "quelle_text": "S8 FZ-01, Startwerte design.md 3.2 (Tobias kalibriert in OE-02); Tempo nur in regelwerk.json fahrzeug_easing (W1)" },
+    { "id": "frachtwagen_e1", "name": "Frachtwagen", "typ": "fuhrwerk", "kategorie": "fuhrwerk", "kauf_cent": 55000, "fix_cent_pro_periode": 9500, "variabel_cent_pro_feld": 5,
+      "kapazitaet_einheiten": 18, "lebensdauer_jahre": 20, "alterung_unterhalt_bp_pro_jahr": 400, "verfuegbar_ab_jahr": 1830, "epoche": 1, "nur_massengut": false,
+      "quelle_text": "S8 FZ-01, Startwerte design.md 3.2 (Tobias kalibriert in OE-02); Tempo nur in regelwerk.json fahrzeug_easing (W1)" }
   ]
 }

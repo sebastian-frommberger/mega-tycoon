@@ -644,53 +644,93 @@ def dorf_besetzen(geo, szene, ol, anzahl_luecken=7):
     return luecken
 
 
+# WA-11 (PL-3): Allee nach UX-Regel 5 - Takt 12 +- 3 m, 10-15 % Luecken, Arten gewichtet zufaellig (kein Wechsel), Groesse +-15 %,
+# Versatz +-1,5 m, abschnittsweise einseitig. Alles aus dem Zufallsstrom "allee" (Seed 7) -> deterministisch.
+ALLEE_TAKT = (9.0, 15.0)
+ALLEE_LUECKE = 0.125                       # Ziel-Anteil fehlender Baeume (Regelung ueber Fehlbestand, bleibt im Band 10-15 %)
+ALLEE_ARTEN = (("laubbaum", 0.58), ("eiche", 0.42))
+ALLEE_SKALA = (0.85, 1.15)
+ALLEE_VERSATZ = 1.5
+
+
 def allee_bauen(geo, szene, chaussee, bruecken, ausschluss, andere_wege=()):
-    """Chaussee-Allee: 1 Baum je 12 m und Seite, Laubbaum/Eiche im Wechsel, 7,0 m von der Achse. Nicht auf der Bruecke,
-    nicht im Ort (ausschluss = Liste (x, z, r)), nicht an Wasser/Hang."""
+    """Chaussee-Allee, 7,0 m von der Achse. Nicht auf der Bruecke, nicht im Ort (ausschluss = Liste (x, z, r)), nicht an Wasser/Hang.
+    Jede Seite laeuft mit eigenem, unregelmaessigem Takt; einseitige Abschnitte und Luecken brechen die Spiegelung."""
     pts = resample(chaussee, 1.0)
     rng = PCG(PCG.hash_seed(WELT_SEED, "allee"))
-    n = 0
+    L = poly_laenge(pts)
+
+    def frei(p):
+        for (bx0, bz0, bx1, bz1) in bruecken:
+            if bx0 - 18 <= p[0] <= bx1 + 18 and bz0 - 18 <= p[1] <= bz1 + 18:
+                return False
+        for (ax, az, ar) in ausschluss:
+            if math.hypot(p[0] - ax, p[1] - az) < ar:
+                return False
+        return True
+
+    # Abschnitte (wie bisher auf dem 12-m-Raster, damit proto_wege.json["allee"] unveraendert bleibt)
     abschnitte = []
     aktiv = None
     s = 6.0
-    L = poly_laenge(pts)
-    idx = 0
     while s < L - 6.0:
-        i = min(int(s), len(pts) - 2)
-        p = pts[i]
-        q = pts[i + 1]
-        dx, dz = q[0] - p[0], q[1] - p[1]
-        d = math.hypot(dx, dz) or 1.0
-        nx, nz = -dz / d, dx / d
-        ok = True
-        for (bx0, bz0, bx1, bz1) in bruecken:
-            if bx0 - 18 <= p[0] <= bx1 + 18 and bz0 - 18 <= p[1] <= bz1 + 18:
-                ok = False
-        for (ax, az, ar) in ausschluss:
-            if math.hypot(p[0] - ax, p[1] - az) < ar:
-                ok = False
-        if ok:
-            for sd in (-1, 1):
-                x, z = p[0] + nx * 7.0 * sd, p[1] + nz * 7.0 * sd
-                if geo.rinne_abstand(x, z) < 8 or geo.see_abstand(x, z) < 12 or geo.bach_abstand(x, z) < 6 or geo.steigung(x, z) > 12:
-                    continue
-                if any(poly_abstand((x, z), w.punkte)[0] < w.breite / 2.0 + 3.0 for w in andere_wege):
-                    continue
-                if any(math.hypot(x - f[0][0][0], z - f[0][0][1]) < 60.0 and (punkt_in_obb((x, z), f[0]) or poly_abstand((x, z), list(f[0]) + [f[0][0]])[0] < 3.0) for f in szene.foot):
-                    continue
-                typ = "laubbaum" if (idx % 2 == 0) else "eiche"
-                szene.add(typ, x + rng.uniform(-0.8, 0.8), z + rng.uniform(-0.8, 0.8), rng.uniform(-180, 180), "allee", "chaussee", rolle="allee")
-                n += 1
+        p = pts[min(int(s), len(pts) - 2)]
+        if frei(p):
             if aktiv is None:
                 aktiv = s
-        else:
-            if aktiv is not None:
-                abschnitte.append((aktiv, s))
-                aktiv = None
+        elif aktiv is not None:
+            abschnitte.append((aktiv, s))
+            aktiv = None
         s += 12.0
-        idx += 1
     if aktiv is not None:
         abschnitte.append((aktiv, L))
+    # einseitige Strecken: ca. 70-130 m lang, alle 250-500 m, Seite zufaellig
+    einseitig = []
+    c = rng.uniform(80.0, 220.0)
+    while c < L:
+        ln = rng.uniform(70.0, 130.0)
+        einseitig.append((c, c + ln, 1 if rng.random() < 0.5 else -1))
+        c += ln + rng.uniform(180.0, 360.0)
+    arten = [a for a, w in ALLEE_ARTEN]
+    gew = [w for a, w in ALLEE_ARTEN]
+    n = 0
+    positionen = 0
+    fehlend = 0
+    for sd in (-1, 1):
+        s = 6.0 + rng.uniform(0.0, 6.0)
+        while s < L - 6.0:
+            i = min(int(s), len(pts) - 2)
+            p, q = pts[i], pts[i + 1]
+            dx, dz = q[0] - p[0], q[1] - p[1]
+            d = math.hypot(dx, dz) or 1.0
+            nx, nz = -dz / d, dx / d
+            schritt = rng.uniform(*ALLEE_TAKT)
+            if not frei(p) or any(a0 <= s <= a1 and sd_ == sd for (a0, a1, sd_) in einseitig):
+                s += schritt
+                continue
+            positionen += 1
+            luecke = rng.random() < min(0.35, max(0.0, ALLEE_LUECKE + (ALLEE_LUECKE * positionen - fehlend) * 0.04))
+            versatz = rng.uniform(-ALLEE_VERSATZ, ALLEE_VERSATZ)
+            x, z = p[0] + nx * (7.0 + versatz) * sd, p[1] + nz * (7.0 + versatz) * sd
+            typ = rng.weighted(list(zip(arten, gew)))
+            skala = rng.uniform(*ALLEE_SKALA)
+            drehung = rng.uniform(-180, 180)
+            if luecke:
+                fehlend += 1
+                s += schritt
+                continue
+            if geo.rinne_abstand(x, z) < 8 or geo.see_abstand(x, z) < 12 or geo.bach_abstand(x, z) < 6 or geo.steigung(x, z) > 12:
+                s += schritt
+                continue
+            if any(poly_abstand((x, z), w.punkte)[0] < w.breite / 2.0 + 3.0 for w in andere_wege):
+                s += schritt
+                continue
+            if any(math.hypot(x - f[0][0][0], z - f[0][0][1]) < 60.0 and (punkt_in_obb((x, z), f[0]) or poly_abstand((x, z), list(f[0]) + [f[0][0]])[0] < 3.0) for f in szene.foot):
+                s += schritt
+                continue
+            szene.add(typ, x, z, drehung, "allee", "chaussee", rolle="allee", skala=r2(skala))
+            n += 1
+            s += schritt
     return n, abschnitte
 
 

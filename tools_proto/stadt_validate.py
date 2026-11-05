@@ -347,6 +347,67 @@ def pruefe_platzierung(T, orte_j, inst, wege, dir_, strikt=False, baseline=None,
     return verst, geprueft
 
 
+# ---------------------------------------------------------------- WA-11 (PL-3): Allee wirkt natuerlich
+ALLEE_CV_MIN = 0.15            # Variationskoeffizient der Baumabstaende (Std/Mittel) je Seite, gepoolt
+ALLEE_WECHSEL_MAX = 0.60       # Anteil strikter Artwechsel zwischen aufeinanderfolgenden Baeumen derselben Seite
+ALLEE_LAUF_MAX_M = 40.0        # Abstaende darueber sind Abschnittsgrenzen/Gelaendeluecken, keine Allee-Takte
+ALLEE_REGEL_MAX_M = 16.5       # Takt 12 +- 3 m plus Versatz (max ~15,3 m); eine Luecke bringt >= 18 m: Abstaende darueber im Lauf zaehlen als Luecke
+
+
+def allee_messung(inst, chaussee_pts):
+    """Misst die Allee-Baeume (parzelle == allee) je Seite der Chaussee. Rueckgabe dict mit Abstaenden, Artwechsel, Luecken, Groessen."""
+    pts = resample([tuple(p) for p in chaussee_pts], 1.0)
+    baeume = [x for x in inst if x["parzelle"] == "allee"]
+    seiten = {1: [], -1: []}
+    for b in baeume:
+        d, k, t = poly_abstand((b["x"], b["z"]), pts)
+        px, pz = pts[k][0] + (pts[k + 1][0] - pts[k][0]) * t, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * t
+        tx, tz = pts[k + 1][0] - pts[k][0], pts[k + 1][1] - pts[k][1]
+        seite = 1 if (tx * (b["z"] - pz) - tz * (b["x"] - px)) > 0 else -1
+        seiten[seite].append((k + t, b))
+    abst, wechsel, paare, luecken_fehlend, laeufe = [], 0, 0, 0, 0
+    for sd, lst in seiten.items():
+        lst.sort(key=lambda q: q[0])
+        for (s0, a), (s1, b) in zip(lst, lst[1:]):
+            d = math.hypot(b["x"] - a["x"], b["z"] - a["z"])
+            if d > ALLEE_LAUF_MAX_M:
+                laeufe += 1
+                continue
+            abst.append(d)
+            paare += 1
+            wechsel += 1 if a["typ"] != b["typ"] else 0
+            if d > ALLEE_REGEL_MAX_M:
+                luecken_fehlend += max(1, int(round(d / 12.0)) - 1)
+    n = len(abst)
+    mittel = sum(abst) / n if n else 0.0
+    sd_ = math.sqrt(sum((v - mittel) ** 2 for v in abst) / n) if n else 0.0
+    regel = [v for v in abst if v <= ALLEE_REGEL_MAX_M]
+    m2 = sum(regel) / len(regel) if regel else 0.0
+    cv2 = math.sqrt(sum((v - m2) ** 2 for v in regel) / len(regel)) / m2 if regel and m2 else 0.0
+    skalen = [b.get("skala", 1.0) for b in baeume]
+    arten = {}
+    for b in baeume:
+        arten[b["typ"]] = arten.get(b["typ"], 0) + 1
+    return dict(n=len(baeume), paare=paare, mittel=mittel, cv=(sd_ / mittel if mittel else 0.0), cv_ohne_luecken=cv2,
+                wechsel=(wechsel / paare if paare else 1.0), luecken_pct=(100.0 * luecken_fehlend / (luecken_fehlend + len(abst) + 1e-9) if abst else 0.0),
+                skala_min=min(skalen) if skalen else 1.0, skala_max=max(skalen) if skalen else 1.0, arten=arten,
+                seiten={sd: len(l) for sd, l in seiten.items()}, regel_mittel=m2, regel_min=min(regel) if regel else 0.0, regel_max=max(regel) if regel else 0.0)
+
+
+def pruefe_allee(T, inst, wege):
+    ch = [w for w in wege if w["id"] == "chaussee"][0]
+    m = allee_messung(inst, ch["punkte"])
+    T.add("Allee: Variationskoeffizient der Baumabstaende", ">= %.2f" % ALLEE_CV_MIN, "%.3f (Mittel %.1f m, n=%d Abstaende)" % (m["cv"], m["mittel"], m["paare"]), m["cv"] >= ALLEE_CV_MIN)
+    T.add("Allee: Anteil strikter Artwechsel", "< %.0f %%" % (ALLEE_WECHSEL_MAX * 100), "%.0f %% %s" % (m["wechsel"] * 100, m["arten"]), m["wechsel"] < ALLEE_WECHSEL_MAX)
+    T.add("Allee: regulaerer Takt (Mittel, Min..Max ohne Luecken)", "Mittel 12 +- 1,5 m, Abstaende >= 7,5 m", "%.1f m, %.1f..%.1f m" % (m["regel_mittel"], m["regel_min"], m["regel_max"]),
+          10.5 <= m["regel_mittel"] <= 13.5 and m["regel_min"] >= 7.5, "WARN")
+    T.add("Allee: Luecken (fehlende Baeume, aus Abstaenden > %.1f m)" % ALLEE_REGEL_MAX_M, "10..15 %", "%.1f %%" % m["luecken_pct"], 10.0 <= m["luecken_pct"] <= 15.0, "WARN")
+    T.add("Allee: Groessen-Streuung (skala)", "0.85..1.15 (+-15 %)", "%.2f..%.2f" % (m["skala_min"], m["skala_max"]),
+          0.85 - 1e-9 <= m["skala_min"] and m["skala_max"] <= 1.15 + 1e-9 and m["skala_max"] - m["skala_min"] > 0.1, "WARN")
+    T.info("Allee: CV ohne Luecken / Seiten (+1 / -1)", "%.3f / %s" % (m["cv_ohne_luecken"], m["seiten"]))
+    return m
+
+
 def pruefen(dir_, src, strikt=False, baseline=None, liste=None):
     geo = Gelaende(src)
     T = Tabelle()
@@ -505,6 +566,7 @@ def pruefen(dir_, src, strikt=False, baseline=None, liste=None):
     T.add("Wegenetz zusammenhaengend (Kreuzungen/Einmuendungen)", "1 Komponente", "%d, %d Knoten" % (len(komp), len(kn)), len(komp) == 1)
     pruefe_welt_daten(T, orte_j, wege, geo)
     pruefe_platzierung(T, orte_j, inst, wege, dir_, strikt, baseline, liste)
+    pruefe_allee(T, inst, wege)
     al = wd["chaussee"]["allee"]
     T.info("Allee: Abschnitte / Baeume / Laenge", "%d / %d / %.0f m" % (len(al), sum(1 for x in inst if x["parzelle"] == "allee"), sum(a["laenge_m"] for a in al)))
     # Chaussee Dorf-Kreuzung

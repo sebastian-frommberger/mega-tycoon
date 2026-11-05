@@ -4,5 +4,3 @@
 # Ablauf = Annahme "S9-Refinement" (Sprint 8 endet nach 15 Arbeitstagen, ca. 25.11.2026); abgelaufen = FAIL. Verlängern nur mit Eintrag im Entscheidungslog.
 main.gd|eco.cash_cent += refund|2026-12-01|Verkaufserlös (Z. 2714 am 05.11.), Allowlist W12
 main.gd|eco.cash_cent += p["refund"]|2026-12-01|Rückerstattung (Z. 2783 am 05.11.), Allowlist W12
-main.gd|eco.cash_cent -= cent|2026-12-01|main.charge (Z. 3106 am 05.11.); entfällt mit AT-01 (konto.gd), dann Eintrag streichen
-proto/proto_sim.gd|eco.cash_cent -= sim.line_cost_cent|2026-12-01|ProtoSim Linienbau (Z. 433 am 05.11.); entfällt mit AT-02 (Konto), dann Eintrag streichen

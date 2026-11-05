@@ -12,5 +12,54 @@
     "jahr_ticks_test": 450,
     "regel_text": "FZ-02 Zwei Uhren: nur Datum, Fahrzeugalter (Jahre) und Freischaltungen lesen den Kalender; Wirtschaft in Ticks. Monat = jahr_ticks / 12 (150 Ticks). Slice bleibt 7200 (economy_slice.json spielmonat_ticks x 12).",
     "kenn": "PO Entscheidungslog 05.11.2026 (3 min/Jahr), revidierbar Basti/Jonas S9; --jahr_ticks= ueberschreibt"
+  },
+  "firmenkauf_c1": {
+    "regel_text": "S8 FK-02: Welt-Overlay fuer Firmenkauf C1, gelesen von economy.apply_proto (ProtoSim ruft es nach load_from; Slice nie). Kaufpreis, Marge, Unterhalt, Ausbau kommen aus economy_slice.json kauf/fabrik.",
+    "eingangspuffer_deckel_perioden": 2,
+    "eingangspuffer_text": "Verarbeiter nimmt nur bis s_rate x 2 Perioden Eingang an (Muehle Stufe 1: 40 E, Stufe 2: 80 E); Rest bleibt auf dem Fahrzeug, kein Ertrag. Macht Ereignis 7 'Puffer voll' ausloesbar und Farm 2 ohne Ausbau wirkungslos (design.md 0.1). 0 = aus. Entscheidung Tobias 05.11.2026, Begruendung FK-02.md",
+    "preisaufschlag_je_werk_promille": 250,
+    "preisaufschlag_kenn": "[E] design.md A.2, +25 % je bereits besessenem Werk (Schneeball-Schutz), Bot-Pruefung QT-03 offen",
+    "rueckfall_w3_muehle_durchsatz_einheiten_pro_periode": 0,
+    "rueckfall_w3_text": "W3: ist FK-02 bei Gate C nicht gruen, hier 40 setzen (Muehle fest 40 E/min, kein Kaufmoment). 0 = aus (FK-02 aktiv)."
+  },
+  "kalibrierung_oe02_oe03": {
+    "status_text": "Vorbereitet 05.11.2026 Tobias, NICHTS gemessen. Werte werden erst mit Bot (QT-03, Daniel) gesetzt, mit messdatum, n, tempo_k.",
+    "a_bisektion": {
+      "untergrenze_promille": 1000,
+      "obergrenze_promille": null,
+      "obergrenze_regel_text": "k_eff der laengsten Plan-Bot-Linie (gemessen) x 1000, OE-02_vorbereitung Folge 2",
+      "abbruch_intervall_promille": 50,
+      "n_je_schritt": 20,
+      "n_endpunkt": 300,
+      "ziel_text": "Plan-Bot erreicht F2 bei Minute 25 +- 5; Netto P50 (Min 30) k=4 gegen k=8 +- 15 %; X1 haelt",
+      "tempo_k_varianten": [
+        4,
+        8
+      ],
+      "ergebnis_promille": null,
+      "messdatum": null,
+      "n": null
+    },
+    "x1_distanz_felder": [
+      10,
+      20,
+      40,
+      60,
+      80,
+      100,
+      150
+    ],
+    "x2_umweg_faktoren_promille": [
+      1000,
+      1600
+    ],
+    "startkapital_varianten_cent": [
+      300000,
+      450000,
+      600000
+    ],
+    "startkapital_kriterium_text": "W24: 6.000 $ bleibt nur, wenn Kasse P50 Plan-Bot zwischen Minute 5 und 20 unter 2.000 $ faellt",
+    "bankrott_band_text": "OE-03: Naiv 10-30 %, Plan <= 5 %, n = 300, Wilson-Intervall",
+    "fk02_bot_text": "FK-02: Kauf amortisiert in 8-20 min; Plan-Bot kauft Muehle zwischen Minute 14 und 25; Schneeball: Netto-$/min verdoppelt sich nicht schneller als in 10 min nach dem 1. Kauf"
   }
 }

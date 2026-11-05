@@ -111,6 +111,9 @@ var s_lots: Array = []                   # FIFO [gut, ursprung, abfahrt, menge]
 var s_sat: Array = []                    # Stadt: Dictionary kategorie -> geliefert in Periode
 var s_sat_period := PackedInt32Array()
 var s_lic_until := PackedInt32Array()    # Tick, bis zu dem die Lizenz gilt; -1 keine
+var s_owner := PackedInt32Array()        # S8 FK-02: 0 frei, 1 Spieler, >= 2 reserviert (C2/KI, ab S9)
+var s_werksstufe := PackedInt32Array()   # S8 FK-02: Werksstufe 1/2 (Durchsatz fabrik.factory_throughput_l<stufe>)
+var s_lic_paid := PackedInt64Array()     # S8 FK-02: gezahlte Lizenzgebühren je Standort (Kauf + Verlängerung), Cent
 var s_revenue := PackedInt64Array()      # Ertrag, der an diesem Standort (als Ziel) gebucht wurde
 var s_raw := PackedByteArray()           # 1 = Rohstoffquelle (Produktion lazy, geschlossene Form)
 var s_born := PackedInt32Array()         # Öko-Tick-Index bei Anlage
@@ -142,6 +145,26 @@ var units_to_warehouse := 0
 var yield_events := 0
 var ledger_enabled := true
 var ledger: Array = []                   # Buchungen (nur wenn ledger_enabled)
+
+# ---- S8 FK-02 Firmenkauf C1 (Werte aus economy_slice.json kauf/fabrik/kredit; Defaults = Slice ohne Kauf) ----
+const OWNER_FREI := 0
+const OWNER_SPIELER := 1
+var owned_count := 0                     # gekaufte Werke (+25 % Preis je weiteres Werk)
+var first_discount_used := false         # kauf.buy_discount_first_once_flag
+var buy_surcharge := 0                   # kauf.buy_surcharge_per_field_promille
+var buy_lic_credit := 0                  # kauf.buy_licence_credit_share_promille
+var buy_disc_first := 0                  # kauf.buy_discount_first_promille
+var buy_disc_once := true
+var buy_only_balance := true             # kauf.buy_only_from_balance_flag
+var buy_credit_blocks := true            # kredit.credit_blocks_company_buy_flag
+var buy_stufe_mult := true               # kauf.buy_price_stufe_mult_flag (Faktor Werksstufe; beim Kauf immer 1)
+var works_margin := 0                    # kauf.works_margin_promille
+var upkeep_per_level := 0                # kauf.company_upkeep_per_level_cent_pro_periode
+var buy_owned_step := 250                # +25 % je bereits besessenem Werk [E, design.md A.2]; economy_proto.json firmenkauf_c1 überschreibt
+var werk_max_stufe := 1                  # fabrik.factory_max_level_slice_stufe
+# ---- S8 FK-02 Welt-Overlay (economy_proto.json, apply_proto); 0 = aus, Slice liest die Datei nicht ----
+var inbuf_cap_perioden := 0              # Eingangspuffer-Deckel Verarbeiter = s_rate × N Perioden
+var muehle_rate_fest := 0                # Rückfall W3: Durchsatz Mühle fest (Einheiten/Periode)
 
 var _simref: WeakRef = null           # schwache Referenz: sim.economy hält das Modul, kein Ref-Zyklus
 
@@ -293,6 +316,7 @@ func load_from(slice_path: String, consts_path: String) -> bool:
 	for st in _need(slice, "staedte"):
 		c_index[st["id"]] = st
 	chains = _need(slice, "ketten")
+	_load_kauf()
 	for k in range(maxi(1, oeko_tick_ticks)):
 		_buckets.append([])
 	ok = errors.is_empty()
@@ -360,8 +384,9 @@ func f_saett_promille(s_promille: int) -> int:
 
 ## E = M × P × D_eff × F_zeit × F_sätt × (1 + B_skill); fs_sum = Σ F_sätt über die M Einheiten
 ## (bei konstantem F_sätt = M × F_sätt). Eine Division durch 10^12.
-func yield_cent(g: int, d_felder: int, fz: int, fs_sum: int) -> int:
-	return muldiv_e12(g_price[g] * d_eff_x1000(d_felder), fz * fs_sum * (PROMILLE + skill_bonus))
+## extra_promille (S8 FK-02): Werksmarge auf Lose aus eigenem Werk, additiv zu B_skill; 0 = Formel wie bisher.
+func yield_cent(g: int, d_felder: int, fz: int, fs_sum: int, extra_promille: int = 0) -> int:
+	return muldiv_e12(g_price[g] * d_eff_x1000(d_felder), fz * fs_sum * (PROMILLE + skill_bonus + extra_promille))
 
 
 func luftlinie_felder(a: int, b: int) -> int:
@@ -422,6 +447,9 @@ func _add_site(node_id: int, kind: int, label: String) -> int:
 	s_sat.append({})
 	s_sat_period.append(-1)
 	s_lic_until.append(-1)
+	s_owner.append(OWNER_FREI)
+	s_werksstufe.append(1)
+	s_lic_paid.append(0)
 	s_revenue.append(0)
 	s_raw.append(0)
 	s_born.append(_sim.tick_count / oeko_tick_ticks)
@@ -447,7 +475,9 @@ func add_industry_site(node_id: int, industry_id: String) -> int:
 			s_rate[site] = d["produktion_l1_einheiten_pro_periode"]
 			s_raw[site] = 1
 		else:
-			s_rate[site] = _need(slice, "fabrik.factory_throughput_l1_einheiten_pro_periode")  # ANNAHME Stufe 1
+			s_rate[site] = _need(slice, "fabrik.factory_throughput_l1_einheiten_pro_periode")  # Werksstufe 1 (FK-02: Ausbau über upgrade_site)
+			if muehle_rate_fest > 0 and industry_id == "muehle":
+				s_rate[site] = muehle_rate_fest                     # Rückfall W3 (nur Welt, apply_proto)
 	s_abn_max[site] = d.get("abnahme_max_einheiten_pro_periode", -1)
 	var buf := {}
 	for gid in d.get("eingang_gut_ids", []):
@@ -584,6 +614,7 @@ func buy_licence(site: int) -> Dictionary:
 		return {"ok": false, "fehler": "guthaben_reicht_nicht", "fehlt_cent": pay - cash_cent}
 	cash_cent -= pay
 	licence_paid_total += pay
+	s_lic_paid[site] += pay
 	if q["gratis"]:
 		free_licences_left -= 1
 	s_lic_until[site] = _sim_get().tick_count + lic_duration
@@ -612,12 +643,205 @@ func _renew_licences(t: int) -> void:
 			if cash_cent >= cost:
 				cash_cent -= cost
 				licence_paid_total += cost
+				s_lic_paid[site] += cost
 				s_lic_until[site] += lic_duration
 				lic_events.append({"site": site, "cent": cost, "ok": true})
 			else:
 				s_lic_until[site] = -1
 				lic_events.append({"site": site, "cent": cost, "ok": false})
 	_update_next_expiry()
+
+
+# =====================================================================================  S8 OE-05 Sättigungsanzeige
+
+## OE-05 (design.md §2.6, W19): Sättigungslücke einer Lieferung an eine Stadt, gerechnet mit DERSELBEN Funktion wie
+## on_unload (f_saett_promille je Einheit, Grenzpreis, eine Division in yield_cent). before = in dieser Periode schon
+## gelieferte Einheiten derselben Kategorie (andere Linien zuerst), units = Einheiten dieser Lieferung/Linie je Periode,
+## dem = city_demand (Einheiten je Periode = Spielminute). Damit sind alle Cent-Werte "je Minute", wenn units je Periode ist.
+##   ist_cent  = yield_cent(g, d, fz, Σ f_sätt)            (= Buchung im Spiel, Cent)
+##   voll_cent = yield_cent(g, d, fz, units × 1000)        (dieselbe Ware bei V <= 1.000 ‰, d. h. bei einem neuen Abnehmer)
+##   x_cent    = voll_cent − ist_cent                      ("+x $/min nur mit neuem Abnehmer")
+##   frei_einheiten = Einheiten bis V = 1.000 ‰ (0, wenn schon gesättigt)
+##   ampel: 0 grün (V < 1.000 ‰), 1 gelb (1.000 ‰ <= V < 1.500 ‰), 2 rot (V >= 1.500 ‰), V nach dieser Lieferung.
+func saett_luecke(g: int, d_felder: int, fz: int, before: int, units: int, dem: int, extra_promille: int = 0) -> Dictionary:
+	var de := maxi(1, dem)
+	var fs := 0
+	for u in range(1, units + 1):
+		fs += f_saett_promille(rdiv((before + u) * PROMILLE, de))
+	var ist := yield_cent(g, d_felder, fz, fs, extra_promille)
+	var voll := yield_cent(g, d_felder, fz, units * PROMILLE, extra_promille)
+	var v := rdiv((before + units) * PROMILLE, de)
+	var ampel := 0 if v < sat_full else (1 if v < sat_knee else 2)
+	var frei := maxi(0, de * sat_full / PROMILLE - before - units)
+	return {"v_promille": v, "f_saett_summe": fs, "ist_cent": ist, "voll_cent": voll, "x_cent": voll - ist,
+		"frei_einheiten": frei, "ampel": ampel}
+
+
+## OE-05 Linie: Ursprung -> Stadt-Site, Gut g, units_line je Periode, units_other = Einheiten anderer Linien vor dieser.
+## fz = Frische (1.000 = voll); Werksmarge wie im Spiel, wenn der Ursprung ein eigenes Werk ist.
+func saett_linie(city_site: int, origin_site: int, g: int, units_line: int, units_other: int = 0, fz: int = PROMILLE) -> Dictionary:
+	if city_site < 0 or city_site >= s_kind.size() or s_kind[city_site] != K_STADT or not city_accepts(city_site, g):
+		return {"ok": false, "fehler": "kein_abnehmer"}
+	var r := saett_luecke(g, luftlinie_felder(origin_site, city_site), fz, units_other, units_line, city_demand(city_site),
+		works_margin if origin_site >= 0 and s_owner[origin_site] == OWNER_SPIELER else 0)
+	r["ok"] = true
+	return r
+
+
+# =====================================================================================  S8 FK-02 Firmenkauf C1
+
+func _load_kauf() -> void:
+	var k: Dictionary = slice.get("kauf", {})
+	var f: Dictionary = slice.get("fabrik", {})
+	buy_surcharge = int(k.get("buy_surcharge_per_field_promille", 0))
+	buy_lic_credit = int(k.get("buy_licence_credit_share_promille", 0))
+	buy_disc_first = int(k.get("buy_discount_first_promille", 0))
+	buy_disc_once = bool(k.get("buy_discount_first_once_flag", true))
+	buy_only_balance = bool(k.get("buy_only_from_balance_flag", true))
+	buy_stufe_mult = bool(k.get("buy_price_stufe_mult_flag", true))
+	works_margin = int(k.get("works_margin_promille", 0))
+	upkeep_per_level = int(k.get("company_upkeep_per_level_cent_pro_periode", 0))
+	buy_credit_blocks = bool(slice.get("kredit", {}).get("credit_blocks_company_buy_flag", true))
+	werk_max_stufe = int(f.get("factory_max_level_slice_stufe", 1))
+
+
+## Welt-Overlay (economy_proto.json, Abschnitt firmenkauf_c1). Der Slice ruft das nie (bitgleich). Aufruf nach
+## load_from, vor oder nach add_industry_site (Rückfall W3 wird auf bestehende Mühlen nachgezogen).
+func apply_proto(proto: Dictionary) -> void:
+	var c: Dictionary = proto.get("firmenkauf_c1", {})
+	inbuf_cap_perioden = int(c.get("eingangspuffer_deckel_perioden", 0))
+	buy_owned_step = int(c.get("preisaufschlag_je_werk_promille", buy_owned_step))
+	muehle_rate_fest = int(c.get("rueckfall_w3_muehle_durchsatz_einheiten_pro_periode", 0))
+	if muehle_rate_fest > 0:
+		for site in range(s_kind.size()):
+			if s_kind[site] == K_INDUSTRIE and i_ids[s_def[site]] == "muehle":
+				s_rate[site] = muehle_rate_fest
+
+
+## Werksmarge: Lose, deren Ursprung ein eigenes Werk ist (lot[1]).
+func _margin_of(lot: Array) -> int:
+	var o: int = lot[1]
+	return works_margin if o >= 0 and o < s_owner.size() and s_owner[o] == OWNER_SPIELER else 0
+
+
+func _hq_felder(site: int) -> int:
+	return _felder(s_x[site] - hq_x, s_y[site] - hq_y)
+
+
+## Kaufpreis (FK-01, eine Division am Ende, halb auf):
+##   preis = max(0, P × S × (1000 + z × max(0, d − r)) × (1000 + w × n) × (1000 − f × erst) / 1000^3
+##                  − L × a / 1000)
+## P = kaufpreis_stufe1_cent, S = Werksstufe (buy_price_stufe_mult_flag; beim Kauf 1), z = buy_surcharge_per_field (30 ‰),
+## d = Luftlinie HQ -> Werk in Feldern, r = HQ-Radius, w = +250 ‰ je bereits besessenem Werk, n = owned_count,
+## f = buy_discount_first (200 ‰), erst = 1 beim ersten Kauf, L = s_lic_paid[site], a = buy_licence_credit_share (500 ‰).
+## Reihenfolge (Entscheidung FK-02): Rabatt und Aufschläge auf den Werkspreis, Anrechnung danach in Cent.
+func buy_quote(site: int) -> Dictionary:
+	if site < 0 or site >= s_kind.size() or s_kind[site] != K_INDUSTRIE:
+		return {"ok": false, "fehler": "kein_betrieb"}
+	if not company_started:
+		return {"ok": false, "fehler": "keine_firma"}
+	var p: int = int(i_def[s_def[site]]["kaufpreis_stufe1_cent"])
+	var st: int = s_werksstufe[site] if buy_stufe_mult else 1
+	var d := _hq_felder(site)
+	var fd: int = PROMILLE + buy_surcharge * maxi(0, d - hq_radius_felder)
+	var fo: int = PROMILLE + buy_owned_step * owned_count
+	var erst := 1 if not (buy_disc_once and first_discount_used) else 0
+	var ff: int = PROMILLE - buy_disc_first * erst
+	var lic: int = s_lic_paid[site]
+	var pe3: int = PROMILLE * PROMILLE * PROMILLE
+	var preis := maxi(0, rdiv(p * st * fd * fo * ff - lic * buy_lic_credit * PROMILLE * PROMILLE, pe3))   # eine Division
+	return {"ok": true, "preis_cent": preis, "werkspreis_cent": p, "felder_hq": d, "faktor_entfernung_promille": fd,
+		"faktor_werke_promille": fo, "rabatt_erster_kauf": erst == 1, "lizenz_gezahlt_cent": lic,
+		"anrechnung_cent": rdiv(lic * buy_lic_credit, PROMILLE), "besitzer": s_owner[site], "guthaben_cent": cash_cent}
+
+
+## Kauf C1. credit (optional, credit.gd): mit buy_credit_blocks zählt nur Guthaben ohne Kredit (cash − loan).
+## konto (optional, core/konto.gd): Buchung über konto.charge (Ausgabe), sonst direkt (Tests ohne Konto).
+func buy_site(site: int, konto = null, credit = null) -> Dictionary:
+	var q := buy_quote(site)
+	if not q["ok"]:
+		return q
+	if s_owner[site] == OWNER_SPIELER:
+		return {"ok": false, "fehler": "schon_gekauft"}
+	if s_owner[site] != OWNER_FREI:
+		return {"ok": false, "fehler": "besitzer_reserviert"}
+	var preis: int = q["preis_cent"]
+	var loan: int = int(credit.loan_cent) if credit != null and buy_credit_blocks else 0
+	if cash_cent < 0:
+		return {"ok": false, "fehler": "kasse_im_minus"}
+	if buy_only_balance and cash_cent - loan < preis:
+		return {"ok": false, "fehler": "guthaben_reicht_nicht" if loan == 0 else "kredit_sperrt_firmenkauf",
+			"fehlt_cent": preis - (cash_cent - loan), "kredit_cent": loan}
+	_pay(preis, konto)
+	s_owner[site] = OWNER_SPIELER
+	owned_count += 1
+	if q["rabatt_erster_kauf"]:
+		first_discount_used = true
+	s_lic_until[site] = -1                      # Besitz ersetzt die Lizenz: keine Verlängerung mehr (kein -2, FK-01)
+	_update_next_expiry()
+	return {"ok": true, "bezahlt_cent": preis, "guthaben_cent": cash_cent, "werke": owned_count}
+
+
+func _pay(cent: int, konto) -> void:
+	if konto != null:
+		konto.charge(cent)
+	else:
+		cash_cent -= cent
+
+
+## Werksausbau auf die nächste Werksstufe (S8: nur Verarbeiter, max fabrik.factory_max_level_slice_stufe = 2).
+func upgrade_quote(site: int) -> Dictionary:
+	if site < 0 or site >= s_kind.size() or s_kind[site] != K_INDUSTRIE:
+		return {"ok": false, "fehler": "kein_betrieb"}
+	if s_owner[site] != OWNER_SPIELER:
+		return {"ok": false, "fehler": "nicht_im_besitz"}
+	if s_raw[site] == 1 or s_out_good[site] < 0:
+		return {"ok": false, "fehler": "nur_verarbeiter"}   # Rohstoff: geschlossene Produktionsform, Ausbau ab S9
+	var neu: int = s_werksstufe[site] + 1
+	if neu > werk_max_stufe:
+		return {"ok": false, "fehler": "hoechste_stufe"}
+	var f: Dictionary = slice.get("fabrik", {})
+	return {"ok": true, "stufe_neu": neu, "kosten_cent": int(f.get("factory_upgrade_cost_l%d_cent" % neu, 0)),
+		"durchsatz_neu": int(f.get("factory_throughput_l%d_einheiten_pro_periode" % neu, 0)),
+		"unterhalt_neu_cent_pro_periode": upkeep_per_level * neu}
+
+
+func upgrade_site(site: int, konto = null, credit = null) -> Dictionary:
+	var q := upgrade_quote(site)
+	if not q["ok"]:
+		return q
+	var cost: int = q["kosten_cent"]
+	var loan: int = int(credit.loan_cent) if credit != null and buy_credit_blocks else 0
+	if cash_cent < 0:
+		return {"ok": false, "fehler": "kasse_im_minus"}
+	if buy_only_balance and cash_cent - loan < cost:
+		return {"ok": false, "fehler": "guthaben_reicht_nicht" if loan == 0 else "kredit_sperrt_firmenausbau",
+			"fehlt_cent": cost - (cash_cent - loan), "kredit_cent": loan}
+	_pay(cost, konto)
+	s_werksstufe[site] = q["stufe_neu"]
+	if muehle_rate_fest <= 0 or i_ids[s_def[site]] != "muehle":
+		s_rate[site] = q["durchsatz_neu"]
+	return {"ok": true, "bezahlt_cent": cost, "stufe": s_werksstufe[site], "durchsatz": s_rate[site], "guthaben_cent": cash_cent}
+
+
+## Werksunterhalt je Periode (Cent): Σ über eigene Werke company_upkeep_per_level × Werksstufe. Der Aufrufer bucht ihn
+## über core/konto.gd (fix_neu: als Teil der laufenden Kosten), nicht economy.gd selbst (Felix, W12).
+func works_upkeep_cent_pro_periode() -> int:
+	var c := 0
+	for site in range(s_owner.size()):
+		if s_owner[site] == OWNER_SPIELER:
+			c += upkeep_per_level * s_werksstufe[site]
+	return c
+
+
+## Ereignis 7 (OE-01): Eingangspuffer eines Verarbeiters voll (nur mit Deckel, apply_proto).
+func inbuf_full(site: int) -> bool:
+	if inbuf_cap_perioden <= 0 or s_out_good[site] < 0:
+		return false
+	for gi in s_inbuf[site]:
+		if s_inbuf[site][gi] >= s_rate[site] * inbuf_cap_perioden:
+			return true
+	return false
 
 
 # =====================================================================================  Tick-Hooks (aus sim_world)
@@ -710,8 +934,8 @@ func load_gate(sim, i: int, k: int) -> int:
 	var site: int = _site_of_station.get(k, -1)
 	if site == -1:
 		return L_LOAD
-	if s_kind[site] == K_INDUSTRIE and lic_required and not licence_valid(site):
-		return L_WAIT
+	if s_kind[site] == K_INDUSTRIE and lic_required and not licence_valid(site) and s_owner[site] != OWNER_SPIELER:
+		return L_WAIT                      # FK-02: Besitz ersetzt die Lizenz (s_lic_until = -1 nach Kauf)
 	if s_raw[site] == 1:
 		_sync_raw(sim, site)
 	return L_LOAD
@@ -776,13 +1000,15 @@ func on_unload(sim, i: int, k: int) -> int:
 							s_intake_period[site] = per
 							s_intake[site] = 0
 						acc = mini(q, s_abn_max[site] - s_intake[site])
+					if inbuf_cap_perioden > 0 and s_out_good[site] >= 0:
+						acc = clampi(s_rate[site] * inbuf_cap_perioden - buf[g], 0, acc)   # FK-02 Welt: Puffer voll, Rest bleibt auf dem Fahrzeug
 					if acc > 0:
 						s_intake[site] += acc
 						buf[g] += acc
 						_activate_if_ready(site)
 						var d := luftlinie_felder(lot[1], site)
 						var fz := f_zeit_promille(g, t - lot[2])
-						_book(site, lot, acc, d, fz, acc * PROMILLE, yield_cent(g, d, fz, acc * PROMILLE))
+						_book(site, lot, acc, d, fz, acc * PROMILLE, yield_cent(g, d, fz, acc * PROMILLE, _margin_of(lot)))
 			K_STADT:
 				if city_accepts(site, g):
 					acc = q
@@ -799,7 +1025,7 @@ func on_unload(sim, i: int, k: int) -> int:
 					sat[cat] = before + acc
 					var d := luftlinie_felder(lot[1], site)
 					var fz := f_zeit_promille(g, t - lot[2])
-					_book(site, lot, acc, d, fz, fs_sum, yield_cent(g, d, fz, fs_sum))
+					_book(site, lot, acc, d, fz, fs_sum, yield_cent(g, d, fz, fs_sum, _margin_of(lot)))
 		given += acc
 		if acc < q:
 			keep.append([g, lot[1], lot[2], q - acc])
@@ -833,6 +1059,10 @@ func checksum() -> int:
 		h = (h ^ s_acc[site]) * prime
 		h = (h ^ s_made[site]) * prime
 		h = (h ^ s_lic_until[site]) * prime
+		if s_owner[site] != OWNER_FREI:          # FK-02: nur wenn vom Default abweichend (Slice ohne Kauf bitgleich)
+			h = (h ^ ((site << 8) | s_owner[site])) * prime
+		if s_werksstufe[site] != 1:
+			h = (h ^ ((1 << 40) | (site << 8) | s_werksstufe[site])) * prime
 		h = (h ^ s_intake[site]) * prime
 		for gi in s_inbuf[site]:
 			h = (h ^ s_inbuf[site][gi]) * prime

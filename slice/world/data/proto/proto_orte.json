@@ -5,45 +5,45 @@
   "koordinaten": "lokal m, Ursprung NW-Ecke Kern, +x Ost, +z Sued",
   "rot_deg": "Godot rotation_degrees.y; lokales +z (Fassade) zeigt auf (sin rot, cos rot) in (x, z)",
   "abstaende": {
-   "dorf_weiler_m": 940.71,
+   "dorf_weiler_m": 941.69,
    "dorf_kleinstadt_m": 1697.59,
    "dorf_kleinstadt_kreuzung_m": 1639.61,
    "dorf_gut_m": 697.66,
    "dorf_muehle_m": 360.09,
    "muehle_farm2_m": 1025.0,
-   "weiler_kleinstadt_m": 978.19
+   "weiler_kleinstadt_m": 975.43
   },
   "see_nutzung": {
    "huette": [
-    1387.15,
-    825.21
+    1275.4,
+    945.05
    ],
    "steg_wurzel": [
-    1374.87,
-    838.37
+    1263.12,
+    958.21
    ],
    "steg_ende": [
-    1357.82,
-    856.66
+    1246.07,
+    976.5
    ],
    "boot_am_steg": [
-    1356.61,
-    854.15
+    1244.85,
+    973.99
    ],
    "uferwinkel_deg": -47.0,
-   "ufer_radius_m": 234.09,
+   "ufer_radius_m": 70.23,
    "boot_schleife": {
     "mitte": [
-     1182.5,
-     1032.5
+     1203.5,
+     1018.5
     ],
-    "radius_m": 110.0,
-    "umlauf_s": 300.0,
+    "radius_m": 33.0,
+    "umlauf_s": 90.0,
     "hinweis": "Kulissen-Animation, keine Sim; Boot 4,5 m, Kreisbahn im Uhrzeigersinn"
    },
    "pfad_start": [
-    1387.15,
-    825.21
+    1275.4,
+    945.05
    ]
   },
   "mauer": [
@@ -655,7 +655,7 @@
     ]
    }
   ],
-  "allee_baeume_n": 159
+  "allee_baeume_n": 160
  },
  "orte": [
   {
@@ -764,9 +764,9 @@
    "name": "Hasenwinkel",
    "klasse": "weiler",
    "ew": 48,
-   "x": 759.78,
-   "z": 856.51,
-   "r_m": 70.0,
+   "x": 758.42,
+   "z": 854.01,
+   "r_m": 65.0,
    "form": "weiler",
    "gebaeude": {
     "bauernhof": 6
@@ -775,7 +775,7 @@
    "gebaeude_n": 6,
    "parzellen_n": 6,
    "luecken_n": 0,
-   "r_max_m": 80.0,
+   "r_max_m": 70.0,
    "sim_knoten": false,
    "ew_ort": 48
   },
@@ -1189,7 +1189,7 @@
    "name": "Binsensee",
    "x": 1212.5,
    "z": 1012.5,
-   "r_m": 250.0,
+   "r_m": 75.0,
    "pegel_m": 44.8,
    "quelle": "Vorgabe"
   },
@@ -1773,9 +1773,9 @@
     "id": "hasenwinkel_p06",
     "typ": "bauernhof",
     "status": "besetzt",
-    "x": 814.56,
-    "z": 856.93,
-    "rot_deg": 42.11,
+    "x": 806.41,
+    "z": 841.93,
+    "rot_deg": -177.53,
     "b": 25.0,
     "t": 25.0,
     "weg": "hasenwinkelweg"

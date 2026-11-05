@@ -428,7 +428,7 @@ def see_bauen(geo, szene, rng):
     return dict(huette=[r2(hx), r2(hz)], steg_wurzel=[r2(SEE_MITTE[0] + (r + 4.0) * u[0]), r2(SEE_MITTE[1] + (r + 4.0) * u[1])],
                 steg_ende=[r2(SEE_MITTE[0] + (r - 21.0) * u[0]), r2(SEE_MITTE[1] + (r - 21.0) * u[1])],
                 boot_am_steg=[r2(bx), r2(bz)], uferwinkel_deg=FISCHER_WINKEL_DEG, ufer_radius_m=r2(r),
-                boot_schleife=dict(mitte=[r2(SEE_MITTE[0] - 30.0), r2(SEE_MITTE[1] + 20.0)], radius_m=110.0, umlauf_s=300.0,
+                boot_schleife=dict(mitte=[r2(SEE_MITTE[0] - 9.0), r2(SEE_MITTE[1] + 6.0)], radius_m=33.0, umlauf_s=90.0,      # WA-12: Seeradius 75 m (vorher 250 m: 110 m / 300 s, gleiche Bootsgeschwindigkeit 2,3 m/s)
                                    hinweis="Kulissen-Animation, keine Sim; Boot 4,5 m, Kreisbahn im Uhrzeigersinn"),
                 pfad_start=[r2(hx), r2(hz)])
 

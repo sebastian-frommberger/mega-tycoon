@@ -220,6 +220,41 @@ def pruefe_ladeplaetze(T, orte_j, wege, geo, inst=(), regelwerk_pfad=None):
         T.add("Ladeplatz %s: Lagerhaufen mit 3 Fuellstufen (aufsteigende Grenzen, 3 Prefab-Refs)" % sid, "3", ", ".join("%s:%d" % (h["gut"], len(h["fuellstufen"]["grenzen"])) for h in lp["lagerhaufen"]), ok_st)
 
 
+def pruefe_gewaesser(T, orte_j, dir_, geo, regelwerk_pfad=None, kartentyp="flusstal"):
+    """WA-12: Gewaesser je Kartentyp. Stehendes Gewaesser (proto_see.json, orte.gewaesser see/teich) gegen regelwerk.json
+    gewaesser_kartentyp: Durchmesser <= typen.<typ>.see_durchmesser_m[1]; bis teich_max_m Teich ohne Erwartung, darueber bis nutzung_ab_m
+    nur mit Kulisse, ab nutzung_ab_m sichtbare Nutzung (V-W2/V-W3)."""
+    rwp = regelwerk_pfad or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "slice", "world", "data", "proto", "regelwerk.json")
+    gk = json.load(open(rwp, encoding="utf-8"))["gewaesser_kartentyp"]
+    sw = gk["schwellen_stehendes_gewaesser"]
+    lo, hi = gk["typen"][kartentyp]["see_durchmesser_m"]
+    T.add("Gewaesser Regelwerk: Schwellen 150/300 m, Kartentyp %s begrenzt Seen auf <= Teichgroesse" % kartentyp, "teich_max %d = %s max %d, nutzung_ab %d" % (sw["teich_max_m"], kartentyp, hi, sw["nutzung_ab_m"]),
+          "teich_max %d, %s [%d, %d], nutzung_ab %d" % (sw["teich_max_m"], kartentyp, lo, hi, sw["nutzung_ab_m"]),
+          sw["teich_max_m"] == 150 and sw["nutzung_ab_m"] == 300 and hi == sw["teich_max_m"])
+    sj = json.load(open(os.path.join(dir_, "proto_see.json"), encoding="utf-8"))
+    nutz = orte_j["_meta"].get("see_nutzung")
+    liste = [("binsensee", float(sj["see"]["durchmesser_aequivalent_m"]), "TA proto_see.json (Aequivalentdurchmesser)")]
+    for g in orte_j.get("gewaesser", []):
+        if g.get("typ") == "teich" and "r_m" in g:
+            liste.append((g["id"], 2.0 * float(g["r_m"]), "2 x r_m"))
+    for gid, dm, quelle in liste:
+        klasse = "Teich" if dm <= sw["teich_max_m"] else ("Kulisse" if dm < sw["nutzung_ab_m"] else "Nutzung")
+        T.add("Gewaesser %s: Durchmesser %.0f m (%s) <= %s-Grenze %d m" % (gid, dm, quelle, kartentyp, hi), "<= %d m" % hi, "%.1f m (%s)" % (dm, klasse), dm <= hi)
+        if klasse != "Teich":
+            ok = bool(nutz) and all(k in nutz for k in ("huette", "steg_wurzel", "boot_am_steg")) and gid == "binsensee"
+            T.add("Gewaesser %s: %s braucht sichtbare Kulisse/Nutzung (Huette, Steg, Boot)" % (gid, klasse), "vorhanden", "ja" if ok else "fehlt", ok)
+    if nutz:
+        # Bootsschleife (Kulisse) liegt im Wasser: 36 Punkte der Kreisbahn mindestens 2 m vor dem Ufer
+        bs = nutz["boot_schleife"]
+        cx, cz = bs["mitte"]
+        r = float(bs["radius_m"])
+        tief = min(-geo.see_abstand(cx + r * math.cos(2 * math.pi * k / 36.0), cz + r * math.sin(2 * math.pi * k / 36.0)) for k in range(36))
+        T.add("Gewaesser binsensee: Bootsschleife (Radius %.0f m) im Wasser, Ufer >= 2 m" % r, ">= 2 m", "%.1f m" % tief, tief >= 2.0)
+        sw_ = nutz["steg_ende"]
+        tiefe_steg = -geo.see_abstand(sw_[0], sw_[1])
+        T.add("Gewaesser binsensee: Stegende im Wasser", "> 0 m", "%.1f m" % tiefe_steg, tiefe_steg > 0.0)
+
+
 def pruefe_welt_daten(T, orte_j, wege, geo, inst=()):
     """WA-07: Farm 2, Ladeplatz-Datenpunkt, sim_ew je Ort (Klassenband, Nachfrage)."""
     ind = orte_j["industrie"]
@@ -662,6 +697,7 @@ def pruefen(dir_, src, strikt=False, baseline=None, liste=None):
     komp = {find(w["id"]) for w in wege}
     T.add("Wegenetz zusammenhaengend (Kreuzungen/Einmuendungen)", "1 Komponente", "%d, %d Knoten" % (len(komp), len(kn)), len(komp) == 1)
     pruefe_welt_daten(T, orte_j, wege, geo, inst)
+    pruefe_gewaesser(T, orte_j, dir_, geo)
     pruefe_platzierung(T, orte_j, inst, wege, dir_, strikt, baseline, liste)
     pruefe_allee(T, inst, wege)
     al = wd["chaussee"]["allee"]

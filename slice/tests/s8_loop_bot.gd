@@ -74,7 +74,7 @@ var gate := false
 var det_check := true
 var verbose := false
 var saett_pm := SAETT_PM_DEFAULT
-var a_pm := 1000                    # --a= : Ertragsfaktor tempo_ausgleich_promille als Überschreibung im Bot (economy_proto.json bleibt unberührt)
+var a_pm := 1000                    # Ertragsfaktor a (Promille): wird NUR gelesen (eco.ertrag_a_promille); --a= liest ProtoSim selbst (FX3), der Bot rechnet nichts mehr
 var fk_global := true               # --fk=aus : Firmenkauf für alle Strategien aus (Vergleichslauf)
 var alterung_override := -1         # --alterung=aus|an : ProtoSim.alterung_an (Attributionslauf, Testwerkzeug)
 var deckel_override := -1           # --deckel=N : eco.inbuf_cap_perioden (0 = Mühlendeckel aus; Attributionslauf, Testwerkzeug)
@@ -154,9 +154,7 @@ var rw_last := 0
 var recon_fehler := 0               # Periodenabgleich Kassendelta/Netto verletzt
 var recon_text := ""
 var mutant := ""                    # --mutant=det|recon: absichtlich kaputt, der Wächter muss rot werden
-var bonus_total := 0                # --a=: Σ zusätzlicher Ertrag (Cent), vom Bot in die Kasse gebucht
-var fk_total := 0                   # Σ Firmenkauf + Ausbau (Cent); ProtoSim.kauf_total zählt sie NICHT (Befund)
-var fk_last := 0
+var fk_total := 0                   # Σ Firmenkauf + Ausbau (Cent), nur Anzeige/CSV; ProtoSim.kauf_total zählt sie seit FX3 mit (nicht mehr addieren)
 var fk_kauf_tick := -1
 var fk_preis := 0
 var fk_ausbau_tick := -1
@@ -196,7 +194,7 @@ func _initialize() -> void:
 		elif a == "--gate":
 			gate = true
 		elif a.begins_with("--a="):
-			a_pm = int(a.substr(4))
+			pass        # FX3: ProtoSim liest --a= selbst aus den Nutzerargumenten (eco.ertrag_a_promille); der Bot rechnet keinen Bonus mehr
 		elif a.begins_with("--alterung="):
 			alterung_override = 0 if a.substr(11) == "aus" else 1
 		elif a.begins_with("--deckel="):
@@ -369,7 +367,7 @@ func _csv_kopf() -> String:
 	return "strategie,seed,tempo_k,startkapital_cent,ticks,bankrott,bankrott_min,z_e1,z_e2,z_e3,z_e4,z_e5,z_e6_alle,z_e6_eine,z_f1,z_f2_op,z_f2_kasse," \
 		+ "ev1,ev2,ev3,ev4,ev5,ev6,ev7,ev8,ev3_spec,luecke_max_min,luecke_bei_min,luecke_ohne_ev3_min,fz_max,fz_ende,lieferungen,ertrag_cent,kasse_ende_cent,kasse_tief_5_20_cent," \
 		+ "kredit_max_cent,kredit_ende_cent,netto5_op_min30_cent,netto5_kasse_min30_cent,fehl_api,pruefsumme," \
-		+ "fk_kauf_min,fk_preis_cent,fk_ausbau_min,fk_ausbau_cent,ersetzt_n,ersetzt_erst_min,ev8_erst_min,tief_min,a_pm,bonus_cent,fk_grund," \
+		+ "fk_kauf_min,fk_preis_cent,fk_ausbau_min,fk_ausbau_cent,ersetzt_n,ersetzt_erst_min,ev8_erst_min,tief_min,a_pm,fk_grund," \
 		+ "ev8_folgemodell_min,ev8_alter_min,ers_angebot_min,ers_spart_min"
 
 
@@ -403,8 +401,8 @@ func _lauf(s: String, sd: int) -> Dictionary:
 	var sum_l := 0
 	for L in ps.lieferungen:
 		sum_l += int(L["cent"])
-	if sum_l + bonus_total != ps.eco.revenue_total:
-		fehler += " Abgleich: Σ Lieferungen %d + Bonus %d != revenue_total %d" % [sum_l, bonus_total, ps.eco.revenue_total]
+	if sum_l != ps.eco.revenue_total:
+		fehler += " Abgleich: Σ Lieferungen %d != revenue_total %d" % [sum_l, ps.eco.revenue_total]
 	var br: int = 1 if ps.konto.bankrupt else 0
 	var kasse_ende: int = ps.eco.cash_cent
 	var zeile := "%s,%d,%d,%d,%d,%d,%s" % [s, sd, ps.tempo_k, _startkapital_cent(), ende, br, _min_text(ps.bankrott_tick)]
@@ -425,7 +423,7 @@ func _lauf(s: String, sd: int) -> Dictionary:
 	zeile += ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [fz_max, fz_ende, ps.lieferungen.size(), ps.eco.revenue_total, kasse_ende, tief,
 		kredit_max, ps.credit.loan_cent, netto5_op_min30, netto5_kasse_min30, api_n, ps.pruefsumme()]
 	zeile += ",%s,%d,%s,%d,%d,%s,%s,%s,%d,%d,%s" % [_min_text(fk_kauf_tick), fk_preis, _min_text(fk_ausbau_tick), fk_ausbau_cent, ersetzt_n,
-		_min_text(ersetzt_erst), _min_text(ev_erst[8]), _min_text(kasse_tief_tick), a_pm, bonus_total, fk_grund if fk_kauf_tick < 0 else ""]
+		_min_text(ersetzt_erst), _min_text(ev_erst[8]), _min_text(kasse_tief_tick), a_pm, fk_grund if fk_kauf_tick < 0 else ""]
 	zeile += ",%s,%s,%s,%s" % [_min_text(ev8_fm_tick), _min_text(ev8_alter_tick), _min_text(ers_angebot_tick), _min_text(ers_spart_tick)]
 	return {"zeile": zeile, "pruefsumme": ps.pruefsumme(), "ticks": ende, "bankrott": br, "bankrott_tick": ps.bankrott_tick,
 		"z": z.duplicate(), "ev_n": Array(ev_n), "gmax": gmax, "gbei": gbei, "gmax3": int(g3[0]), "strategie": s, "seed": sd, "fehler": fehler,
@@ -472,6 +470,7 @@ func _reset(s: String, sd: int) -> void:
 	ps = ProtoSim.new(szene.regelwerk)
 	ps.graph_bauen(szene.strassen)
 	ps.spiel_starten(orte)
+	a_pm = ps.eco.ertrag_a_promille            # gelesen, nicht gesetzt (FX3)
 	if alterung_override >= 0:
 		ps.alterung_an = alterung_override == 1
 	if deckel_override >= 0:
@@ -531,9 +530,7 @@ func _reset(s: String, sd: int) -> void:
 	tilge_ok = true
 	rw_total = 0
 	rw_last = 0
-	bonus_total = 0
 	fk_total = 0
-	fk_last = 0
 	fk_kauf_tick = -1
 	fk_preis = 0
 	fk_ausbau_tick = -1
@@ -685,7 +682,7 @@ func _verkaufe(vid: int) -> bool:
 
 ## FK-02 (Firmenkauf C1) ist in ProtoSim angebunden (s8 de75721): kauf_angebot / firma_kaufen / ausbau_angebot / werk_ausbauen.
 ## Der Bot nutzt nur diese vier Aufrufe (wie die UI). Kaufbedingung des Bots: Angebot "kaufbar" (Guthaben ohne Kredit >= Preis) UND
-## Kasse nach dem Kauf >= Reserve des Spielertyps. Bucht ProtoSim den Kauf nicht in kauf_total, führt der Bot fk_total selbst (Abgleich).
+## Kasse nach dem Kauf >= Reserve des Spielertyps. Seit FX3 bucht ProtoSim Kauf und Ausbau in kauf_total; fk_total ist nur Anzeige.
 func _fk_status_pruefen() -> void:
 	fk_status = "angebunden: kauf_angebot/firma_kaufen/ausbau_angebot/werk_ausbauen" if ps.has_method("firma_kaufen") else "API fehlt (kein firma_kaufen)"
 
@@ -1021,13 +1018,6 @@ func _lieferung(L: Dictionary) -> void:
 	var von: String = node_name.get(int(f["von"]), "?")
 	var nach: String = node_name.get(int(f["nach"]), "?")
 	var cent_l: int = int(L["cent"])
-	if a_pm != 1000:
-		# --a=: Ertrag x a/1000 als Überschreibung im Bot. Bonus (Rundung halb auf) kommt einen Tick nach der Lieferung in die Kasse.
-		var bonus: int = (cent_l * (a_pm - 1000) + (500 if a_pm >= 1000 else -500)) / 1000
-		ps.eco.cash_cent += bonus
-		ps.eco.revenue_total += bonus
-		bonus_total += bonus
-		cent_l += bonus
 	ertrag_p += cent_l
 	var k := _gruppe_key(von, nach)
 	if gruppen.has(k):
@@ -1135,7 +1125,7 @@ func _periodenende(t: int) -> void:
 	# --- Netto je Periode
 	var ertrag: int = ps.eco.revenue_total - rev_last
 	var fahrk: int = ps.fahrkosten_total - fahrk_last
-	var kauf: int = (ps.kauf_total - kauf_last) + (fk_total - fk_last)      # Firmenkauf/Ausbau stehen nicht in ps.kauf_total
+	var kauf: int = ps.kauf_total - kauf_last      # FX3: kauf_total enthält Firmenkauf und Ausbau
 	var zins: int = ps.credit.interest_paid - zins_last
 	var fix_zins: int = ps.konto.expenses_total - exp_last - kauf - fahrk
 	var fix: int = fix_zins - zins
@@ -1156,7 +1146,6 @@ func _periodenende(t: int) -> void:
 	rev_last = ps.eco.revenue_total
 	fahrk_last = ps.fahrkosten_total
 	kauf_last = ps.kauf_total
-	fk_last = fk_total
 	zins_last = ps.credit.interest_paid
 	exp_last = ps.konto.expenses_total
 	lizpaid_last = ps.eco.licence_paid_total

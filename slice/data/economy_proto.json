@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "zweck_text": "S8 AT-04 (Tech T-01, PO W2): Overlay der Welt (ProtoSim) auf economy_slice.json. Der Slice liest diese Datei nicht (bitgleich).",
+    "etikett_text": "Platzhalter fuer Tobias (OE-02), nichts gemessen. Noch liest kein Code diese Datei.",
+    "regel_text": "Ausgleich fuer tempo_k nur ueber den Preis: Ertrag x tempo_ausgleich_promille / 1000, Bisektion im Intervall [1000; k_eff x 1000]. Bedarf, Produktion und Frischefristen bleiben unveraendert (W2).",
+    "stand_text": "05.11.2026 Felix, Wert 1000 = kein Ausgleich"
+  },
+  "tempo_ausgleich_promille": 1000
+}

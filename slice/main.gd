@@ -19,6 +19,7 @@ const HqPlacement := preload("res://hq_placement.gd")            # F-20: HQ-Plat
 const SimWorld := preload("res://core/sim_world.gd")    # F-18: SoA-Kern mit Linienbetrieb
 const FleetSoa := preload("res://fleet_soa.gd")
 const Credit := preload("res://credit.gd")             # F-19
+const Konto := preload("res://core/konto.gd")          # AT-01 (S8): Kosten, Ausgaben, Bankrott
 const Bench := preload("res://bench.gd")
 const RenderBatch := preload("res://render_batch.gd")
 const WorldSel := preload("res://world/welt.gd")       # W-01 (S7): Weltauswahl + Maßstab, siehe world/welt.gd
@@ -94,7 +95,11 @@ var vehicle_core := VEHICLE_CORE_DEFAULT
 var fleet = null                    # F-18: FleetSoa (nur bei vehicle_core == "soa")
 var credit = Credit.new()           # F-19: Kredit (Werte aus economy_slice.json „kredit“)
 var credit_buttons: Array = []      # [+ aufnehmen, − tilgen] im HUD-Kassenfeld
-var eco = null
+var konto = Konto.new()             # AT-01 (S8): Felder unten leiten dorthin weiter
+var eco = null:
+	set(v):
+		eco = v
+		konto.eco = v
 var shim = null                     # alt: EcoShim, soa: SimWorld (beide mit der Schnittstelle, die economy.gd liest)
 var map_data: Dictionary = {}
 var vdefs: Dictionary = {}          # vehicles.json id -> Dictionary
@@ -124,12 +129,28 @@ var map_notes: Array = []
 # ---------------------------------------------------------------- Zustand
 var company_started := false
 var hq_city = null
-var bankrupt := false
+var bankrupt: bool:                 # AT-01: Weiterleitung auf konto
+	get:
+		return konto.bankrupt
+	set(v):
+		konto.bankrupt = v
 var speed := 0
-var cost_acc := 0
-var running_cost_per_period := 0
+var cost_acc: int:                  # AT-01: Weiterleitung auf konto
+	get:
+		return konto.cost_acc
+	set(v):
+		konto.cost_acc = v
+var running_cost_per_period: int:   # AT-01: Weiterleitung auf konto
+	get:
+		return konto.running_cost_per_period
+	set(v):
+		konto.running_cost_per_period = v
 var cost_dirty := true
-var expenses_total := 0
+var expenses_total: int:            # AT-01: Weiterleitung auf konto
+	get:
+		return konto.expenses_total
+	set(v):
+		konto.expenses_total = v
 var free_trucks_left := 0
 var tool: int = Tool.NONE
 var terrain := PackedByteArray()
@@ -3103,17 +3124,14 @@ func cursor_cost_text(p: Dictionary) -> String:
 # ---------------------------------------------------------------- Simulation
 
 func charge(cent: int) -> void:
-	eco.cash_cent -= cent
-	expenses_total += cent
+	konto.charge(cent)              # AT-01: Buchung in core/konto.gd
 
 
 func _recompute_running_cost() -> void:
-	var c := 0
+	var fix: Array = []
 	for v in vehicles:
-		c += v.fix_cent
-	c += warehouse_count * warehouse_upkeep
-	c += rails.size() * rail_upkeep_per_field
-	running_cost_per_period = c
+		fix.append(v.fix_cent)
+	konto.fix_neu(fix, warehouse_count * warehouse_upkeep, rails.size() * rail_upkeep_per_field)   # AT-01
 	cost_dirty = false
 
 
@@ -3134,16 +3152,7 @@ func sim_tick() -> void:
 		_licence_events()
 	if cost_dirty:
 		_recompute_running_cost()
-	cost_acc += running_cost_per_period
-	var c := cost_acc / periode_ticks
-	if c > 0:
-		cost_acc -= c * periode_ticks
-		charge(c)
-	var zi: int = credit.interest_due(shim.tick_count)     # F-19: Festzins am Periodenende
-	if zi > 0:
-		charge(zi)
-		credit.interest_paid += zi
-	if eco.cash_cent < 0:
+	if konto.tick(shim.tick_count, credit):     # AT-01: Fixkosten, Zins (F-19), Kasse < 0 – Reihenfolge wie S7
 		_go_bankrupt()
 	else:
 		bk_warn.tick(self, eco.cash_cent - cash0)     # U-03 K1: nur lesend

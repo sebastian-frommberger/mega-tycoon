@@ -24,3 +24,19 @@ proto_fixpass_test 1.2
 proto_mass 1.5
 d08_bankrott_n20 22.0
 d07_regression 523.7
+run_tests 28.1
+d08_bankrott_n100 106.1
+# aus dem d07-Lauf mit Proto-Suiten (Schritt-Sekunden, Loadavg 2-3 durch andere Agenten, daher eher hoch)
+s7_mira 3.6
+s7_w04 2.8
+s7_city 1.9
+s7_u03 13.4
+u03_play_slice 14.8
+u03_play_s7 18.3
+s7_industrie 62.8
+s7_start 9.0
+d08_maus 131.6
+s7_validator 165.7
+perf_s7 28.4
+spike_sim-core 14.1
+spike_f04-signal 6.4

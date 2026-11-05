@@ -21,6 +21,11 @@ func charge(cent: int) -> void:
 	expenses_total += cent
 
 
+## Gutschrift (Cent), z. B. Restwert beim Verkauf (AT-02). Zählt nicht als Ausgabe.
+func erstatten(cent: int) -> void:
+	eco.cash_cent += cent
+
+
 ## Laufende Kosten neu: Σ fix_cent der Fahrzeuge + Lager- und Gleisunterhalt (je Periode, Cent).
 func fix_neu(liste_fix_cent: Array, lager_cent: int, gleis_cent: int) -> void:
 	var c := 0

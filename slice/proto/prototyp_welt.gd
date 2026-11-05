@@ -79,6 +79,9 @@ var proto_sim = null                 # proto_sim.gd (Welle 2)
 var fahrzeuge = null                 # proto_fahrzeuge.gd
 var orte_json: Dictionary = {}
 var sim_aus := false                 # Tests: vor add_child setzen, dann keine Sim/Fahrzeuge
+## AT-02: "fest" = feste Kette Farm → Mühle → Dorf (geschenkte Fahrzeuge, Stand S7/L1), "leer" = Start mit 6.000 $ ohne Kette
+## (Spieler-API). Nutzerargument --kette=leer|fest. Default bleibt "fest", solange L1 die feste Kette braucht.
+var kette_modus := "fest"
 var sim_tempo := 1                   # AT-05: Sim-Tempo 0 (Pause) | 1 | 2 | 4; Ticks je Sekunde = 10 × sim_tempo
 var tempo_vor_pause := 1             # Leertaste setzt dieses Tempo wieder ein
 var zeitlupe := 1.0                  # T: nur Ansicht, 1.0 oder 0.25 (multipliziert sim_tempo, nie schneller)
@@ -241,7 +244,10 @@ func _baue_fahrzeuge() -> void:
 	proto_sim = ProtoSim.new(regelwerk)
 	proto_sim.graph_bauen(strassen)
 	var t1 := Time.get_ticks_usec()
-	var ok: bool = proto_sim.kette_aufbauen(orte_json)
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--kette=") and a.substr(8) in ["leer", "fest"]:
+			kette_modus = a.substr(8)
+	var ok: bool = proto_sim.spiel_starten(orte_json) if kette_modus == "leer" else proto_sim.kette_aufbauen(orte_json)
 	quellen["sim_ms"] = [(t1 - t0) / 1000.0, (Time.get_ticks_usec() - t1) / 1000.0]
 	if not ok:
 		push_warning("Prototyp: Sim-Kette unvollständig: " + "; ".join(PackedStringArray(proto_sim.fehler.map(func(x): return str(x)))))
@@ -587,7 +593,7 @@ func _hud_text() -> void:
 		for f in proto_sim.fahrzeuge:
 			zeilen.append(proto_sim.zustand_text(f))
 		var kasse: int = proto_sim.eco.cash_cent if proto_sim.eco != null else 0
-		fz = "Sim-Kette %s · Tick %d · Lieferungen %d · Kasse %d €\n%s\n" % ["Farm → Mühle → Dorf" if proto_sim.kette_ok else "UNVOLLSTÄNDIG",
+		fz = "Sim-Kette %s · Tick %d · Lieferungen %d · Kasse %d €\n%s\n" % ["Farm → Mühle → Dorf" if proto_sim.kette_ok else ("leer (Start ohne Kette)" if kette_modus == "leer" else "UNVOLLSTÄNDIG"),
 			proto_sim.ticks, proto_sim.lieferungen.size(), kasse / 100, "  ·  ".join(PackedStringArray(zeilen))]
 	hud.text = "Prototyp Welt · Welle 2 (schlank) · Startjahr %d (%s) · Tempo %s\n" % [startjahr, welt_epoche.get("epoche_id", "?"), "Pause" if sim_tempo == 0 else "%d×" % sim_tempo] \
 		+ "Ansicht %d %s · Abstand %d m%s\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand),

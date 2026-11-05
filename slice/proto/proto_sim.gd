@@ -23,6 +23,12 @@ const SimWorld := preload("res://core/sim_world.gd")
 const Economy := preload("res://economy.gd")
 const Easing := preload("res://proto/proto_easing.gd")
 const Konto := preload("res://core/konto.gd")          # AT-01 (S8, W12): Buchungen über konto.charge
+const Credit := preload("res://credit.gd")             # AT-02: Kredit wie Slice (Sperre credit_available_from_ticks)
+## AT-02 (W10): Freischaltungen, die in S8 gesperrt bleiben (kein Eintrag in freischaltungen, kein Toast).
+const GESPERRT_S8 := {"bahn_moeglich": "W10 Gleis in S8 gesperrt", "lok_e1": "W10", "waggon_e1": "W10"}
+## AT-02 (W20): Restwert = Kauf × 50 % × max(20 %, 1 − Alter/Lebensdauer), in Promille.
+const RESTWERT_PM := 500
+const RESTWERT_MIN_PM := 200
 const SLICE_JSON := "res://data/economy_slice.json"
 const CONSTS_JSON := "res://data/economy_constants.json"
 const VEHICLES_JSON := "res://data/vehicles.json"
@@ -31,7 +37,18 @@ const START_GETREIDE := 10
 
 var sim = null                       # SimWorld
 var eco = null                       # Economy oder null (synthetische Tests)
-var konto = Konto.new()              # AT-01: Ausgaben (Fahrkosten); AT-02 ergänzt Fix/Zins/Bankrott
+var konto = Konto.new()              # AT-01/AT-02: Fahrkosten, Fix, Zins, Bankrott (core/konto.gd)
+var credit = Credit.new()            # AT-02
+var startjahr := 1820                # AT-02: Kalender-Platzhalter (FZ-02 zieht ihn nach core/kalender.gd)
+var jahr_ticks := 1800               # PO 05.11.: Welt-Loop 3 min/Jahr
+var freischaltungen: Array = []      # AT-02: [{tick, jahr, id}] je neuer Freischaltung
+var gesperrt_log: Array = []         # AT-02 (W10): [{tick, jahr, id, grund}] unterdrückte Freischaltungen
+var meldungen: Array = []            # AT-02: Texte für Toasts (die Welt liest und leert)
+var bankrott_tick := -1
+var fahrkosten_total := 0            # AT-02: Σ Fahrkosten (Cent), Testspur/HUD
+var kauf_total := 0                  # AT-02: Σ Kaufpreise (Cent)
+var _fix_dirty := false
+var _vdefs: Dictionary = {}          # vehicles.json id -> Datensatz
 var strassen = null                  # proto_strassenband.gd
 var regelwerk: Dictionary = {}
 var mm_pro_m := 40.0
@@ -56,6 +73,7 @@ func _init(p_regelwerk: Dictionary = {}) -> void:
 	regelwerk = p_regelwerk
 	sim = SimWorld.new()
 	tempo_k = tempo_k_aus(regelwerk)
+	startjahr = int(regelwerk.get("startjahr", startjahr))
 
 
 ## AT-04 (W1): k aus regelwerk fahrzeug_easing.tempo_k.standard (fehlt = 1); `--tempo_k=N` überschreibt.
@@ -312,7 +330,7 @@ func _quergefaelle(rl, prof) -> void:
 
 
 ## Linienfahrzeug von Knoten a nach b (Pendel). Gibt den Fahrzeug-Eintrag zurück oder {} bei Fehler.
-func linie(kat: String, name: String, von: int, nach: int, src_k: int, dst_k: int, leere_fahrt := false) -> Dictionary:
+func linie(kat: String, name: String, von: int, nach: int, src_k: int, dst_k: int, leere_fahrt := false, vdef: Dictionary = {}) -> Dictionary:
 	if von < 0 or nach < 0:
 		fehler.append("%s: Knoten fehlt" % name)
 		return {}
@@ -321,7 +339,7 @@ func linie(kat: String, name: String, von: int, nach: int, src_k: int, dst_k: in
 		fehler.append("%s: keine Verbindung %d → %d" % [name, von, nach])
 		return {}
 	var prof = profil(kat)
-	var lkw := _lkw()
+	var lkw: Dictionary = vdef if not vdef.is_empty() else _lkw()
 	var vid := fahrzeuge.size() + 1
 	var cap := int(lkw.get("kapazitaet_einheiten", 10))
 	var var_cent := int(lkw.get("variabel_cent_pro_feld", 0))
@@ -336,7 +354,8 @@ func linie(kat: String, name: String, von: int, nach: int, src_k: int, dst_k: in
 	var legs := [routenlinie(route, prof), null]
 	var z = Easing.Zustand.new(prof, legs)
 	var f := {"vid": vid, "kat": kat, "name": name, "von": von, "nach": nach, "legs": legs, "zustand": z,
-		"profil": prof, "route_kanten": route.size(), "sim_mm": sim.graph.route_length(route), "route": route}
+		"profil": prof, "route_kanten": route.size(), "sim_mm": sim.graph.route_length(route), "route": route,
+		"def_id": "", "kauf_cent": 0, "fix_cent": 0, "kauf_tick": sim.tick_count, "verkauft": false}
 	fahrzeuge.append(f)
 	_probe(f)
 	z.folger_setzen()
@@ -376,6 +395,43 @@ func testlinie(kat: String, von: Vector2, nach: Vector2) -> Dictionary:
 
 ## orte = proto_orte.json (Dictionary mit orte, industrie). extra_fuhrwerke: zusätzliche Fahrzeuge (nur E8-Bench).
 func kette_aufbauen(orte: Dictionary, extra_fuhrwerke := 0) -> bool:
+	if not oeko_laden():
+		return false
+	if not orte_registrieren(orte):
+		return false
+	var n_farm: int = _reg["n_farm"]
+	var n_muehle: int = _reg["n_muehle"]
+	var n_dorf: int = _reg["n_dorf"]
+	var n_stadt: int = _reg["n_stadt"]
+	var s_farm: int = _reg["s_farm"]
+	var s_muehle: int = _reg["s_muehle"]
+	var s_dorf: int = _reg["s_dorf"]
+	var s_stadt: int = _reg["s_stadt"]
+	if not eco.start_company_at(n_dorf, "dorf"):
+		fehler.append("Kette: Firma nicht gegründet")
+	for s in [s_farm, s_muehle]:
+		var r: Dictionary = eco.buy_licence(s)
+		if not r.get("ok", false):
+			fehler.append("Lizenz %s: %s" % [eco.i_ids[eco.s_def[s]], r.get("fehler", "?")])
+	eco.seed_stock(s_farm, "getreide", START_GETREIDE)
+	var n0 := fahrzeuge.size()
+	linie("fuhrwerk", "Fuhrwerk 1 (Getreide)", n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
+	linie("fuhrwerk", "Fuhrwerk 2 (Mehl)", n_muehle, n_dorf, eco.s_station[s_muehle], eco.s_station[s_dorf])
+	if s_stadt >= 0:
+		linie("postkutsche", "Postkutsche", n_dorf, n_stadt, eco.s_station[s_dorf], eco.s_station[s_stadt], true)
+	for x in extra_fuhrwerke:
+		if x % 2 == 0:
+			linie("fuhrwerk", "Fuhrwerk Bench %d" % x, n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
+		else:
+			linie("fuhrwerk", "Fuhrwerk Bench %d" % x, n_muehle, n_dorf, eco.s_station[s_muehle], eco.s_station[s_dorf])
+	kette_ok = fahrzeuge.size() - n0 >= 2 and fehler.is_empty()
+	return kette_ok
+
+
+var _reg: Dictionary = {}            # Knoten/Sites der registrierten Orte (orte_registrieren)
+
+## AT-02: Ökonomie laden (economy_slice.json), Konto und Kredit anbinden. Keine Firma, keine Kette.
+func oeko_laden() -> bool:
 	eco = Economy.new()
 	if not eco.load_from(SLICE_JSON, CONSTS_JSON):
 		fehler.append("Ökonomie-JSON: " + ", ".join(eco.errors))
@@ -383,6 +439,13 @@ func kette_aufbauen(orte: Dictionary, extra_fuhrwerke := 0) -> bool:
 		return false
 	eco.attach(sim)
 	sim.feld_mm = eco.feld_mm
+	konto.eco = eco
+	credit.setup(eco)
+	return true
+
+
+## AT-02: Farm, Mühle, Dorf, Kleinstadt als Sites registrieren (Stationen, keine Lizenz, keine Fahrzeuge).
+func orte_registrieren(orte: Dictionary) -> bool:
 	var farm: Dictionary = {}
 	var muehle: Dictionary = {}
 	for ind in orte.get("industrie", []):
@@ -427,41 +490,238 @@ func kette_aufbauen(orte: Dictionary, extra_fuhrwerke := 0) -> bool:
 	if s_stadt >= 0:
 		stationen[String(stadt.get("name", "Stadt"))] = {"knoten": n_stadt, "site": s_stadt, "k": eco.s_station[s_stadt], "id": "kleinstadt_a",
 			"abstand_m": Vector2(stadt["x"], stadt["z"]).distance_to(Vector2(knoten_pos[n_stadt].x, knoten_pos[n_stadt].z))}
-	if not eco.start_company_at(n_dorf, "dorf"):
-		fehler.append("Kette: Firma nicht gegründet")
-	for s in [s_farm, s_muehle]:
-		var r: Dictionary = eco.buy_licence(s)
-		if not r.get("ok", false):
-			fehler.append("Lizenz %s: %s" % [eco.i_ids[eco.s_def[s]], r.get("fehler", "?")])
-	eco.seed_stock(s_farm, "getreide", START_GETREIDE)
-	var n0 := fahrzeuge.size()
-	linie("fuhrwerk", "Fuhrwerk 1 (Getreide)", n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
-	linie("fuhrwerk", "Fuhrwerk 2 (Mehl)", n_muehle, n_dorf, eco.s_station[s_muehle], eco.s_station[s_dorf])
-	if s_stadt >= 0:
-		linie("postkutsche", "Postkutsche", n_dorf, n_stadt, eco.s_station[s_dorf], eco.s_station[s_stadt], true)
-	for x in extra_fuhrwerke:
-		if x % 2 == 0:
-			linie("fuhrwerk", "Fuhrwerk Bench %d" % x, n_farm, n_muehle, eco.s_station[s_farm], eco.s_station[s_muehle])
+	_reg = {"n_farm": n_farm, "n_muehle": n_muehle, "n_dorf": n_dorf, "n_stadt": n_stadt,
+		"s_farm": s_farm, "s_muehle": s_muehle, "s_dorf": s_dorf, "s_stadt": s_stadt}
+	return true
+
+
+# ------------------------------------------------------------------ Spieler-API (AT-02)
+
+## Start ohne Kette: Ökonomie, Orte als Sites, Firma mit HQ im Dorf und Startkapital aus economy_slice.json
+## (hq.start_capital_cent, 6.000 $). Keine Lizenz, kein Fahrzeug, kein Startbestand.
+func spiel_starten(orte: Dictionary) -> bool:
+	if not oeko_laden():
+		return false
+	if not orte_registrieren(orte):
+		return false
+	if not eco.start_company_at(_reg["n_dorf"], "dorf"):
+		fehler.append("Start: Firma nicht gegründet")
+		return false
+	return true
+
+
+func _ok(daten := {}) -> Dictionary:
+	var r := {"ok": true}
+	r.merge(daten)
+	return r
+
+
+func _nein(grund: String, daten := {}) -> Dictionary:
+	var r := {"ok": false, "fehler": grund}
+	r.merge(daten)
+	return r
+
+
+func _spielbar() -> String:
+	if eco == null or not eco.company_started:
+		return "keine_firma"
+	if konto.bankrupt:
+		return "bankrott"
+	return ""
+
+
+## Station an einer registrierten Site (Name aus proto_orte.json). Stationen entstehen mit der Site;
+## hier nur Nachschlagen. Annahme S8: kein Preis (economy_slice.json kennt keinen Stationspreis).
+func station_anlegen(name: String) -> Dictionary:
+	if not stationen.has(name):
+		return _nein("unbekannter_ort")
+	return _ok(stationen[name])
+
+
+## Lizenz einer Site kaufen (economy.buy_licence, Preis und Gratis-Lizenz wie Slice).
+func lizenz_kaufen(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if not stationen.has(name) or int(stationen[name]["site"]) < 0:
+		return _nein("unbekannter_ort")
+	return eco.buy_licence(int(stationen[name]["site"]))
+
+
+func vdef(def_id: String) -> Dictionary:
+	if _vdefs.is_empty() and FileAccess.file_exists(VEHICLES_JSON):
+		var d = JSON.parse_string(FileAccess.get_file_as_string(VEHICLES_JSON))
+		for v in d.get("fahrzeuge", []):
+			_vdefs[String(v.get("id", ""))] = v
+	return _vdefs.get(def_id, {})
+
+
+## Standard-Datensatz je Kategorie (FZ-01 setzt fuhrwerk_e1; bis dahin der Slice-Lkw).
+func def_fuer(kat: String) -> String:
+	if eco != null:
+		return String(eco.slice.get("fahrzeug_ref", {}).get("lkw_id", "lkw_e1"))
+	return "lkw_e1"
+
+
+## Linie von Station a nach b anlegen und ein Fahrzeug kaufen (Kaufpreis über konto.charge, Fix ab sofort).
+## Eine zweite Linie a→b ist ein weiteres Fahrzeug. Gibt {ok, vid, preis_cent} oder {ok: false, fehler}.
+func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_id := "") -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if not stationen.has(von_name) or not stationen.has(nach_name):
+		return _nein("unbekannter_ort")
+	if von_name == nach_name:
+		return _nein("gleicher_ort")
+	if def_id == "":
+		def_id = def_fuer(kat)
+	if GESPERRT_S8.has(def_id):
+		return _nein("gesperrt")
+	var d := vdef(def_id)
+	if d.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	var a: Dictionary = stationen[von_name]
+	var b: Dictionary = stationen[nach_name]
+	if sim.graph.find_path(int(a["knoten"]), int(b["knoten"])).is_empty():
+		return _nein("keine_verbindung")
+	var preis := int(d.get("kauf_cent", 0))
+	if preis > eco.cash_cent:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": preis - eco.cash_cent})
+	var n_alt := fehler.size()
+	var f := linie(kat, "%s %d" % [String(d.get("name", kat)), fahrzeuge.size() + 1], int(a["knoten"]), int(b["knoten"]), int(a["k"]), int(b["k"]), false, d)
+	if f.is_empty():
+		return _nein(String(fehler[-1]) if fehler.size() > n_alt else "linie")
+	konto.charge(preis)
+	kauf_total += preis
+	f["def_id"] = def_id
+	f["kauf_cent"] = preis
+	f["fix_cent"] = int(d.get("fix_cent_pro_periode", 0))
+	f["kauf_tick"] = sim.tick_count
+	_fix_dirty = true
+	return _ok({"vid": f["vid"], "preis_cent": preis})
+
+
+func fahrzeug(vid: int) -> Dictionary:
+	for f in fahrzeuge:
+		if f["vid"] == vid:
+			return f
+	return {}
+
+
+## Lebensdauer in Ticks: lebensdauer_jahre × jahr_ticks (FZ-01), sonst lebensdauer_ticks (Slice-Datensatz).
+func lebensdauer_ticks(f: Dictionary) -> int:
+	var d := vdef(String(f.get("def_id", "")))
+	if d.has("lebensdauer_jahre"):
+		return int(d["lebensdauer_jahre"]) * jahr_ticks
+	return int(d.get("lebensdauer_ticks", 0))
+
+
+## W20: Restwert = Kauf × 50 % × max(20 %, 1 − Alter/Lebensdauer) (Untergrenze 10 % des Kaufpreises). Ganzzahlig.
+func restwert(f: Dictionary) -> int:
+	var kauf: int = int(f.get("kauf_cent", 0))
+	var ld := lebensdauer_ticks(f)
+	var alter: int = sim.tick_count - int(f.get("kauf_tick", 0))
+	var rest_pm := RESTWERT_MIN_PM
+	if ld > 0:
+		rest_pm = maxi(RESTWERT_MIN_PM, 1000 - alter * 1000 / ld)
+	return kauf * RESTWERT_PM / 1000 * rest_pm / 1000
+
+
+## Fahrzeug verkaufen: Restwert gutschreiben (konto.erstatten), Fix 0, Fahrzeug steht (Ladung verfällt wie Slice B-01).
+func fahrzeug_verkaufen(vid: int) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var f := fahrzeug(vid)
+	if f.is_empty() or f["verkauft"]:
+		return _nein("unbekanntes_fahrzeug")
+	var rw := restwert(f)
+	sim.line_stop(vid)
+	if eco.v_lots.has(vid):
+		eco.v_lots.erase(vid)
+	f["verkauft"] = true
+	f["fix_cent"] = 0
+	konto.erstatten(rw)
+	_fix_dirty = true
+	return _ok({"restwert_cent": rw})
+
+
+func kredit_aufnehmen() -> int:
+	if _spielbar() != "":
+		return 0
+	return credit.borrow(eco, sim.tick_count)
+
+
+func kredit_tilgen() -> int:
+	if _spielbar() != "":
+		return 0
+	return credit.repay(eco, sim.tick_count)
+
+
+## Σ fix_eff je Periode (FZ-03: Alterung; bis dahin fix_cent).
+func fix_eff(f: Dictionary) -> int:
+	return 0 if f["verkauft"] else int(f.get("fix_cent", 0))
+
+
+func _fix_neu() -> void:
+	var liste: Array = []
+	for f in fahrzeuge:
+		liste.append(fix_eff(f))
+	konto.fix_neu(liste, 0, 0)
+	_fix_dirty = false
+
+
+func kalenderjahr(t: int = -1) -> int:
+	return startjahr + (sim.tick_count if t < 0 else t) / jahr_ticks
+
+
+## Jahreswechsel: Freischaltungen aus regelwerk startjahr_hebel.stufen.<jahr> (*_moeglich) und vehicles.json
+## verfuegbar_ab_jahr. GESPERRT_S8 (W10, Gleis) erzeugt weder Freischaltung noch Meldung.
+func _jahreswechsel(jahr: int) -> void:
+	var kandidaten: Array = []
+	var st: Dictionary = regelwerk.get("startjahr_hebel", {}).get("stufen", {}).get(str(jahr), {})
+	for k in st:
+		if String(k).ends_with("_moeglich") and bool(st[k]):
+			kandidaten.append(String(k))
+	vdef("")
+	for id in _vdefs:
+		if int(_vdefs[id].get("verfuegbar_ab_jahr", -1)) == jahr:
+			kandidaten.append(String(id))
+	for id in kandidaten:
+		if GESPERRT_S8.has(id):
+			gesperrt_log.append({"tick": sim.tick_count, "jahr": jahr, "id": id, "grund": GESPERRT_S8[id]})
 		else:
-			linie("fuhrwerk", "Fuhrwerk Bench %d" % x, n_muehle, n_dorf, eco.s_station[s_muehle], eco.s_station[s_dorf])
-	kette_ok = fahrzeuge.size() - n0 >= 2 and fehler.is_empty()
-	return kette_ok
+			freischaltungen.append({"tick": sim.tick_count, "jahr": jahr, "id": id})
+			meldungen.append("Neu verfügbar: %s" % String(_vdefs.get(id, {}).get("name", id)))
 
 
 # ------------------------------------------------------------------ Tick
 
+## Reihenfolge wie main.sim_tick (Slice): Sim-Schritt inkl. Öko-Tick, Fahrkosten, Lieferungen, Fix neu, konto.tick
+## (Fixkosten-Akkumulator, Zins, Kasse < 0 → bankrott). Nach dem Bankrott tickt nichts mehr.
 func tick() -> void:
+	if konto.bankrupt:
+		return
 	sim.step()
 	ticks += 1
 	if sim.line_cost_cent != 0:
 		if eco != null:
 			konto.eco = eco
 			konto.charge(sim.line_cost_cent)             # AT-01 (W12): wie main.charge()
+			fahrkosten_total += sim.line_cost_cent
 		sim.line_cost_cent = 0
 	if not sim.line_events.is_empty():
 		for ev in sim.line_events:
 			lieferungen.append({"tick": sim.tick_count, "vid": ev[0], "menge": ev[1], "cent": ev[2], "gut": ev[3]})
 		sim.line_events = []
+	if eco != null and eco.company_started:
+		if _fix_dirty:
+			_fix_neu()
+		if konto.tick(sim.tick_count, credit):
+			bankrott_tick = sim.tick_count
+			meldungen.append("Bankrott: Kasse unter 0 $")
+		if sim.tick_count % jahr_ticks == 0:
+			_jahreswechsel(kalenderjahr())
 	var gebaut := false
 	for f in fahrzeuge:
 		if not gebaut and f["legs"][1] == null:

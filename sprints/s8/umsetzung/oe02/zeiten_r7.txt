@@ -1,0 +1,4 @@
+n20_k4_fkan exit 0 92 s load 2.84
+n20_k8_fkan exit 0 83 s load 3.01
+n100_k4c_plan exit 0 229 s load 1.64
+n100_k8d_plan exit 0 215 s load 1.34

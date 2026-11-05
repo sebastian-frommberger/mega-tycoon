@@ -60,6 +60,7 @@ var PARAM := {
 	"plan_mehl_stadt2": 25,         # Mehlmenge E/min Mühle -> Stadt nach Ausbau (vorher 10)
 	"normal_fk_min": 28,            # normal kauft die Mühle spät (ab Minute N + Reaktion 0..3), 0 = nie
 	"naiv_fk_pct": 0,               # naiv: Anteil Läufe, die die Mühle kaufen (ab Minute 10, ohne Reserve), Setzung 0 = "ohne"
+	"plan_ersetzen": 1,             # OE-02 (Tobias): 1 = Frachtwagen-Ersatz ab 1830 wie bisher, 0 = nie (Zuordnungslauf)
 }
 
 # ------------------------------------------------------------------ Aufruf-Parameter
@@ -78,6 +79,9 @@ var a_pm := 1000                    # Ertragsfaktor a (Promille): wird NUR geles
 var fk_global := true               # --fk=aus : Firmenkauf für alle Strategien aus (Vergleichslauf)
 var alterung_override := -1         # --alterung=aus|an : ProtoSim.alterung_an (Attributionslauf, Testwerkzeug)
 var deckel_override := -1           # --deckel=N : eco.inbuf_cap_perioden (0 = Mühlendeckel aus; Attributionslauf, Testwerkzeug)
+var oe_set := ""                    # OE-02 (Tobias): --oe_set=<name> wählt ein Kalibrier-Set aus economy_proto.json (economy.gd liest es selbst);
+var FZ := "fuhrwerk_e1"             #   der Bot nimmt daraus nur die Fahrzeug-Datensätze (fahrzeuge.fuhrwerk / .frachtwagen). Ohne Set: wie bisher.
+var FW := "frachtwagen_e1"
 
 # ------------------------------------------------------------------ Welt (einmal geladen)
 var szene: Node
@@ -199,6 +203,12 @@ func _initialize() -> void:
 			alterung_override = 0 if a.substr(11) == "aus" else 1
 		elif a.begins_with("--deckel="):
 			deckel_override = int(a.substr(9))
+		elif a.begins_with("--oe_set="):
+			oe_set = a.substr(9)
+			var pj = JSON.parse_string(FileAccess.get_file_as_string("res://data/economy_proto.json"))
+			var st: Dictionary = pj.get("kalibrierung_sets", {}).get(oe_set, {}) if pj is Dictionary else {}
+			FZ = String(st.get("fahrzeuge", {}).get("fuhrwerk", FZ))
+			FW = String(st.get("fahrzeuge", {}).get("frachtwagen", FW))
 		elif a.begins_with("--fk="):
 			fk_global = a.substr(5) != "aus"
 		elif a == "--ohne_det":
@@ -297,7 +307,7 @@ func _run() -> void:
 						fs.store_line(sz)
 			fs.close()
 			var fm := FileAccess.open(csv_pfad + ".meta.txt", FileAccess.WRITE)
-			fm.store_line("Godot %s, Szene proto, tempo_k %d, jahr_ticks %d, startkapital_dollar_override %d, minuten %d, takt %d, saett_pm %d, a_pm %d, fk_global %s, alterung_override %d, deckel_override %d" % [Engine.get_version_info()["string"], _tempo_k(), _jahr_ticks(), startkapital_dollar, minuten, takt, saett_pm, a_pm, str(fk_global), alterung_override, deckel_override])
+			fm.store_line("Godot %s, Szene proto, tempo_k %d, jahr_ticks %d, startkapital_dollar_override %d, minuten %d, takt %d, saett_pm %d, a_pm %d, fk_global %s, alterung_override %d, deckel_override %d, oe_set %s, fz %s, fw %s" % [Engine.get_version_info()["string"], _tempo_k(), _jahr_ticks(), startkapital_dollar, minuten, takt, saett_pm, a_pm, str(fk_global), alterung_override, deckel_override, oe_set if oe_set != "" else "-", FZ, FW])
 			fm.store_line("n %d, seed0 %d, Strategien %s" % [n_lauefe, seed0, str(liste)])
 			fm.store_line("PARAM " + JSON.stringify(PARAM))
 			fm.store_line("Firmenkauf-Schnittstelle: " + fk_status)
@@ -637,7 +647,7 @@ func _fz_aktiv() -> int:
 ## Fuhrwerk kaufen auf Linie von -> nach. Gibt true bei Erfolg.
 func _kaufe(von: String, nach: String, def_id := "") -> bool:
 	api_aufrufe += 1
-	var r: Dictionary = ps.linie_anlegen(von, nach, "fuhrwerk", def_id)
+	var r: Dictionary = ps.linie_anlegen(von, nach, "fuhrwerk", def_id if def_id != "" else FZ)
 	if not r.get("ok", false):
 		_abl("linie_" + String(r.get("fehler", "?")))
 		return false
@@ -757,7 +767,9 @@ func _umlauf(von: String, nach: String) -> float:
 
 
 ## Fuhrwerke, damit eine Quelle mit rate_e_min E/min abtransportiert wird.
-func _bedarf(von: String, nach: String, rate_e_min: float, cap := 10) -> int:
+func _bedarf(von: String, nach: String, rate_e_min: float, cap := -1) -> int:
+	if cap < 0:
+		cap = int(ps.vdef(FZ).get("kapazitaet_einheiten", 10))
 	var je_fz_min := float(cap) * 600.0 / _umlauf(von, nach)
 	return maxi(1, ceili(rate_e_min / je_fz_min))
 
@@ -778,7 +790,7 @@ func _beschaffe(cent: int, reserve: int, borrow_ok: bool) -> bool:
 
 ## Sorgt dafür, dass n Fuhrwerke auf der Linie fahren (soweit bezahlbar). Rückgabe: erreicht.
 func _sorge(von: String, nach: String, soll: int, reserve: int, borrow_ok: bool, def_id := "") -> bool:
-	var d := def_id if def_id != "" else "fuhrwerk_e1"
+	var d := def_id if def_id != "" else FZ
 	while _n_fz(von, nach) < soll:
 		if not _beschaffe(_preis_fz(d), reserve, borrow_ok):
 			return false
@@ -832,14 +844,14 @@ func _takt_naiv(t: int) -> void:
 	var farm_ziel := DORF if bool(naiv["fehl"]) else MUEHLE        # Fehlverbindung: Getreide direkt ins Dorf (wird dort nicht angenommen)
 	if _n_fz(FARM1, farm_ziel) == 0 and lic_haben.has(FARM1):
 		for i in 1 + int(naiv["x_farm"]):
-			if _beschaffe(_preis_fz("fuhrwerk_e1"), 0, false):
+			if _beschaffe(_preis_fz(FZ), 0, false):
 				_kaufe(FARM1, farm_ziel)
 	if m >= float(naiv["bau"] + naiv["vergessen"]) and not lic_haben.has(MUEHLE):
 		_lizenz(MUEHLE)
 	var mehl_ziel: String = naiv["mehl_ziel"]
 	if _n_fz(MUEHLE, mehl_ziel) == 0:
 		for i in 1 + int(naiv["x_mehl"]):
-			if _beschaffe(_preis_fz("fuhrwerk_e1"), 0, false):
+			if _beschaffe(_preis_fz(FZ), 0, false):
 				_kaufe(MUEHLE, mehl_ziel)
 	# Kredit voll ab Sperre
 	if t >= kredit_ab_tick:
@@ -852,7 +864,7 @@ func _takt_naiv(t: int) -> void:
 	for i in 2:
 		if _fz_aktiv() >= int(naiv["fz_max"]):
 			break
-		if _cash() - _preis_fz("fuhrwerk_e1") < int(naiv["rest"]):
+		if _cash() - _preis_fz(FZ) < int(naiv["rest"]):
 			break
 		var g: Dictionary = gruppen[keys[rng.randi_range(0, keys.size() - 1)]]
 		_kaufe(g["von"], g["nach"])
@@ -919,7 +931,7 @@ func _takt_plan(t: int) -> void:
 		if lic_haben.has(FARM2):
 			_sorge(FARM2, MUEHLE, _bedarf(FARM2, MUEHLE, 20.0), res, kredit_ok)
 	# Folgemodell: ab Freischaltung Frachtwagen die ältesten Fuhrwerke (Alter >= 8 Jahre, Formel FZ-03: +40 % Unterhalt) ersetzen
-	if _frachtwagen_frei():
+	if _frachtwagen_frei() and int(PARAM["plan_ersetzen"]) == 1:
 		_ersetzen(res, kredit_ok)
 	# Tilgen sobald Überschuss (F2 verlangt Kredit = 0)
 	if ps.credit.loan_cent > 0:
@@ -928,7 +940,7 @@ func _takt_plan(t: int) -> void:
 
 func _frachtwagen_frei() -> bool:
 	for fs in ps.freischaltungen:
-		if String(fs["id"]) == "frachtwagen_e1":
+		if String(fs["id"]) == FW:
 			return true
 	return false
 
@@ -939,7 +951,7 @@ func _ersetzen(res: int, borrow_ok: bool) -> void:
 	var alt_id := -1
 	var best_alter := -1
 	for f in ps.fahrzeuge:
-		if f["verkauft"] or String(f["def_id"]) != "fuhrwerk_e1":
+		if f["verkauft"] or String(f["def_id"]) != FZ:
 			continue
 		var alter: int = ps.sim.tick_count - int(f["kauf_tick"])
 		if ps.alter_jahre(f) >= 8 and alter > best_alter:
@@ -948,7 +960,7 @@ func _ersetzen(res: int, borrow_ok: bool) -> void:
 	if alt_id < 0:
 		return
 	api_aufrufe += 1
-	var q: Dictionary = ps.ersetzen_angebot(alt_id, "frachtwagen_e1")
+	var q: Dictionary = ps.ersetzen_angebot(alt_id, FW)
 	if not q.get("ok", false):
 		_abl("ersetzen_angebot_" + String(q.get("fehler", "?")))
 		return
@@ -961,7 +973,7 @@ func _ersetzen(res: int, borrow_ok: bool) -> void:
 	if not _beschaffe(int(q["netto_cent"]), res, borrow_ok):
 		return
 	api_aufrufe += 1
-	var r: Dictionary = ps.fahrzeug_ersetzen(alt_id, "frachtwagen_e1")
+	var r: Dictionary = ps.fahrzeug_ersetzen(alt_id, FW)
 	if not r.get("ok", false):
 		_abl("ersetzen_" + String(r.get("fehler", "?")))
 		return
@@ -1197,7 +1209,7 @@ func _periodenende(t: int) -> void:
 	if e6_serie_alle >= 3:
 		_ziel("e6_alle", t + 1)
 	# --- Ereignis 4: Kasse erreicht den Preis einer Kaufart (Flanke von unten, Periodenende)
-	var preise := {"fuhrwerk": _preis_fz("fuhrwerk_e1")}
+	var preise := {"fuhrwerk": _preis_fz(FZ)}
 	for nm in [FARM1, FARM2, MUEHLE]:
 		var site: int = int(ps.stationen[nm]["site"])
 		if not ps.eco.licence_valid(site):

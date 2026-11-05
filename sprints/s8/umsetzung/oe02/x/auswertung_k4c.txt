@@ -1,0 +1,23 @@
+
+=== k=4, a=1000 ‰ (Netto in Cent; je E / je Fuhrwerk-Minute / Gesamt je Minute bei N*) ===
+X1 getreide: Maximum Netto/E bei d=60 (904¢/E); d=150 = 66 % des Max; Netto >= 0 bei 20/40: True; Regel (Max in 40-80, 150 <= 80 %, 15-40 >= 0): GRÜN
+   d=10: N*=1 81¢/E 1460¢/Fzmin 1460¢/min (E/min 18.0; N_E=1 81¢/E)
+   d=20: N*=1 239¢/E 3031¢/Fzmin 3031¢/min (E/min 12.7; N_E=1 239¢/E)
+   d=40: N*=2 593¢/E 4943¢/Fzmin 9885¢/min (E/min 16.7; N_E=1 593¢/E)
+   d=60: N*=3 904¢/E 5424¢/Fzmin 16273¢/min (E/min 18.0; N_E=1 905¢/E)
+   d=80: N*=4 825¢/E 3849¢/Fzmin 15397¢/min (E/min 18.7; N_E=1 826¢/E)
+   d=100: N*=5 857¢/E 3428¢/Fzmin 17140¢/min (E/min 20.0; N_E=1 857¢/E)
+   d=150: N*=6 594¢/E 1583¢/Fzmin 9496¢/min (E/min 16.0; N_E=1 594¢/E)
+X1 mehl: Maximum Netto/E bei d=80 (4296¢/E); d=150 = 72 % des Max; Netto >= 0 bei 20/40: True; Regel (Max in 40-80, 150 <= 80 %, 15-40 >= 0): GRÜN
+   d=10: N*=1 651¢/E 11720¢/Fzmin 11720¢/min (E/min 18.0; N_E=1 651¢/E)
+   d=20: N*=2 1217¢/E 12211¢/Fzmin 24423¢/min (E/min 20.1; N_E=1 1379¢/E)
+   d=40: N*=3 2632¢/E 17868¢/Fzmin 53605¢/min (E/min 20.4; N_E=1 2873¢/E)
+   d=60: N*=4 4066¢/E 20905¢/Fzmin 83619¢/min (E/min 20.6; N_E=1 4325¢/E)
+   d=80: N*=4 4296¢/E 20049¢/Fzmin 80195¢/min (E/min 18.7; N_E=1 4297¢/E)
+   d=100: N*=5 4231¢/E 16926¢/Fzmin 84628¢/min (E/min 20.0; N_E=1 4231¢/E)
+   d=150: N*=7 3087¢/E 8233¢/Fzmin 57630¢/min (E/min 18.7; N_E=1 3087¢/E)
+X2 getreide (d=60): Umweg 1,0 -> 1,6: Netto/E 904 -> 102 ¢ (Senkung 89 %), Netto/min 16273 -> 2049 ¢ (Senkung 87 %); Regel >= 20 %: GRÜN (je E) / GRÜN (je min)
+X2 mehl (d=60): Umweg 1,0 -> 1,6: Netto/E 4066 -> 2719 ¢ (Senkung 33 %), Netto/min 83619 -> 54375 ¢ (Senkung 35 %); Regel >= 20 %: GRÜN (je E) / GRÜN (je min)
+X3 Erlenbach_nachfrage999: d_luft 15, Weg/Luft 1.11: N*=2 E/min 19.9 Netto/E 1153 ¢, Netto/Fzmin 11469 ¢, Netto/min 22939 ¢ (V_sat 24 ‰)
+X3 Erlenbach_normal: d_luft 15, Weg/Luft 1.11: N*=1 E/min 14.3 Netto/E 966 ¢, Netto/Fzmin 13847 ¢, Netto/min 13847 ¢ (V_sat 2000 ‰)
+X3 Lindenfurt_normal: d_luft 66, Weg/Luft 1.27: N*=6 E/min 19.9 Netto/E 3542 ¢, Netto/Fzmin 11766 ¢, Netto/min 70597 ¢ (V_sat 1750 ‰)

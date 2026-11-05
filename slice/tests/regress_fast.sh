@@ -2,7 +2,7 @@
 # QT-01b (S8, Daniel): schnelle Regressionsstufe, Ziel < 300 s Wanduhr. Jeder Commit, vor dem Gate zusätzlich die volle Stufe (d07_regression.sh).
 # Aufruf: tests/regress_fast.sh [pfad/zu/godot]
 # Inhalt: slice_test soa/alt, parity_test, s11_test (= run_tests.sh ohne Screenshot-Lauf), d07_abnahme alle 5 Blöcke, d08_lizenzfaktor,
-#   s7_boot (Default + --welt=s7), alle Proto-Suiten, statische Checks (Kasse W12, Tempo W1). NICHT enthalten (nur volle Stufe): d08_bankrott n=100,
+#   s7_boot (Default + --welt=s7), alle Proto-Suiten, QT-03c-Rauchtests (s8_bot_smoke, s8_exploit_smoke), statische Checks (Kasse W12, Tempo W1). NICHT enthalten (nur volle Stufe): d08_bankrott n=100,
 #   s7_mira/w04/city/u03/industrie/start/validator, d08_maus, perf_s7, u03_play, Spikes, d07-Statik, Screenshots.
 # Timeout je Godot-Aufruf = max(60, 3 x Baseline-Sekunden) aus sprints/s8/umsetzung/baseline/laufzeiten.txt (eine Quelle). Timeout = FAIL mit "TIMEOUT".
 # Exit 0 nur, wenn alle Schritte grün sind. "SCRIPT ERROR" im Log zählt als Fehler. Suiten laufen nacheinander (keine Parallelläufe).
@@ -71,6 +71,17 @@ for s in proto_terrain_test ta_import_test proto_epochen_test proto_strassenband
 done
 godot_step proto_easing_test auto -s res://tests/proto_easing_test.gd -- --csv="$HERE/$LOGS/proto_easing.csv"
 godot_step proto_mass auto -s res://tests/proto_mass.gd -- --csv="$HERE/$LOGS/proto_mass.csv"
+# --- 4b) QT-03c: Rauchtests Loop-Bot (n=2) und Exploit-Sweep (Determinismus, --a=2000); eigene Skripte, Prüfzeile "Prüfungen OK"
+for sm in bot exploit; do
+  [ -n "$FAST_SKIP_GODOT" ] && continue
+  t0=$(date +%s.%N); to=$(limit_for "s8_${sm}_smoke")
+  timeout -k 5 "$to" bash tests/s8_bot_smoke.sh $sm "$G" "$HERE/$LOGS/s8_${sm}_smoke" > "$LOGS/s8_${sm}_smoke.txt" 2>&1; r=$?
+  sec=$(awk -v a="$t0" -v b="$(date +%s.%N)" 'BEGIN{printf "%.1f", b-a}')
+  fl=$(grep "^  FAIL" "$LOGS/s8_${sm}_smoke.txt" | sed 's/^  FAIL //' | cut -c1-80 | head -3 | tr '\n' ';')
+  if [ $r -eq 124 ] || [ $r -eq 137 ]; then record "s8_${sm}_smoke" 1 "TIMEOUT nach ${to} s, Exit $r" "$sec"
+  elif [ $r -ne 0 ]; then record "s8_${sm}_smoke" 1 "Exit $r ${fl:+-- FAIL: $fl}" "$sec"
+  else record "s8_${sm}_smoke" 0 "$(grep 'Prüfungen OK' "$LOGS/s8_${sm}_smoke.txt")" "$sec"; fi
+done
 # --- 5) Optional: Wegwerf-Testfall für den Timeout-Pfad
 if [ -n "$FAST_EXTRA" ]; then
   godot_step extra_haengt "${FAST_EXTRA_TIMEOUT:-10}" -s "$FAST_EXTRA"

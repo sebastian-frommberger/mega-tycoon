@@ -168,6 +168,14 @@ for ps in proto_terrain_test ta_import_test proto_epochen_test proto_strassenban
   record "$ps (Proto-Suite)" $r "$(grep -E 'Prüfungen OK|[0-9]+ OK, [0-9]+ FAIL|ERGEBNIS|Messzeilen' "$LOGS/$ps.txt" | tail -1 | cut -c1-90) ${fl:+ -- FAIL: $fl}"
 done
 
+# --- 2h) QT-03c (S8): Rauchtests für Loop-Bot (n=2 alle Strategien, Determinismus, Abgleich, CSV-Form) und Exploit-Sweep (Determinismus,
+# --a=2000 = 2 x Ertrag). Schreiben "Prüfungen OK: n/m" und "  FAIL ..." wie die Suiten. Sie messen keine Bänder: dafür QT-03c (n=20/300).
+for sm in bot exploit; do
+  $(TO s8_${sm}_smoke) bash tests/s8_bot_smoke.sh $sm "$G" "$HERE/$LOGS/s8_${sm}_smoke" > "$LOGS/s8_${sm}_smoke.txt" 2>&1; r=$?
+  fl=$(grep "^  FAIL" "$LOGS/s8_${sm}_smoke.txt" | sed 's/^  FAIL //' | cut -c1-90 | head -3 | tr '\n' ';')
+  record "s8_${sm}_smoke (QT-03c)" $r "$(grep 'Prüfungen OK' "$LOGS/s8_${sm}_smoke.txt") ${fl:+ -- FAIL: $fl}"
+done
+
 # --- 3) Spike-Suiten (Kern, Signal/Diagnose) auf Kopien; prüft, dass die Slice-Änderungen die Spikes nicht berühren
 if [ -d "$SPIKES" ]; then
   W=$(mktemp -d /tmp/d07_spikes.XXXXXX)

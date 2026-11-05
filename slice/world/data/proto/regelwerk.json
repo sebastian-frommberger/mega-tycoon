@@ -4196,6 +4196,14 @@
  "gewaesser_kartentyp": {
   "status": "Generator-Parameter entschieden (E10), Werte annahme",
   "option": "Startoption neben Startjahr und Schwierigkeit; Standard flusstal; seenreich erst waehlbar mit Faehre oder Schiff (F10)",
+  "schwellen_stehendes_gewaesser": {
+   "status": "WA-12 (S8, D-W entschieden): Bastis Erwartungsregel 03.11. 23:38 'Grosses Gewaesser = nutzbar', breiter Fluss: nur kleine Teiche",
+   "mass": "Aequivalentdurchmesser 2 * sqrt(Flaeche unter Pegel / pi), proto_see.json durchmesser_aequivalent_m",
+   "teich_max_m": 150,
+   "kulisse_bis_m": 300,
+   "nutzung_ab_m": 300,
+   "regel": "bis 150 m Teich/Weiher ohne Erwartung; ueber 150 bis unter 300 m nur mit Kulisse (Steg, Huette, Boot); ab 300 m sichtbare Nutzung (V-W2/V-W3); je Kartentyp begrenzt typen.<typ>.see_durchmesser_m (Flusstal [0, 150])"
+  },
   "typen": {
    "flusstal": {
     "wasser_innen_promille": [
@@ -4220,8 +4228,8 @@
      2
     ],
     "see_durchmesser_m": [
-     300,
-     800
+     0,
+     150
     ],
     "inseln": [
      0,

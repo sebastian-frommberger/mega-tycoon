@@ -5,45 +5,45 @@
   "koordinaten": "lokal m, Ursprung NW-Ecke Kern, +x Ost, +z Sued",
   "rot_deg": "Godot rotation_degrees.y; lokales +z (Fassade) zeigt auf (sin rot, cos rot) in (x, z)",
   "abstaende": {
-   "dorf_weiler_m": 940.71,
+   "dorf_weiler_m": 941.69,
    "dorf_kleinstadt_m": 1697.59,
    "dorf_kleinstadt_kreuzung_m": 1639.61,
    "dorf_gut_m": 697.66,
    "dorf_muehle_m": 360.09,
    "muehle_farm2_m": 1025.0,
-   "weiler_kleinstadt_m": 978.19
+   "weiler_kleinstadt_m": 975.43
   },
   "see_nutzung": {
    "huette": [
-    1387.15,
-    825.21
+    1275.4,
+    945.05
    ],
    "steg_wurzel": [
-    1374.87,
-    838.37
+    1263.12,
+    958.21
    ],
    "steg_ende": [
-    1357.82,
-    856.66
+    1246.07,
+    976.5
    ],
    "boot_am_steg": [
-    1356.61,
-    854.15
+    1244.85,
+    973.99
    ],
    "uferwinkel_deg": -47.0,
-   "ufer_radius_m": 234.09,
+   "ufer_radius_m": 70.23,
    "boot_schleife": {
     "mitte": [
-     1182.5,
-     1032.5
+     1203.5,
+     1018.5
     ],
-    "radius_m": 110.0,
-    "umlauf_s": 300.0,
+    "radius_m": 33.0,
+    "umlauf_s": 90.0,
     "hinweis": "Kulissen-Animation, keine Sim; Boot 4,5 m, Kreisbahn im Uhrzeigersinn"
    },
    "pfad_start": [
-    1387.15,
-    825.21
+    1275.4,
+    945.05
    ]
   },
   "mauer": [
@@ -655,7 +655,7 @@
     ]
    }
   ],
-  "allee_baeume_n": 159
+  "allee_baeume_n": 160
  },
  "orte": [
   {
@@ -687,6 +687,75 @@
    "sim_knoten": true,
    "sim_stufe": "dorf",
    "sim_ew": 500,
+   "ladeplatz": {
+    "x": 1642.99,
+    "z": 663.33,
+    "weg": "dorfstrasse_nord",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 1646.0,
+     "z": 654.0,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": 162.14,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 1642.72,
+     "z": 657.67,
+     "rot_deg": 162.14,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 1639.8,
+     "z": 660.2,
+     "rot_deg": 72.14,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 1640.65,
+      "z": 656.27,
+      "rot_deg": 72.14,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "mehl",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "zuletzt abgeladene Menge mehl / Nachfrage je Periode",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_mehl_s1",
+        "platzhalter/lagerhaufen_mehl_s2",
+        "platzhalter/lagerhaufen_mehl_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   },
    "ew_ort": 244,
    "ew_umland": 256
   },
@@ -695,9 +764,9 @@
    "name": "Hasenwinkel",
    "klasse": "weiler",
    "ew": 48,
-   "x": 759.78,
-   "z": 856.51,
-   "r_m": 70.0,
+   "x": 758.42,
+   "z": 854.01,
+   "r_m": 65.0,
    "form": "weiler",
    "gebaeude": {
     "bauernhof": 6
@@ -706,7 +775,7 @@
    "gebaeude_n": 6,
    "parzellen_n": 6,
    "luecken_n": 0,
-   "r_max_m": 80.0,
+   "r_max_m": 70.0,
    "sim_knoten": false,
    "ew_ort": 48
   },
@@ -741,6 +810,75 @@
    "ew_ort": 2000,
    "ew_umland": 400,
    "ew_ausschnitt": 387,
+   "ladeplatz": {
+    "x": 138.92,
+    "z": 163.23,
+    "weg": "marktstrasse",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 130.29,
+     "z": 158.6,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": -118.2,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 135.2,
+     "z": 158.97,
+     "rot_deg": -118.2,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "pflaster",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 139.05,
+     "z": 158.76,
+     "rot_deg": -28.2,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 135.71,
+      "z": 156.52,
+      "rot_deg": -28.2,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "mehl",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "zuletzt abgeladene Menge mehl / Nachfrage je Periode",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_mehl_s1",
+        "platzhalter/lagerhaufen_mehl_s2",
+        "platzhalter/lagerhaufen_mehl_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   },
    "hinweis": "Ausschnitt: Markt (60x80 m Platz), Stadtkirche, 1 Tor, 1 Gasse, Mauerbogen R 200 m (70 % erhalten); die Stadt setzt sich ausserhalb des Kerns nach Westen fort. ew = Summe der Gebaeude im Ausschnitt (387, unveraendert, damit Schilder/Tooltip stabil bleiben); ew_ort = 2000 ist der Ort gesamt im Klassenband Kleinstadt (2.000-4.000), ew_umland 400 (Band 400-700), sim_ew = ew_ort + ew_umland = 2400 (WA-07)."
   }
  ],
@@ -756,7 +894,76 @@
    "schlaege": [],
    "abstand_dorf_m": 697.66,
    "abstand_muehle_m": 413.94,
-   "zufahrt": "gutsweg"
+   "zufahrt": "gutsweg",
+   "ladeplatz": {
+    "x": 1901.0,
+    "z": 1340.94,
+    "weg": "gutsweg",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 1909.96,
+     "z": 1344.89,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": 66.22,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 1905.04,
+     "z": 1344.91,
+     "rot_deg": 66.22,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 1901.21,
+     "z": 1345.4,
+     "rot_deg": 156.22,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 1904.71,
+      "z": 1347.38,
+      "rot_deg": 156.22,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "getreide",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Station-Lagerbestand getreide / Ausgangspuffer",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_getreide_s1",
+        "platzhalter/lagerhaufen_getreide_s2",
+        "platzhalter/lagerhaufen_getreide_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   }
   },
   {
    "id": "erlenmuehle",
@@ -772,7 +979,127 @@
    },
    "abstand_dorf_m": 360.09,
    "zufahrt": "muehlweg",
-   "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)"
+   "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)",
+   "ladeplatz": {
+    "x": 1615.0,
+    "z": 1074.0,
+    "weg": "gutsweg",
+    "abstand_netz_m": 0.0,
+    "halt": {
+     "x": 1615.0,
+     "z": 1074.0,
+     "art": "durchgang",
+     "neu_gebaut": false
+    },
+    "richtung_deg": 49.04,
+    "heck_vor_wegende_m": null,
+    "kies_hof": {
+     "x": 1620.31,
+     "z": 1075.96,
+     "rot_deg": 49.04,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 1619.13,
+     "z": 1072.29,
+     "rot_deg": -40.96,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 1622.42,
+      "z": 1074.61,
+      "rot_deg": -40.96,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "getreide",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Eingangspuffer getreide / Puffergroesse",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_getreide_s1",
+        "platzhalter/lagerhaufen_getreide_s2",
+        "platzhalter/lagerhaufen_getreide_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     },
+     {
+      "x": 1625.13,
+      "z": 1076.97,
+      "rot_deg": -40.96,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "mehl",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Ausgangsbestand mehl / Puffergroesse",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_mehl_s1",
+        "platzhalter/lagerhaufen_mehl_s2",
+        "platzhalter/lagerhaufen_mehl_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Durchgangs-Ladeplatz (WA-08): Datenpunkt = Halteknoten, das Gespann haelt mit der Mitte im Knoten (Heck 4.75 m davor). Ein Ladestich (Sackgasse, 90-Grad-Abzweig) liess proto_easing_test B rot (E3 Gierrate, E5 Halt-Verzug), Begruendung in sprints/s8/umsetzung/WA-08.md. Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
+   },
+   "kaufbar": true,
+   "ausbauflaeche": {
+    "x": 1605.76,
+    "z": 1070.53,
+    "rot_deg": -180.0,
+    "b": 12.0,
+    "t": 12.0,
+    "footprint_ref": "wassermuehle 12 x 12 m (1 Footprint, gleiche Ausrichtung)",
+    "abstand_zur_muehle_m": 22.49,
+    "baeume_entfernt_n": 0,
+    "zweck": "Werksausbau Stufe 2 (C1, D-F): Anbau/Platz fuer das zweite Werk der kaufbaren Muehle; nur Daten, Modell folgt (Sophie)",
+    "hofschild_platz": {
+     "x": 1615.88,
+     "z": 1081.07,
+     "hinweis": "Platz fuer das Hofschild (Werksstufe sichtbar), 3 m vor der Muehle zum Ladeplatz hin"
+    }
+   }
   },
   {
    "id": "hof_hasenwinkel",
@@ -785,13 +1112,13 @@
    "schlaege": [
     {
      "x": 650.0,
-     "z": 670.0,
+     "z": 640.0,
      "b": 125.0,
      "t": 200.0
     },
     {
      "x": 620.0,
-     "z": 880.0,
+     "z": 920.0,
      "b": 125.0,
      "t": 200.0
     }
@@ -802,11 +1129,73 @@
    "abstand_muehle_felder": 41.0,
    "zufahrt": "hofweg_hasenwinkel",
    "ladeplatz": {
-    "x": 669.1,
-    "z": 787.28,
+    "x": 678.56,
+    "z": 789.84,
     "weg": "hofweg_hasenwinkel",
     "abstand_netz_m": 0.0,
-    "hinweis": "Datenpunkt am Tor-Ende des Hofwegs; Kies-Hof, Rampe und Lagerhaufen folgen mit WA-08"
+    "halt": {
+     "x": 669.1,
+     "z": 787.28,
+     "art": "sackgasse",
+     "neu_gebaut": false
+    },
+    "richtung_deg": -105.19,
+    "heck_vor_wegende_m": 9.8,
+    "kies_hof": {
+     "x": 673.97,
+     "z": 786.53,
+     "rot_deg": -105.19,
+     "b": 9.0,
+     "t": 10.0,
+     "boden": "kies",
+     "platzhalter_rolle": "flaeche_hof"
+    },
+    "rampe": {
+     "x": 677.68,
+     "z": 785.46,
+     "rot_deg": -15.19,
+     "b": 3.0,
+     "t": 2.0,
+     "prefab_ref": "platzhalter/rampe_holz"
+    },
+    "lagerhaufen": [
+     {
+      "x": 673.92,
+      "z": 784.03,
+      "rot_deg": -15.19,
+      "b": 3.0,
+      "t": 3.0,
+      "gut": "getreide",
+      "rolle": "heuhaufen",
+      "fuellstufen": {
+       "anzahl": 3,
+       "stufe_0": "kein Haufen (Bestand 0)",
+       "grenzen": [
+        {
+         "stufe": 1,
+         "bestand_ab_anteil": 0.0
+        },
+        {
+         "stufe": 2,
+         "bestand_ab_anteil": 0.34
+        },
+        {
+         "stufe": 3,
+         "bestand_ab_anteil": 0.67
+        }
+       ],
+       "bestand_bezug": "Station-Lagerbestand getreide / Ausgangspuffer",
+       "prefab_refs": [
+        "platzhalter/lagerhaufen_getreide_s1",
+        "platzhalter/lagerhaufen_getreide_s2",
+        "platzhalter/lagerhaufen_getreide_s3"
+       ],
+       "platzhalter_rolle": "heuhaufen"
+      }
+     }
+    ],
+    "hinweis": "Datenpunkt = Heck-Halt-Punkt des Fuhrwerks am Wegende (WA-08); Kies-Hof, Rampe, Lagerhaufen nur Daten, Modelle folgen (Sophie).",
+    "baeume_entfernt_n": 0
    }
   }
  ],
@@ -817,7 +1206,7 @@
    "name": "Binsensee",
    "x": 1212.5,
    "z": 1012.5,
-   "r_m": 250.0,
+   "r_m": 75.0,
    "pegel_m": 44.8,
    "quelle": "Vorgabe"
   },
@@ -1401,9 +1790,9 @@
     "id": "hasenwinkel_p06",
     "typ": "bauernhof",
     "status": "besetzt",
-    "x": 814.56,
-    "z": 856.93,
-    "rot_deg": 42.11,
+    "x": 806.41,
+    "z": 841.93,
+    "rot_deg": -177.53,
     "b": 25.0,
     "t": 25.0,
     "weg": "hasenwinkelweg"
@@ -1447,8 +1836,8 @@
     "id": "lindenfurt_p04",
     "typ": "speicher",
     "status": "besetzt",
-    "x": 234.21,
-    "z": 240.3,
+    "x": 235.87,
+    "z": 237.8,
     "rot_deg": -33.55,
     "b": 22.0,
     "t": 22.0,
@@ -1590,8 +1979,8 @@
     "id": "lindenfurt_p17",
     "typ": "handwerkerhaus",
     "status": "besetzt",
-    "x": 217.58,
-    "z": 230.81,
+    "x": 218.83,
+    "z": 228.08,
     "rot_deg": -24.59,
     "b": 10.0,
     "t": 22.0,
@@ -1601,8 +1990,8 @@
     "id": "lindenfurt_p18",
     "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 204.12,
-    "z": 226.09,
+    "x": 205.32,
+    "z": 223.34,
     "rot_deg": -23.6,
     "b": 12.4,
     "t": 24.0,
@@ -1612,8 +2001,8 @@
     "id": "lindenfurt_p19",
     "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 191.05,
-    "z": 219.8,
+    "x": 192.49,
+    "z": 217.17,
     "rot_deg": -28.82,
     "b": 12.4,
     "t": 24.0,
@@ -1623,8 +2012,8 @@
     "id": "lindenfurt_p20",
     "typ": "handwerkerhaus",
     "status": "besetzt",
-    "x": 180.06,
-    "z": 211.73,
+    "x": 181.78,
+    "z": 209.27,
     "rot_deg": -35.05,
     "b": 10.0,
     "t": 22.0,
@@ -1634,8 +2023,8 @@
     "id": "lindenfurt_p21",
     "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 169.53,
-    "z": 205.11,
+    "x": 171.36,
+    "z": 202.74,
     "rot_deg": -37.69,
     "b": 12.4,
     "t": 24.0,
@@ -1645,8 +2034,8 @@
     "id": "lindenfurt_p22",
     "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 157.72,
-    "z": 196.28,
+    "x": 159.43,
+    "z": 193.81,
     "rot_deg": -34.73,
     "b": 12.4,
     "t": 24.0,
@@ -1656,8 +2045,8 @@
     "id": "lindenfurt_p23",
     "typ": "handwerkerhaus",
     "status": "besetzt",
-    "x": 253.76,
-    "z": 208.86,
+    "x": 252.11,
+    "z": 211.37,
     "rot_deg": 146.7,
     "b": 10.0,
     "t": 22.0,
@@ -1667,8 +2056,8 @@
     "id": "lindenfurt_p24",
     "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 243.31,
-    "z": 201.24,
+    "x": 241.85,
+    "z": 203.86,
     "rot_deg": 150.78,
     "b": 12.4,
     "t": 24.0,
@@ -1678,8 +2067,8 @@
     "id": "lindenfurt_p25",
     "typ": "handwerkerhaus",
     "status": "besetzt",
-    "x": 230.98,
-    "z": 196.28,
+    "x": 229.76,
+    "z": 199.02,
     "rot_deg": 155.95,
     "b": 10.0,
     "t": 22.0,
@@ -1687,44 +2076,44 @@
    },
    {
     "id": "lindenfurt_p26",
-    "typ": "buergerhaus",
-    "status": "besetzt",
-    "x": 202.74,
-    "z": 181.21,
-    "rot_deg": 145.43,
-    "b": 12.4,
-    "t": 24.0,
-    "weg": "marktstrasse"
-   },
-   {
-    "id": "lindenfurt_p27",
     "typ": "handwerkerhaus",
     "status": "besetzt",
-    "x": 191.31,
-    "z": 173.92,
-    "rot_deg": 142.39,
+    "x": 203.54,
+    "z": 186.56,
+    "rot_deg": 147.35,
     "b": 10.0,
     "t": 22.0,
     "weg": "marktstrasse"
    },
    {
-    "id": "lindenfurt_p28",
+    "id": "lindenfurt_p27",
     "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 182.08,
-    "z": 165.73,
-    "rot_deg": 144.66,
+    "x": 193.37,
+    "z": 178.03,
+    "rot_deg": 142.63,
     "b": 12.4,
     "t": 24.0,
+    "weg": "marktstrasse"
+   },
+   {
+    "id": "lindenfurt_p28",
+    "typ": "handwerkerhaus",
+    "status": "besetzt",
+    "x": 183.45,
+    "z": 171.68,
+    "rot_deg": 143.39,
+    "b": 10.0,
+    "t": 22.0,
     "weg": "marktstrasse"
    },
    {
     "id": "lindenfurt_p29",
     "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 169.97,
-    "z": 157.93,
-    "rot_deg": 149.57,
+    "x": 173.6,
+    "z": 163.63,
+    "rot_deg": 147.5,
     "b": 12.4,
     "t": 24.0,
     "weg": "marktstrasse"
@@ -1733,9 +2122,9 @@
     "id": "lindenfurt_p30",
     "typ": "handwerkerhaus",
     "status": "besetzt",
-    "x": 205.28,
-    "z": 155.14,
-    "rot_deg": -71.5,
+    "x": 205.77,
+    "z": 156.87,
+    "rot_deg": -76.4,
     "b": 10.0,
     "t": 22.0,
     "weg": "gasse_lindenfurt"
@@ -1775,13 +2164,13 @@
    },
    {
     "id": "lindenfurt_p34",
-    "typ": "handwerkerhaus",
+    "typ": "buergerhaus",
     "status": "besetzt",
-    "x": 167.9,
-    "z": 117.1,
-    "rot_deg": -32.03,
-    "b": 10.0,
-    "t": 22.0,
+    "x": 166.38,
+    "z": 117.34,
+    "rot_deg": -31.87,
+    "b": 12.4,
+    "t": 24.0,
     "weg": "gasse_lindenfurt"
    },
    {

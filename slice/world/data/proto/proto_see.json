@@ -5,7 +5,7 @@
    1212.5,
    1012.5
   ],
-  "radius_m": 250.0,
+  "radius_m": 75.0,
   "pegel_m": 44.8,
   "tiefe_m": 4.0,
   "boeschung_m": 40.0,
@@ -13,8 +13,8 @@
   "ufer_rauschen": 0.07,
   "rausch_phase": 0.0,
   "schelf_m": 70.0,
-  "flaeche_m2": 191900,
-  "durchmesser_aequivalent_m": 494.3,
+  "flaeche_m2": 16225,
+  "durchmesser_aequivalent_m": 143.7,
   "quelle": "ausschnitt_vorgabe.json"
  },
  "muehlteich": {

@@ -83,7 +83,7 @@ func _run() -> void:
 	var mw: Dictionary = k.messwerte()
 	var see: Dictionary = terr.see["see"]
 	var d_see := sqrt(float(see.get("flaeche_m2", 0.0)) / PI) * 2.0
-	pr(d_see >= 400.0 and d_see <= 600.0, "M14 See Ø %.0f m (400-600)" % d_see)
+	pr(d_see >= 100.0 and d_see <= 150.0, "M14 See Ø %.0f m (WA-12: Teichgröße 100-150, Kartentyp Flusstal; vorher 400-600)" % d_see)
 	pr(_band(mw["steg_m"][0], 25.0) and _band(mw["steg_m"][1], 2.0), "M14 Steg %.1f x %.1f m (25 x 2 ±25 %%)" % mw["steg_m"])
 	var fh := ProtoPrefabs.mesh_fuer("fischerhuette").get_aabb()
 	pr(_band(maxf(fh.size.x, fh.size.z), 8.0) and _band(minf(fh.size.x, fh.size.z), 6.0), "M14 Fischerhuette %.1f x %.1f m (8 x 6 ±25 %%)" % [fh.size.x, fh.size.z])

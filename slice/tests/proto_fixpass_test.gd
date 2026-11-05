@@ -95,5 +95,62 @@ func _run() -> void:
 	sch.aktualisiere(true)
 	ok(not sch.eintrag("hasenwinkel")["sichtbar"], "M8 Weiler Hasenwinkel: kein Schild (Charter E6, Regelwerk label.hierarchie.weiler = nie)")
 
+	# WA-08 Ladeplatz je Betrieb/Ort: Datenpunkt = Heck-Halt-Punkt am Sackgassen-Wegende, Gespann-Heck <= 3 m vom Ladeplatz,
+	# Halt (ProtoSim.knoten_halt vom Datenpunkt) = Wegende des Ladeplatzes. Heck aus dem echten Profil (halbe Länge + Luft + halbe Länge).
+	var orte_j = JSON.parse_string(FileAccess.get_file_as_string("res://world/data/proto/proto_orte.json"))
+	var wege_j: Array = JSON.parse_string(FileAccess.get_file_as_string("res://world/data/proto/proto_wege.json"))
+	var wege_id := {}
+	for w in wege_j:
+		wege_id[w["id"]] = w
+	var sites: Array = []
+	for ind in orte_j["industrie"]:
+		sites.append([String(ind["name"]), ind, true])
+	for o in orte_j["orte"]:
+		if bool(o.get("sim_knoten", false)):
+			sites.append([String(o["name"]), o, false])
+	var ps = s.proto_sim
+	for e in sites:
+		var nm: String = e[0]
+		var lpd = e[1].get("ladeplatz", null)
+		if not (lpd is Dictionary):
+			ok(false, "WA-08 %s: Ladeplatz-Datensatz fehlt" % nm)
+			continue
+		var P := Vector2(float(lpd["x"]), float(lpd["z"]))
+		var pts: Array = wege_id[lpd["weg"]]["punkte"]
+		var h := Vector2(float(lpd["halt"]["x"]), float(lpd["halt"]["z"]))
+		var n_halt: int = ps.knoten_halt(P)
+		var kp: Vector3 = ps.knoten_pos[n_halt]
+		var ende := Vector2(float(lpd["halt"]["x"]), float(lpd["halt"]["z"]))
+		if String(lpd["halt"]["art"]) == "durchgang":
+			# Durchgangs-Ladeplatz (Mühle): Datenpunkt = Halteknoten, Gespann hält mit der Mitte im Knoten (Grad ≥ 3, kein Sackgassen-Heck)
+			var d_k := Vector2(kp.x, kp.z).distance_to(P)
+			ok(d_k < 0.5 and int(ps.knoten_grad.get(n_halt, 0)) >= 2, "WA-08 %s: Durchgangshalt, Halt = Datenpunkt-Knoten (Knoten %d, Grad %d, %.2f m)" % [nm, n_halt, int(ps.knoten_grad.get(n_halt, -1)), d_k])
+		else:
+			var a := Vector2(float(pts[0][0]), float(pts[0][1]))
+			var b := Vector2(float(pts[-1][0]), float(pts[-1][1]))
+			ende = b if b.distance_to(ende) < a.distance_to(ende) else a
+			var inn: Vector2 = Vector2(float(pts[-2][0]), float(pts[-2][1])) if ende == b else Vector2(float(pts[1][0]), float(pts[1][1]))
+			for q in (pts.slice(-8) if ende == b else pts.slice(0, 8)):
+				var qv := Vector2(float(q[0]), float(q[1]))
+				if qv.distance_to(ende) >= 6.0:
+					inn = qv
+			var t: Vector2 = (ende - inn).normalized()
+			var heck: Vector2 = ende - t * (prof.halt_rand_m() + prof.laenge_m * 0.5)       # Mitte hält halt_rand vor dem Ende, Heck eine halbe Länge dahinter
+			var d_heck := heck.distance_to(P)
+			var d_knoten := Vector2(kp.x, kp.z).distance_to(ende)
+			ok(d_heck <= 3.0, "WA-08 %s: Gespann-Heck %.2f m vom Ladeplatz (≤ 3 m)" % [nm, d_heck])
+			ok(n_halt > 0 and int(ps.knoten_grad[n_halt]) == 1 and d_knoten < 1.0, "WA-08 %s: Halt = Wegende des Ladeplatzes (Knoten %d, Grad %d, %.2f m vom Wegende)" % [nm, n_halt, int(ps.knoten_grad.get(n_halt, -1)), d_knoten])
+		if ps.stationen.has(nm):
+			var st: Dictionary = ps.stationen[nm]
+			var sp: Vector3 = ps.knoten_pos[int(st["knoten"])]
+			var d_st := Vector2(sp.x, sp.z).distance_to(ende)
+			if e[2]:
+				ok(d_st < 1.0, "WA-08 %s: ProtoSim-Station liegt am Ladeplatz-Wegende (%.2f m)" % [nm, d_st])
+			else:
+				print("  INFO WA-08 %s (Ort): ProtoSim liest den Ladeplatz für Orte noch nicht, Station %.0f m vom Ladeplatz-Wegende (Felix, Halt = Ladeplatz)" % [nm, d_st])
+		for hf in lpd["lagerhaufen"]:
+			var fs: Dictionary = hf["fuellstufen"]
+			ok(int(fs["anzahl"]) == 3 and (fs["grenzen"] as Array).size() == 3 and (fs["prefab_refs"] as Array).size() == 3, "WA-08 %s: Lagerhaufen %s mit 3 Füllstufen (Daten)" % [nm, hf["gut"]])
+
 	print("proto_fixpass_test: %d OK, %d FAIL" % [n_ok, n_fail])
 	quit(1 if n_fail > 0 else 0)

@@ -165,6 +165,29 @@
         "getreide": 30,
         "mehl": 300
       }
+    },
+    "k4c": {
+      "tempo_k": 4,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k4",
+        "frachtwagen": "frachtwagen_k4"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 38,
+        "mehl": 95
+      },
+      "startkapital_cent": 400000
+    },
+    "k8c": {
+      "tempo_k": 8,
+      "fahrzeuge": {
+        "fuhrwerk": "fuhrwerk_k8v2",
+        "frachtwagen": "frachtwagen_k8v2"
+      },
+      "preise_cent_pro_einheit_feld": {
+        "getreide": 24,
+        "mehl": 130
+      }
     }
   }
 }

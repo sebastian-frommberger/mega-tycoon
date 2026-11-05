@@ -153,7 +153,201 @@ def pruefe_welt_daten(T, orte_j, wege, geo):
             T.add("Ort %s: Nachfrage E/min (berechnet aus sim_ew)" % o["id"], "%.0f +- %.0f" % soll, "%.1f" % nach, abs(nach - soll[0]) <= soll[1])
 
 
-def pruefen(dir_, src):
+# ---------------------------------------------------------------- WA-09: Platzierungsregeln (PL-1)
+# Regeln 1-4 aus sprints/s8/refinement/ux_art.md "Level-Design-Regeln (neu)"; Messart gemessen an proto_*.json + ausgelieferten Hoehenrastern.
+WINKEL_MAX = 10.0                      # Regel 1: Traufe oder Giebel +-10 Grad zur Bezugslinie (mod 90)
+BAULINIE = {"erlenbach": (3.0, 15.0), "hasenwinkel": (3.0, 15.0), "lindenfurt": (0.0, 3.0)}    # Regel 2: Dorf 3-15 m, Kleinstadt 0-3 m
+ZUFAHRT_BETRIEB_MAX = 12.0             # Regel 3: Weg bis ins Tor: Abstand Wegrand - Gebaeuderand <= 12 m (Betrieb)
+ZUFAHRT_HOF_MAX = 15.0                 # Regel 3: Hofstelle im Dorf: Wegrand - Gebaeuderand <= 15 m (Obergrenze der Baulinie)
+FUNDAMENT_MAX = 0.5                    # Regel 4: Hoehenspreizung im Footprint, Raster 5 m
+HAUPTGEBAEUDE = (HAUS_TYPEN - {"nebengebaeude", "stadttor"}) | {"gutshof", "wassermuehle", "fischerhuette"}
+WASSER_BEZUG = {"wassermuehle", "fischerhuette"}
+BETRIEBE = {"gutshof", "wassermuehle"}
+HOFSTELLEN = {"bauernhof", "grosshof"}
+REGELN = ("bezugslinie", "baulinie", "zufahrt", "fundament")
+
+
+class Hoehe:
+    """Hoehenmodell wie im Spiel (proto_meta.json fein.regel): Feinraster 5 m in Feldern mit Maske 1, sonst Grobraster 25 m; Dreiecksteilung (a,b,c)/(b,d,c)."""
+
+    def __init__(self, dir_):
+        import numpy as np
+        meta = json.load(open(os.path.join(dir_, "proto_meta.json"), encoding="utf-8"))
+        self.skala = float(meta["hoehe_skala_m"])
+        fw, fh = meta["felder"]
+        self.fw, self.fh = fw, fh
+        self.m_feld = float(meta["fenster"]["m_pro_feld"])
+        self.x0 = -1000.0
+        self.z0 = -1000.0
+        self.grob = np.fromfile(os.path.join(dir_, "proto_hoehe.r16"), dtype="<u2").reshape(fh + 1, fw + 1).astype(float) * self.skala
+        kn = meta["fein"]["knoten"]
+        self.fein = np.fromfile(os.path.join(dir_, meta["fein"]["datei"]), dtype="<u2").reshape(kn[1], kn[0]).astype(float) * self.skala
+        self.maske = np.fromfile(os.path.join(dir_, meta["fein"]["maske"]), dtype="u1").reshape(fh, fw)
+        self.m_fein = float(meta["fein"]["m_pro_knoten"])
+
+    @staticmethod
+    def _tri(g, fx, fz, i, j):
+        """Hoehe im Quad (i,j) mit lokalen Koordinaten fx,fz in [0,1]; a=(0,0) b=(1,0) c=(0,1) d=(1,1), Diagonale b-c."""
+        a, b, c, d = g[j, i], g[j, i + 1], g[j + 1, i], g[j + 1, i + 1]
+        if fx + fz <= 1.0:
+            return a + (b - a) * fx + (c - a) * fz
+        return d + (b - d) * (1.0 - fz) + (c - d) * (1.0 - fx)
+
+    def hoehe(self, x, z):
+        u = (x - self.x0) / self.m_feld
+        v = (z - self.z0) / self.m_feld
+        fi = min(max(int(math.floor(u)), 0), self.fw - 1)
+        fj = min(max(int(math.floor(v)), 0), self.fh - 1)
+        if self.maske[fj, fi] == 1:
+            u = (x - self.x0) / self.m_fein
+            v = (z - self.z0) / self.m_fein
+            i = min(max(int(math.floor(u)), 0), self.fein.shape[1] - 2)
+            j = min(max(int(math.floor(v)), 0), self.fein.shape[0] - 2)
+            return float(self._tri(self.fein, u - i, v - j, i, j))
+        i = min(max(int(math.floor(u)), 0), self.grob.shape[1] - 2)
+        j = min(max(int(math.floor(v)), 0), self.grob.shape[0] - 2)
+        return float(self._tri(self.grob, u - i, v - j, i, j))
+
+
+def kreis_poly(cx, cz, r, n=72):
+    return [(cx + r * math.cos(2 * math.pi * k / n), cz + r * math.sin(2 * math.pi * k / n)) for k in range(n + 1)]
+
+
+def winkel_abw(rot_deg, p, q):
+    """Kleinste Abweichung (Grad, mod 90) zwischen lokaler x-Achse des Gebaeudes (Traufe/Fassade) und der Geraden p-q."""
+    r = math.radians(rot_deg)
+    ab = math.degrees(math.atan2(-math.sin(r), math.cos(r)))
+    ar = math.degrees(math.atan2(q[1] - p[1], q[0] - p[0]))
+    d = (ab - ar) % 90.0
+    return min(d, 90.0 - d)
+
+
+def randpunkte(d):
+    e = obb_ecken(d["x"], d["z"], d["b"], d["t"], d["rot_deg"])
+    pts = list(e)
+    for i in range(4):
+        a, b = e[i], e[(i + 1) % 4]
+        for f in (0.25, 0.5, 0.75):
+            pts.append((a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f))
+    return pts
+
+
+def bezuege(wege, inst, dir_):
+    """Liste (art, id, polylinie, halbe_breite) aller Bezugslinien: Wege, Platzkanten, Wasser (Bach, Binsensee, Muehlteich)."""
+    wl = [("weg", w["id"], [tuple(p) for p in w["punkte"]], w["breite_m"] / 2.0) for w in wege]
+    pl = []
+    for x in inst:
+        if x["typ"] == "flaeche_marktplatz":
+            e = obb_ecken(x["x"], x["z"], x["b"], x["t"], x["rot_deg"])
+            for i in range(4):
+                pl.append(("platz", "marktplatz_%d" % i, [e[i], e[(i + 1) % 4]], 0.0))
+    ws = []
+    bach = json.load(open(os.path.join(dir_, "proto_bach.json"), encoding="utf-8"))
+    ws.append(("wasser", "bach", [(p[0], p[1]) for p in bach["punkte"]], 0.0))
+    see = json.load(open(os.path.join(dir_, "proto_see.json"), encoding="utf-8"))
+    for k in ("see", "muehlteich"):
+        sd = see.get(k)
+        if sd:
+            mx = sd.get("mitte_m") or [sd.get("x"), sd.get("z")]
+            ws.append(("wasser", k, kreis_poly(mx[0], mx[1], sd.get("radius_m") or sd.get("r_m")), 0.0))
+    return wl, pl, ws
+
+
+def messe_platzierung(orte_j, inst, wege, dir_):
+    """Misst die vier Regeln je Hauptgebaeude. Rueckgabe {regel: [dict(key, typ, ort, x, z, wert, text)]} der Verstoesse und die Anzahl geprueft."""
+    wl, pl, ws = bezuege(wege, inst, dir_)
+    hm = Hoehe(dir_)
+    par = {}
+    for oid, lst in orte_j["parzellen"].items():
+        for p in lst:
+            par[p["id"]] = p
+    wd = {w["id"]: w for w in wege}
+    verst = {r: [] for r in REGELN}
+    geprueft = {r: 0 for r in REGELN}
+    gebs = [x for x in inst if x["typ"] in HAUPTGEBAEUDE and "b" in x]
+    for x in gebs:
+        key = "%s|%.2f|%.2f" % (x["typ"], x["x"], x["z"])
+        ort = x["ort"]
+        mitte = (x["x"], x["z"])
+        rp = randpunkte(x)
+        # --- Bezugslinie: naechste Linie (Wasser nur fuer Muehle/Fischerhuette, dort statt Weg/Platz)
+        kand = ws if x["typ"] in WASSER_BEZUG else wl + pl
+        best = None
+        for (art, bid, poly, hb) in kand:
+            d, k, t = poly_abstand(mitte, poly)
+            if best is None or d < best[0]:
+                best = (d, art, bid, poly, hb, k)
+        d, art, bid, poly, hb, k = best
+        abw = winkel_abw(x["rot_deg"], poly[k], poly[k + 1])
+        geprueft["bezugslinie"] += 1
+        if abw > WINKEL_MAX:
+            verst["bezugslinie"].append(dict(key=key, typ=x["typ"], ort=ort, x=x["x"], z=x["z"], wert=round(abw, 1),
+                                             text="Winkel %.1f Grad zu %s %s (Soll <= %.0f)" % (abw, art, bid, WINKEL_MAX)))
+        # --- Baulinie: Abstand Gebaeuderand - Bezugskante (Wegrand bzw. Platzkante), nur Wohn-/Gemeinbauten, nicht Betriebe
+        if x["typ"] not in (BETRIEBE | WASSER_BEZUG) and ort in BAULINIE:
+            lo, hi = BAULINIE[ort]
+            gap = min(poly_abstand(p, poly)[0] for p in rp) - hb
+            geprueft["baulinie"] += 1
+            if not (lo - 0.5 <= gap <= hi + 0.5):
+                verst["baulinie"].append(dict(key=key, typ=x["typ"], ort=ort, x=x["x"], z=x["z"], wert=round(gap, 1),
+                                              text="Abstand %.1f m zu %s %s (Soll %.0f..%.0f)" % (gap, art, bid, lo, hi)))
+        # --- Zufahrt: Betriebe bis ans Tor, Hofstellen mit erreichbarem Weg
+        if x["typ"] in BETRIEBE:
+            gaps = [(min(poly_abstand(p, [tuple(q) for q in w["punkte"]])[0] for p in rp) - w["breite_m"] / 2.0, w["id"]) for w in wege]
+            gap, wid = min(gaps)
+            geprueft["zufahrt"] += 1
+            if gap > ZUFAHRT_BETRIEB_MAX:
+                verst["zufahrt"].append(dict(key=key, typ=x["typ"], ort=ort, x=x["x"], z=x["z"], wert=round(gap, 1),
+                                             text="naechster Wegrand (%s) %.1f m vom Gebaeuderand (Soll <= %.0f)" % (wid, gap, ZUFAHRT_BETRIEB_MAX)))
+        elif x["typ"] in HOFSTELLEN:
+            p = par.get(x["parzelle"])
+            wid = p.get("weg") if p else None
+            geprueft["zufahrt"] += 1
+            if not wid or wid not in wd:
+                verst["zufahrt"].append(dict(key=key, typ=x["typ"], ort=ort, x=x["x"], z=x["z"], wert=-1, text="Parzelle ohne gueltigen Zufahrtsweg (%s)" % wid))
+            else:
+                w = wd[wid]
+                gap = min(poly_abstand(p_, [tuple(q) for q in w["punkte"]])[0] for p_ in rp) - w["breite_m"] / 2.0
+                if gap > ZUFAHRT_HOF_MAX:
+                    verst["zufahrt"].append(dict(key=key, typ=x["typ"], ort=ort, x=x["x"], z=x["z"], wert=round(gap, 1),
+                                                 text="Weg %s %.1f m vom Hofrand (Soll <= %.0f)" % (wid, gap, ZUFAHRT_HOF_MAX)))
+        # --- Fundament: Hoehenspreizung der 5-m-Rasterpunkte im Footprint plus Ecken
+        e = obb_ecken(x["x"], x["z"], x["b"], x["t"], x["rot_deg"])
+        xs, zs = [c[0] for c in e], [c[1] for c in e]
+        hs = [hm.hoehe(c[0], c[1]) for c in e]
+        gx0, gx1 = int(math.floor(min(xs) / 5.0)), int(math.ceil(max(xs) / 5.0))
+        gz0, gz1 = int(math.floor(min(zs) / 5.0)), int(math.ceil(max(zs) / 5.0))
+        for gi in range(gx0, gx1 + 1):
+            for gj in range(gz0, gz1 + 1):
+                if punkt_in_obb((gi * 5.0, gj * 5.0), e):
+                    hs.append(hm.hoehe(gi * 5.0, gj * 5.0))
+        spr = max(hs) - min(hs)
+        geprueft["fundament"] += 1
+        if spr > FUNDAMENT_MAX:
+            verst["fundament"].append(dict(key=key, typ=x["typ"], ort=ort, x=x["x"], z=x["z"], wert=round(spr, 2),
+                                           text="Hoehenspreizung %.2f m im Footprint (Soll <= %.1f)" % (spr, FUNDAMENT_MAX)))
+    return verst, geprueft
+
+
+def pruefe_platzierung(T, orte_j, inst, wege, dir_, strikt=False, baseline=None, liste=None):
+    """WA-09: vier Platzierungsregeln. Verstoesse in der Baseline (bekannt, Fix ist WA-10) zaehlen als WARN, neue als FAIL;
+    mit strikt=True ist jeder Verstoss FAIL (Ziel von WA-10)."""
+    verst, geprueft = messe_platzierung(orte_j, inst, wege, dir_)
+    namen = {"bezugslinie": "Bezugslinie: Traufe/Giebel +-10 Grad", "baulinie": "Baulinie: Dorf 3-15 m, Kleinstadt 0-3 m",
+             "zufahrt": "Zufahrt: Betrieb <= 12 m / Hofstelle mit Weg <= 15 m", "fundament": "Fundament: Hoehe im Footprint <= 0,5 m (5-m-Raster)"}
+    for r in REGELN:
+        v = verst[r]
+        bk = set((baseline or {}).get(r, []))
+        neu = [d for d in v if d["key"] not in bk]
+        art = "HART" if (neu or (strikt and v)) else "WARN"
+        T.add("Platzierung %s" % namen[r], "0 Verstoesse (%d geprueft)" % geprueft[r],
+              "%d, davon Baseline %d, neu %d" % (len(v), len(v) - len(neu), len(neu)), not v, art)
+    if liste is not None:
+        liste.update(verst)
+    return verst, geprueft
+
+
+def pruefen(dir_, src, strikt=False, baseline=None, liste=None):
     geo = Gelaende(src)
     T = Tabelle()
     orte_j = json.load(open(os.path.join(dir_, "proto_orte.json"), encoding="utf-8"))
@@ -310,6 +504,7 @@ def pruefen(dir_, src):
     komp = {find(w["id"]) for w in wege}
     T.add("Wegenetz zusammenhaengend (Kreuzungen/Einmuendungen)", "1 Komponente", "%d, %d Knoten" % (len(komp), len(kn)), len(komp) == 1)
     pruefe_welt_daten(T, orte_j, wege, geo)
+    pruefe_platzierung(T, orte_j, inst, wege, dir_, strikt, baseline, liste)
     al = wd["chaussee"]["allee"]
     T.info("Allee: Abschnitte / Baeume / Laenge", "%d / %d / %.0f m" % (len(al), sum(1 for x in inst if x["parzelle"] == "allee"), sum(a["laenge_m"] for a in al)))
     # Chaussee Dorf-Kreuzung
@@ -365,12 +560,43 @@ def pruefen(dir_, src):
     return T
 
 
+BASELINE_WA09 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stadt_baseline_wa09.json")
+
+
+def liste_text(verst):
+    z = []
+    for r in REGELN:
+        z.append("== %s: %d Verstoesse" % (r, len(verst[r])))
+        for d in sorted(verst[r], key=lambda q: (q["ort"], q["typ"], q["x"], q["z"])):
+            z.append("  %-9s %-15s @%8.1f,%8.1f  %s" % (d["ort"], d["typ"], d["x"], d["z"], d["text"]))
+    return "\n".join(z)
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=OUT_DIR)
     ap.add_argument("--src", default=SRC_DEFAULT)
+    ap.add_argument("--strikt", action="store_true", help="WA-09-Verstoesse (auch Baseline) zaehlen als FAIL (Ziel von WA-10)")
+    ap.add_argument("--baseline", default=BASELINE_WA09, help="JSON mit bekannten WA-09-Verstoessen (Schluessel typ|x|z je Regel)")
+    ap.add_argument("--baseline-schreiben", action="store_true", help="aktuelle WA-09-Verstoesse als Baseline nach --baseline schreiben")
+    ap.add_argument("--liste", default="", help="WA-09-Verstoesse als Textliste in diese Datei schreiben (immer auch auf stdout, wenn '-')")
     a = ap.parse_args()
-    T = pruefen(a.dir, a.src)
+    bl = None
+    if os.path.exists(a.baseline) and not a.baseline_schreiben:
+        bl = json.load(open(a.baseline, encoding="utf-8")).get("regeln", {})
+    verst = {}
+    T = pruefen(a.dir, a.src, a.strikt, bl, verst)
+    if a.baseline_schreiben:
+        json.dump({"zweck": "WA-09 Baseline: bekannte Platzierungs-Verstoesse (Stand vor WA-10). Neue Verstoesse ausserhalb dieser Liste sind FAIL.",
+                   "regeln": {r: sorted(d["key"] for d in verst[r]) for r in REGELN}},
+                  open(a.baseline, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+        print("Baseline geschrieben:", a.baseline, {r: len(verst[r]) for r in REGELN})
+    if a.liste:
+        txt = liste_text(verst)
+        if a.liste == "-":
+            print(txt)
+        else:
+            open(a.liste, "w", encoding="utf-8").write(txt + "\n")
     T.drucken()
     n_ok = sum(1 for z in T.zeilen if z[3] == "OK")
     n_w = sum(1 for z in T.zeilen if z[3] == "WARN")

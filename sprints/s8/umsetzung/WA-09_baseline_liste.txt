@@ -1,0 +1,25 @@
+== bezugslinie: 2 Verstoesse
+  erlenbach bauernhof       @  1724.8,   743.2  Winkel 10.4 Grad zu weg gasse_kirch (Soll <= 10)
+  gut_kuppenhof gutshof         @  1935.0,  1355.0  Winkel 26.0 Grad zu weg gutsweg (Soll <= 10)
+== baulinie: 18 Verstoesse
+  erlenbach bauernhof       @  1617.4,   792.2  Abstand 2.5 m zu weg dorfstrasse_sued (Soll 3..15)
+  erlenbach kate            @  1689.7,   780.3  Abstand 2.4 m zu weg gasse_kirch (Soll 3..15)
+  erlenbach kirche_dorf     @  1653.2,   773.6  Abstand 16.3 m zu weg dorfstrasse_sued (Soll 3..15)
+  erlenbach schmiede        @  1501.0,   726.2  Abstand 2.1 m zu weg chaussee (Soll 3..15)
+  lindenfurt buergerhaus     @   160.4,   192.5  Abstand 4.6 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt buergerhaus     @   167.8,   161.9  Abstand 4.9 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt buergerhaus     @   172.4,   201.4  Abstand 4.8 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt buergerhaus     @   179.5,   169.6  Abstand 4.8 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt buergerhaus     @   193.3,   215.7  Abstand 4.8 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt buergerhaus     @   200.1,   185.1  Abstand 4.6 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt buergerhaus     @   206.0,   221.9  Abstand 4.9 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt buergerhaus     @   241.1,   205.2  Abstand 5.0 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt handwerkerhaus  @   182.8,   207.9  Abstand 4.8 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt handwerkerhaus  @   188.5,   177.5  Abstand 4.9 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt handwerkerhaus  @   219.6,   226.7  Abstand 4.8 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt handwerkerhaus  @   229.2,   200.5  Abstand 4.9 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt handwerkerhaus  @   251.2,   212.8  Abstand 4.9 m zu weg marktstrasse (Soll 0..3)
+  lindenfurt speicher        @   236.7,   236.4  Abstand 4.6 m zu weg marktstrasse (Soll 0..3)
+== zufahrt: 1 Verstoesse
+  gut_kuppenhof gutshof         @  1935.0,  1355.0  naechster Wegrand (gutsweg) 15.1 m vom Gebaeuderand (Soll <= 12)
+== fundament: 0 Verstoesse

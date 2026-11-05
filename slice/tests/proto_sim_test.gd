@@ -185,6 +185,7 @@ func _at02(s: Node) -> void:
 	pruef(ps.konto.running_cost_per_period == sum_fix - int(f0["kauf_cent"] * 0) - int(ps.vdef(f0["def_id"]).get("fix_cent_pro_periode", 0)),
 		"A10 laufende Kosten nach Verkauf %d ¢" % ps.konto.running_cost_per_period)
 	pruef(not ps.fahrzeug_verkaufen(int(f0["vid"]))["ok"], "A11 zweiter Verkauf desselben Fahrzeugs abgelehnt")
+	_fz01(s)
 	_at02_kredit(s)
 	_at02_bankrott(s)
 	_at02_paritaet(s)
@@ -322,3 +323,29 @@ func _at02_kalender(s: Node) -> void:
 			toast = true
 	pruef(ps.kalenderjahr() == 1835 and not bahn and not toast and gesperrt,
 		"W10 Kalender 1835 (Tick %d): 0 Gleis-Freischaltungen, 0 Toasts, unterdrückt protokolliert (%s)" % [ziel, str(ps.gesperrt_log)])
+
+
+## FZ-01: Fuhrwerk-Linie bucht 60 $/Periode Fix und 10 E Kapazität (fuhrwerk_e1), kein Tempofeld (W1).
+func _fz01(s: Node) -> void:
+	var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/vehicles.json"))
+	var tempo := []
+	var ids := []
+	for v in d["fahrzeuge"]:
+		if v["id"] in ["fuhrwerk_e1", "frachtwagen_e1"]:
+			ids.append(v["id"])
+			for key in v:
+				if String(key).contains("tempo") or String(key).contains("speed") or String(key).contains("promille"):
+					tempo.append("%s.%s" % [v["id"], key])
+	pruef(ids.size() == 2 and tempo.is_empty(), "FZ-01 Datensätze %s ohne Tempofeld (Treffer %s)" % [str(ids), str(tempo)])
+	var ps = _neu(s)
+	ps.lizenz_kaufen(FARM)
+	var r: Dictionary = ps.linie_anlegen(FARM, MUEHLE)
+	var f: Dictionary = ps.fahrzeug(int(r.get("vid", -1)))
+	var cap: int = ps.sim.v_cargo_cap[ps.sim.slot_of(int(r.get("vid", -1)))] if r.get("ok", false) else -1
+	var e0: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total
+	_bis(ps, 600)
+	var fix_p: int = ps.konto.expenses_total - ps.kauf_total - ps.fahrkosten_total - e0
+	pruef(r.get("ok", false) and f["def_id"] == "fuhrwerk_e1" and r["preis_cent"] == 30000 and cap == 10 and fix_p == 6000,
+		"FZ-01 Fuhrwerk-Linie: %s, Kauf %d ¢, Kapazität %d E, Fix %d ¢ in Periode 1 (Soll 6000)" % [f.get("def_id", "?"), int(r.get("preis_cent", -1)), cap, fix_p])
+	var fw: Dictionary = ps.linie_anlegen(FARM, MUEHLE, "fuhrwerk", "frachtwagen_e1")
+	pruef(not fw["ok"] and fw["fehler"] == "noch_nicht_verfuegbar", "FZ-01 Frachtwagen vor 1830 nicht kaufbar (%s)" % fw.get("fehler", "ok"))

@@ -339,7 +339,9 @@ func linie(kat: String, name: String, von: int, nach: int, src_k: int, dst_k: in
 		fehler.append("%s: keine Verbindung %d → %d" % [name, von, nach])
 		return {}
 	var prof = profil(kat)
-	var lkw: Dictionary = vdef if not vdef.is_empty() else _lkw()
+	var lkw: Dictionary = vdef if not vdef.is_empty() else self.vdef(def_fuer(kat))   # FZ-01: Kosten je Kategorie
+	if lkw.is_empty():
+		lkw = _lkw()
 	var vid := fahrzeuge.size() + 1
 	var cap := int(lkw.get("kapazitaet_einheiten", 10))
 	var var_cent := int(lkw.get("variabel_cent_pro_feld", 0))
@@ -556,8 +558,14 @@ func vdef(def_id: String) -> Dictionary:
 	return _vdefs.get(def_id, {})
 
 
-## Standard-Datensatz je Kategorie (FZ-01 setzt fuhrwerk_e1; bis dahin der Slice-Lkw).
+## FZ-01: Standard-Datensatz je Kategorie = erster kaufbarer Datensatz mit "kategorie" == kat (vehicles.json,
+## fuhrwerk → fuhrwerk_e1). Fehlt einer (Postkutsche: nicht kaufbar, W21), gilt der Slice-Lkw (Fahrkosten der Kulisse).
+const DEF_JE_KAT := {"fuhrwerk": "fuhrwerk_e1"}
+
 func def_fuer(kat: String) -> String:
+	var id: String = DEF_JE_KAT.get(kat, "")
+	if id != "" and not vdef(id).is_empty():
+		return id
 	if eco != null:
 		return String(eco.slice.get("fahrzeug_ref", {}).get("lkw_id", "lkw_e1"))
 	return "lkw_e1"
@@ -580,6 +588,8 @@ func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_i
 	var d := vdef(def_id)
 	if d.is_empty():
 		return _nein("unbekanntes_fahrzeug")
+	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d["verfuegbar_ab_jahr"])})
 	var a: Dictionary = stationen[von_name]
 	var b: Dictionary = stationen[nach_name]
 	if sim.graph.find_path(int(a["knoten"]), int(b["knoten"])).is_empty():

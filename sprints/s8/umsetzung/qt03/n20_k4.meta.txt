@@ -1,0 +1,4 @@
+Godot 4.7.2-stable (official), Szene proto, tempo_k 4, jahr_ticks 1800, startkapital_dollar_override 0, minuten 45, takt 300, saett_pm 1000
+n 20, seed0 1, Strategien ["naiv", "normal", "plan"]
+PARAM {"naiv_bau_max":4,"naiv_fehl_pct":50,"naiv_fz_max":14,"naiv_rest_max":8,"naiv_vergessen_pct":50,"normal_extra_pct":50,"normal_reserve":150000,"normal_tilge":150000,"plan_farm2":1,"plan_farm2_min":20,"plan_fk_min":14,"plan_jitter":2,"plan_lindenfurt_min":10,"plan_reserve":150000}
+Firmenkauf-Schnittstelle: API fehlt (kein economy.buy_site in diesem Stand): Plan-Bot überspringt Firmenkauf und Ausbau, fk_versuche zählt nur

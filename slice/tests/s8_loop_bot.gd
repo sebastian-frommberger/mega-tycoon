@@ -60,6 +60,7 @@ var PARAM := {
 	"plan_mehl_stadt2": 25,         # Mehlmenge E/min Mühle -> Stadt nach Ausbau (vorher 10)
 	"normal_fk_min": 28,            # normal kauft die Mühle spät (ab Minute N + Reaktion 0..3), 0 = nie
 	"naiv_fk_pct": 0,               # naiv: Anteil Läufe, die die Mühle kaufen (ab Minute 10, ohne Reserve), Setzung 0 = "ohne"
+	"plan_ersetzen": 1,             # OE-02 (Tobias): 1 = Frachtwagen-Ersatz ab 1830 wie bisher, 0 = nie (Zuordnungslauf)
 }
 
 # ------------------------------------------------------------------ Aufruf-Parameter
@@ -933,7 +934,7 @@ func _takt_plan(t: int) -> void:
 		if lic_haben.has(FARM2):
 			_sorge(FARM2, MUEHLE, _bedarf(FARM2, MUEHLE, 20.0), res, kredit_ok)
 	# Folgemodell: ab Freischaltung Frachtwagen die ältesten Fuhrwerke (Alter >= 8 Jahre, Formel FZ-03: +40 % Unterhalt) ersetzen
-	if _frachtwagen_frei():
+	if _frachtwagen_frei() and int(PARAM["plan_ersetzen"]) == 1:
 		_ersetzen(res, kredit_ok)
 	# Tilgen sobald Überschuss (F2 verlangt Kredit = 0)
 	if ps.credit.loan_cent > 0:

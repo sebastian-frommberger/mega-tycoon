@@ -80,20 +80,24 @@
     },
     {
       "id": "f2", "name_text": "Gewinn tragfaehig",
-      "messgroesse": { "feld": "Netto je Periode = alle Einnahmen - alle Ausgaben inkl. Zins (design.md 1.1); Kredit = credit-Saldo", "bedingung": "Netto >= Schwelle in 5 Perioden am Stueck UND Kredit == 0", "schwelle": 60000, "einheit": "Cent je Periode (= 600 $/min)" },
+      "messgroesse": { "feld": "Netto je Periode = alle Einnahmen - alle Ausgaben inkl. Zins (design.md 1.1); Kredit = credit-Saldo", "bedingung": "Netto >= Schwelle in 5 Perioden am Stueck UND Kredit == 0", "schwelle": 62000, "einheit": "Cent je Periode (= 620 $/min)" },
       "schwelle_status": {
-        "art": "platzhalter",
-        "wert_text": "600 $/min, Startwert [R] bei k = 6 aus design.md 1.1",
-        "ablauf_text": "Gate C (Ende Tag 12, ergebnis.md 6); Ersatz durch OE-04 an Tag 11",
-        "regel_text": "X = P50(Plan-Bot, Minute 30) x 0,8, gerundet (W9). Ohne Bot-Wert kein Haken an F2.",
-        "messdatum": null, "n": null, "tempo_k": null, "strategie": "plan"
+        "art": "gemessen",
+        "wert_text": "620 $/min = 0,8 x P50(Plan-Bot, Netto operativ, 5-Perioden-Mittel bis Minute 30), auf 10 $ gerundet: Set k4c 772 $/min -> 618, Set k8d 774 $/min -> 619 (W9). Ersetzt den Platzhalter 600 $/min.",
+        "ablauf_text": "Neu messen, sobald k entschieden ist (D2) oder sich ein Set-Wert aendert; spaetestens S9-Refinement",
+        "regel_text": "X = P50(Plan-Bot, Minute 30) x 0,8, gerundet (W9).",
+        "messdatum": "2026-11-05", "n": 100, "tempo_k": [4, 8], "kalibrier_set": ["k4c", "k8d"], "strategie": "plan",
+        "quelle_text": "sprints/s8/umsetzung/OE-02.md; Laeufe oe02/n100_k4c_plan.csv und n100_k8d_plan.csv (s8_loop_bot --oe_set, a = 1000, ohne Bot-Emulation von a)",
+        "gilt_nicht_fuer_text": "k = 1 ohne Set (Slice-Fahrzeuge): dort waere X = 0,8 x 1.107 = 886 $/min (QT-03b n100_k1_plan). k = 20: kein tragfaehiges Set."
       },
       "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
       "soll_minute_plan_bot": [20, 30], "soll_quelle_text": "W2: Plan-Bot erreicht F2 bei Minute 25 +- 5",
       "fahrplan_minute_r": [30, 40],
       "skillpunkte": 1, "skillpunkt_quelle": "Etappenziel (D-S)",
-      "marke": "[R] Schwelle (Platzhalter), Feld fehlt teilweise",
+      "marke": "[M] Schwelle (Bot n = 100, Plan-Bot hat hoechstens 81 Verlaeufe), Feld fehlt teilweise",
       "offen": [
+        "OE-04 (Tobias, 05.11.): Mit der heutigen Bedingung 'Netto >= X in 5 Perioden am Stueck' erreicht der Plan-Bot F2 nur in 9/100 (k4c) bzw. 5/100 (k8d) Laeufen, weil das Netto je Periode stark schwankt (Lieferungen buendeln sich). X ist aber aus dem 5-Perioden-MITTEL abgeleitet. Vorschlag: Bedingung = gleitendes 5-Perioden-Mittel >= X und Kredit 0 in allen 5 Perioden. Damit (gemessen): k4c 100/100, P50 Minute 13 (zu frueh gegen W2 25 +- 5); k8d 100/100, P50 Minute 28 (im Band). Entscheidung Lena/Jonas; UI (ui_welt_ziele.gd) und Bot pruefen heute je Periode.",
+        "OE-04: 'Alle Ausgaben' gemessen in der operativen Variante (ohne Investitionen), wie Bot-Spalte f2_op. Investitionen im Fenster wuerden F2 bei jedem Kauf zuruecksetzen; Vorschlag: operativ.",
         "Ablaufdatum: Auftrag nennt 'Gate C (Tag 8)'; laut ergebnis.md 6 ist Tag 8 Gate B, Gate C ist Ende Tag 12. Hier steht ergebnis.md. Jonas klaert.",
         "Widerspruch Minute: W2 fordert F2 bei Minute 25 +- 5, der Fahrplan design.md 1.3 sieht F2 erst bei Minute 30-40 'in Reichweite'.",
         "Zirkularitaet: OE-02 bisektiert a auf 'F2 bei Minute 25 +- 5' mit dem Platzhalter X; OE-04 setzt danach X aus demselben Bot neu. Danach muss die F2-Minute erneut geprueft werden (Reihenfolge OE-02 -> OE-04 -> Nachlauf).",

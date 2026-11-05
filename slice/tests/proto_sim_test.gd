@@ -191,6 +191,7 @@ func _at02(s: Node) -> void:
 	_at02_paritaet(s)
 	_at02_kalender(s)
 	_fz02(s)
+	_at03(s)
 
 
 ## Kredit wie d07 --only=kredit (gespiegelt: B0, B1, B2, B6, B7 verkürzt, B8, B13).
@@ -374,3 +375,34 @@ func _fz02(s: Node) -> void:
 		meld.append(p2.freischaltungen.size())
 	pruef(pr[0] == pr[1] and meld[0] != meld[1],
 		"FZ-02 Wirtschaft unabhängig vom Kalender: 20000 Ticks, Prüfsumme/Kasse/Lieferungen 1800 %s = 7200 %s; Freischaltungen %s (Kalender wirkt nur dort)" % [str(pr[0]), str(pr[1]), str(meld)])
+
+
+## AT-03: generische Site-Registrierung aus proto_orte.json.
+func _at03(s: Node) -> void:
+	var ps = _neu(s)
+	var n := {"getreidefarm": 0, "muehle": 0, "stadt": 0}
+	for nm in ps.stationen:
+		var st: Dictionary = ps.stationen[nm]
+		if int(st["site"]) < 0:
+			continue
+		if st["id"] in ["getreidefarm", "muehle"]:
+			n[st["id"]] += 1
+		else:
+			n["stadt"] += 1
+	pruef(n["getreidefarm"] == 2 and n["muehle"] == 1 and n["stadt"] == 2,
+		"AT-03 Sites aus proto_orte.json: %d Farmen, %d Mühle, %d Orte (übersprungen %s)" % [n["getreidefarm"], n["muehle"], n["stadt"], str(ps.uebersprungen)])
+	var d_e: int = ps.eco.city_demand(int(ps.stationen.get("Erlenbach", {"site": -1})["site"]))
+	var d_l: int = ps.eco.city_demand(int(ps.stationen.get("Lindenfurt", {"site": -1})["site"]))
+	pruef(absi(d_e - 10) <= 2 and absi(d_l - 24) <= 3, "AT-03 Nachfrage aus sim_ew: Erlenbach %d E/min (10 ± 2), Lindenfurt %d E/min (24 ± 3)" % [d_e, d_l])
+	var lz: Dictionary = ps.lizenz_kaufen("Hof Hasenwinkel")
+	ps.lizenz_kaufen(MUEHLE)
+	var r: Dictionary = ps.linie_anlegen("Hof Hasenwinkel", MUEHLE)
+	_bis(ps, 3000)
+	var menge := 0
+	for l in ps.lieferungen:
+		if l["vid"] == int(r.get("vid", -1)) and l["gut"] == "getreide":
+			menge += int(l["menge"])
+	var st2: Dictionary = ps.stationen.get("Hof Hasenwinkel", {})
+	pruef(lz.get("ok", false) and r.get("ok", false) and menge > 0,
+		"AT-03 2. Farm liefert: Hof Hasenwinkel → Erlenmühle %d Getreide in 3000 Ticks (Knoten %d, %.1f m vom Ladeplatz, Lizenz %s, Linie %s)" % [
+		menge, int(st2.get("knoten", -1)), float(st2.get("abstand_m", -1.0)), str(lz.get("fehler", "ok")), str(r.get("fehler", "ok"))])

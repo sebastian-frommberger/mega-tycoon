@@ -456,54 +456,69 @@ func oeko_laden() -> bool:
 	return true
 
 
-## AT-02: Farm, Mühle, Dorf, Kleinstadt als Sites registrieren (Stationen, keine Lizenz, keine Fahrzeuge).
+## AT-03: alle Industrien und Sim-Orte aus proto_orte.json als Sites registrieren (Stationen, keine Lizenz, keine
+## Fahrzeuge). Industrie-Typ → economy-Industrie über IND_TYP; Ladeplatz (falls in den Daten) vor Hofmitte.
+## Orte mit sim_knoten: Stadt-Eintrag je Ort aus sim_stufe + sim_ew (Overlay in eco.c_index, id "proto_<ort>"),
+## economy_slice.json bleibt unberührt. Fehlt sim_ew, gilt der Slice-Typ (dorf_agrar / kleinstadt_a) wie bis S8.
+## _reg merkt den ersten Ort je Rolle (Farm, Mühle, Dorf, Kleinstadt) für die feste Kette.
+const IND_TYP := {"getreidefarm": "getreidefarm", "wassermuehle": "muehle", "muehle": "muehle"}
+const ORT_FALLBACK := {"dorf": "dorf_agrar", "kleinstadt": "kleinstadt_a", "marktflecken": "kleinstadt_a", "markt": "kleinstadt_a"}
+var uebersprungen: Array = []        # AT-03: [Name, Grund] nicht registrierter Einträge
+
 func orte_registrieren(orte: Dictionary) -> bool:
-	var farm: Dictionary = {}
-	var muehle: Dictionary = {}
+	_reg = {"n_farm": -1, "n_muehle": -1, "n_dorf": -1, "n_stadt": -1, "s_farm": -1, "s_muehle": -1, "s_dorf": -1, "s_stadt": -1}
 	for ind in orte.get("industrie", []):
-		var t := String(ind.get("typ", ""))
-		if t == "getreidefarm" and farm.is_empty():
-			farm = ind
-		elif t in ["wassermuehle", "muehle"] and muehle.is_empty():
-			muehle = ind
-	var dorf: Dictionary = {}
-	var stadt: Dictionary = {}
+		var nm := String(ind.get("name", ind.get("id", "?")))
+		var def: String = IND_TYP.get(String(ind.get("typ", "")), "")
+		if def == "":
+			uebersprungen.append([nm, "Typ %s ohne Industrie" % ind.get("typ", "")])
+			continue
+		var p := Vector2(float(ind["x"]), float(ind["z"]))
+		var lp = ind.get("ladeplatz", null)
+		if lp is Dictionary and lp.has("x"):
+			p = Vector2(float(lp["x"]), float(lp["z"]))
+		var n := knoten_halt(p)
+		if n < 0 or eco.site_of_node(n) >= 0:
+			uebersprungen.append([nm, "kein freier Knoten"])
+			continue
+		var site: int = eco.add_industry_site(n, def)
+		stationen[nm] = {"knoten": n, "site": site, "k": eco.s_station[site], "id": def, "ort_id": String(ind.get("id", "")),
+			"abstand_m": p.distance_to(Vector2(knoten_pos[n].x, knoten_pos[n].z))}
+		var rolle := "farm" if def == "getreidefarm" else "muehle"
+		if int(_reg["s_" + rolle]) < 0:
+			_reg["n_" + rolle] = n
+			_reg["s_" + rolle] = site
 	for o in orte.get("orte", []):
-		var k := String(o.get("klasse", ""))
-		if k == "dorf" and dorf.is_empty():
-			dorf = o
-		elif k in ["kleinstadt", "marktflecken", "markt"] and stadt.is_empty():
-			stadt = o
-	if farm.is_empty() or muehle.is_empty() or dorf.is_empty():
+		var nm := String(o.get("name", o.get("id", "?")))
+		var klasse := String(o.get("klasse", ""))
+		if not bool(o.get("sim_knoten", ORT_FALLBACK.has(klasse))):
+			uebersprungen.append([nm, "kein Sim-Knoten"])
+			continue
+		var stufe := String(o.get("sim_stufe", "dorf" if klasse == "dorf" else "kleinstadt"))
+		var city_id: String = ORT_FALLBACK.get(klasse, "")
+		if o.has("sim_ew"):
+			city_id = "proto_" + String(o.get("id", nm))
+			eco.c_index[city_id] = {"id": city_id, "stage_id": stufe, "einwohner_anzahl": int(o["sim_ew"])}
+		if city_id == "":
+			uebersprungen.append([nm, "Klasse %s ohne Stadt-Typ" % klasse])
+			continue
+		var c := Vector2(float(o["x"]), float(o["z"]))
+		var n := knoten_naechst(c, true, float(o.get("r_m", 200.0)))
+		if n < 0:
+			n = knoten_naechst(c)
+		if n < 0 or eco.site_of_node(n) >= 0:
+			uebersprungen.append([nm, "kein freier Knoten"])
+			continue
+		var site: int = eco.add_city_site(n, city_id)
+		stationen[nm] = {"knoten": n, "site": site, "k": eco.s_station[site], "id": city_id, "ort_id": String(o.get("id", "")),
+			"abstand_m": c.distance_to(Vector2(knoten_pos[n].x, knoten_pos[n].z))}
+		var rolle := "dorf" if stufe == "dorf" else "stadt"
+		if int(_reg["s_" + rolle]) < 0:
+			_reg["n_" + rolle] = n
+			_reg["s_" + rolle] = site
+	if int(_reg["s_farm"]) < 0 or int(_reg["s_muehle"]) < 0 or int(_reg["s_dorf"]) < 0:
 		fehler.append("Kette: Farm/Mühle/Dorf fehlt in proto_orte.json")
 		return false
-	var n_farm := knoten_halt(Vector2(farm["x"], farm["z"]))
-	var n_muehle := knoten_halt(Vector2(muehle["x"], muehle["z"]))
-	var n_dorf := knoten_naechst(Vector2(dorf["x"], dorf["z"]), true, float(dorf.get("r_m", 200.0)))
-	if n_dorf < 0:
-		n_dorf = knoten_naechst(Vector2(dorf["x"], dorf["z"]))
-	var n_stadt := -1
-	if not stadt.is_empty():
-		n_stadt = knoten_naechst(Vector2(stadt["x"], stadt["z"]), true, float(stadt.get("r_m", 200.0)))
-		if n_stadt < 0:
-			n_stadt = knoten_naechst(Vector2(stadt["x"], stadt["z"]))
-	var s_farm: int = eco.add_industry_site(n_farm, "getreidefarm")
-	var s_muehle: int = eco.add_industry_site(n_muehle, "muehle")
-	var s_dorf: int = eco.add_city_site(n_dorf, "dorf_agrar")
-	var s_stadt := -1
-	if n_stadt > 0 and n_stadt != n_dorf:
-		s_stadt = eco.add_city_site(n_stadt, "kleinstadt_a")
-	stationen[String(farm.get("name", "Farm"))] = {"knoten": n_farm, "site": s_farm, "k": eco.s_station[s_farm], "id": "getreidefarm",
-		"abstand_m": Vector2(farm["x"], farm["z"]).distance_to(Vector2(knoten_pos[n_farm].x, knoten_pos[n_farm].z))}
-	stationen[String(muehle.get("name", "Mühle"))] = {"knoten": n_muehle, "site": s_muehle, "k": eco.s_station[s_muehle], "id": "muehle",
-		"abstand_m": Vector2(muehle["x"], muehle["z"]).distance_to(Vector2(knoten_pos[n_muehle].x, knoten_pos[n_muehle].z))}
-	stationen[String(dorf.get("name", "Dorf"))] = {"knoten": n_dorf, "site": s_dorf, "k": eco.s_station[s_dorf], "id": "dorf_agrar",
-		"abstand_m": Vector2(dorf["x"], dorf["z"]).distance_to(Vector2(knoten_pos[n_dorf].x, knoten_pos[n_dorf].z))}
-	if s_stadt >= 0:
-		stationen[String(stadt.get("name", "Stadt"))] = {"knoten": n_stadt, "site": s_stadt, "k": eco.s_station[s_stadt], "id": "kleinstadt_a",
-			"abstand_m": Vector2(stadt["x"], stadt["z"]).distance_to(Vector2(knoten_pos[n_stadt].x, knoten_pos[n_stadt].z))}
-	_reg = {"n_farm": n_farm, "n_muehle": n_muehle, "n_dorf": n_dorf, "n_stadt": n_stadt,
-		"s_farm": s_farm, "s_muehle": s_muehle, "s_dorf": s_dorf, "s_stadt": s_stadt}
 	return true
 
 

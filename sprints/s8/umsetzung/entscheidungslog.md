@@ -17,3 +17,5 @@
 | 05.11. | WA-02-Messskript blendet CanvasLayer aus (Kopfleiste verfaelschte Treppe 26,1 % statt 17,5 %); Messlaeufe nach AT-09 ohne Fix ungueltig. Nach jedem Neu-Bake der Welt `ta_ufer_sdf.py` neu laufen lassen | WA-04.md | TA |
 | 05.11. | **Ladeplatz-Halt Option (b)**: Fuhrwerke halten am Ladeplatz, Postkutsche (Kulisse, nicht kaufbar) behaelt den alten Halt; Ursache E4-Rot ist die Postkutsche auf dem Rueckweg (Kurve 51 m, 1,13x). Ladeplatz-Halt noch nicht verdrahtet (FX3.md) | Messung Felix: E4 B 1,01x / 18 Verstoesse mit Ladeplatz fuer alle | Felix, TA |
 | 05.11. | Ertragsausgleich a: Haken in economy.gd (6 Zeilen, `ertrag_a_promille`) -> Bot darf a nicht mehr selbst emulieren, `--a=` uebergeben | FX3.md | Tobias/Daniel |
+
+- FX4 gemergt: Fuhrwerke und HQ halten am Ladeplatz, Postkutsche behaelt eigene Halte ohne Oekonomie (Option b). E4 gruen bei k=1/4/8/20; E6 bei k=1 jetzt gruen, bei k>=4 weiter bewusste Abweichung (TA, FZ-09). FEST_PRUEFSUMME neu 1078369192135197259 (Dorf-Station am Ladeplatz). regress_fast gruen, 157 s.

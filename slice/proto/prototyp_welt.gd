@@ -21,14 +21,18 @@ extends Node3D
 ##
 ## Welle 2: Sim-Kette Farm → Mühle → Dorf (proto_sim.gd, echter SimWorld + Economy, Tick 10 Hz unabhängig von der
 ## Framerate) und Easing-Probe (proto_easing.gd, proto_fahrzeuge.gd): G schaltet Easing an/aus (Prüfsumme bleibt),
-## F Kamera folgt einem Fahrzeug (Fuhrwerk 1 → Fuhrwerk 2 → Postkutsche → aus), T Bildtempo 1× / ¼× (nur Ansicht:
+## F Kamera folgt einem Fahrzeug (Fuhrwerk 1 → Fuhrwerk 2 → Postkutsche → aus), T Zeitlupe ¼× (nur Ansicht:
 ## weniger Ticks je Sekunde, die Sim bleibt dieselbe), N Schilder an/aus (kein Modal).
+##
+## AT-05 (Block A): Leertaste = Pause, Knöpfe im Welt-HUD Pause/1×/2×/4× (sim_tempo ∈ {0,1,2,4}, Ticks/s = 10 × Tempo; die Tasten 1–5
+## bleiben Kamera-Presets). Datum im HUD: Platzhalter, 1 Monat = 600 Ticks ab Startjahr (bis FZ-02 Zwei-Uhren).
 
 signal fertig
 signal wasser_modus_geaendert(modus: String)
 signal easing_geaendert(an: bool)
 signal modelle_geaendert(an: bool)
 signal schilder_geaendert(an: bool)
+signal tempo_geaendert(tempo: int)
 
 const Strassenband := preload("res://proto/proto_strassenband.gd")
 const Platzhalter := preload("res://proto/proto_platzhalter.gd")
@@ -75,8 +79,16 @@ var proto_sim = null                 # proto_sim.gd (Welle 2)
 var fahrzeuge = null                 # proto_fahrzeuge.gd
 var orte_json: Dictionary = {}
 var sim_aus := false                 # Tests: vor add_child setzen, dann keine Sim/Fahrzeuge
-var sim_tempo := 1.0
+var sim_tempo := 1                   # AT-05: Sim-Tempo 0 (Pause) | 1 | 2 | 4; Ticks je Sekunde = 10 × sim_tempo
+var tempo_vor_pause := 1             # Leertaste setzt dieses Tempo wieder ein
+var zeitlupe := 1.0                  # T: nur Ansicht, 1.0 oder 0.25 (multipliziert sim_tempo, nie schneller)
 var sim_acc := 0.0
+var tempo_knoepfe := {}              # Tempo -> Button im Welt-HUD
+var datum_label: Label
+const TEMPI := [0, 1, 2, 4]
+## Kalender-Platzhalter bis FZ-02 (Zwei-Uhren): 1 Monat = 600 Ticks ab Startjahr (Januar), nur Anzeige.
+const TICKS_JE_MONAT := 600
+const MONATE := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 var folgen := -1
 const TICKS_JE_S := 10.0
 const MAX_TICKS_JE_FRAME := 8
@@ -243,7 +255,9 @@ func _baue_fahrzeuge() -> void:
 func sim_schritt(delta: float) -> void:
 	if proto_sim == null:
 		return
-	var dt := delta * TICKS_JE_S * sim_tempo
+	if sim_tempo == 0:                   # Pause: kein Tick, keine Fahrzeugbewegung, Easing-Zustand eingefroren
+		return
+	var dt := delta * TICKS_JE_S * sim_tempo * zeitlupe
 	sim_acc += dt
 	var n := 0
 	while sim_acc >= 1.0 and n < MAX_TICKS_JE_FRAME:
@@ -253,6 +267,28 @@ func sim_schritt(delta: float) -> void:
 	if sim_acc >= 1.0:
 		sim_acc = fmod(sim_acc, 1.0)
 	fahrzeuge.frame(sim_acc, dt)
+
+
+## AT-05: Sim-Tempo setzen (0 Pause, 1, 2, 4). Unbekannte Werte werden ignoriert.
+func setze_tempo(t: int) -> void:
+	if not (t in TEMPI):
+		return
+	if t == 0 and sim_tempo != 0:
+		tempo_vor_pause = sim_tempo
+	sim_tempo = t
+	tempo_geaendert.emit(t)
+	_hud_text()
+
+
+## Leertaste: Pause an/aus (zurück auf das Tempo vor der Pause).
+func pause_umschalten() -> void:
+	setze_tempo(tempo_vor_pause if sim_tempo == 0 else 0)
+
+
+## Datum aus Ticks (Platzhalter bis FZ-02): "Mär 1821".
+static func datum_text(ticks: int, jahr0: int) -> String:
+	var m: int = maxi(0, ticks) / TICKS_JE_MONAT
+	return "%s %d" % [MONATE[m % 12], jahr0 + m / 12]
 
 
 func _baue_modelle() -> void:
@@ -425,8 +461,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 		elif k == KEY_F:
 			folge_naechstem()
 		elif k == KEY_T:
-			sim_tempo = 0.25 if sim_tempo == 1.0 else 1.0
+			zeitlupe = 0.25 if zeitlupe == 1.0 else 1.0
 			_hud_text()
+		elif k == KEY_SPACE:
+			pause_umschalten()
 		elif k == KEY_H:
 			hud_an = not hud_an
 			hud.visible = hud_an
@@ -502,15 +540,43 @@ func _baue_hud() -> void:
 	sb.set_content_margin_all(10)
 	pc.add_theme_stylebox_override("panel", sb)
 	cl.add_child(pc)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 6)
+	pc.add_child(vb)
+	# AT-05: Datum + Tempo-Knöpfe (Pause, 1×, 2×, 4×). Fokus aus, damit die Leertaste nie einen Knopf auslöst.
+	var kopf := HBoxContainer.new()
+	kopf.add_theme_constant_override("separation", 8)
+	vb.add_child(kopf)
+	datum_label = Label.new()
+	datum_label.name = "Datum"
+	datum_label.add_theme_font_size_override("font_size", 18)
+	datum_label.add_theme_color_override("font_color", Color(0.96, 0.92, 0.84))
+	datum_label.custom_minimum_size = Vector2(110, 0)
+	kopf.add_child(datum_label)
+	for t in TEMPI:
+		var b := Button.new()
+		b.name = "Tempo_%d" % t
+		b.text = "Pause" if t == 0 else "%d×" % t
+		b.toggle_mode = true
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(54, 28)
+		b.tooltip_text = "Pause (Leertaste)" if t == 0 else "Sim-Tempo %d× (10 Ticks/s × %d)" % [t, t]
+		b.pressed.connect(setze_tempo.bind(t))
+		kopf.add_child(b)
+		tempo_knoepfe[t] = b
 	hud = Label.new()
 	hud.add_theme_font_size_override("font_size", 15)
 	hud.add_theme_color_override("font_color", Color(0.96, 0.92, 0.84))
-	pc.add_child(hud)
+	vb.add_child(hud)
 
 
 func _hud_text() -> void:
 	if hud == null:
 		return
+	for t in tempo_knoepfe:
+		(tempo_knoepfe[t] as Button).set_pressed_no_signal(t == sim_tempo)
+	if datum_label != null:
+		datum_label.text = datum_text(proto_sim.ticks if proto_sim != null else 0, startjahr)
 	var z := zaehlung()
 	var live := ""
 	if z["live_dreiecke"] > 0:
@@ -523,11 +589,11 @@ func _hud_text() -> void:
 		var kasse: int = proto_sim.eco.cash_cent if proto_sim.eco != null else 0
 		fz = "Sim-Kette %s · Tick %d · Lieferungen %d · Kasse %d €\n%s\n" % ["Farm → Mühle → Dorf" if proto_sim.kette_ok else "UNVOLLSTÄNDIG",
 			proto_sim.ticks, proto_sim.lieferungen.size(), kasse / 100, "  ·  ".join(PackedStringArray(zeilen))]
-	hud.text = "Prototyp Welt · Welle 2 (schlank) · Startjahr %d (%s)\n" % [startjahr, welt_epoche.get("epoche_id", "?")] \
+	hud.text = "Prototyp Welt · Welle 2 (schlank) · Startjahr %d (%s) · Tempo %s\n" % [startjahr, welt_epoche.get("epoche_id", "?"), "Pause" if sim_tempo == 0 else "%d×" % sim_tempo] \
 		+ "Ansicht %d %s · Abstand %d m%s\n" % [preset_aktiv, PRESET_NAMEN[preset_aktiv], int(abstand),
 			(" · folgt %s" % proto_sim.fahrzeuge[folgen]["name"]) if folgen >= 0 and proto_sim != null else ""] \
-		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s   [F] Folgen   [T] Tempo %s   [M] Modelle %s   [N] Schilder %s   [H] Hilfe   [F11] Vollbild   [Esc] Menü\n" % [
-			wasser_modus, "an" if easing_an else "aus", "1×" if sim_tempo == 1.0 else "¼×", "an" if modelle_an else "aus",
+		+ "[1–5] Presets   [V] Wasser %s   [G] Easing %s   [F] Folgen   [Leertaste] Pause   [T] Zeitlupe %s   [M] Modelle %s   [N] Schilder %s   [H] Hilfe   [F11] Vollbild   [Esc] Menü\n" % [
+			wasser_modus, "an" if easing_an else "aus", "aus" if zeitlupe == 1.0 else "¼×", "an" if modelle_an else "aus",
 			"an" if schilder_an else "aus"] \
 		+ fz \
 		+ "Gelände: %s · Daten: %s · Laden %.0f ms\n" % [terrain_quelle, "Vertrag" if quellen.get("proto_wege.json", "").begins_with(DATEN) else "Testdaten", lade_ms] \

@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "zweck_text": "S8 OE-01 (Design Z1a): Loop-Ziele E-1 bis E-6, F1, F2, Ereigniskatalog 1-8 mit Ausloeserformel und Entscheidungsfahrplan fuer die Welt (ProtoSim). Grundlage fuer AT-13 (Anzeige) und QT-03 (Loop-Bot). Der Slice liest diese Datei nicht.",
+    "quellen_text": "sprints/s8/refinement/ergebnis.md (Sprintziel, D-S, W2, W9, W19, OE-01, OE-04, OE-06, FK-02, FZ-05, SK-03), sprints/s8/refinement/design.md 1.1-1.3, 2.3, 3.2, sprints/s8/umsetzung/AT-04.md; Feldnamen in slice/economy.gd, slice/proto/proto_sim.gd, slice/core/sim_world.gd nachgesehen (Stand s8 2aa3e00).",
+    "marken_text": "[M] im Code/Repo nachgesehen, [R] aus Repo-Zahlen gerechnet oder aus design.md uebernommen, [E] Einzelschaetzung. Kein Godot-Lauf. Alle Minuten sind [R] und werden vom Bot ersetzt.",
+    "zeit_text": "Minute = floor(tick / 600); Periode = 600 Ticks = 60 s (economy_constants zeit) [M]. Kalender 3 min/Jahr (D5, Annahme).",
+    "stand_text": "05.11.2026 Lena/Tobias, Entwurf OE-01. Felder mit 'offen' sind Luecken, keine Festlegung.",
+    "orte_text": "Site-IDs aus world/data/proto/proto_orte.json [M]: gut_kuppenhof (getreidefarm), hof_hasenwinkel (getreidefarm, Farm 2, 41 Felder zur Muehle), erlenmuehle (wassermuehle -> muehle), erlenbach (dorf, sim_ew 500), lindenfurt (kleinstadt, sim_ew 2400)."
+  },
+
+  "ziele": [
+    {
+      "id": "e1", "name_text": "Erste Lizenz: Gut Kuppenhof",
+      "messgroesse": { "feld": "economy.s_lic_until[site] > tick (economy.gd Z. 113, licence_valid Z. 509)", "bedingung": "mindestens eine Site mit typ getreidefarm hat eine gueltige Lizenz", "schwelle": 1, "einheit": "Lizenzen" },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "fahrplan_minute_r": [0, 3],
+      "skillpunkte": 1, "skillpunkt_quelle": "Meilenstein (D-S); entspricht ms_1b erste_lizenz_im_einfluss im Slice",
+      "marke": "[M] Feld, [R] Minute",
+      "offen": ["Name nennt Gut Kuppenhof, der Fahrplan Minute 0-3 bietet aber Farm 2 als Alternative an. Vorschlag: hakt bei der ersten Farmlizenz im Einflussradius (beide Farmen liegen darin: 28 bzw. 39 Felder zum HQ [R]). Entscheidung Lena/Aylin in AT-13."]
+    },
+    {
+      "id": "e2", "name_text": "Linie Farm -> Muehle mit Fuhrwerk",
+      "messgroesse": { "feld": "proto_sim.fahrzeuge[] mit kat == fuhrwerk, von == Knoten einer Farm, nach == Knoten erlenmuehle (proto_sim.gd Z. 44, 337)", "bedingung": "existiert", "schwelle": 1, "einheit": "Fahrzeuge" },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "fahrplan_minute_r": [0, 3],
+      "skillpunkte": 0,
+      "marke": "[M] Feld, [R] Minute",
+      "offen": ["Heute legt nur kette_aufbauen() Linien an; die Spieler-API linie_anlegen kommt mit AT-02. Feld von/nach bleibt gleich."]
+    },
+    {
+      "id": "e3", "name_text": "Erste Getreidelieferung an die Muehle",
+      "messgroesse": { "feld": "proto_sim.lieferungen[] {tick, vid, menge, cent, gut} (proto_sim.gd Z. 46, 463); Ziel-Site ueber vid -> fahrzeuge[].nach", "bedingung": "Summe menge mit gut == getreide und nach == erlenmuehle", "schwelle": 1, "einheit": "E" },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "fahrplan_minute_r": [3, 6],
+      "skillpunkte": 0,
+      "marke": "[M] Feld, [R] Minute",
+      "offen": ["lieferungen.gut ist nur gefuellt, wenn economy.ledger_enabled (sim_world.gd Z. 412-415) [M]; sonst Leerstring. Der Bot muss ledger_enabled setzen oder die Ziel-Site statt des Guts pruefen. Ein Feld 'site' in lieferungen fehlt."]
+    },
+    {
+      "id": "e4", "name_text": "Mehl nach Erlenbach",
+      "messgroesse": { "feld": "proto_sim.lieferungen[] wie e3", "bedingung": "Summe menge mit gut == mehl und nach == erlenbach", "schwelle": 10, "einheit": "E" },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "fahrplan_minute_r": [3, 6],
+      "skillpunkte": 0,
+      "marke": "[M] Feld, [R] Minute",
+      "offen": ["Fahrplan Minute 3-6 nennt Lindenfurt als gleichwertige Alternative. Faehrt der Spieler zuerst nach Lindenfurt, hakt e4 nicht. Vorschlag: 'Mehl an einen Ort', Entscheidung Lena in AT-13."]
+    },
+    {
+      "id": "e5", "name_text": "Zweites Fuhrwerk auf einer Linie",
+      "messgroesse": { "feld": "proto_sim.fahrzeuge[] gruppiert nach (von, nach)", "bedingung": "max. Gruppengroesse", "schwelle": 2, "einheit": "Fahrzeuge" },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "fahrplan_minute_r": [6, 10],
+      "skillpunkte": 0,
+      "marke": "[M] Feld, [R] Minute",
+      "offen": []
+    },
+    {
+      "id": "e6", "name_text": "Linie traegt sich",
+      "messgroesse": { "feld": "Liniengewinn je Periode = Ertrag - Fahrkosten - fix_eff der Fahrzeuge der Linie (Definition AT-10)", "bedingung": "> 0 in 3 Perioden am Stueck; hakt nicht, solange eine Linie Verlust macht (AT-13)", "schwelle": 1, "einheit": "Cent je Periode, 3 Perioden" },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "fahrplan_minute_r": null,
+      "skillpunkte": 1, "skillpunkt_quelle": "Etappenziel (D-S)",
+      "marke": "[R] Definition, Feld fehlt",
+      "offen": [
+        "Feld fehlt im Code: ProtoSim bucht heute nur variable Fahrkosten (konto.charge), Fix je Fahrzeug kommt mit AT-02, Liniengewinn mit AT-10. Bis dahin nicht messbar.",
+        "Widerspruch: 'Linie traegt sich' (eine Linie > 0) gegen AT-13 'hakt nicht, solange eine Linie Verlust macht' (alle Linien >= 0). Hier gilt AT-13 als Zusatzbedingung.",
+        "Fahrplan design.md 1.3 nennt fuer e6 keine Minute."
+      ]
+    },
+    {
+      "id": "f1", "name_text": "Zweiter Ort versorgt",
+      "messgroesse": { "feld": "V_ort = s_sat[ort][nahrung] * 1000 / city_demand(ort) am Periodenende (economy.gd Z. 111, 375)", "bedingung": "Mittel ueber 3 Perioden >= Schwelle in erlenbach UND lindenfurt", "schwelle": 500, "einheit": "Promille" },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "fahrplan_minute_r": [10, 14],
+      "fahrplan_hinweis_text": "Minute 10-14 ist die Entscheidung 'Lindenfurt anbinden', nicht die Erfuellung.",
+      "skillpunkte": 1, "skillpunkt_quelle": "Etappenziel (D-S)",
+      "marke": "[M] Feld, [R] Minute",
+      "offen": ["s_sat haelt nur die laufende Periode und wird beim ersten Eintrag der neuen Periode geleert (economy.gd Z. 782-785) [M]. Der Bot muss V am Periodenende abtasten; eine Periode ohne Lieferung zaehlt als V = 0."]
+    },
+    {
+      "id": "f2", "name_text": "Gewinn tragfaehig",
+      "messgroesse": { "feld": "Netto je Periode = alle Einnahmen - alle Ausgaben inkl. Zins (design.md 1.1); Kredit = credit-Saldo", "bedingung": "Netto >= Schwelle in 5 Perioden am Stueck UND Kredit == 0", "schwelle": 60000, "einheit": "Cent je Periode (= 600 $/min)" },
+      "schwelle_status": {
+        "art": "platzhalter",
+        "wert_text": "600 $/min, Startwert [R] bei k = 6 aus design.md 1.1",
+        "ablauf_text": "Gate C (Ende Tag 12, ergebnis.md 6); Ersatz durch OE-04 an Tag 11",
+        "regel_text": "X = P50(Plan-Bot, Minute 30) x 0,8, gerundet (W9). Ohne Bot-Wert kein Haken an F2.",
+        "messdatum": null, "n": null, "tempo_k": null, "strategie": "plan"
+      },
+      "bot_messpunkt": { "art": "erste_minute_erfuellt", "auswertung": "P25/P50/P75 je Strategie" },
+      "soll_minute_plan_bot": [20, 30], "soll_quelle_text": "W2: Plan-Bot erreicht F2 bei Minute 25 +- 5",
+      "fahrplan_minute_r": [30, 40],
+      "skillpunkte": 1, "skillpunkt_quelle": "Etappenziel (D-S)",
+      "marke": "[R] Schwelle (Platzhalter), Feld fehlt teilweise",
+      "offen": [
+        "Ablaufdatum: Auftrag nennt 'Gate C (Tag 8)'; laut ergebnis.md 6 ist Tag 8 Gate B, Gate C ist Ende Tag 12. Hier steht ergebnis.md. Jonas klaert.",
+        "Widerspruch Minute: W2 fordert F2 bei Minute 25 +- 5, der Fahrplan design.md 1.3 sieht F2 erst bei Minute 30-40 'in Reichweite'.",
+        "Zirkularitaet: OE-02 bisektiert a auf 'F2 bei Minute 25 +- 5' mit dem Platzhalter X; OE-04 setzt danach X aus demselben Bot neu. Danach muss die F2-Minute erneut geprueft werden (Reihenfolge OE-02 -> OE-04 -> Nachlauf).",
+        "'Alle Ausgaben': Ob Investitionen (Fuhrwerk, Lizenz, Kauf, Ausbau) im 5-Perioden-Fenster zaehlen, ist nicht festgelegt. Ein Kauf im Fenster wuerde F2 zuruecksetzen. Der Bot loggt beide Varianten (operativ: Ertrag - Fahr - Fix - Zins - Lizenzverlaengerung; Kassendelta), Entscheidung Tobias in OE-04.",
+        "Fix, Zins und Kredit gibt es in ProtoSim erst mit AT-02."
+      ]
+    }
+  ],
+
+  "skillpunkte_text": "Nur aus Meilensteinen und Etappenzielen (D-S, S7-Entscheid s7/refinement/ergebnis.md Z. 91), keine Ast-XP. Im Loop 4 Punkte: e1, e6, f1, f2. Respec in S8 kostenlos. Ziel SK-03: Plan-Bot hat 4 Punkte bis Minute 45.",
+
+  "ereignisse": {
+    "definition_text": "Entscheidungsereignis = ein Zustand, der dem Spieler sichtbar >= 2 Handlungen mit unterschiedlichem Preis anbietet (design.md 1.2). Der Bot zaehlt die Flanke (falsch -> wahr), nicht den Dauerzustand.",
+    "luecken_regel": { "text": "Plan-Bot: P90 der groessten Luecke zwischen zwei Ereignissen <= 3 min, von Minute 2 bis 45 (Sprintziel).", "max_luecke_ticks": 1800, "von_minute": 2, "bis_minute": 45, "perzentil": 90, "strategie": "plan" },
+    "katalog": [
+      { "nr": 1, "id": "ziel_erfuellt", "ausloeser": "ziel z wird im Tick t erstmals erfuellt (Bedingung aus 'ziele')", "optionen_text": "Naechster Schritt mit Preis", "marke": "[M]",
+        "offen": "Zeigt 'Naechster Schritt' nur eine Handlung, erfuellt Ereignis 1 die Definition (>= 2 Handlungen) nicht. AT-13 muss je Ziel 2 Optionen zeigen, sonst zaehlt der Bot es nicht." },
+      { "nr": 2, "id": "saettigung", "ausloeser": "V_ort(Periode p) > 1200 und V_ort(p-1) <= 1200, V wie f1", "optionen_text": "zweiter Abnehmer oder Fahrzeug abziehen", "marke": "[M] Feld",
+        "offen": "Schwelle 1.200 Promille (design.md 1.2) passt nicht zu W19 (gelb ab 1.000, rot ab 1.500). Vorschlag: Ereignis = Wechsel auf gelb (> 1.000), Entscheidung Lena/Aylin." },
+      { "nr": 3, "id": "wartet_auf_ladung", "ausloeser": "sim_world.v_lwait[i] (Ticks an der Quelle gewartet, sim_world.gd Z. 97) > 600 fuer ein Fahrzeug, Flanke je Fahrzeug", "optionen_text": "Fahrzeug abziehen oder Quelle erweitern", "marke": "[M] Feld",
+        "offen": "v_lwait wird beim Laden auf 0 gesetzt, und mit MAX_WAIT_TICKS 50 (proto_sim.gd Z. 29) faehrt ein Fuhrwerk mit Teilladung ab, sobald Bestand > 0 ist (sim_world.gd Z. 383-394) [M]. An einer produzierenden Farm erreicht v_lwait 600 deshalb praktisch nie; das Symptom ist Teilladung. Ersatz-Vorschlag [E]: Ladung bei Abfahrt / Kapazitaet < 500 Promille in 3 Umlaeufen am Stueck. AT-11 zeigt die Diagnose ab 30 s (300 Ticks). Entscheidung Lena/Tobias vor QT-03." },
+      { "nr": 4, "id": "kasse_reicht", "ausloeser": "cash_cent >= Preis(kaufart) und cash_cent(p-1) < Preis(kaufart), je kaufart einmal", "kaufarten": ["fuhrwerk (kauf_cent aus FZ-01)", "lizenz (licence_quote.zu_zahlen_cent einer nicht lizenzierten Farm/Muehle)", "kauf C1 (Kaufpreis FK-02)", "ausbau Werksstufe 2 (200000 Cent)"], "optionen_text": "kaufen oder sparen", "marke": "[R]",
+        "offen": "design.md: 'zum ersten Mal' und 'guenstigster sinnvoller Kauf' sind nicht definiert. Mit 6.000 $ Start ist die Kasse bei Tick 0 ueber allen Preisen; ohne Flanken-Regel feuert alles bei Minute 0. Die Flanke (vorher darunter) ist ein Vorschlag [E]." },
+      { "nr": 5, "id": "kredit_frei", "ausloeser": "tick == kredit.ab_tick (7200 = Minute 12, economy_constants kredit) [M]", "optionen_text": "Kredit nehmen oder nicht", "marke": "[M]", "offen": "" },
+      { "nr": 6, "id": "lizenz_laeuft_ab", "ausloeser": "s_lic_until[site] - tick <= lizenz.hinweis_vor_ablauf_ticks (1800, economy_constants) und > 0, Flanke je Site", "optionen_text": "automatisch zum gleichen Preis verlaengern lassen oder Betrieb kaufen (C1, 50 % Lizenzanrechnung)", "soll_minute_text": "Minute 27-30 (OE-06)", "marke": "[M]",
+        "offen": "hinweis_vor_ablauf_ticks steht in economy_constants.json, wird aber in keiner .gd-Datei gelesen [M]. Der Bot rechnet die Schwelle selbst; die Anzeige braucht einen Leser. Regel siehe ADR OE-06." },
+      { "nr": 7, "id": "muehle_am_deckel", "ausloeser": "s_inbuf[erlenmuehle][getreide] > 2 * s_rate[erlenmuehle] (Rueckstau > 2 Perioden Durchsatz), Flanke", "optionen_text": "kaufen und ausbauen (C1, Werksstufe 2) oder Getreide umleiten", "marke": "[M] Feld, [R] Schwelle",
+        "offen": "Die Muehle hat keinen Puffer-Deckel (kein abnahme_max, economy.gd Z. 772-779) [M]: 'Eingangspuffer voll' aus design.md tritt nie ein, der Bestand waechst unbegrenzt und Getreide wird weiter an der Muehle verguetet. Ersatzschwelle 2 x Durchsatz ist ein Vorschlag. Folge fuer die Oekonomie: Farm 2 bringt auch ohne Ausbau Getreide-Ertrag (gegen design.md 0.1). Tobias prueft in OE-02." },
+      { "nr": 8, "id": "fuhrwerk_alt_oder_folgemodell", "ausloeser": "fix_eff >= fix * 1,4 fuer ein Fahrzeug (Formel FZ-03, 500 bp/Jahr -> 8 Kalenderjahre) ODER Kalenderjahr erreicht verfuegbar_ab_jahr von frachtwagen_e1 (1830)", "optionen_text": "ersetzen (Restwert W20) oder weiterfahren", "soll_minute_text": "Ersetzen-Ereignis Minute 28-35 (FZ-05)", "marke": "[R]",
+        "offen": "Felder fix_eff, Alter und Kalender gibt es erst mit FZ-02/FZ-03. FZ-02 nennt jahr_ticks 1.800 'Test' und 7.200 'Standard'; das Sprintziel verlangt 3 min/Jahr = 1.800 Ticks. Mit 7.200 kaeme 1830 erst bei Minute 120 und das Ereignis faellt aus dem Loop. Jonas/Felix klaeren." }
+    ]
+  },
+
+  "fahrplan": {
+    "annahmen_text": "k = 6, Kalender 3 min/Jahr, sim_ew Erlenbach 500 / Lindenfurt 2400. Alle Minuten [R] aus design.md 1.3, werden vom Bot ersetzt.",
+    "schritte": [
+      { "minute_r": [0, 3], "lage_text": "6.000 $, HQ Erlenbach", "entscheidung_text": "Welche Farm lizenzieren: Kuppenhof (17 Felder zur Muehle, gratis) oder Farm 2 (41 Felder, zweite Lizenz)", "ereignisse": [4] },
+      { "minute_r": [3, 6], "lage_text": "Getreide kommt an", "entscheidung_text": "Mehl nach Erlenbach (15 Felder) oder Lindenfurt (72 Felder, mehr Ertrag, mehr Fuhrwerke)", "ereignisse": [1] },
+      { "minute_r": [6, 10], "lage_text": "Fuhrwerk wartet oder Lager voll", "entscheidung_text": "2. bzw. 3. Fuhrwerk auf die richtige Linie", "ereignisse": [3, 4] },
+      { "minute_r": [10, 14], "lage_text": "Erlenbach gesaettigt (Muehle 20 E/min gegen Nachfrage 10 E/min)", "entscheidung_text": "Lindenfurt anbinden (-> F1) oder Fuhrwerk abziehen; ab Minute 12 Kredit", "ereignisse": [2, 5] },
+      { "minute_r": [14, 20], "lage_text": "Muehle am Deckel 20 E/min", "entscheidung_text": "Muehle kaufen und auf Werksstufe 2 ausbauen (C1), mit oder ohne Kredit; Soll Plan-Bot Kauf Minute 14-25 (FK-02)", "ereignisse": [7, 4] },
+      { "minute_r": [20, 30], "lage_text": "Farm 2 und Ausbau laufen", "entscheidung_text": "Skillpunkt aus F1 setzen; Lizenz Kuppenhof laeuft um Minute 30 ab: verlaengern lassen oder kaufen", "ereignisse": [1, 6] },
+      { "minute_r": [24, 33], "lage_text": "Kalender 1828-1831, Unterhalt der ersten Fuhrwerke +40 %", "entscheidung_text": "Frachtwagen ab 1830: ersetzen oder alt weiterfahren", "ereignisse": [8] },
+      { "minute_r": [30, 40], "lage_text": "F2 in Reichweite, Kredit offen", "entscheidung_text": "Kredit tilgen (F2 verlangt Kredit = 0) oder weiter investieren", "ereignisse": [1, 4] },
+      { "minute_r": [40, 45], "lage_text": "Saettigung Lindenfurt", "entscheidung_text": "Feinschliff, Linien umlegen, Skillpunkt aus F2", "ereignisse": [2, 1] }
+    ],
+    "offen": ["Zwischen Minute 33 und 40 und nach Minute 40 haengen die Ereignisse an F2 und an der Saettigung Lindenfurt. Ob die 3-min-Luecke dort haelt, zeigt erst der Bot."]
+  }
+}

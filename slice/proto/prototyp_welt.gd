@@ -89,7 +89,8 @@ var sim_acc := 0.0
 var tempo_knoepfe := {}              # Tempo -> Button im Welt-HUD
 var datum_label: Label
 const TEMPI := [0, 1, 2, 4]
-## Kalender-Platzhalter bis FZ-02 (Zwei-Uhren): 1 Monat = 600 Ticks ab Startjahr (Januar), nur Anzeige.
+## Alter Kalender-Platzhalter (AT-05): 1 Monat = 600 Ticks. Seit FZ-02 zeigt das HUD proto_sim.kalender (Monat = 150 Ticks);
+## datum_text bleibt für Szenen ohne Sim (sim_aus).
 const TICKS_JE_MONAT := 600
 const MONATE := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 var folgen := -1
@@ -242,6 +243,7 @@ func _baue_fahrzeuge() -> void:
 		return
 	var t0 := Time.get_ticks_usec()
 	proto_sim = ProtoSim.new(regelwerk)
+	proto_sim.kalender.startjahr = startjahr          # FZ-02: Kalender der Welt (jahr_ticks 1.800), Startjahr der Szene
 	proto_sim.graph_bauen(strassen)
 	var t1 := Time.get_ticks_usec()
 	for a in OS.get_cmdline_user_args():
@@ -582,7 +584,7 @@ func _hud_text() -> void:
 	for t in tempo_knoepfe:
 		(tempo_knoepfe[t] as Button).set_pressed_no_signal(t == sim_tempo)
 	if datum_label != null:
-		datum_label.text = datum_text(proto_sim.ticks if proto_sim != null else 0, startjahr)
+		datum_label.text = proto_sim.kalender.datum_text(proto_sim.ticks) if proto_sim != null else datum_text(0, startjahr)   # FZ-02
 	var z := zaehlung()
 	var live := ""
 	if z["live_dreiecke"] > 0:

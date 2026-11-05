@@ -6,5 +6,11 @@
     "regel_text": "Ausgleich fuer tempo_k nur ueber den Preis: Ertrag x tempo_ausgleich_promille / 1000, Bisektion im Intervall [1000; k_eff x 1000]. Bedarf, Produktion und Frischefristen bleiben unveraendert (W2).",
     "stand_text": "05.11.2026 Felix, Wert 1000 = kein Ausgleich"
   },
-  "tempo_ausgleich_promille": 1000
+  "tempo_ausgleich_promille": 1000,
+  "kalender": {
+    "jahr_ticks": 1800,
+    "jahr_ticks_test": 450,
+    "regel_text": "FZ-02 Zwei Uhren: nur Datum, Fahrzeugalter (Jahre) und Freischaltungen lesen den Kalender; Wirtschaft in Ticks. Monat = jahr_ticks / 12 (150 Ticks). Slice bleibt 7200 (economy_slice.json spielmonat_ticks x 12).",
+    "kenn": "PO Entscheidungslog 05.11.2026 (3 min/Jahr), revidierbar Basti/Jonas S9; --jahr_ticks= ueberschreibt"
+  }
 }

@@ -190,6 +190,7 @@ func _at02(s: Node) -> void:
 	_at02_bankrott(s)
 	_at02_paritaet(s)
 	_at02_kalender(s)
+	_fz02(s)
 
 
 ## Kredit wie d07 --only=kredit (gespiegelt: B0, B1, B2, B6, B7 verkürzt, B8, B13).
@@ -349,3 +350,27 @@ func _fz01(s: Node) -> void:
 		"FZ-01 Fuhrwerk-Linie: %s, Kauf %d ¢, Kapazität %d E, Fix %d ¢ in Periode 1 (Soll 6000)" % [f.get("def_id", "?"), int(r.get("preis_cent", -1)), cap, fix_p])
 	var fw: Dictionary = ps.linie_anlegen(FARM, MUEHLE, "fuhrwerk", "frachtwagen_e1")
 	pruef(not fw["ok"] and fw["fehler"] == "noch_nicht_verfuegbar", "FZ-01 Frachtwagen vor 1830 nicht kaufbar (%s)" % fw.get("fehler", "ok"))
+
+
+## FZ-02 Zwei Uhren: Monat = 150 Ticks bei jahr_ticks 1.800; Wirtschafts-Prüfsumme bei 1.800 und 7.200 gleich.
+func _fz02(s: Node) -> void:
+	const Kal := preload("res://core/kalender.gd")
+	var ps = _neu(s)
+	var k = ps.kalender
+	var txt := [k.datum_text(0), k.datum_text(149), k.datum_text(150), k.datum_text(1650), k.datum_text(1799), k.datum_text(1800)]
+	pruef(k.jahr_ticks == 1800 and k.monat_ticks() == 150 and txt == ["Jan 1820", "Jan 1820", "Feb 1820", "Dez 1820", "Dez 1820", "Jan 1821"],
+		"FZ-02 Welt-Kalender %d Ticks/Jahr aus economy_proto.json, Monat %d Ticks: %s" % [k.jahr_ticks, k.monat_ticks(), str(txt)])
+	var sl = Kal.new(1820, 7200)
+	var t4 = Kal.new(1820, 450)
+	pruef(sl.datum_text(599) == "Jan 1820" and sl.datum_text(600) == "Feb 1820" and t4.jahr(450 * 10) == 1830 and k.alter_jahre(1800 * 10 - 1) == 9,
+		"FZ-02 Slice-Kalender 7200 (Monat 600), Test 450 (1830 bei Tick 4500), Alter 9 J. bei 17999 Ticks")
+	var pr := []
+	var meld := []
+	for jt in [1800, 7200]:
+		var p2 = _neu(s, true)
+		p2.jahr_ticks = jt
+		_bis(p2, 20000)
+		pr.append([p2.pruefsumme(), p2.eco.cash_cent, p2.lieferungen.size()])
+		meld.append(p2.freischaltungen.size())
+	pruef(pr[0] == pr[1] and meld[0] != meld[1],
+		"FZ-02 Wirtschaft unabhängig vom Kalender: 20000 Ticks, Prüfsumme/Kasse/Lieferungen 1800 %s = 7200 %s; Freischaltungen %s (Kalender wirkt nur dort)" % [str(pr[0]), str(pr[1]), str(meld)])

@@ -24,6 +24,7 @@ const Economy := preload("res://economy.gd")
 const Easing := preload("res://proto/proto_easing.gd")
 const Konto := preload("res://core/konto.gd")          # AT-01 (S8, W12): Buchungen über konto.charge
 const Credit := preload("res://credit.gd")             # AT-02: Kredit wie Slice (Sperre credit_available_from_ticks)
+const Kalender := preload("res://core/kalender.gd")    # FZ-02: Zwei Uhren
 ## AT-02 (W10): Freischaltungen, die in S8 gesperrt bleiben (kein Eintrag in freischaltungen, kein Toast).
 const GESPERRT_S8 := {"bahn_moeglich": "W10 Gleis in S8 gesperrt", "lok_e1": "W10", "waggon_e1": "W10"}
 ## AT-02 (W20): Restwert = Kauf × 50 % × max(20 %, 1 − Alter/Lebensdauer), in Promille.
@@ -39,8 +40,17 @@ var sim = null                       # SimWorld
 var eco = null                       # Economy oder null (synthetische Tests)
 var konto = Konto.new()              # AT-01/AT-02: Fahrkosten, Fix, Zins, Bankrott (core/konto.gd)
 var credit = Credit.new()            # AT-02
-var startjahr := 1820                # AT-02: Kalender-Platzhalter (FZ-02 zieht ihn nach core/kalender.gd)
-var jahr_ticks := 1800               # PO 05.11.: Welt-Loop 3 min/Jahr
+var kalender = Kalender.new()        # FZ-02: Datum, Alter, Freischaltungen (jahr_ticks 1.800, economy_proto.json)
+var startjahr: int:                  # Weiterleitung auf kalender
+	get:
+		return kalender.startjahr
+	set(v):
+		kalender.startjahr = v
+var jahr_ticks: int:                 # Weiterleitung auf kalender
+	get:
+		return kalender.jahr_ticks
+	set(v):
+		kalender.jahr_ticks = v
 var freischaltungen: Array = []      # AT-02: [{tick, jahr, id}] je neuer Freischaltung
 var gesperrt_log: Array = []         # AT-02 (W10): [{tick, jahr, id, grund}] unterdrückte Freischaltungen
 var meldungen: Array = []            # AT-02: Texte für Toasts (die Welt liest und leert)
@@ -73,7 +83,7 @@ func _init(p_regelwerk: Dictionary = {}) -> void:
 	regelwerk = p_regelwerk
 	sim = SimWorld.new()
 	tempo_k = tempo_k_aus(regelwerk)
-	startjahr = int(regelwerk.get("startjahr", startjahr))
+	kalender = Kalender.fuer_welt(int(regelwerk.get("startjahr", 1820)))
 
 
 ## AT-04 (W1): k aus regelwerk fahrzeug_easing.tempo_k.standard (fehlt = 1); `--tempo_k=N` überschreibt.
@@ -682,7 +692,7 @@ func _fix_neu() -> void:
 
 
 func kalenderjahr(t: int = -1) -> int:
-	return startjahr + (sim.tick_count if t < 0 else t) / jahr_ticks
+	return kalender.jahr(sim.tick_count if t < 0 else t)
 
 
 ## Jahreswechsel: Freischaltungen aus regelwerk startjahr_hebel.stufen.<jahr> (*_moeglich) und vehicles.json
@@ -730,7 +740,7 @@ func tick() -> void:
 		if konto.tick(sim.tick_count, credit):
 			bankrott_tick = sim.tick_count
 			meldungen.append("Bankrott: Kasse unter 0 $")
-		if sim.tick_count % jahr_ticks == 0:
+		if kalender.jahreswechsel(sim.tick_count):
 			_jahreswechsel(kalenderjahr())
 	var gebaut := false
 	for f in fahrzeuge:

@@ -1,0 +1,30 @@
+# Session "Fehlerfälle API" (QT-05): Ablehnungen der ProtoSim-API mit Code (0 stumm) plus Wächter für Lücken, die die UI (AT-08) schließen muss.
+# Teil 1: erwartete Ablehnungen (API liefert ok:false + Code). Teil 2: Ist-Stand "angenommen" (kein Code), AT-14 verlangt dort einen Text:
+# F2.2 Quelle liefert nichts, F2.3 Quelle ohne Lizenz, F2.4 Ziel nimmt Ware nicht an. Bekommt die API später Guards, wird Teil 2 rot und
+# muss bewusst auf `erwarte fehler==<code>` umgestellt werden (nicht stillschweigend anpassen).
+kapital 100
+lizenz Gut_Kuppenhof
+erwarte ok==1
+lizenz Erlenmuehle
+erwarte fehler==guthaben_reicht_nicht
+linie Gut_Kuppenhof Erlenmuehle
+erwarte fehler==guthaben_reicht_nicht
+lizenz Erlenbach
+erwarte fehler==keine_lizenzierbare_industrie
+linie Gut_Kuppenhof Gut_Kuppenhof
+erwarte fehler==gleicher_ort
+linie Gut_Kuppenhof Nirgendwo
+erwarte fehler==unbekannter_ort
+erwarte fahrzeuge==0
+kapital 6000
+# Teil 2: Lücken (Ist-Stand: angenommen, Fix läuft, Ertrag 0)
+linie Hof_Hasenwinkel Erlenmuehle
+erwarte ok==1
+linie Gut_Kuppenhof Erlenbach
+erwarte ok==1
+linie Erlenbach Lindenfurt
+erwarte ok==1
+erwarte fahrzeuge==3
+wait 5
+erwarte ertrag==0
+erwarte kasse<5100

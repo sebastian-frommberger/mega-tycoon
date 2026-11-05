@@ -1,0 +1,54 @@
+# Session "Loop L2" (QT-05): Lizenz, 2 Linien, 2. Fuhrwerk, Kredit ab Minute 12. API-Ebene gegen ProtoSim (Start ohne Kette, 6.000 $).
+# Ziel: <= 120 s, Exit 0. UI-Ebene (klick/knopf) folgt mit AT-07/AT-08, siehe sprints/s8/umsetzung/QT-05.md.
+list
+erwarte kasse==6000
+erwarte fahrzeuge==0
+# Schritt Lizenz (L2: Kuppenhof gratis, Mühle bezahlt)
+lizenz Gut_Kuppenhof
+erwarte ok==1
+erwarte lizenz:Gut_Kuppenhof==1
+lizenz Erlenmuehle
+erwarte ok==1
+erwarte kasse==5860
+# Doppelkauf: API lehnt mit Code ab (F1.3)
+lizenz Gut_Kuppenhof
+erwarte fehler==schon_lizenziert
+# Fehlerfall: Ort unbekannt (kein stummer Fehler)
+linie Gut_Kuppenhof Nirgendwo
+erwarte fehler==unbekannter_ort
+# Fehlerfall: Start = Ziel (F2.8)
+linie Gut_Kuppenhof Gut_Kuppenhof
+erwarte fehler==gleicher_ort
+# Fehlerfall: Gleis/Lok gesperrt (W10)
+linie Gut_Kuppenhof Erlenmuehle lok_e1
+erwarte fehler==gesperrt
+# Schritt Linie 1 und 2 (Farm -> Mühle -> Dorf)
+linie Gut_Kuppenhof Erlenmuehle
+erwarte ok==1
+linie Erlenmuehle Erlenbach
+erwarte ok==1
+erwarte fahrzeuge==2
+erwarte kasse==5260
+# Kredit vor Minute 12: API liefert 0 ohne Code (zählt als stumm, die UI muss F4.1 selbst erzeugen)
+kredit +
+erwarte betrag==0
+wait 3
+erwarte lieferungen>=1
+# Schritt 2. Fuhrwerk auf Linie 1
+kauf Gut_Kuppenhof Erlenmuehle
+erwarte ok==1
+erwarte fahrzeuge==3
+wait 9.01
+erwarte min>=12
+erwarte bankrott==0
+# Kredit ab Minute 12
+kredit +
+erwarte betrag==500
+erwarte kredit==500
+wait 3
+kredit -
+erwarte kredit==0
+wait 5
+erwarte lieferungen>=20
+erwarte ertrag>0
+erwarte bankrott==0

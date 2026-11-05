@@ -76,6 +76,8 @@ var verbose := false
 var saett_pm := SAETT_PM_DEFAULT
 var a_pm := 1000                    # --a= : Ertragsfaktor tempo_ausgleich_promille als Überschreibung im Bot (economy_proto.json bleibt unberührt)
 var fk_global := true               # --fk=aus : Firmenkauf für alle Strategien aus (Vergleichslauf)
+var alterung_override := -1         # --alterung=aus|an : ProtoSim.alterung_an (Attributionslauf, Testwerkzeug)
+var deckel_override := -1           # --deckel=N : eco.inbuf_cap_perioden (0 = Mühlendeckel aus; Attributionslauf, Testwerkzeug)
 
 # ------------------------------------------------------------------ Welt (einmal geladen)
 var szene: Node
@@ -164,6 +166,10 @@ var fk_kauf_pending := false
 var ersetzt_n := 0
 var ersetzt_erst := -1
 var ersetzt_spart := 0              # Σ spart_cent_pro_periode der Ersetzungen
+var ev8_fm_tick := -1               # Ereignis 8 (a): Folgemodell freigeschaltet
+var ev8_alter_tick := -1            # Ereignis 8 (b): Fuhrwerk-Unterhalt >= +40 % (Alter >= 8 Jahre)
+var ers_angebot_tick := -1          # erstes ersetzen_angebot ok (Plan-Bot, ältestes Fuhrwerk >= 8 Jahre)
+var ers_spart_tick := -1            # erstes Angebot mit spart_cent_pro_periode > 0
 var kasse_tief_tick := -1
 var serie: Array = []               # Zeilen der Serien-CSV (je Periode)
 var serie_aktiv := true
@@ -191,6 +197,10 @@ func _initialize() -> void:
 			gate = true
 		elif a.begins_with("--a="):
 			a_pm = int(a.substr(4))
+		elif a.begins_with("--alterung="):
+			alterung_override = 0 if a.substr(11) == "aus" else 1
+		elif a.begins_with("--deckel="):
+			deckel_override = int(a.substr(9))
 		elif a.begins_with("--fk="):
 			fk_global = a.substr(5) != "aus"
 		elif a == "--ohne_det":
@@ -289,7 +299,7 @@ func _run() -> void:
 						fs.store_line(sz)
 			fs.close()
 			var fm := FileAccess.open(csv_pfad + ".meta.txt", FileAccess.WRITE)
-			fm.store_line("Godot %s, Szene proto, tempo_k %d, jahr_ticks %d, startkapital_dollar_override %d, minuten %d, takt %d, saett_pm %d, a_pm %d, fk_global %s" % [Engine.get_version_info()["string"], _tempo_k(), _jahr_ticks(), startkapital_dollar, minuten, takt, saett_pm, a_pm, str(fk_global)])
+			fm.store_line("Godot %s, Szene proto, tempo_k %d, jahr_ticks %d, startkapital_dollar_override %d, minuten %d, takt %d, saett_pm %d, a_pm %d, fk_global %s, alterung_override %d, deckel_override %d" % [Engine.get_version_info()["string"], _tempo_k(), _jahr_ticks(), startkapital_dollar, minuten, takt, saett_pm, a_pm, str(fk_global), alterung_override, deckel_override])
 			fm.store_line("n %d, seed0 %d, Strategien %s" % [n_lauefe, seed0, str(liste)])
 			fm.store_line("PARAM " + JSON.stringify(PARAM))
 			fm.store_line("Firmenkauf-Schnittstelle: " + fk_status)
@@ -359,7 +369,8 @@ func _csv_kopf() -> String:
 	return "strategie,seed,tempo_k,startkapital_cent,ticks,bankrott,bankrott_min,z_e1,z_e2,z_e3,z_e4,z_e5,z_e6_alle,z_e6_eine,z_f1,z_f2_op,z_f2_kasse," \
 		+ "ev1,ev2,ev3,ev4,ev5,ev6,ev7,ev8,ev3_spec,luecke_max_min,luecke_bei_min,luecke_ohne_ev3_min,fz_max,fz_ende,lieferungen,ertrag_cent,kasse_ende_cent,kasse_tief_5_20_cent," \
 		+ "kredit_max_cent,kredit_ende_cent,netto5_op_min30_cent,netto5_kasse_min30_cent,fehl_api,pruefsumme," \
-		+ "fk_kauf_min,fk_preis_cent,fk_ausbau_min,fk_ausbau_cent,ersetzt_n,ersetzt_erst_min,ev8_erst_min,tief_min,a_pm,bonus_cent,fk_grund"
+		+ "fk_kauf_min,fk_preis_cent,fk_ausbau_min,fk_ausbau_cent,ersetzt_n,ersetzt_erst_min,ev8_erst_min,tief_min,a_pm,bonus_cent,fk_grund," \
+		+ "ev8_folgemodell_min,ev8_alter_min,ers_angebot_min,ers_spart_min"
 
 
 func _min_text(tick: int) -> String:
@@ -415,6 +426,7 @@ func _lauf(s: String, sd: int) -> Dictionary:
 		kredit_max, ps.credit.loan_cent, netto5_op_min30, netto5_kasse_min30, api_n, ps.pruefsumme()]
 	zeile += ",%s,%d,%s,%d,%d,%s,%s,%s,%d,%d,%s" % [_min_text(fk_kauf_tick), fk_preis, _min_text(fk_ausbau_tick), fk_ausbau_cent, ersetzt_n,
 		_min_text(ersetzt_erst), _min_text(ev_erst[8]), _min_text(kasse_tief_tick), a_pm, bonus_total, fk_grund if fk_kauf_tick < 0 else ""]
+	zeile += ",%s,%s,%s,%s" % [_min_text(ev8_fm_tick), _min_text(ev8_alter_tick), _min_text(ers_angebot_tick), _min_text(ers_spart_tick)]
 	return {"zeile": zeile, "pruefsumme": ps.pruefsumme(), "ticks": ende, "bankrott": br, "bankrott_tick": ps.bankrott_tick,
 		"z": z.duplicate(), "ev_n": Array(ev_n), "gmax": gmax, "gbei": gbei, "gmax3": int(g3[0]), "strategie": s, "seed": sd, "fehler": fehler,
 		"fz_max": fz_max, "kasse_ende": kasse_ende, "tief": tief, "api_abl": api_abl.duplicate(), "api_aufrufe": api_aufrufe,
@@ -460,6 +472,10 @@ func _reset(s: String, sd: int) -> void:
 	ps = ProtoSim.new(szene.regelwerk)
 	ps.graph_bauen(szene.strassen)
 	ps.spiel_starten(orte)
+	if alterung_override >= 0:
+		ps.alterung_an = alterung_override == 1
+	if deckel_override >= 0:
+		ps.eco.inbuf_cap_perioden = deckel_override
 	if startkapital_dollar > 0:
 		ps.eco.cash_cent = startkapital_dollar * 100       # Testwerkzeug setzt das Startkapital (W24-Variation 3.000/4.500/6.000 $)
 	gesamt_ticks = minuten * PERIODE
@@ -526,6 +542,10 @@ func _reset(s: String, sd: int) -> void:
 	ersetzt_n = 0
 	ersetzt_erst = -1
 	ersetzt_spart = 0
+	ev8_fm_tick = -1
+	ev8_alter_tick = -1
+	ers_angebot_tick = -1
+	ers_spart_tick = -1
 	kasse_tief_tick = -1
 	serie = []
 	recon_fehler = 0
@@ -935,8 +955,12 @@ func _ersetzen(res: int, borrow_ok: bool) -> void:
 	if not q.get("ok", false):
 		_abl("ersetzen_angebot_" + String(q.get("fehler", "?")))
 		return
+	if ers_angebot_tick < 0:
+		ers_angebot_tick = ps.sim.tick_count
 	if int(q["spart_cent_pro_periode"]) <= 0:
 		return
+	if ers_spart_tick < 0:
+		ers_spart_tick = ps.sim.tick_count
 	if not _beschaffe(int(q["netto_cent"]), res, borrow_ok):
 		return
 	api_aufrufe += 1
@@ -978,6 +1002,8 @@ func _beobachten(t: int) -> void:
 		fs_idx += 1
 		if not ps.vdef(String(fs["id"])).is_empty():
 			_ev(8, int(fs["tick"]))            # Ereignis 8: Folgemodell verfügbar
+			if ev8_fm_tick < 0:
+				ev8_fm_tick = int(fs["tick"])
 	if t == ps.credit.from_ticks and ps.credit.active:
 		_ev(5, t)
 	if t % 50 == 0:
@@ -1054,7 +1080,9 @@ func _alle_50(t: int) -> void:
 		var bp: int = int(d.get("alterung_unterhalt_bp_pro_jahr", 0))
 		if bp > 0 and ps.kalender.alter_jahre(alter) * bp >= 4000 and not fz_alt_aktiv.has(vid):
 			fz_alt_aktiv[vid] = true
-			_ev(8, t)                          # Ereignis 8: Unterhalt >= +40 % (Formel FZ-03, im Sim-Code noch nicht aktiv)
+			_ev(8, t)                          # Ereignis 8: Unterhalt >= +40 % (FZ-03, im Sim aktiv)
+			if ev8_alter_tick < 0:
+				ev8_alter_tick = t
 		var i: int = ps.sim.slot_of(vid)
 		if ps.sim.v_lwait[i] > 600:
 			if not e3_spec_aktiv.has(vid):

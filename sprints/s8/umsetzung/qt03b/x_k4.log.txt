@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PROTO_WELT stufen { "lies_daten": 19.697, "baue_gelaende": 1006.986, "baue_wege": 1229.625, "baue_modelle": 1817.418, "baue_fahrzeuge": 1817.422, "baue_schilder": 1829.855 } sim []
+PROTO_WELT lade_ms 1853.2 terrain=TA wege=16 instanzen=1003 knoten=13 bruecken=1 fahrzeuge=0 kette=aus
+CSV: /tmp/claude-0/gd/s8work/qt3/sprints/s8/umsetzung/qt03b/x_k4.csv (108 Zeilen)
+s8_exploit: 108 Zeilen, 39.5 s Wanduhr, Fehler 0

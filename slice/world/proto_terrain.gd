@@ -52,6 +52,7 @@ var fluss := PackedByteArray()
 var boden_klasse := PackedByteArray()    # je Feld
 var boden_tex: ImageTexture
 var schlag_tex: ImageTexture             # Fix-Pass W2 (M6): je Ackerzelle R = Furchenrichtung/π, G = Schlag-Kennung, B = 255 (Acker)
+var detail_tex: ImageTexture             # WA-04: proto_detail.png (prozedural, tools_proto/ta_boden_detail.py), mit Mipmaps
 var schlag_n := 0                        # Anzahl Ackerschläge (Keimpunkte mit Ackerzellen)
 var pegel_spalte := PackedFloat32Array()
 var meta := {}
@@ -132,6 +133,12 @@ func _laden(dir: String) -> void:
 		boden_klasse[i] = int(floor(data[i * 4 + 3] / 20.0))
 	boden_tex = ImageTexture.create_from_image(img)
 	schlag_tex = _schlag_textur()
+	var dp := dir.path_join("proto_detail.png")
+	if FileAccess.file_exists(dp):
+		var di := Image.new()
+		if di.load_png_from_buffer(FileAccess.get_file_as_bytes(dp)) == OK:
+			di.generate_mipmaps()
+			detail_tex = ImageTexture.create_from_image(di)
 
 
 ## Ackerschläge (Fix-Pass W2, M6): bisher bekam jeder 200 x 125-m-Block der Welt eine eigene Furchenrichtung, die Richtung
@@ -278,6 +285,8 @@ func _material() -> ShaderMaterial:
 	m.shader = SHADER
 	m.set_shader_parameter("boden", boden_tex)
 	m.set_shader_parameter("schlag", schlag_tex)
+	m.set_shader_parameter("detail", detail_tex)
+	m.set_shader_parameter("stufe_a", detail_tex != null)   # WA-04 Stufe A; ohne Detailtextur Rueckfall auf WA-03b
 	m.set_shader_parameter("boden_rect", Vector4(ox, oz, gw * M, gh * M))
 	var arr := PackedVector4Array()
 	for g in gewaesser:

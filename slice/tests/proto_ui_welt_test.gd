@@ -56,6 +56,8 @@ func _run() -> void:
 		await _fk03()
 	if nur == "" or nur == "fz04":
 		await _fz04()
+	if nur == "" or nur == "at10":
+		await _at10()
 	if nur == "layout":
 		await _at08_maus()
 		await _at09_layout()
@@ -607,6 +609,23 @@ func _at08_maus() -> void:
 	var texte: Array = ui.meldungen_log.slice(n0).map(func(m): return m["text"])
 	ok(ps.fahrzeuge.size() == 2 and ui.klicks == 6 and ps.eco.licence_valid(ui.site_of("Erlenmühle")),
 		"Echte Maus: Farm → Mühle → Dorf mit %d Klicks inkl. Lizenzen, %d Fuhrwerke; Meldungen %s" % [ui.klicks, ps.fahrzeuge.size(), str(texte)])
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenbach")
+	ui.ziel_waehlen("Erlenmühle")                 # Vorschau + Modusleiste offen, dazu Panel und Linienliste
+	ui.oeffnen("Erlenmühle")
+	ui.linien_neu()
+	for i in 3:
+		await process_frame
+	var vp := root.get_visible_rect().size
+	var lr: Rect2 = ui.linien_panel.get_global_rect()
+	var ueber: bool = lr.intersects(ui.vorschau_panel.get_global_rect()) or lr.intersects(ui.modus_panel.get_global_rect()) or lr.intersects(ui.panel.get_global_rect())
+	ok(ui.linien_panel.visible and not ueber and lr.position.y >= 0.0 and lr.end.y <= vp.y and lr.end.x <= vp.x,
+		"Linienliste %s überlappt Vorschau, Modusleiste und Panel nicht" % str(lr))
+	var img := root.get_texture().get_image()
+	var pfad := OS.get_environment("UI_WELT_SHOT")
+	if pfad != "" and img != null:
+		img.save_png(pfad.replace(".png", "_linien.png"))
+	ui.modus_ende()
 
 # ------------------------------------------------------------------ FK-03
 
@@ -749,6 +768,81 @@ func _fz04() -> void:
 	_druecke("verkaufen_ok")
 	ok(f["verkauft"] and e.cash_cent - k0 == rw and _letzte() == "Fuhrwerk 1 verkauft: +%s Restwert. Die Linie hat noch 0 Fuhrwerk(e)." % ui.geld(rw), "Verkauft: +%d ¢ = Restwert, %s" % [e.cash_cent - k0, _letzte()])
 	ok(_panel_text().contains("Verkauft, steht still."), "Karte zeigt verkauft")
+
+# ------------------------------------------------------------------ AT-10
+
+func _at10() -> void:
+	print("  -- AT-10 Linienliste")
+	await _neue_szene()
+	var e = ps.eco
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.ziel_waehlen("Erlenbach")
+	ui.anlegen()
+	ui.modus_ende()
+	ui.linien_neu()
+	ok(ui.linien_panel.visible and ui.linien_werte.size() == 2, "Linienliste mit 2 Linien sichtbar")
+	_ticks(3600 - ps.ticks)
+	# Schnappschuss Fahrkosten-Felder je Fahrzeug am Beginn der Minute 7
+	var fl0 := {}
+	for f in ps.fahrzeuge:
+		fl0[f["vid"]] = ps.sim.v_fields[ps.sim.slot_of(f["vid"])]
+	var x0: int = ps.konto.expenses_total
+	var r0: int = e.revenue_total
+	var z0: int = ps.credit.interest_paid
+	_ticks(600)
+	ui.linien_neu()
+	ui.kopf_neu()
+	var summe := 0
+	var alle_ok := true
+	for k in ui.linien_werte:
+		var w: Dictionary = ui.linien_werte[k]
+		var soll := 0
+		for f in ps.fahrzeuge:
+			if ui.statistik.schluessel(f["von"], f["nach"]) != k:
+				continue
+			var ertrag := 0
+			for l in ps.lieferungen:
+				if int(l["vid"]) == int(f["vid"]) and int(l["tick"]) > 3600 and int(l["tick"]) <= 4200:
+					ertrag += int(l["cent"])
+			var i: int = ps.sim.slot_of(f["vid"])
+			var fahrk: int = (ps.sim.v_fields[i] - int(fl0[f["vid"]])) * ps.sim.v_var_cent[i]
+			soll += ertrag - fahrk - ps.fix_eff(f)
+		summe += int(w["gewinn"])
+		if absi(int(w["gewinn"]) - soll) > 1:
+			alle_ok = false
+		print("    Linie %s: Anzeige %d ¢, Soll Σ(Ertrag − Fahrkosten − fix_eff) %d ¢" % [k, w["gewinn"], soll])
+	ok(alle_ok, "Gewinn je Linie = Σ(Ertrag − Fahrkosten − fix_eff) ± 1 ¢ (Minute 7)")
+	var netto_kasse: int = (e.revenue_total - r0) - (ps.konto.expenses_total - x0)
+	ok(absi(summe - (netto_kasse + (ps.credit.interest_paid - z0) + e.works_upkeep_cent_pro_periode())) <= ui.linien_werte.size(),
+		"Σ Linien %d ¢ = Netto der Minute aus Konto %d ¢ (ohne Zins/Werk) ± %d ¢" % [summe, netto_kasse, ui.linien_werte.size()])
+	ok(ui.hud_werte.get("netto", 1 << 40) == netto_kasse, "HUD Netto = Kontonetto derselben Minute")
+	# zweites Mehl-Fuhrwerk: Erlenbach übersättigt
+	ui.fuhrwerk_kaufen("Erlenmühle", "Erlenbach")
+	_ticks(4800 - ps.ticks)
+	_ticks(1200)
+	ui.linien_neu()
+	var km: String = ui.statistik.schluessel(int(ps.stationen["Erlenmühle"]["knoten"]), int(ps.stationen["Erlenbach"]["knoten"]))
+	var w: Dictionary = ui.linien_werte[km]
+	var so: int = ui.site_of("Erlenbach")
+	var v_ort: int = ui.statistik.ort_v[so][-1]
+	var t := ""
+	for c in ui.linien_vb.get_children():
+		if c is Label:
+			t += (c as Label).text + "\n"
+	var sym := "■" if w["v_promille"] >= 1500 else ("▲" if w["v_promille"] >= 1000 else "●")
+	ok(absi(int(w["v_promille"]) - v_ort) <= 1 and w["ampel"] == (2 if v_ort >= 1500 else (1 if v_ort >= 1000 else 0)),
+		"Sättigung Mehl-Linie %d ‰ = V Erlenbach aus s_sat %d ‰, Ampel %d" % [w["v_promille"], v_ort, w["ampel"]])
+	ok(w["ampel"] >= 1 and w["x_cent"] > 0 and t.contains("%s Erlenbach %d %% · +%s/min nur mit neuem Abnehmer" % [sym, Economy_rdiv(w["v_promille"], 10), ui.geld(w["x_cent"])]),
+		"Zeile: %s Erlenbach %d %% · +%s/min nur mit neuem Abnehmer" % [sym, Economy_rdiv(w["v_promille"], 10), ui.geld(w["x_cent"])])
+	var fix_soll := 0
+	for f in ps.fahrzeuge:
+		if ui.statistik.schluessel(f["von"], f["nach"]) == km:
+			fix_soll += ps.fix_eff(f)
+	ok(w["n"] == 2 and w["fix"] == fix_soll and t.contains("Unterhalt %s/min · Alter %d J" % [ui.geld(w["fix"]), w["alter"]]),
+		"Unterhalt %s/min = Σ fix_eff (mit Alterung), Alter %d J, 2 Fuhrwerke" % [ui.geld(w["fix"]), w["alter"]])
+	ok(ui.knoepfe.has("l_fz_2") and ui.knoepfe.has("lplus_" + km), "Zeile hat [F2] (Karte) und [+ Fuhrwerk]")
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

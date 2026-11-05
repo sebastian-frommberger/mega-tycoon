@@ -11,8 +11,12 @@ extends CanvasLayer
 ## (Aylin, AT-12). Platzhalter benannt: "{name}".format({...}).
 
 const Economy := preload("res://economy.gd")
+const Statistik := preload("res://proto/ui_welt_statistik.gd")   # AT-10
 
 const PANEL_B := 360.0
+const VORSCHAU_B := 640.0
+const LINIEN_B := 430.0
+const MITTE_VERSATZ := 50.0            # Vorschau/Modusleiste: Mitte der freien Fläche (links Linienliste, rechts Panel)
 const KLICK_RADIUS_PX := 44.0
 const TOAST_S := 6.0
 const C_TEXT := Color(0.96, 0.92, 0.84)
@@ -115,6 +119,11 @@ var lbl_fix: Label
 var lbl_kredit: Label
 var lbl_k: Label
 var hud_werte: Dictionary = {}       # angezeigte HUD-Zahlen (Test gegen Spielwert)
+var statistik = null                # AT-10: proto/ui_welt_statistik.gd
+var links_vb: VBoxContainer          # AT-10/13: linke Spalte unten (Ziele, Linien)
+var linien_panel: PanelContainer
+var linien_vb: VBoxContainer
+var linien_werte: Dictionary = {}    # "von|nach" -> angezeigte Zahlen (Test gegen Spielwert)
 var _schnapp: Array = []             # Schnappschüsse an den letzten zwei Periodengrenzen
 
 
@@ -129,6 +138,8 @@ func einbauen(p_welt: Node) -> void:
 	_baue_toast()
 	_baue_linienbau()
 	_baue_kopfleiste()
+	statistik = Statistik.new(ps)
+	_baue_links()
 
 
 func _orte_lesen() -> void:
@@ -298,6 +309,7 @@ func _baue_panel() -> void:
 	panel.offset_left = -PANEL_B - 12.0
 	panel.offset_right = -12.0
 	panel.offset_top = 72.0
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN     # breiter Inhalt wächst nach links, nie aus dem Bild
 	panel.visible = false
 	add_child(panel)
 	panel_vb = VBoxContainer.new()
@@ -385,6 +397,8 @@ func _process(delta: float) -> void:
 		_refresh_t = 0.0
 		if auswahl != "" and not _taste_unten:          # BUG-1-Muster: kein Neuaufbau, solange die linke Taste gehalten wird
 			panel_neu()
+		if not _taste_unten:
+			linien_neu()
 		kopf_neu()
 
 
@@ -661,6 +675,8 @@ func _baue_linienbau() -> void:
 	modus_panel.anchor_top = 1.0
 	modus_panel.anchor_bottom = 1.0
 	modus_panel.offset_bottom = -16.0
+	modus_panel.offset_left = MITTE_VERSATZ                # Mitte der freien Fläche zwischen Linienliste und Panel
+	modus_panel.offset_right = MITTE_VERSATZ
 	modus_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	modus_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	modus_panel.visible = false
@@ -677,6 +693,8 @@ func _baue_linienbau() -> void:
 	vorschau_panel.anchor_top = 1.0
 	vorschau_panel.anchor_bottom = 1.0
 	vorschau_panel.offset_bottom = -72.0                   # über der Modusleiste
+	vorschau_panel.offset_left = MITTE_VERSATZ - VORSCHAU_B / 2.0   # feste Breite, Texte brechen um
+	vorschau_panel.offset_right = MITTE_VERSATZ + VORSCHAU_B / 2.0
 	vorschau_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	vorschau_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	vorschau_panel.visible = false
@@ -835,6 +853,7 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 	hb.add_child(b)
 	hb.add_child(_knopf("Abbrechen · Esc", "vorschau_abbrechen", modus_ende, false, false, "vorschau"))
 	vorschau_vb.add_child(hb)
+	_umbrechen(vorschau_vb)
 	vorschau_panel.visible = true
 
 
@@ -946,14 +965,15 @@ func _linien_ab(von: String) -> void:
 		var l := _label("→ %s · %d Fuhrwerk(e)" % [nm, ziele[nm]], 16)
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hb.add_child(l)
+		panel_vb.add_child(hb)
+		panel_werte["linie_" + nm] = ziele[nm]
+		var zeile := _fz_knoepfe(linien_fahrzeuge(von, nm))
 		var grau: bool = preis > ps.eco.cash_cent
 		var b := _knopf("+ Fuhrwerk %s" % geld(preis), "plus_" + nm, fuhrwerk_kaufen.bind(von, nm), false, grau)
 		if grau:
 			b.tooltip_text = "Es fehlen %s." % fehlbetrag(preis - ps.eco.cash_cent)
-		hb.add_child(b)
-		panel_vb.add_child(hb)
-		panel_werte["linie_" + nm] = ziele[nm]
-		panel_vb.add_child(_fz_knoepfe(linien_fahrzeuge(von, nm)))
+		zeile.add_child(b)
+		panel_vb.add_child(zeile)
 
 
 # ------------------------------------------------------------------ AT-09 Kopfleiste (HUD Welt)
@@ -1028,7 +1048,10 @@ func _schnapp_neu() -> void:
 
 ## Aus sim_schritt nach jedem Tick (prototyp_welt.gd): Schnappschuss genau an der Periodengrenze.
 func nach_tick() -> void:
-	if _sim_ok() and ps.sim.tick_count % periode() == 0:
+	if not _sim_ok():
+		return
+	statistik.nach_tick()
+	if ps.sim.tick_count % periode() == 0:
 		_schnapp_neu()
 
 
@@ -1432,3 +1455,132 @@ func fz_fehlertext(f: Dictionary, r: Dictionary) -> String:
 		"bankrott":
 			return text("bankrott")
 	return text("fz_sonst", {"code": fe})
+
+
+# ------------------------------------------------------------------ AT-10 Linienliste (W4, Szenario i: ohne Sortieren)
+
+func _baue_links() -> void:
+	links_vb = VBoxContainer.new()
+	links_vb.name = "LinkeSpalte"
+	links_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	links_vb.anchor_top = 1.0
+	links_vb.anchor_bottom = 1.0
+	links_vb.offset_left = 12.0
+	links_vb.offset_bottom = -12.0
+	links_vb.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	links_vb.add_theme_constant_override("separation", 8)
+	add_child(links_vb)
+	linien_panel = PanelContainer.new()
+	linien_panel.name = "Linienliste"
+	linien_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	linien_panel.add_theme_stylebox_override("panel", _stil(Color(0.1, 0.09, 0.08, 0.88), 10))
+	linien_panel.custom_minimum_size = Vector2(LINIEN_B, 0)
+	linien_panel.size = Vector2(LINIEN_B, 0)
+	linien_panel.visible = false
+	links_vb.add_child(linien_panel)
+	linien_vb = VBoxContainer.new()
+	linien_vb.add_theme_constant_override("separation", 3)
+	linien_panel.add_child(linien_vb)
+
+
+## Sättigung einer Linie am Ziel (nur Orte): economy.saett_linie mit den Einheiten der letzten Minute
+## (diese Linie, andere Linien zum selben Ort zuerst). {} wenn das Ziel kein Ort ist.
+func linie_saettigung(k: String) -> Dictionary:
+	var z: Dictionary = statistik.linien[k]
+	var e = ps.eco
+	var ziel: int = e.site_of_node(int(z["nach"]))
+	var quelle: int = e.site_of_node(int(z["von"]))
+	if ziel < 0 or e.s_kind[ziel] != Economy.K_STADT or quelle < 0:
+		return {}
+	var g: int = e.s_out_good[quelle]
+	var andere := 0
+	for k2 in statistik.linien:
+		var z2: Dictionary = statistik.linien[k2]
+		if k2 != k and int(z2["nach"]) == int(z["nach"]) and e.s_out_good[e.site_of_node(int(z2["von"]))] == g:
+			andere += int(z2["units"])
+	return e.saett_linie(ziel, quelle, g, int(z["units"]), andere)
+
+
+func linien_neu() -> void:
+	if linien_vb == null or not _sim_ok():
+		return
+	_leeren(linien_vb)
+	_bereich_leeren("linien")
+	linien_werte = {}
+	var gruppen := {}                                         # aktuelle Linien (auch ohne volle Minute)
+	for f in ps.fahrzeuge:
+		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0:
+			continue
+		var k: String = statistik.schluessel(int(f["von"]), int(f["nach"]))
+		if not gruppen.has(k):
+			gruppen[k] = []
+		gruppen[k].append(f)
+	linien_panel.visible = not gruppen.is_empty()
+	if gruppen.is_empty():
+		return
+	linien_vb.add_child(_label("Linien (Netto der letzten Minute)", 16, C_GRAU))
+	for k in gruppen:
+		var fz: Array = gruppen[k]
+		var von := _stationsname(int(fz[0]["von"]))
+		var nach := _stationsname(int(fz[0]["nach"]))
+		var gut := ausgang(site_of(von)).capitalize()
+		var alter := 0
+		var fix := 0
+		for f in fz:
+			alter = maxi(alter, ps.alter_jahre(f))
+			fix += ps.fix_eff(f)
+		var w := {"alter": alter, "fix": fix, "n": fz.size()}
+		linien_vb.add_child(_label("%s → %s (%s) · %d Fuhrwerk(e)" % [von, nach, gut, fz.size()], 16))
+		var zeile := ""
+		var farbe := C_TEXT
+		if statistik.linien.has(k):
+			var z: Dictionary = statistik.linien[k]
+			w["gewinn"] = int(z["gewinn"])
+			w["ertrag"] = int(z["ertrag"])
+			w["fahrk"] = int(z["fahrk"])
+			var gw: int = z["gewinn"]
+			zeile = "Netto %s%s/min" % ["+" if gw > 0 else "", geld(gw)]
+			farbe = C_BAD if gw < 0 else C_TEXT
+		else:
+			zeile = "Netto — $/min"
+		zeile += " · Unterhalt %s/min · Alter %d J" % [geld(fix), alter]
+		var sz := ""
+		var sfarbe := C_TEXT
+		if statistik.linien.has(k):
+			var sa := linie_saettigung(k)
+			if sa.get("ok", false):
+				w["v_promille"] = int(sa["v_promille"])
+				w["ampel"] = int(sa["ampel"])
+				w["x_cent"] = int(sa["x_cent"])
+				var pct: int = Economy.rdiv(int(sa["v_promille"]), 10)
+				if int(sa["ampel"]) >= 1:
+					sz = "%s %s %d %% · +%s/min nur mit neuem Abnehmer" % ["■" if int(sa["ampel"]) >= 2 else "▲", nach, pct, geld(int(sa["x_cent"]))]
+					sfarbe = C_BAD if int(sa["ampel"]) >= 2 else C_WARN
+				else:
+					sz = "● %s %d %%" % [nach, pct]
+		linien_vb.add_child(_label(zeile, 15, farbe))
+		if sz != "":
+			linien_vb.add_child(_label(sz, 15, sfarbe))
+		var hb := _fz_knoepfe_bereich(fz, "linien")
+		var preis := int(fuhrwerk_def().get("kauf_cent", 0))
+		hb.add_child(_knopf("+ Fuhrwerk %s" % geld(preis), "lplus_" + k, fuhrwerk_kaufen.bind(von, nach), false, preis > ps.eco.cash_cent, "linien"))
+		linien_vb.add_child(hb)
+		linien_werte[k] = w
+	_umbrechen(linien_vb)
+
+
+func _fz_knoepfe_bereich(liste: Array, bereich: String) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	for f in liste:
+		var b := _knopf("F%d" % int(f["vid"]), "l_fz_%d" % int(f["vid"]), fahrzeug_oeffnen.bind(int(f["vid"])), false, false, bereich)
+		b.tooltip_text = "%s: Karte mit Alter, Unterhalt, Ersetzen" % f["name"]
+		hb.add_child(b)
+	return hb
+
+
+## Labels in einem Container umbrechen lassen (feste Breite des Elternpanels statt Überlauf).
+func _umbrechen(c: Node) -> void:
+	for k in c.get_children():
+		if k is Label:
+			(k as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

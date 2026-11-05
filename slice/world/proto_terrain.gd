@@ -53,6 +53,7 @@ var boden_klasse := PackedByteArray()    # je Feld
 var boden_tex: ImageTexture
 var schlag_tex: ImageTexture             # Fix-Pass W2 (M6): je Ackerzelle R = Furchenrichtung/π, G = Schlag-Kennung, B = 255 (Acker)
 var detail_tex: ImageTexture             # WA-04: proto_detail.png (prozedural, tools_proto/ta_boden_detail.py), mit Mipmaps
+var ufer_sdf_tex: ImageTexture           # WA-05: proto_ufer_sdf.png (L8, Feinknoten 801 x 721)
 var schlag_n := 0                        # Anzahl Ackerschläge (Keimpunkte mit Ackerzellen)
 var pegel_spalte := PackedFloat32Array()
 var meta := {}
@@ -139,6 +140,11 @@ func _laden(dir: String) -> void:
 		if di.load_png_from_buffer(FileAccess.get_file_as_bytes(dp)) == OK:
 			di.generate_mipmaps()
 			detail_tex = ImageTexture.create_from_image(di)
+	var sp := dir.path_join("proto_ufer_sdf.png")
+	if FileAccess.file_exists(sp):
+		var si := Image.new()
+		if si.load_png_from_buffer(FileAccess.get_file_as_bytes(sp)) == OK and si.get_width() == fnx and si.get_height() == fny:
+			ufer_sdf_tex = ImageTexture.create_from_image(si)
 
 
 ## Ackerschläge (Fix-Pass W2, M6): bisher bekam jeder 200 x 125-m-Block der Welt eine eigene Furchenrichtung, die Richtung
@@ -287,6 +293,7 @@ func _material() -> ShaderMaterial:
 	m.set_shader_parameter("schlag", schlag_tex)
 	m.set_shader_parameter("detail", detail_tex)
 	m.set_shader_parameter("stufe_a", detail_tex != null)   # WA-04 Stufe A; ohne Detailtextur Rueckfall auf WA-03b
+	ufer_sdf_parameter(m)
 	m.set_shader_parameter("boden_rect", Vector4(ox, oz, gw * M, gh * M))
 	var arr := PackedVector4Array()
 	for g in gewaesser:
@@ -297,6 +304,15 @@ func _material() -> ShaderMaterial:
 	m.set_shader_parameter("gewaesser_n", mini(gewaesser.size(), 4))
 	ProtoLicht.terrain_parameter(m)              # WA-03b: Hangschummerung + Hoehentoenung passend zur Sonne
 	return m
+
+
+## WA-05: Distanzfeld des Flussufers an ein Material (Gelaende oder Flusswasser); ohne Datei bleibt es aus.
+func ufer_sdf_parameter(m: ShaderMaterial) -> void:
+	var an := ufer_sdf_tex != null and detail_tex != null
+	m.set_shader_parameter("ufer_sdf_an", an)
+	if an:
+		m.set_shader_parameter("ufer_sdf", ufer_sdf_tex)
+		m.set_shader_parameter("sdf_rect", Vector4(ox - FM * 0.5, oz - FM * 0.5, fnx * FM, fny * FM))
 
 
 func _baue_gelaende() -> void:

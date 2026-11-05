@@ -65,12 +65,22 @@ uniform float detail_fern_m = 300.0;         // ab hier aus, keine Zugriffe
 uniform float schlag_m = 175.0;              // Gewann-Zelle (7 Felder, wie _schlag_textur)
 uniform float rain_m = 2.0;                  // Feldrain zwischen Schlaegen
 uniform vec3 c_rain : source_color = vec3(0.400, 0.490, 0.300);
+// WA-05 Ufer aus Distanzfeld (5 m, tools_proto/ta_ufer_sdf.py): Wert * 255 / 4 - 32 = Abstand zur glatten Fluss-Uferlinie (m, + = Land)
+uniform sampler2D ufer_sdf : filter_linear, repeat_disable;
+uniform bool ufer_sdf_an = false;
+uniform vec4 sdf_rect = vec4(-1002.5, -1002.5, 4005.0, 3605.0);   // xy = Welt von Texel 0 (Knoten 0 - 2,5 m), zw = Ausdehnung
+uniform float ufer_band_m = 4.0;             // Schlammsaum an Land ab der glatten Uferlinie
+uniform vec3 c_aue : source_color = vec3(0.490, 0.600, 0.349);    // #7D9959 auenboden: Wasserklasse ausserhalb des Saums
+
+float ufer_abstand(vec2 p) {
+	return texture(ufer_sdf, (p - sdf_rect.xy) / sdf_rect.zw).r * 255.0 / 4.0 - 32.0;
+}
 
 int klasse(vec4 b) {
 	return int(floor(b.a * 255.0 / 20.0 + 0.01));
 }
 vec3 kfarbe(vec4 b, int id) {
-	return id == 11 ? c_ufer : b.rgb;
+	return id == 11 ? (ufer_sdf_an ? c_aue : c_ufer) : b.rgb;
 }
 bool ist_acker(int id) {
 	return id == 3 || id == 4;
@@ -154,6 +164,10 @@ vec3 boden_stufe_a(vec2 p, vec2 j, float dist, out int id_out) {
 		if (ib == 6) { cb *= tp; }
 	}
 	vec3 col = mix(cb, ca, wa);
+	if (ufer_sdf_an) {          // WA-05: Schlammsaum aus dem Distanzfeld statt aus der 25-m-Wasserklasse
+		float su = ufer_abstand(p) + (vnoise(p * 0.3 + 1.7) - 0.5) * 1.5;
+		col = mix(col, c_ufer, 1.0 - smoothstep(ufer_band_m * 0.4, ufer_band_m, su));
+	}
 	int id_w = wa >= 0.5 ? ia : ib;
 	id_out = id_w;
 	// Grundrauschen (wie bisher) + Makro-Variation 260/700 m gegen grossflaechige Gleichfoermigkeit

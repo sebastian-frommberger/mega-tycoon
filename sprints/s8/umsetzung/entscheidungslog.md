@@ -19,3 +19,5 @@
 | 05.11. | Ertragsausgleich a: Haken in economy.gd (6 Zeilen, `ertrag_a_promille`) -> Bot darf a nicht mehr selbst emulieren, `--a=` uebergeben | FX3.md | Tobias/Daniel |
 
 - FX4 gemergt: Fuhrwerke und HQ halten am Ladeplatz, Postkutsche behaelt eigene Halte ohne Oekonomie (Option b). E4 gruen bei k=1/4/8/20; E6 bei k=1 jetzt gruen, bei k>=4 weiter bewusste Abweichung (TA, FZ-09). FEST_PRUEFSUMME neu 1078369192135197259 (Dorf-Station am Ladeplatz). regress_fast gruen, 157 s.
+
+- OE-02/03 gemergt (s8-oe3): Sets k4c/k8d via `--oe_set=`, inaktiv (`kalibrierung_aktiv_set: null`). k4c/k8d: Plan-Bankrott 0 % (n=100), X1/X2 gruen, Ersetzen-Angebot Minute 30. Verfehlt: Naiv-Band (90-95 % statt 10-30 %, Bot-Verhalten), Ereignisluecke P90 5/7 min, Schneeball k8d P50 2,58x; k=20 nicht kalibrierbar (W2: Mehlfrist ~18 Felder). F2-Schwelle 620 $/min vorlaeufig; Regel "5 Perioden am Stueck" erreichen nur 9/5 von 100 -> Vorschlag gleitendes 5er-Mittel. Offen: k-Entscheid (Basti), Set-Aktivierung (Felix), Naiv-Definition (Jonas/Daniel), Bot-Doppelzaehlung Firmenkauf in netto_op (Daniel). regress_fast gruen 112 s.

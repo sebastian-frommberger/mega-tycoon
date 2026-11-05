@@ -95,3 +95,4 @@ Fazit: **Zukauf ist für den Prototyp nicht nötig.** Fantasy Town + Nature + Tr
 |---|---|---|---|
 | `slice/world/data/proto/proto_detail.png` (512 × 512 RGBA8, mit Mipmaps 1,4 MB VRAM) | WA-04 Detailtextur Gras/Erde im Gelände-Shader | `tools_proto/ta_boden_detail.py`, FFT-Bandpass-Rauschen, Seed 4041 | prozedural, eigene Erzeugung, keine Fremdlizenz |
 | Makro-Variation, Übergangsmaske, Ackerschläge, Feldrain (`proto_terrain.gdshader`) | WA-04 | im Shader berechnet (Wertrauschen, Voronoi), keine Datei | prozedural, eigene Erzeugung, keine Fremdlizenz |
+| `slice/world/data/proto/proto_ufer_sdf.png` (801 × 721 L8, 0,58 MB VRAM) | WA-05 Ufer-Distanzfeld | `tools_proto/ta_ufer_sdf.py` aus den eigenen Weltdaten | prozedural, eigene Erzeugung, keine Fremdlizenz |

@@ -235,6 +235,14 @@ def hang(out, meta):
     rel = np.degrees(np.arctan2(nxz[..., 1], nxz[..., 0]) - math.atan2(zur_sonne[1], zur_sonne[0]))
     rel = (rel + 180.0) % 360.0 - 180.0
     sekt = np.histogram(rel[band], bins=np.arange(-180, 181, 45))[0]
+    # Direkte Pruefung des Fits: mittlere Leuchtdichte je Hangneigung zur Sonne t (positiv = Hang zeigt zur Sonne, in %), Wiese, Neigung <= 20 %
+    tneig = (-hx * zur_sonne[0] - hz * zur_sonne[1]) * 100.0
+    mm_ = innen & (slope <= 20.0)
+    kanten = [-20, -15, -12, -9, -6, -3, -1, 1, 3, 5, 8, 12, 20]
+    for lo, hi in zip(kanten[:-1], kanten[1:]):
+        k = mm_ & (tneig >= lo) & (tneig < hi)
+        rows.append([f"Lbin_t_{lo}_{hi}", f"t {lo}..{hi} % zur Sonne", int(k.sum()), "", float(L[k].mean()) if k.any() else float("nan"),
+                     float("nan"), float("nan")])
     neben = {
         "fit_r2": 1.0 - ss_res / ss_tot if ss_tot else float("nan"),
         "sonnenhoehe_grad": math.degrees(elev),

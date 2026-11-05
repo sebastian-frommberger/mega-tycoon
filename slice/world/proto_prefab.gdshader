@@ -9,7 +9,7 @@ shader_type spatial;
 
 uniform sampler2D palette : source_color, filter_nearest, repeat_disable;
 uniform float palette_zeilen = 4.0;
-uniform float periode_m = 240.0;
+uniform float periode_m = 20.8;   // FZ-09: 8 Doppelschritte (Halbfloat-Fix), gesetzt von ProtoPrefabs.PERIODE_M
 uniform float schritt_m = 2.6;
 uniform float bein_winkel = 0.42;
 uniform float wipp_m = 0.05;

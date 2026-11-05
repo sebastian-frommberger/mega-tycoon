@@ -101,6 +101,12 @@ class Profil extends RefCounted:
 	func a_brems() -> float:
 		return v_nom / (w * 0.5 * 0.9)
 
+	## FZ-09 Gangdeckel: Strecke (m) je Doppelschritt im Bild. Bei v_max = (1 + Überhöhung) · v_nom läuft der Gang mit
+	## gang_hz (2,5 Hz), bei v_nom mit gang_hz / (1 + Überhöhung) (2,17 Hz), unabhängig von k. Nie kürzer als der echte
+	## Doppelschritt ProtoPrefabs.SCHRITT_M: bei langsamen Tempi (k ≥ 23) läuft das Pferd natürlich, ohne Rückwärtsrutschen.
+	func gang_schritt_m() -> float:
+		return maxf(ProtoPrefabs.SCHRITT_M, (1.0 + ueb) * v_nom * 10.0 / gang_hz)
+
 	## E4-Profilwert (m/Tick²) je Kategorie: (Kurvenfaktor · v_sim)² / R_ref, R_ref = Kurvenradius Dorfstraße
 	## (15 §B5 E4: „Fuhrwerk auf Dorfstraße R 25 m: (0,55 × 150)² / 25 ≈ 270 m/s²“). Gilt auf allen Wegtypen:
 	## in einer Chaussee-Kurve R 50 m darf das Fuhrwerk also schneller sein (f = √(270 · 50) / 150 ≈ 0,78).
@@ -633,7 +639,7 @@ class Zustand extends RefCounted:
 	var pos := Vector3.ZERO
 	var gier := 0.0
 	var basis := Basis.IDENTITY          # Instanz-Basis (an: nur Gier; aus: FAST-Mischung)
-	## INSTANCE_CUSTOM nach Vertrag ProtoPrefabs (gang): x Gang = fmod(Gangstrecke m, 240), y Variante (setzt
+	## INSTANCE_CUSTOM nach Vertrag ProtoPrefabs (gang): x Gang = fmod(Gangstrecke m, PERIODE_M = 20,8), y Variante (setzt
 	## proto_fahrzeuge), z Nicken rad (Drehung um +x, + = Bug senkt sich), w Wanken rad (Drehung um +z, + = linke
 	## Modellseite hebt sich). Gangstrecke = Gangphase × ProtoPrefabs.SCHRITT_M (Schrittfrequenz gedeckelt, K31).
 	var custom := Color(0, 0, 0, 0)
@@ -760,7 +766,7 @@ class Zustand extends RefCounted:
 		var nick := atan(rl.steigung_bei(pp)) + nick_dyn
 		var v_rel := clampf(v_p / prof.v_nom, 0.0, 1.0)
 		var stride_w := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.wipp_hz      # m je Wipp-Periode
-		var stride_g := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.gang_hz      # m je Schritt-Periode (Deckel)
+		var stride_g := prof.gang_schritt_m()                                     # m je Schritt-Periode (Deckel, FZ-09)
 		wipp = prof.wipp_m * v_rel * 0.5 * (1.0 - cos(TAU * zb / stride_w))   # hebt, sinkt nie ein
 		custom = Color(gang_m(zb / stride_g), 0.0, -nick, roll)
 
@@ -788,8 +794,7 @@ class Zustand extends RefCounted:
 		var bb := Basis(Vector3.UP, float(aus_akt[1]))
 		basis = Basis(ba.x.lerp(bb.x, alpha), ba.y.lerp(bb.y, alpha), ba.z.lerp(bb.z, alpha))
 		gier = lerp_angle(float(aus_vor[1]), float(aus_akt[1]), alpha)
-		var stride_g := (1.0 + prof.ueb) * prof.v_nom * 10.0 / prof.gang_hz
-		custom = Color(gang_m(r / stride_g), 0.0, 0.0, 0.0)
+		custom = Color(gang_m(r / prof.gang_schritt_m()), 0.0, 0.0, 0.0)
 		wipp = 0.0
 		zb = r
 		vb = maxf(0.0, z_akt - z_vor)

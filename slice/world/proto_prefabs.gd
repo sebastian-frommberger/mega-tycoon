@@ -17,7 +17,10 @@ extends RefCounted
 
 const KP := "res://props/kenney_proto/"
 const SHADER := preload("res://world/proto_prefab.gdshader")
-const PERIODE_M := 240.0          # gang = fmod(strecke_m, PERIODE_M); Rad- und Schrittzahl sind je Periode ganzzahlig
+## FZ-09 (Halbfloat-Fix): INSTANCE_CUSTOM ist in Compat 4.7.2 Halbfloat (gemessen, sprints/s8/umsetzung/FZ-09.md).
+## Bei 240 m war die Aufloesung 0,125 m (Beinphase bis 17 Grad Sprung); 8 Doppelschritte = 20,8 m geben 0,0156 m
+## (<= 2,2 Grad). Beine: genau 8 Schritte je Periode; Raeder: ganze Umlaeufe, Schlupf <= 5,1 % (Radien 0,66-0,87 m).
+const PERIODE_M := 20.8           # gang = fmod(strecke_m, PERIODE_M) = 8 x SCHRITT_M; Rad- und Schrittzahl je Periode ganzzahlig
 const SCHRITT_M := 2.6            # Trab: ein Doppelschritt
 const ZEILEN := 4
 const STUFEN := 5

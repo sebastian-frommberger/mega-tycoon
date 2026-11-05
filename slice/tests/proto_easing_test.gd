@@ -39,7 +39,12 @@ var n_abw := 0
 ## E6 in dichten Eckfolgen über W/2 liegt; Toleranz für die offene Abweichung 1,3 × W/2. Darüber: Zeile "ABW" mit Grund
 ## in der CSV (kein stiller FAIL, kein stilles OK). E5 (Halt) bleibt hartes Gate.
 const E6_TOL := 1.3
+## FZ-09: E6-Historie in Ticks (vorher 60 Frames = 10 Ticks, bei k > 1 wurde alles darüber übersprungen).
+const E6_HIST_TICKS := 200.0
 const E6_GRUND := "bewusst: Kurvenfaktor 0,70 (PO) + R 25 m / 11 m; Rückstand nach dichten Ecken (Mühlweg–Kirchstraße–Hauptstraße), Überhöhung +15 % holt ihn erst auf ≈ 380 m Gerade ein; sichtbar ≤ 0,3 s, Halt (E5) pünktlich"
+## FZ-09 (05.11.2026, offen bis Entscheid Jonas/Felix): bei k > 1 wächst E6 in Ticks ≈ mit k. Der Abstand Bild–Sim ist
+## Geometrie der Kurvenzone (feste Meter, gemessen 23–46 m bei k = 1–20), W/2 ist in Ticks fest. Optionen in FZ-09.md.
+const E6_GRUND_K := "ABW FZ-09 05.11.2026 (k > 1): Abstand Bild–Sim in Metern k-unabhängig (Kurvenzone), in Ticks ≈ k-fach; Entscheid Jonas/Felix, Optionen FZ-09.md"
 
 
 func pruef(id: String, ok: bool, text: String, wert := "") -> void:
@@ -108,14 +113,17 @@ func testrouten() -> Array:
 func messen(ps, ticks: int, an := true) -> Dictionary:
 	var m := {"e2_max": 0.0, "e2_fail": 0, "e3_max": 0.0, "e3_fail": 0, "e4_max": 0.0, "e4_quote": 0.0, "e4_fail": 0,
 		"e5_max": 0.0, "e5_n": 0, "e5_fail": 0, "e5_pos": 0.0, "e6_max": 0.0, "e6_fail": 0, "e7_min": 9.0, "e7_max": 0.0,
-		"e7_fail": 0, "wende": 0, "frames": 0, "aus_norm_min": 9.0, "v_max": 0.0}
+		"e7_fail": 0, "wende": 0, "frames": 0, "aus_norm_min": 9.0, "v_max": 0.0, "e6_m_max": 0.0, "e6_jenseits": 0,
+		"g2_max": 0.0, "g2_alt_max": 0.0, "g2_n": 0}
 	var n: int = ps.fahrzeuge.size()
 	var alt_pos: Array = []
 	var alt_g: Array = []
-	var hist: Array = []             # je Fahrzeug [[t, R], …] (Ring, letzte 40 Frames)
+	var hist: Array = []             # je Fahrzeug [[t, R], …] (Ring, E6_HIST_TICKS Ticks)
 	var halt: Array = []             # je Fahrzeug [z_stop, t_ref] offen oder []
 	var st_alt: Array = []
+	var gang_alt: Array = []         # FZ-09 G2: je Fahrzeug [Gangstrecke wahr (m, ungewickelt), Halbfloat neu, Halbfloat 240 m]
 	for i in n:
+		gang_alt.append([])
 		alt_pos.append(null)
 		alt_g.append(0.0)
 		hist.append([])
@@ -149,7 +157,7 @@ func messen(ps, ticks: int, an := true) -> Dictionary:
 			var r := lerpf(z.z_vor, z.z_akt, acc)
 			var hi: Array = hist[i]
 			hi.append([t, r])
-			if hi.size() > 60:
+			if hi.size() > int(E6_HIST_TICKS * FPS / 10.0):
 				hi.pop_front()
 			# E7
 			for c in [z.basis.x, z.basis.y, z.basis.z]:
@@ -158,6 +166,19 @@ func messen(ps, ticks: int, an := true) -> Dictionary:
 				m["e7_max"] = maxf(m["e7_max"], nn)
 				if absf(nn - 1.0) > 0.01:
 					m["e7_fail"] += 1
+			# G2 (FZ-09): Beinphasen-Sprung durch Halbfloat-Quantisierung von INSTANCE_CUSTOM.x (Compat, gemessen 4.7.2):
+			# Abweichung des angezeigten Phasenschritts je Frame vom wahren Schritt, in Grad Beinphase (360° je SCHRITT_M)
+			var g_wahr: float = z.zb / prof.gang_schritt_m() * ProtoPrefabs.SCHRITT_M
+			var q_neu := halbfloat(z.custom.r)
+			var q_alt := halbfloat(fposmod(g_wahr, 240.0))
+			if not gang_alt[i].is_empty():
+				var dg: float = g_wahr - float(gang_alt[i][0])
+				var dq := wrapf(q_neu - float(gang_alt[i][1]), -ProtoPrefabs.PERIODE_M * 0.5, ProtoPrefabs.PERIODE_M * 0.5)
+				var dq2 := wrapf(q_alt - float(gang_alt[i][2]), -120.0, 120.0)
+				m["g2_max"] = maxf(m["g2_max"], absf(dq - dg) * 360.0 / ProtoPrefabs.SCHRITT_M)
+				m["g2_alt_max"] = maxf(m["g2_alt_max"], absf(dq2 - dg) * 360.0 / ProtoPrefabs.SCHRITT_M)
+				m["g2_n"] += 1
+			gang_alt[i] = [g_wahr, q_neu, q_alt]
 			# E5
 			if not halt[i].is_empty():
 				var zs: float = halt[i][0]
@@ -178,6 +199,7 @@ func messen(ps, ticks: int, an := true) -> Dictionary:
 			var e: Array = z._leg_bei(z.zb)
 			var zp: float = float(e[0]) + z.p_bild
 			var tau := 0.0
+			m["e6_m_max"] = maxf(m["e6_m_max"], absf(zp - r))
 			if zp < r - 1e-3:
 				tau = INF
 				for k in range(hi.size() - 1, 0, -1):
@@ -191,14 +213,18 @@ func messen(ps, ticks: int, an := true) -> Dictionary:
 			elif zp > r + 1e-3:
 				var vr := maxf(z.z_akt - z.z_vor, prof.v_nom)
 				tau = (zp - r) / vr
-			if not is_inf(tau):
-				if absf(tau) / (prof.w * 0.5) > m["e6_max"]:
-					m["e6_wo"] = "%s t %.1f tau %.2f zp %.1f r %.1f" % [f["name"], t, tau, zp, r]
-				m["e6_max"] = maxf(m["e6_max"], absf(tau) / (prof.w * 0.5))
-				var kk: String = "e6_" + str(f["name"])
-				m[kk] = maxf(m.get(kk, 0.0), absf(tau) / (prof.w * 0.5))
-				if absf(tau) > prof.w * 0.5 + 1e-3:
-					m["e6_fail"] += 1
+			if is_inf(tau):
+				# FZ-09: Bild hinter dem ältesten Eintrag der Historie: nicht mehr überspringen, sondern als Untergrenze
+				# (Historienlänge) werten und zählen; Historie ist mit E6_HIST_TICKS so lang, dass das nicht vorkommt
+				m["e6_jenseits"] += 1
+				tau = t - float(hi[0][0])
+			if absf(tau) / (prof.w * 0.5) > m["e6_max"]:
+				m["e6_wo"] = "%s t %.1f tau %.2f zp %.1f r %.1f" % [f["name"], t, tau, zp, r]
+			m["e6_max"] = maxf(m["e6_max"], absf(tau) / (prof.w * 0.5))
+			var kk: String = "e6_" + str(f["name"])
+			m[kk] = maxf(m.get(kk, 0.0), absf(tau) / (prof.w * 0.5))
+			if absf(tau) > prof.w * 0.5 + 1e-3:
+				m["e6_fail"] += 1
 			if z.in_wende:
 				m["wende"] += 1
 				alt_pos[i] = z.pos
@@ -235,6 +261,23 @@ func messen(ps, ticks: int, an := true) -> Dictionary:
 	return m
 
 
+## FZ-09: IEEE-754-Halbfloat (binary16) runden, wie INSTANCE_CUSTOM in Compat ankommt (Messung FZ-09.md: 200,05 -> 200,0).
+static func halbfloat(x: float) -> float:
+	if x == 0.0:
+		return 0.0
+	var a := absf(x)
+	var e := floori(log(a) / log(2.0))
+	if a >= pow(2.0, e + 1):
+		e += 1
+	var d := pow(2.0, maxi(e, -14) - 10)
+	return signf(x) * roundf(a / d) * d
+
+
+## FZ-09 G1: Gangfrequenz (Hz) des Profils bei Bildtempo v (m/Tick), 10 Ticks/s.
+static func gang_hz(prof, v: float) -> float:
+	return v * 10.0 / prof.gang_schritt_m()
+
+
 func TICKS_PRO_FRAME() -> float:
 	return 10.0 / FPS
 
@@ -253,12 +296,15 @@ func bericht(teil: String, m: Dictionary) -> void:
 	pruef("E3", m["e3_fail"] == 0, "%s Gierrate ≤ ω_max" % teil, "max %.2f × ω_max, %d Verstöße" % [m["e3_max"], m["e3_fail"]])
 	pruef("E4", m["e4_fail"] == 0, "%s Querbeschleunigung ≤ 1,25 × Profilwert" % teil, "max %.0f m/s² = %.2f × Grenze, %d Verstöße" % [m["e4_max"], m["e4_quote"], m["e4_fail"]])
 	pruef("E5", m["e5_fail"] == 0 and m["e5_n"] > 0, "%s Halt ≤ 0,1 m, ≤ W/2 Ticks" % teil, "%d Halte, max %.2f × W/2, %d Verstöße" % [m["e5_n"], m["e5_max"], m["e5_fail"]])
-	var e6_wert := "max %.2f × W/2, %d Verstöße" % [m["e6_max"], m["e6_fail"]]
+	var e6_wert := "max %.2f × W/2, %d Verstöße, max |Bild − Sim| %.1f m, jenseits Historie %d" % [m["e6_max"], m["e6_fail"], m["e6_m_max"], m["e6_jenseits"]]
 	if m["e6_fail"] == 0 or nur_info:
 		pruef("E6", m["e6_fail"] == 0, "%s Zeitversatz ≤ W/2" % teil, e6_wert)
 	else:
-		abweichung("E6", "%s Zeitversatz ≤ W/2 (Toleranz offen %.1f×: %s)" % [teil, E6_TOL, "hält" if m["e6_max"] <= E6_TOL else "überschritten"], e6_wert, E6_GRUND)
+		abweichung("E6", "%s Zeitversatz ≤ W/2 (Toleranz offen %.1f×: %s)" % [teil, E6_TOL, "hält" if m["e6_max"] <= E6_TOL else "überschritten"], e6_wert,
+			E6_GRUND if ProtoSim.tempo_k_aus(rw) == 1 else E6_GRUND_K)
 	pruef("E7", m["e7_fail"] == 0, "%s keine Stauchung (Norm 1 ± 1 %%)" % teil, "Norm %.4f–%.4f" % [m["e7_min"], m["e7_max"]])
+	pruef("G2", m["g2_n"] > 0 and m["g2_max"] <= 3.0, "%s Beinphasen-Sprung ≤ 3° (Halbfloat, Periode %.1f m)" % [teil, ProtoPrefabs.PERIODE_M],
+		"max %.2f° (Rechnung: %.2f°), vorher 240 m: %.1f°, %d Frames" % [m["g2_max"], 360.0 * pow(2.0, floorf(log(ProtoPrefabs.PERIODE_M) / log(2.0)) - 10.0) / ProtoPrefabs.SCHRITT_M, m["g2_alt_max"], m["g2_n"]])
 
 
 func synth_sim(wege: Array, parent: Node3D):
@@ -285,6 +331,14 @@ func _run() -> void:
 	for f in psA.fahrzeuge:
 		print("    %-14s Sim %.0f m, Fahrlinie %.0f m, Skala %.3f, f_min %.2f" % [f["name"], float(f["sim_mm"]) / psA.mm_pro_m, f["legs"][0].laenge, f["legs"][0].skala, Array(f["legs"][0].f).min()])
 	pruef("A0", psA.fahrzeuge.size() == wege.size() and psA.fehler.is_empty(), "10 Testrouten als Sim-Linien", str(psA.fehler))
+	# G1 (FZ-09, UX FW-4): Gangdeckel 1,5–2,5 Hz für Schritt/Trab bei jedem k: bei v_nom ≥ 1,5 Hz, bei v_max ≤ 2,5 Hz
+	for kat in ["fuhrwerk", "postkutsche"]:
+		var pr = psA.profil(kat)
+		var f_nom := gang_hz(pr, pr.v_nom)
+		var f_max := gang_hz(pr, pr.v_nom * (1.0 + pr.ueb))
+		pruef("G1", f_nom >= 1.5 - 1e-6 and f_max <= 2.5 + 1e-6 and pr.gang_schritt_m() >= ProtoPrefabs.SCHRITT_M,
+			"Gangdeckel %s bei k = %d: 1,5 ≤ f(v_nom), f(v_max) ≤ 2,5 Hz" % [kat, psA.tempo_k],
+			"f(v_nom) %.2f Hz, f(v_max) %.2f Hz, Schritt-Periode %.2f m (v_nom %.3f m/Tick)" % [f_nom, f_max, pr.gang_schritt_m(), pr.v_nom])
 	var mA := messen(psA, 900, true)
 	bericht("A", mA)
 	# E7 Vergleich: heutiges Bild (aus) auf denselben Routen

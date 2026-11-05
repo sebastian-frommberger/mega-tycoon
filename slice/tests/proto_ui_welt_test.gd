@@ -58,6 +58,8 @@ func _run() -> void:
 		await _fz04()
 	if nur == "" or nur == "at10":
 		await _at10()
+	if nur == "" or nur == "at11":
+		await _at11()
 	if nur == "layout":
 		await _at08_maus()
 		await _at09_layout()
@@ -431,7 +433,7 @@ func _vorschau_messung() -> void:
 func _ticks(n: int) -> void:
 	s.setze_tempo(4)
 	var ziel: int = ps.ticks + n
-	while ps.ticks < ziel:
+	while ps.ticks < ziel and not ps.konto.bankrupt:
 		s.sim_acc = 0.0
 		s.sim_schritt(minf(0.2, (ziel - ps.ticks) / 40.0 + 0.0001))
 	s.setze_tempo(0)
@@ -843,6 +845,112 @@ func _at10() -> void:
 	ok(w["n"] == 2 and w["fix"] == fix_soll and t.contains("Unterhalt %s/min · Alter %d J" % [ui.geld(w["fix"]), w["alter"]]),
 		"Unterhalt %s/min = Σ fix_eff (mit Alterung), Alter %d J, 2 Fuhrwerke" % [ui.geld(w["fix"]), w["alter"]])
 	ok(ui.knoepfe.has("l_fz_2") and ui.knoepfe.has("lplus_" + km), "Zeile hat [F2] (Karte) und [+ Fuhrwerk]")
+
+# ------------------------------------------------------------------ AT-11
+
+func _diag_faelle() -> Array:
+	return ui.diag_log.map(func(d): return d["fall"])
+
+
+func _at11() -> void:
+	print("  -- AT-11 Toast-Queue und A-08-Diagnosen")
+	await _neue_szene()
+	var e = ps.eco
+	var q = ui.toast_panel
+	q.set_process(false)                           # Zeit nur über weiter() (keine Wanduhr)
+	# 3 Meldungen im selben Tick: nacheinander, 0 verloren
+	var p0: int = q.protokoll.size()
+	ui.melden("Meldung A")
+	ui.melden("Meldung B", {"titel": "Erlenbach", "aktion": "Zum Ort", "aktion_id": "panel", "daten": "Erlenbach"})
+	ui.melden("Meldung C")
+	ok(q.gezeigt() == "Meldung A" and q.queue.size() == 2 and q.visible, "3 Meldungen in 1 Tick: A sichtbar, 2 warten")
+	var folge: Array = [q.gezeigt()]
+	for i in 3:
+		q.weiter(q.MAX_S + 0.01)
+		folge.append(q.gezeigt())
+	ok(folge == ["Meldung A", "Meldung B", "Meldung C", ""] and q.protokoll.size() - p0 == 3 and not q.visible,
+		"nacheinander %s, alle 3 im Protokoll, danach leer" % str(folge))
+	ok(q.dauer_fuer("x") <= 4.1 and q.dauer_fuer("x") >= 4.0 and q.dauer_fuer("x".repeat(200)) == 10.0, "Dauer 4–10 s nach Textlänge")
+	# Klick-Rückmeldung verdrängt eine Diagnose nicht endgültig
+	ui.melden("Diagnose D", {"titel": "Erlenmühle", "aktion": "Zur Linie", "aktion_id": "panel", "daten": "Erlenmühle"})
+	ui.meldung("Rückmeldung R")
+	ok(q.gezeigt() == "Rückmeldung R" and q.queue.size() == 1 and q.queue[0]["text"] == "Diagnose D", "Rückmeldung sofort, Diagnose kommt danach wieder")
+	q.weiter(10.01)
+	ok(q.gezeigt() == "Diagnose D" and q._knopf.visible and q._knopf.text == "Zur Linie", "Diagnose mit Titel und Aktionsknopf")
+	q._knopf.pressed.emit()
+	ok(ui.auswahl == "Erlenmühle" and q.gezeigt() == "", "Aktion [Zur Linie] öffnet das Panel (Szenario i: kein Kamerasprung)")
+	# Warnung bleibt stehen, bis aufgehoben; wartende Meldung kommt trotzdem dran
+	ui.melden("Warnung W", {"warn": "test", "titel": "Kasse"})
+	q.weiter(30.0)
+	ok(q.gezeigt() == "Warnung W", "Warnung bleibt nach 30 s stehen (nichts wartet)")
+	ui.melden("Meldung E")
+	q.weiter(10.01)
+	ok(q.gezeigt() == "Meldung E" and q.queue.size() == 1 and q.queue[0]["warn"] == "test", "Wartende Meldung kommt dran, Warnung stellt sich wieder an")
+	q.warnung_aufheben("test")
+	q.weiter(10.01)
+	ok(q.gezeigt() == "" and q.queue.is_empty(), "warnung_aufheben entfernt sie")
+	# --- Diagnosen im Spiel
+	ui.linie_von_hier("Gut Kuppenhof")
+	ui.ziel_waehlen("Erlenmühle")
+	ui.anlegen()
+	ui.ziel_waehlen("Erlenbach")
+	ui.anlegen()
+	ui.fuhrwerk_kaufen("Erlenmühle", "Erlenbach")
+	for i in 4:                                    # 5 Fuhrwerke auf 20 E/min: Verlust + Warten
+		ui.fuhrwerk_kaufen("Gut Kuppenhof", "Erlenmühle")
+	ui.modus_ende()
+	_ticks(4200)
+	var f: Array = _diag_faelle()
+	ok("D3" in f, "D3 Sättigung rot Erlenbach: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D3").map(func(d): return d["titel"] + ": " + d["text"])))
+	ok("D5" in f, "D5 Linie mit Verlust über 3 Minuten: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D5").map(func(d): return d["titel"] + ": " + d["text"])))
+	ok("D1" in f, "D1 wartet / fährt halb voll ab (Teilladung 3×): %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D1").map(func(d): return d["titel"] + ": " + d["text"]).slice(0, 1)))
+	# D7 Kasse: Kasse knapp machen (Testaufbau), dann eine Minute
+	ok(not ui.netto_verlauf.is_empty() and ui.netto_verlauf[-1] < 0, "Netto der letzten Minute negativ (%s)" % str(ui.netto_verlauf))
+	var echt_kasse: int = e.cash_cent
+	e.cash_cent = maxi(100, -int(ui.netto_verlauf[-1]) / 2)   # Testaufbau: Kasse reicht ~30 s
+	ui._kasse_pruefen()
+	f = _diag_faelle()
+	ok("D7" in f and q.queue.any(func(m): return m["warn"] == "kasse") or q.aktuell.get("warn", "") == "kasse",
+		"D7 Kasse reicht ≤ 90 s, Warnung steht: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D7").map(func(d): return d["titel"] + ": " + d["text"])))
+	e.cash_cent = echt_kasse + 5000000
+	ui._kasse_pruefen()
+	ok(not ui._diag.has("kasse") and ui.meldungen_log.any(func(m): return String(m["text"]).begins_with("Kasse reicht wieder.")), "Entwarnung, Warnung aufgehoben")
+	# D4 Lizenz endet < 3 min, Kasse reicht nicht; D4b/D1b Verlängerung scheitert
+	var sm: int = ui.site_of("Erlenmühle")
+	var kosten: int = int(e.licence_quote(sm, false)["kosten_cent"])
+	e.s_lic_until[sm] = ps.sim.tick_count + 1200
+	e._next_expiry = mini(e._next_expiry, e.s_lic_until[sm]) if e._next_expiry >= 0 else e.s_lic_until[sm]
+	e.cash_cent = kosten - 100
+	_ticks(10)
+	ok("D4" in _diag_faelle(), "D4 Lizenz endet: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D4").map(func(d): return d["titel"] + ": " + d["text"])))
+	e.cash_cent = 5000000
+	_ticks(e.s_lic_until[sm] - ps.sim.tick_count - 5)
+	e.cash_cent = kosten - 100                     # Testaufbau: Verlängerung scheitert an der Kasse
+	_ticks(30)
+	ok("D4b" in _diag_faelle() or "D1b" in _diag_faelle(), "D4b Lizenz abgelaufen: %s" % str(ui.diag_log.filter(func(d): return d["fall"] in ["D4b", "D1b"]).map(func(d): return d["titel"] + ": " + d["text"])))
+	e.cash_cent = 5000000
+	# D6 Lebensdauer (15 Jahre = 27.000 Ticks)
+	while ps.sim.tick_count < 27100 and not ps.konto.bankrupt:
+		ps.tick()
+	ui.diagnose(false)
+	ok("D6" in _diag_faelle(), "D6 Lebensdauer: %s" % str(ui.diag_log.filter(func(d): return d["fall"] == "D6").map(func(d): return d["titel"] + ": " + d["text"]).slice(0, 1)))
+	var typen := {}
+	for d in ui.diag_log:
+		typen[d["fall"]] = true
+	var lang: Array = []
+	for d in ui.diag_log:
+		if String(d["text"]).length() > 90 or String(d["titel"]).length() > 30:
+			lang.append(d)
+	ok(typen.size() >= 6, "Katalog: %d verschiedene Diagnosefälle ausgelöst %s (Soll ≥ 6)" % [typen.size(), str(typen.keys())])
+	ok(lang.is_empty(), "%d Diagnosen, Titel ≤ 30 und Text ≤ 90 Zeichen %s" % [ui.diag_log.size(), str(lang)])
+	# 0 verloren: jede Diagnose ist gezeigt (Protokoll) oder wartet
+	var gezeigt := {}
+	for m in q.protokoll:
+		gezeigt[m["text"]] = true
+	for m in q.queue:
+		gezeigt[m["text"]] = true
+	var fehlt: Array = ui.diag_log.filter(func(d): return not gezeigt.has(d["text"]))
+	ok(fehlt.is_empty(), "0 verloren: alle %d Diagnosen im Protokoll oder in der Queue %s" % [ui.diag_log.size(), str(fehlt)])
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

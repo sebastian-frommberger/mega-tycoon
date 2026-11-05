@@ -12,6 +12,7 @@ extends CanvasLayer
 
 const Economy := preload("res://economy.gd")
 const Statistik := preload("res://proto/ui_welt_statistik.gd")   # AT-10
+const ToastQueue := preload("res://ui/toast_queue.gd")            # AT-11
 
 const PANEL_B := 360.0
 const VORSCHAU_B := 640.0
@@ -74,6 +75,19 @@ const FT_WELT := {
 	"ladung_zu_gross": "{n} hat mehr geladen, als der neue Wagen fasst. Ersetze nach dem Abladen.",
 	"verkauft": "{n} verkauft: +{r} Restwert. Die Linie hat noch {k} Fuhrwerk(e).",
 	"fz_sonst": "Das geht gerade nicht. Bitte erneut klicken (Meldung an uns: {code}).",
+	# AT-11 A-08-Diagnosen (AT-14 S4/S7), Titel = Ort/Linie, Text ≤ 90, eine Aktion
+	"d_wartet": "Fuhrwerk {n} wartet {t} s auf Ladung. Zu viele Fuhrwerke für {x} E/min.",
+	"d_halb": "Fuhrwerk {n} fährt nur halb voll ab. Zu viele Fuhrwerke für {x} E/min.",
+	"d_lizenz_ab": "Lizenz abgelaufen, die Fuhrwerke warten. Erneuern kostet {x}.",
+	"d_lizenz_ende": "Die Lizenz endet in {t} min. Verlängern kostet {x}, sonst stehen die Fuhrwerke.",
+	"d_gelb": "{ort} nimmt bald kein {ware} mehr ab ({p} %). Plane einen zweiten Abnehmer.",
+	"d_rot": "{ort} ist mit {ware} gesättigt ({p} %). Ein zweiter Abnehmer bringt +{x}/min.",
+	"d_verlust": "Verlust {x}/min (Fix {a}, Ertrag {b}). Kürzer fahren oder Fuhrwerk abziehen.",
+	"d_alt": "{j} Jahre alt: Unterhalt +{p} %. Ersetzen spart {z}/min.",
+	"d_kasse_vor12": "Größter Verlust: {posten} (−{x}/min). Löse die Linie auf.",
+	"d_kasse_kredit": "Größter Verlust: {posten}. Nimm Kredit oder löse die Linie auf.",
+	"d_kasse_voll": "Der Kredit ist voll. Löse {posten} auf oder verkaufe ein Fuhrwerk.",
+	"d_kasse_gut": "Kasse reicht wieder. Behalte {posten} im Auge.",
 	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
 	"lizenz_linie_ok": "Lizenz {name} gekauft. Linie nach {b} läuft, Fuhrwerk {n} ist unterwegs.",
 	"lizenz_linie_geld": "Lizenz und Fuhrwerk kosten {x}, es fehlen {d}. Nimm Kredit oder warte.",
@@ -89,9 +103,7 @@ var ps = null                        # proto_sim.gd
 var auswahl := ""                    # Stationsname des offenen Panels, "" = zu
 var panel: PanelContainer
 var panel_vb: VBoxContainer
-var toast_panel: PanelContainer
-var toast_label: Label
-var toast_rest := 0.0
+var toast_panel                      # AT-11: ui/toast_queue.gd (PanelContainer)
 var meldungen_log: Array = []        # [{t_ms, text}] alle gezeigten Meldungen (Test: nie stumm)
 var panel_werte: Dictionary = {}     # zuletzt angezeigte Zahlen (Test gegen Spielwert)
 var knoepfe: Dictionary = {}         # Name -> Button im offenen Panel (Tests, play_welt)
@@ -318,10 +330,8 @@ func _baue_panel() -> void:
 
 
 func _baue_toast() -> void:
-	toast_panel = PanelContainer.new()
-	toast_panel.name = "Toast"
-	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	toast_panel.add_theme_stylebox_override("panel", _stil(Color(0.08, 0.07, 0.06, 0.9), 10))
+	toast_panel = ToastQueue.new()
+	toast_panel.aktion_geklickt.connect(_toast_aktion)
 	toast_panel.anchor_left = 1.0
 	toast_panel.anchor_right = 1.0
 	toast_panel.anchor_top = 1.0
@@ -331,11 +341,7 @@ func _baue_toast() -> void:
 	toast_panel.offset_top = -96.0
 	toast_panel.offset_bottom = -12.0
 	toast_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	toast_panel.visible = false
 	add_child(toast_panel)
-	toast_label = _label("", 16)
-	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	toast_panel.add_child(toast_label)
 
 
 func _label(t: String, gr := 16, farbe := C_TEXT) -> Label:
@@ -377,21 +383,28 @@ func _bereich_leeren(bereich: String) -> void:
 
 # ------------------------------------------------------------------ Meldungen
 
-func meldung(t: String, dauer := TOAST_S) -> void:
-	toast_label.text = t
-	toast_panel.visible = true
-	toast_rest = dauer
+## Rückmeldung auf eine Spieleraktion: sofort sichtbar (AT-11: verdrängt nur eine einfache Rückmeldung, Diagnosen kommen danach).
+func meldung(t: String, dauer := -1.0) -> void:
+	var o := {"sofort": true}
+	if dauer > 0.0:
+		o["dauer"] = dauer
+	toast_panel.melden(t, o)
 	meldungen_log.append({"t_ms": Time.get_ticks_msec(), "text": t})
 
 
+## System- und Diagnosemeldung: hinten anstellen (AT-11, eine zugleich, 0 verloren).
+func melden(t: String, opts: Dictionary = {}) -> void:
+	toast_panel.melden(t, opts)
+	meldungen_log.append({"t_ms": Time.get_ticks_msec(), "text": t, "titel": String(opts.get("titel", ""))})
+
+
 func _process(delta: float) -> void:
-	if toast_rest > 0.0:
-		toast_rest -= delta
-		if toast_rest <= 0.0:
-			toast_panel.visible = false
 	if _sim_ok():
-		while not ps.meldungen.is_empty():                 # Sim-Meldungen (Freischaltung, Bankrott) als Toast
-			meldung(String(ps.meldungen.pop_front()))
+		while not ps.meldungen.is_empty():                 # Sim-Meldungen (Freischaltung, Bankrott) in die Queue
+			var m := String(ps.meldungen.pop_front())
+			if m.contains("Lebensdauer"):
+				continue                                     # FZ-03-Meldung kommt als Diagnose D6 (mit Aktion)
+			melden(m)
 	_refresh_t += delta
 	if _refresh_t >= 0.25:
 		_refresh_t = 0.0
@@ -1051,8 +1064,13 @@ func nach_tick() -> void:
 	if not _sim_ok():
 		return
 	statistik.nach_tick()
+	_warte_zaehlen()
 	if ps.sim.tick_count % periode() == 0:
 		_schnapp_neu()
+		_netto_verlauf_neu()
+		diagnose(true)
+	elif ps.sim.tick_count % 10 == 0:
+		diagnose(false)
 
 
 func kopf_neu() -> void:
@@ -1584,3 +1602,214 @@ func _umbrechen(c: Node) -> void:
 	for k in c.get_children():
 		if k is Label:
 			(k as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+
+# ------------------------------------------------------------------ AT-11 A-08-Diagnosen (nur Welt)
+
+const WARTE_TICKS := 300               # 30 s an der Quelle ohne Ladung
+const KASSE_WARN_S := 90.0             # A5: Warnschwelle 90 s (Design §2.5)
+var _warte: Dictionary = {}            # vid -> Ticks am Stück im Zustand „wartet auf Ladung“
+var _halb: Dictionary = {}             # vid -> Abfahrten am Stück mit < 50 % Ladung
+var _st_vor: Dictionary = {}           # vid -> Zustand im letzten Tick
+var _diag: Dictionary = {}             # Schlüssel -> true, solange der Fall besteht (Flanke: nur beim Eintritt melden)
+var _lic_ev_idx := 0
+var _ld_idx := 0
+var netto_verlauf: Array = []          # Netto der letzten Minuten (Cent), für die Kassenprognose
+var diag_log: Array = []               # [{fall, titel, text}] ausgelöste Diagnosen (Test)
+
+
+func _warte_zaehlen() -> void:
+	for f in ps.fahrzeuge:
+		if f["verkauft"]:
+			continue
+		var vid := int(f["vid"])
+		var i: int = ps.sim.slot_of(vid)
+		var st: int = ps.sim.v_state[i]
+		if st == 3:                                       # SimWorld.S_WARTET_LADUNG (core/sim_world.gd)
+			_warte[vid] = int(_warte.get(vid, 0)) + 1
+		else:
+			_warte[vid] = 0
+		# Teilladung (OE-01 Ersatz-Vorschlag): Abfahrt an der Quelle mit < 50 % Ladung, 3 Umläufe am Stück
+		if int(_st_vor.get(vid, -1)) == 3 and st == 1 and ps.sim.v_leg[i] == 0:
+			if ps.sim.v_cargo[i] * 1000 < ps.sim.v_cargo_cap[i] * 500:
+				_halb[vid] = int(_halb.get(vid, 0)) + 1
+			else:
+				_halb[vid] = 0
+		_st_vor[vid] = st
+
+
+func _netto_verlauf_neu() -> void:
+	if hud_werte.has("netto") or _schnapp.size() == 2:
+		kopf_neu()
+	if hud_werte.has("netto"):
+		netto_verlauf.append(int(hud_werte["netto"]))
+		while netto_verlauf.size() > 2:
+			netto_verlauf.pop_front()
+
+
+func _diag_melden(fall: String, schluessel: String, titel: String, t: String, aktion: String, aktion_id: String, daten, form := "warn") -> void:
+	if _diag.get(schluessel, false):
+		return
+	_diag[schluessel] = true
+	diag_log.append({"fall": fall, "titel": titel, "text": t})
+	melden(t, {"titel": titel, "aktion": aktion, "aktion_id": aktion_id, "daten": daten, "form": form})
+
+
+func _diag_ende(schluessel: String) -> void:
+	_diag.erase(schluessel)
+
+
+func _ware_ort(site: int) -> String:
+	var e = ps.eco
+	for g in e.g_ids.size():
+		if String(e.g_cat[g]) in ort_korb(site):
+			return String(e.g_ids[g]).capitalize()
+	return "Ware"
+
+
+## Diagnosen prüfen. periode_ende: Fälle, die an der Minute hängen (Sättigung, Verlust, Kasse).
+func diagnose(periode_ende: bool) -> void:
+	var e = ps.eco
+	# D1 wartet auf Ladung (> 30 s); ohne Lizenz an der Quelle stattdessen „Lizenz abgelaufen“
+	for f in ps.fahrzeuge:
+		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0:
+			continue
+		var w: int = _warte.get(f["vid"], 0)
+		var quelle := _stationsname(int(f["von"]))
+		var sq := site_of(quelle)
+		var key := "wartet_%d" % int(f["vid"])
+		if w >= WARTE_TICKS:
+			if sq >= 0 and not lizenz_ok(sq):
+				_diag_melden("D1b", "lizenz_ab_%d" % sq, quelle, text("d_lizenz_ab", {"x": geld(int(e.licence_quote(sq, false).get("kosten_cent", 0)))}),
+					"Erneuern", "lizenz", quelle, "bad")
+			else:
+				_diag_melden("D1", key, quelle, text("d_wartet", {"n": f["vid"], "t": w / 10, "x": e.s_rate[sq] if sq >= 0 else 0}),
+					"Zur Linie", "panel", quelle)
+		elif int(_halb.get(f["vid"], 0)) >= 3 and sq >= 0:
+			_diag_melden("D1", key, quelle, text("d_halb", {"n": f["vid"], "x": e.s_rate[sq]}), "Zur Linie", "panel", quelle)
+		elif w == 0 and int(_halb.get(f["vid"], 0)) == 0:
+			_diag_ende(key)
+	# D4 Lizenz endet < 3 min und die Kasse reicht nicht für die Verlängerung; D4b Verlängerung gescheitert (lic_events)
+	while _lic_ev_idx < e.lic_events.size():
+		var ev: Dictionary = e.lic_events[_lic_ev_idx]
+		_lic_ev_idx += 1
+		if not bool(ev.get("ok", true)):
+			var nm := _stationsname(int(e.s_node[int(ev["site"])]))
+			_diag.erase("lizenz_ab_%d" % int(ev["site"]))
+			_diag_melden("D4b", "lizenz_ab_%d" % int(ev["site"]), nm, text("d_lizenz_ab", {"x": geld(int(ev.get("cent", 0)))}), "Erneuern", "lizenz", nm, "bad")
+	for nm in ps.stationen:
+		var site := int(ps.stationen[nm]["site"])
+		if site < 0 or not ist_industrie(site):
+			continue
+		var key := "lizenz_ende_%d" % site
+		if e.licence_valid(site) and not eigen(site):
+			var rest: int = e.s_lic_until[site] - ps.sim.tick_count
+			var kosten := int(e.licence_quote(site, false).get("kosten_cent", 0))
+			if rest < 3 * periode() and e.cash_cent < kosten:
+				_diag_melden("D4", key, nm, text("d_lizenz_ende", {"t": lizenz_rest_min(site), "x": geld(kosten)}), "Zum Betrieb", "panel", nm)
+			else:
+				_diag_ende(key)
+		else:
+			_diag_ende(key)
+		if lizenz_ok(site):
+			_diag_ende("lizenz_ab_%d" % site)
+	# D6 Lebensdauer erreicht (FZ-03)
+	while _ld_idx < ps.lebensdauer_erreicht.size():
+		var le: Dictionary = ps.lebensdauer_erreicht[_ld_idx]
+		_ld_idx += 1
+		var f: Dictionary = ps.fahrzeug(int(le["vid"]))
+		if f.is_empty() or f["verkauft"]:
+			continue
+		var fix := int(f.get("fix_cent", 0))
+		var q: Dictionary = ps.ersetzen_angebot(int(le["vid"]))
+		_diag_melden("D6", "alt_%d_%d" % [int(le["vid"]), int(le["tick"])], String(f["name"]), text("d_alt", {"j": ps.alter_jahre(f),
+			"p": (ps.fix_eff(f) - fix) * 100 / maxi(1, fix), "z": geld(int(q.get("spart_cent_pro_periode", 0)))}), "Ersetzen", "fahrzeug", int(le["vid"]))
+	if not periode_ende:
+		return
+	# D2/D3 Sättigung am Ort (V der eben beendeten Minute): gelb ≥ 100 %, rot ≥ 150 %
+	for site in statistik.ort_v:
+		var v: int = statistik.ort_v[site][-1]
+		var nm := _stationsname(int(e.s_node[site]))
+		var p := Economy.rdiv(v, 10)
+		if v >= 1500:
+			_diag_ende("gelb_%d" % site)
+			var x := 0
+			for k in statistik.linien:
+				if int(statistik.linien[k]["nach"]) == int(e.s_node[site]):
+					x += int(linie_saettigung(k).get("x_cent", 0))
+			_diag_melden("D3", "rot_%d" % site, nm, text("d_rot", {"ort": nm, "ware": _ware_ort(site), "p": p, "x": geld(x)}), "Zum Ort", "panel", nm, "bad")
+		elif v >= 1000:
+			_diag_ende("rot_%d" % site)
+			_diag_melden("D2", "gelb_%d" % site, nm, text("d_gelb", {"ort": nm, "ware": _ware_ort(site), "p": p}), "Zum Ort", "panel", nm)
+		else:
+			_diag_ende("gelb_%d" % site)
+			_diag_ende("rot_%d" % site)
+	# D5 Linie mit Verlust über 3 Minuten
+	for k in statistik.linien:
+		var z: Dictionary = statistik.linien[k]
+		var key: String = "verlust_" + k
+		if statistik.verlust_serie(k) >= 3:
+			var von := _stationsname(int(z["von"]))
+			_diag_melden("D5", key, "%s → %s" % [von, _stationsname(int(z["nach"]))], text("d_verlust", {"x": geld(-int(z["gewinn"])),
+				"a": geld(int(z["fix"])), "b": geld(int(z["ertrag"]))}), "Zur Linie", "panel", von, "bad")
+		elif int(z["gewinn"]) >= 0:
+			_diag_ende(key)
+	_kasse_pruefen()
+
+
+## D7 Kasse reicht ≤ 90 s (Prognose: Kasse ÷ Verlust je Sekunde aus den letzten 2 Minuten). Warnung bleibt stehen (G2).
+func _kasse_pruefen() -> void:
+	var e = ps.eco
+	var posten := ""
+	var schlecht := 1 << 40
+	for k in statistik.linien:
+		if int(statistik.linien[k]["gewinn"]) < schlecht:
+			schlecht = int(statistik.linien[k]["gewinn"])
+			posten = "%s → %s" % [_stationsname(int(statistik.linien[k]["von"])), _stationsname(int(statistik.linien[k]["nach"]))]
+	var reicht := INF
+	if not netto_verlauf.is_empty():
+		var mittel := 0.0
+		for n in netto_verlauf:
+			mittel += float(n)
+		mittel /= netto_verlauf.size()
+		if mittel < 0.0:
+			reicht = maxf(0.0, float(e.cash_cent)) / (-mittel / 60.0)
+	hud_werte["kasse_reicht_s"] = reicht
+	if reicht <= KASSE_WARN_S and posten != "":
+		if _diag.get("kasse", false):
+			return
+		var t := ""
+		var aktion := "Zur Linie"
+		var aid := "panel"
+		var daten: Variant = posten.get_slice(" → ", 0)
+		if ps.sim.tick_count < int(ps.credit.from_ticks):
+			t = text("d_kasse_vor12", {"posten": posten, "x": geld(-schlecht)})
+		elif ps.credit.borrow_amount(ps.sim.tick_count) > 0:
+			t = text("d_kasse_kredit", {"posten": posten})
+			aktion = "Kredit"
+			aid = "kredit"
+		else:
+			t = text("d_kasse_voll", {"posten": posten})
+		_diag["kasse"] = true
+		var titel := "Kasse reicht ~%d s" % int(reicht)
+		diag_log.append({"fall": "D7", "titel": titel, "text": t})
+		melden(t, {"titel": titel, "aktion": aktion, "aktion_id": aid, "daten": daten, "form": "bad", "warn": "kasse"})
+	elif _diag.get("kasse", false) and reicht > KASSE_WARN_S:
+		_diag.erase("kasse")
+		toast_panel.warnung_aufheben("kasse")
+		melden(text("d_kasse_gut", {"posten": posten}), {"titel": "Kasse", "form": "ok"})
+
+
+## Aktion im Diagnose-Toast (Szenario i: kein Kamerasprung, die Aktion öffnet Panel/Karte oder kauft).
+func _toast_aktion(id: String, daten: Variant) -> void:
+	klicks += 1
+	match id:
+		"panel":
+			oeffnen(String(daten))
+		"lizenz":
+			oeffnen(String(daten))
+			lizenz_kaufen(String(daten))
+		"fahrzeug":
+			fahrzeug_oeffnen(int(daten))
+		"kredit":
+			kredit_aufnehmen()

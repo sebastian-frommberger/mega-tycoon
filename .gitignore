@@ -16,3 +16,4 @@ d07_shots*/
 slice/tests/d07_logs/
 slice/tests/*_output.txt
 slice/tests/d07_regression_summary.md
+shots/

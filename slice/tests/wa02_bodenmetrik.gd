@@ -72,6 +72,15 @@ func _hud_finden() -> CanvasLayer:
 	return n as CanvasLayer
 
 
+func _canvas_layer(n: Node) -> Array:
+	var r := []
+	for k in n.get_children():
+		if k is CanvasLayer:
+			r.append(k)
+		r.append_array(_canvas_layer(k))
+	return r
+
+
 ## Szene fuer Bildmessung: nur Gelaende (+ Wasser), ohne Modelle, Fahrzeuge, Baeume, Wege, Schilder, HUD.
 func _isoliert(an: bool) -> void:
 	s.setze_modelle(not an)
@@ -84,6 +93,10 @@ func _isoliert(an: bool) -> void:
 		(b as Node3D).visible = not an
 	if hud_layer != null:
 		hud_layer.visible = not an
+	# WA-04 (05.11.): seit AT-09 gibt es weitere CanvasLayer (Kopfleiste ui_welt.gd); alle ausblenden, sonst misst das Skript
+	# Text-Kanten und die Leiste mit (Treppe 26 %, Detail 9,8 % statt 17,5 % / 0,3 %).
+	for c in _canvas_layer(s):
+		(c as CanvasLayer).visible = not an
 
 
 func _kamera(st: Dictionary) -> void:

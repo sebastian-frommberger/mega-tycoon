@@ -365,8 +365,8 @@ func _fk02_pruefsumme() -> void:
 func _puffer_lauf(deckel: int) -> Dictionary:
 	var ps = _neu()
 	var e = ps.eco
-	if deckel > 0:
-		e.apply_proto({"firmenkauf_c1": {"eingangspuffer_deckel_perioden": deckel}})
+	# Felix 05.11.: ProtoSim wendet economy_proto.json seit der FK-02-Verdrahtung selbst an (Deckel 2); "ohne" setzt 0 ausdrücklich
+	e.apply_proto({"firmenkauf_c1": {"eingangspuffer_deckel_perioden": deckel}})
 	ps.lizenz_kaufen(FARM)
 	ps.lizenz_kaufen(FARM2)
 	ps.lizenz_kaufen(MUEHLE)

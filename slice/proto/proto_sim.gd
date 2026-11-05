@@ -33,6 +33,7 @@ const RESTWERT_MIN_PM := 200
 const SLICE_JSON := "res://data/economy_slice.json"
 const CONSTS_JSON := "res://data/economy_constants.json"
 const VEHICLES_JSON := "res://data/vehicles.json"
+const PROTO_JSON := "res://data/economy_proto.json"   # FK-02: Welt-Overlay (firmenkauf_c1: Mühlendeckel, Aufschlag, Rückfall W3)
 const MAX_WAIT_TICKS := 50           # main.gd TRUCK_MAX_WAIT_TICKS
 const START_GETREIDE := 10
 
@@ -58,6 +59,8 @@ var bankrott_tick := -1
 var fahrkosten_total := 0            # AT-02: Σ Fahrkosten (Cent), Testspur/HUD
 var kauf_total := 0                  # AT-02: Σ Kaufpreise (Cent)
 var _fix_dirty := false
+var lebensdauer_erreicht: Array = []  # FZ-03: [{tick, vid}]
+var alterung_an := true              # FZ-03: Unterhalt steigt je Kalenderjahr (aus nur für den Zwei-Uhren-Test)
 var _vdefs: Dictionary = {}          # vehicles.json id -> Datensatz
 var strassen = null                  # proto_strassenband.gd
 var regelwerk: Dictionary = {}
@@ -449,6 +452,10 @@ func oeko_laden() -> bool:
 		fehler.append("Ökonomie-JSON: " + ", ".join(eco.errors))
 		eco = null
 		return false
+	if FileAccess.file_exists(PROTO_JSON):
+		var pj = JSON.parse_string(FileAccess.get_file_as_string(PROTO_JSON))
+		if pj is Dictionary:
+			eco.apply_proto(pj)                   # FK-02: nur die Welt, der Slice ruft das nie
 	eco.attach(sim)
 	sim.feld_mm = eco.feld_mm
 	konto.eco = eco
@@ -693,16 +700,82 @@ func kredit_tilgen() -> int:
 	return credit.repay(eco, sim.tick_count)
 
 
-## Σ fix_eff je Periode (FZ-03: Alterung; bis dahin fix_cent).
+## FZ-03: Alter in Kalenderjahren = Jahreswechsel seit dem Kauf (einmal je Kalenderjahr, nicht am Kaufjubiläum).
+func alter_jahre(f: Dictionary) -> int:
+	return maxi(0, kalender.jahr(sim.tick_count) - kalender.jahr(int(f.get("kauf_tick", 0))))
+
+
+## FZ-03: fix_eff = fix × (10.000 + bp × Jahre) / 10.000, ganzzahlig (bp = alterung_unterhalt_bp_pro_jahr).
 func fix_eff(f: Dictionary) -> int:
-	return 0 if f["verkauft"] else int(f.get("fix_cent", 0))
+	if f["verkauft"]:
+		return 0
+	var fix := int(f.get("fix_cent", 0))
+	if not alterung_an or fix == 0:
+		return fix
+	var bp := int(vdef(String(f.get("def_id", ""))).get("alterung_unterhalt_bp_pro_jahr", 0))
+	return fix * (10000 + bp * alter_jahre(f)) / 10000
+
+
+## FZ-04: Vorschau Ersetzen (Karte „Ersetzen spart z/min“): altes Fahrzeug zum Restwert (W20) gegen neues Modell
+## derselben Kategorie, die Linie läuft weiter. {ok, restwert_cent, preis_cent, netto_cent, fix_alt_cent, fix_neu_cent,
+## spart_cent_pro_periode, alter_jahre, def_id} oder {ok: false, fehler}.
+func ersetzen_angebot(vid: int, def_id := "") -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var f := fahrzeug(vid)
+	if f.is_empty() or f["verkauft"] or String(f.get("def_id", "")) == "":
+		return _nein("unbekanntes_fahrzeug")
+	if def_id == "":
+		def_id = String(f["def_id"])
+	var d := vdef(def_id)
+	if d.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	if String(d.get("kategorie", "")) != String(vdef(String(f["def_id"])).get("kategorie", "?")):
+		return _nein("andere_kategorie")
+	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d["verfuegbar_ab_jahr"])})
+	if sim.v_cargo[sim.slot_of(vid)] > int(d.get("kapazitaet_einheiten", 0)):
+		return _nein("ladung_zu_gross")
+	var rw := restwert(f)
+	var preis := int(d.get("kauf_cent", 0))
+	var fa := fix_eff(f)
+	var fn := int(d.get("fix_cent_pro_periode", 0))
+	return _ok({"restwert_cent": rw, "preis_cent": preis, "netto_cent": preis - rw, "fix_alt_cent": fa, "fix_neu_cent": fn,
+		"spart_cent_pro_periode": fa - fn, "alter_jahre": alter_jahre(f), "def_id": def_id,
+		"kapazitaet_neu": int(d.get("kapazitaet_einheiten", 0)), "kaufbar": preis - rw <= eco.cash_cent})
+
+
+## FZ-04: Ersetzen. Restwert gutschreiben (konto.erstatten), Kauf buchen (konto.charge), Fahrzeug bleibt auf der Linie
+## (gleicher Sim-Slot, Position, Ladung); neues Alter 0, Kosten und Kapazität aus dem neuen Datensatz.
+func fahrzeug_ersetzen(vid: int, def_id := "") -> Dictionary:
+	var q := ersetzen_angebot(vid, def_id)
+	if not q["ok"]:
+		return q
+	if not q["kaufbar"]:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": int(q["netto_cent"]) - eco.cash_cent})
+	var f := fahrzeug(vid)
+	var d := vdef(String(q["def_id"]))
+	konto.erstatten(int(q["restwert_cent"]))
+	konto.charge(int(q["preis_cent"]))
+	kauf_total += int(q["preis_cent"])
+	var i: int = sim.slot_of(vid)
+	sim.v_cargo_cap[i] = int(d.get("kapazitaet_einheiten", sim.v_cargo_cap[i]))
+	sim.v_var_cent[i] = int(d.get("variabel_cent_pro_feld", sim.v_var_cent[i]))
+	f["def_id"] = String(q["def_id"])
+	f["kauf_cent"] = int(q["preis_cent"])
+	f["fix_cent"] = int(d.get("fix_cent_pro_periode", 0))
+	f["kauf_tick"] = sim.tick_count
+	f["lebensdauer_gemeldet"] = false
+	_fix_dirty = true
+	return _ok({"restwert_cent": q["restwert_cent"], "preis_cent": q["preis_cent"], "netto_cent": q["netto_cent"]})
 
 
 func _fix_neu() -> void:
 	var liste: Array = []
 	for f in fahrzeuge:
 		liste.append(fix_eff(f))
-	konto.fix_neu(liste, 0, 0)
+	konto.fix_neu(liste, eco.works_upkeep_cent_pro_periode() if eco != null else 0, 0)   # FK-02: Werksunterhalt über konto
 	_fix_dirty = false
 
 
@@ -728,6 +801,86 @@ func _jahreswechsel(jahr: int) -> void:
 		else:
 			freischaltungen.append({"tick": sim.tick_count, "jahr": jahr, "id": id})
 			meldungen.append("Neu verfügbar: %s" % String(_vdefs.get(id, {}).get("name", id)))
+	# FZ-03: Meldung, sobald ein Fahrzeug 100 % seiner Lebensdauer (Kalenderjahre) erreicht
+	for f in fahrzeuge:
+		if f["verkauft"] or f.get("lebensdauer_gemeldet", false):
+			continue
+		var ld := int(vdef(String(f.get("def_id", ""))).get("lebensdauer_jahre", 0))
+		if ld > 0 and alter_jahre(f) >= ld:
+			f["lebensdauer_gemeldet"] = true
+			lebensdauer_erreicht.append({"tick": sim.tick_count, "vid": f["vid"]})
+			meldungen.append("%s hat seine Lebensdauer erreicht (%d Jahre), Unterhalt +%d %%" % [f["name"], ld,
+				int(vdef(String(f["def_id"])).get("alterung_unterhalt_bp_pro_jahr", 0)) * alter_jahre(f) / 100])
+
+
+# ------------------------------------------------------------------ Firmenkauf C1 (FK-02, API für Mira)
+
+func _site_von(name: String) -> int:
+	return int(stationen[name]["site"]) if stationen.has(name) else -1
+
+
+## Vorschau Kauf: Preis wie buy_site (economy.buy_quote), dazu Folgen und ob der Kauf jetzt geht.
+## {ok, preis_cent, werkspreis_cent, anrechnung_cent, lizenz_gezahlt_cent, rabatt_erster_kauf, felder_hq, faktor_*,
+##  unterhalt_neu_cent_pro_periode, marge_promille, lizenz_entfaellt, guthaben_ohne_kredit_cent, kaufbar, grund}
+func kauf_angebot(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var site := _site_von(name)
+	var q: Dictionary = eco.buy_quote(site)
+	if not q["ok"]:
+		return q
+	var frei: int = eco.cash_cent - (credit.loan_cent if eco.buy_credit_blocks else 0)
+	q["unterhalt_neu_cent_pro_periode"] = eco.upkeep_per_level * int(eco.s_werksstufe[site])
+	q["marge_promille"] = eco.works_margin
+	q["lizenz_entfaellt"] = true
+	q["guthaben_ohne_kredit_cent"] = frei
+	var preis: int = q["preis_cent"]
+	var grund := ""
+	if int(eco.s_owner[site]) == 1:
+		grund = "schon_gekauft"
+	elif int(eco.s_owner[site]) != 0:
+		grund = "besitzer_reserviert"
+	elif eco.cash_cent < 0:
+		grund = "kasse_im_minus"
+	elif eco.buy_only_balance and frei < preis:
+		grund = "kredit_sperrt_firmenkauf" if eco.cash_cent >= preis else "guthaben_reicht_nicht"
+	q["kaufbar"] = grund == ""
+	q["grund"] = grund
+	return q
+
+
+## Kauf: economy.buy_site mit konto (Buchung als Ausgabe) und credit (Kreditgeld kauft keine Firma).
+func firma_kaufen(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var r: Dictionary = eco.buy_site(_site_von(name), konto, credit)
+	if r.get("ok", false):
+		_fix_dirty = true
+	return r
+
+
+## Vorschau Ausbau: {ok, stufe_neu, kosten_cent, durchsatz_neu, unterhalt_neu_cent_pro_periode} oder {ok: false, fehler}.
+func ausbau_angebot(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	return eco.upgrade_quote(_site_von(name))
+
+
+func werk_ausbauen(name: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var r: Dictionary = eco.upgrade_site(_site_von(name), konto, credit)
+	if r.get("ok", false):
+		_fix_dirty = true
+	return r
+
+
+func werksunterhalt_cent_pro_periode() -> int:
+	return eco.works_upkeep_cent_pro_periode() if eco != null else 0
 
 
 # ------------------------------------------------------------------ Tick
@@ -750,12 +903,15 @@ func tick() -> void:
 			lieferungen.append({"tick": sim.tick_count, "vid": ev[0], "menge": ev[1], "cent": ev[2], "gut": ev[3]})
 		sim.line_events = []
 	if eco != null and eco.company_started:
+		var jw: bool = kalender.jahreswechsel(sim.tick_count)
+		if jw and alterung_an:
+			_fix_dirty = true                     # FZ-03: Alterung greift einmal je Kalenderjahr
 		if _fix_dirty:
 			_fix_neu()
 		if konto.tick(sim.tick_count, credit):
 			bankrott_tick = sim.tick_count
 			meldungen.append("Bankrott: Kasse unter 0 $")
-		if kalender.jahreswechsel(sim.tick_count):
+		if jw:
 			_jahreswechsel(kalenderjahr())
 	var gebaut := false
 	for f in fahrzeuge:

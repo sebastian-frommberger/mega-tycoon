@@ -48,6 +48,21 @@ const FT_WELT := {
 	"tilgen_geld": "Zum Tilgen fehlen {x} in der Kasse. Warte auf Einnahmen.",
 	"tilgen_ok": "Kredit {x} getilgt, offen noch {r}.",
 	"kein_kredit": "Du hast keinen Kredit offen. Tilgen ist nicht nötig.",
+	# FK-03 (AT-14 S6)
+	"kauf_ok": "{name} gehört dir. Werksmarge +{m} %, Unterhalt {u}/min.{aus}",
+	"kauf_ok_ausbau": " Ausbau auf {d} E/min: {x}.",
+	"kauf_geld": "Kauf kostet {x}, es fehlen {d}. Gekauft wird nur aus der Kasse, nicht mit Kredit.",
+	"kauf_kredit": "Kreditgeld kauft keine Firma: ohne Kredit fehlen dir {d}. Warte auf Einnahmen.",
+	"kauf_nicht": "{name} steht nicht zum Verkauf. Kaufbar sind Farmen und die Mühle.",
+	"kauf_minus": "Die Kasse ist im Minus. Eine Firma kaufst du erst wieder ab 0 $.",
+	"kauf_schon": "{name} gehört dir schon. Baue das Werk aus, wenn es geht.",
+	"kauf_sonst": "Kauf gerade nicht möglich. Bitte erneut klicken (Meldung an uns: {code}).",
+	"ausbau_ok": "{name} verarbeitet jetzt {d} E/min. Liefere mehr Getreide.",
+	"ausbau_geld": "Ausbau kostet {x}, es fehlen {d}. Warte auf Einnahmen.",
+	"ausbau_kredit": "Kreditgeld zahlt keinen Ausbau: ohne Kredit fehlen dir {d}. Warte auf Einnahmen.",
+	"ausbau_vor_kauf": "Ausbauen geht erst nach dem Kauf. Kaufe zuerst {name}.",
+	"ausbau_max": "{name} hat schon die höchste Werksstufe dieser Version.",
+	"ausbau_roh": "{name} ist ein Rohstoffbetrieb. Ausbauen geht in dieser Version nur bei der Mühle.",
 	"liefert_wenig": "{name} liefert nur {x} E/min. Ein weiteres Fuhrwerk bringt kaum mehr.",
 	"lizenz_linie_ok": "Lizenz {name} gekauft. Linie nach {b} läuft, Fuhrwerk {n} ist unterwegs.",
 	"lizenz_linie_geld": "Lizenz und Fuhrwerk kosten {x}, es fehlen {d}. Nimm Kredit oder warte.",
@@ -73,6 +88,8 @@ var klicks := 0                      # gezählte Spielerklicks (Welt + Knöpfe),
 var orte_pos: Dictionary = {}        # Stationsname -> Vector3 (m, Gelände)
 var _refresh_t := 0.0
 var _taste_unten := false            # linke Maustaste gehalten (Neuaufbau des Panels würde den Klick verschlucken)
+var _kauf_bestaetigen := ""         # FK-03: Station mit offener Kaufbestätigung (inline, kein Modal)
+var _ausbau_bestaetigen := ""        # FK-03: Station mit offener Ausbaubestätigung
 var _bereiche: Dictionary = {}       # "panel" | "vorschau" | "modus" -> Knopf-IDs
 # AT-08: Linienbau
 var modus_von := ""                  # Quelle im Modus „Linie von hier“, "" = kein Modus
@@ -425,6 +442,9 @@ func eingabe(ev: InputEvent) -> bool:
 # ------------------------------------------------------------------ Panel
 
 func oeffnen(nm: String) -> void:
+	if nm != auswahl:
+		_kauf_bestaetigen = ""
+		_ausbau_bestaetigen = ""
 	auswahl = nm
 	panel_neu()
 	panel.visible = true
@@ -488,6 +508,7 @@ func _panel_industrie(site: int) -> void:
 		panel_vb.add_child(_label("Eingang %s %d E · Bedarf %d E/min" % [String(e.g_ids[gi]).capitalize(), n, e.s_rate[site]], 16))
 	_trenner()
 	_lizenz_zeile(site)
+	_besitz_block(site)
 	var ab := abnehmer(site)
 	if not ab.is_empty():
 		_trenner()
@@ -954,7 +975,7 @@ func _baue_kopfleiste() -> void:
 	kopf_hb.add_child(lbl_netto)
 	lbl_fix = _label("", 16)
 	lbl_fix.name = "Fix"
-	lbl_fix.tooltip_text = "Unterhalt aller Fuhrwerke je Minute"
+	lbl_fix.tooltip_text = "Unterhalt aller Fuhrwerke und eigenen Werke je Minute"
 	lbl_fix.mouse_filter = Control.MOUSE_FILTER_PASS
 	kopf_hb.add_child(lbl_fix)
 	lbl_kredit = _label("", 16)
@@ -1070,3 +1091,188 @@ func kredit_tilgen() -> int:
 		meldung(text("tilgen_ok", {"x": geld(a), "r": geld(ps.credit.loan_cent)}))
 	kopf_neu()
 	return a
+
+
+# ------------------------------------------------------------------ FK-03 Firmenkauf C1 (Panel-Block „Besitz“)
+
+## Ausbaustufe 2 vor dem Kauf (Vorschau der Folgen): Kosten und Durchsatz aus economy_slice.json fabrik.
+func _ausbau_l2(site: int) -> Dictionary:
+	if ps.eco.s_raw[site] == 1 or ps.eco.s_out_good[site] < 0:
+		return {}
+	var f: Dictionary = ps.eco.slice.get("fabrik", {})
+	return {"kosten_cent": int(f.get("factory_upgrade_cost_l2_cent", 0)), "durchsatz": int(f.get("factory_throughput_l2_einheiten_pro_periode", 0))}
+
+
+func _typname(site: int) -> String:
+	return {"getreidefarm": "Farm", "muehle": "Mühle"}.get(String(ps.eco.i_ids[ps.eco.s_def[site]]), "Betrieb")
+
+
+func _besitz_block(site: int) -> void:
+	var nm := auswahl
+	var e = ps.eco
+	_trenner()
+	if eigen(site):
+		var stufe: int = int(e.s_werksstufe[site])
+		panel_werte["werksstufe"] = stufe
+		panel_werte["werk_unterhalt"] = int(e.upkeep_per_level) * stufe
+		panel_vb.add_child(_label("Besitz: gehört dir · Werksstufe %d · Unterhalt %s/min" % [stufe, geld(int(e.upkeep_per_level) * stufe)], 16, C_OK))
+		var a: Dictionary = ps.ausbau_angebot(nm)
+		if not a.get("ok", false):
+			var f := String(a.get("fehler", ""))
+			if f == "hoechste_stufe":
+				panel_vb.add_child(_label("Höchste Werksstufe dieser Version.", 15, C_GRAU))
+			return
+		panel_werte["ausbau_kosten"] = int(a["kosten_cent"])
+		panel_werte["ausbau_durchsatz"] = int(a["durchsatz_neu"])
+		if _ausbau_bestaetigen == nm:
+			panel_vb.add_child(_label("Ausbau auf %d E/min für %s" % [a["durchsatz_neu"], geld(a["kosten_cent"])], 16))
+			panel_vb.add_child(_label("· Unterhalt danach %s/min (+%s)" % [geld(a["unterhalt_neu_cent_pro_periode"]),
+				geld(int(a["unterhalt_neu_cent_pro_periode"]) - int(e.upkeep_per_level) * stufe)], 16))
+			var hb := HBoxContainer.new()
+			hb.add_child(_knopf("Ausbauen · %s" % geld(a["kosten_cent"]), "ausbau_ok", ausbau_bestaetigt.bind(nm), true))
+			hb.add_child(_knopf("Abbrechen", "ausbau_ab", func():
+				_ausbau_bestaetigen = ""
+				panel_neu()))
+			panel_vb.add_child(hb)
+		else:
+			var frei: int = e.cash_cent - int(ps.credit.loan_cent)
+			var b := _knopf("Werk ausbauen auf %d E/min · %s" % [a["durchsatz_neu"], geld(a["kosten_cent"])], "ausbauen",
+				ausbau_klick.bind(nm), false, frei < int(a["kosten_cent"]))
+			panel_vb.add_child(b)
+		return
+	var q: Dictionary = ps.kauf_angebot(nm)
+	if not q.get("ok", false):
+		panel_vb.add_child(_label("Besitz: nicht käuflich", 16, C_GRAU))
+		return
+	var preis: int = q["preis_cent"]
+	panel_werte["kauf_preis"] = preis
+	panel_werte["kauf_anrechnung"] = int(q["anrechnung_cent"])
+	panel_werte["kauf_unterhalt"] = int(q["unterhalt_neu_cent_pro_periode"])
+	panel_werte["kauf_marge_pct"] = int(q["marge_promille"]) / 10
+	panel_vb.add_child(_label("Besitz: gehört nicht dir", 16))
+	var neben := "Unterhalt +%s/min" % geld(q["unterhalt_neu_cent_pro_periode"])
+	if int(q["anrechnung_cent"]) > 0:
+		neben = "Lizenzgebühren angerechnet −%s · %s" % [geld(q["anrechnung_cent"]), neben]
+	if bool(q.get("rabatt_erster_kauf", false)):
+		neben += " · Erstkauf-Rabatt"
+	if _kauf_bestaetigen == nm and bool(q["kaufbar"]):
+		var aus := _ausbau_l2(site)
+		panel_vb.add_child(_label("%s kaufen für %s? Das folgt daraus:" % [nm, geld(preis)], 16))
+		panel_vb.add_child(_label("· Unterhalt +%s/min · Werksmarge +%d %%" % [geld(q["unterhalt_neu_cent_pro_periode"]), int(q["marge_promille"]) / 10], 16))
+		panel_vb.add_child(_label("· Lizenz entfällt, die Fuhrwerke laden ohne", 16))
+		if not aus.is_empty():
+			panel_werte["kauf_ausbau_kosten"] = aus["kosten_cent"]
+			panel_werte["kauf_ausbau_durchsatz"] = aus["durchsatz"]
+			panel_vb.add_child(_label("· Danach Ausbau auf %d E/min für %s möglich" % [aus["durchsatz"], geld(aus["kosten_cent"])], 16))
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 10)
+		hb.add_child(_knopf("Kaufen · %s" % geld(preis), "kauf_ok", kauf_bestaetigt.bind(nm), true))
+		hb.add_child(_knopf("Abbrechen", "kauf_ab", func():
+			_kauf_bestaetigen = ""
+			panel_neu()))
+		panel_vb.add_child(hb)
+	else:
+		var b := _knopf("%s kaufen · %s" % [_typname(site), geld(preis)], "kaufen", kauf_klick.bind(nm), false, not bool(q["kaufbar"]))
+		if not bool(q["kaufbar"]):
+			b.tooltip_text = kauf_fehlertext(nm, {"fehler": q["grund"], "fehlt_cent": preis - int(q["guthaben_ohne_kredit_cent"])})
+		panel_vb.add_child(b)
+	var l := _label(neben, 15, C_GRAU)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel_vb.add_child(l)
+
+
+## 1. Klick auf [… kaufen]: Bestätigung inline mit Folgen, oder Grund als Text (nie stumm).
+func kauf_klick(nm: String) -> void:
+	var q: Dictionary = ps.kauf_angebot(nm)
+	if not q.get("ok", false) or not bool(q.get("kaufbar", false)):
+		var g := String(q.get("grund", q.get("fehler", "?")))
+		meldung(kauf_fehlertext(nm, {"fehler": g, "fehlt_cent": int(q.get("preis_cent", 0)) - int(q.get("guthaben_ohne_kredit_cent", 0))}))
+		return
+	_kauf_bestaetigen = nm
+	panel_neu()
+
+
+## 2. Klick [Kaufen · x $]: firma_kaufen. Kasse ändert sich um den Vorschaupreis (Test).
+func kauf_bestaetigt(nm: String) -> Dictionary:
+	_kauf_bestaetigen = ""
+	var site := site_of(nm)
+	var q: Dictionary = ps.kauf_angebot(nm)
+	var r: Dictionary = ps.firma_kaufen(nm)
+	if r.get("ok", false):
+		var aus := _ausbau_l2(site)
+		var zus := ""
+		if not aus.is_empty():
+			zus = text("kauf_ok_ausbau", {"d": aus["durchsatz"], "x": geld(aus["kosten_cent"])})
+		meldung(text("kauf_ok", {"name": nm, "m": int(q.get("marge_promille", 0)) / 10, "u": geld(int(q.get("unterhalt_neu_cent_pro_periode", 0))), "aus": zus}))
+	else:
+		meldung(kauf_fehlertext(nm, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func kauf_fehlertext(nm: String, r: Dictionary) -> String:
+	var f := String(r.get("fehler", "?"))
+	var d := fehlbetrag(int(r.get("fehlt_cent", 0)))
+	match f:
+		"guthaben_reicht_nicht":
+			var q: Dictionary = ps.kauf_angebot(nm)
+			return text("kauf_geld", {"x": geld(int(q.get("preis_cent", 0))), "d": d})
+		"kredit_sperrt_firmenkauf":
+			return text("kauf_kredit", {"d": d})
+		"besitzer_reserviert", "kein_betrieb":
+			return text("kauf_nicht", {"name": nm})
+		"kasse_im_minus":
+			return text("kauf_minus")
+		"schon_gekauft":
+			return text("kauf_schon", {"name": nm})
+		"bankrott":
+			return text("bankrott")
+	return text("kauf_sonst", {"code": f})
+
+
+func ausbau_klick(nm: String) -> void:
+	var a: Dictionary = ps.ausbau_angebot(nm)
+	if not a.get("ok", false):
+		meldung(ausbau_fehlertext(nm, a))
+		return
+	var frei: int = ps.eco.cash_cent - int(ps.credit.loan_cent)
+	if frei < int(a["kosten_cent"]):
+		var f := "kredit_sperrt_firmenausbau" if ps.credit.loan_cent > 0 and ps.eco.cash_cent >= int(a["kosten_cent"]) else "guthaben_reicht_nicht"
+		meldung(ausbau_fehlertext(nm, {"fehler": f, "fehlt_cent": int(a["kosten_cent"]) - frei}))
+		return
+	_ausbau_bestaetigen = nm
+	panel_neu()
+
+
+func ausbau_bestaetigt(nm: String) -> Dictionary:
+	_ausbau_bestaetigen = ""
+	var r: Dictionary = ps.werk_ausbauen(nm)
+	if r.get("ok", false):
+		meldung(text("ausbau_ok", {"name": nm, "d": r["durchsatz"]}))
+	else:
+		meldung(ausbau_fehlertext(nm, r))
+	panel_neu()
+	kopf_neu()
+	return r
+
+
+func ausbau_fehlertext(nm: String, r: Dictionary) -> String:
+	var f := String(r.get("fehler", "?"))
+	match f:
+		"guthaben_reicht_nicht":
+			var a: Dictionary = ps.ausbau_angebot(nm)
+			return text("ausbau_geld", {"x": geld(int(a.get("kosten_cent", 0))), "d": fehlbetrag(int(r.get("fehlt_cent", 0)))})
+		"kredit_sperrt_firmenausbau":
+			return text("ausbau_kredit", {"d": fehlbetrag(int(r.get("fehlt_cent", 0)))})
+		"nicht_im_besitz":
+			return text("ausbau_vor_kauf", {"name": nm})
+		"hoechste_stufe":
+			return text("ausbau_max", {"name": nm})
+		"nur_verarbeiter":
+			return text("ausbau_roh", {"name": nm})
+		"kasse_im_minus":
+			return text("kauf_minus")
+		"bankrott":
+			return text("bankrott")
+	return text("kauf_sonst", {"code": f})

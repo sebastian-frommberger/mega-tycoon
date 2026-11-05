@@ -52,6 +52,8 @@ func _run() -> void:
 		await _at08()
 	if nur == "" or nur == "at09":
 		await _at09()
+	if nur == "" or nur == "fk03":
+		await _fk03()
 	if nur == "layout":
 		await _at08_maus()
 		await _at09_layout()
@@ -603,6 +605,91 @@ func _at08_maus() -> void:
 	var texte: Array = ui.meldungen_log.slice(n0).map(func(m): return m["text"])
 	ok(ps.fahrzeuge.size() == 2 and ui.klicks == 6 and ps.eco.licence_valid(ui.site_of("Erlenmühle")),
 		"Echte Maus: Farm → Mühle → Dorf mit %d Klicks inkl. Lizenzen, %d Fuhrwerke; Meldungen %s" % [ui.klicks, ps.fahrzeuge.size(), str(texte)])
+
+# ------------------------------------------------------------------ FK-03
+
+func _fk03() -> void:
+	print("  -- FK-03 Firmenkauf C1 im Panel")
+	await _neue_szene()
+	var e = ps.eco
+	ps.lizenz_kaufen("Gut Kuppenhof")
+	ps.lizenz_kaufen("Erlenmühle")                 # Lizenzgebühr wird beim Kauf angerechnet
+	ps.linie_anlegen("Gut Kuppenhof", "Erlenmühle")
+	ui._fahrzeuge_neu()
+	var sm: int = ui.site_of("Erlenmühle")
+	ui.klicks = 0
+	_klick("Erlenmühle")
+	var q: Dictionary = ps.kauf_angebot("Erlenmühle")
+	var pt := _panel_text()
+	ok(ui.panel_werte["kauf_preis"] == q["preis_cent"] and ui.panel_werte["kauf_anrechnung"] == q["anrechnung_cent"] and q["anrechnung_cent"] > 0
+		and pt.contains("[Mühle kaufen · %s]" % ui.geld(q["preis_cent"])) and pt.contains("Lizenzgebühren angerechnet −%s" % ui.geld(q["anrechnung_cent"])),
+		"Knopf mit Preis %s und Anrechnung −%s = kauf_angebot" % [ui.geld(q["preis_cent"]), ui.geld(q["anrechnung_cent"])])
+	_druecke("kaufen")
+	pt = _panel_text()
+	var f: Dictionary = e.slice["fabrik"]
+	ok(ui.knoepfe.has("kauf_ok") and pt.contains("Unterhalt +%s/min · Werksmarge +%d %%" % [ui.geld(q["unterhalt_neu_cent_pro_periode"]), q["marge_promille"] / 10])
+		and pt.contains("Ausbau auf %d E/min für %s" % [f["factory_throughput_l2_einheiten_pro_periode"], ui.geld(f["factory_upgrade_cost_l2_cent"])])
+		and pt.contains("Lizenz entfällt"), "Bestätigung inline mit Folgen: Unterhalt %s/min, Marge %d %%, Ausbau %d E/min" % [ui.geld(q["unterhalt_neu_cent_pro_periode"]), q["marge_promille"] / 10, f["factory_throughput_l2_einheiten_pro_periode"]])
+	ok(e.s_owner[sm] == 0, "Nach dem 1. Klick noch nichts gekauft")
+	var k0: int = e.cash_cent
+	_druecke("kauf_ok")
+	ok(k0 - e.cash_cent == q["preis_cent"] and e.s_owner[sm] == 1 and ui.klicks == 3, "Kauf in %d Klicks, Kasse −%d ¢ = Vorschau ± 0, Mühle gehört dir" % [ui.klicks, k0 - e.cash_cent])
+	ok(_letzte() == "Erlenmühle gehört dir. Werksmarge +15 %%, Unterhalt %s/min. Ausbau auf 40 E/min: %s." % [ui.geld(q["unterhalt_neu_cent_pro_periode"]), ui.geld(f["factory_upgrade_cost_l2_cent"])], "Toast: %s" % _letzte())
+	ps.tick()
+	ui.kopf_neu()
+	var fix_soll: int = e.works_upkeep_cent_pro_periode()
+	for fz in ps.fahrzeuge:
+		fix_soll += ps.fix_eff(fz)
+	ok(ui.hud_werte["fix"] == fix_soll and ui.panel_werte.get("werk_unterhalt", -1) == e.works_upkeep_cent_pro_periode(), "HUD Fix %s/min = Fuhrwerke + Werksunterhalt" % ui.geld(fix_soll))
+	ok(_panel_text().contains("Lizenz: nicht nötig, gehört dir"), "Lizenzzeile: gehört dir")
+	# Ausbau
+	var a: Dictionary = ps.ausbau_angebot("Erlenmühle")
+	_druecke("ausbauen")
+	k0 = e.cash_cent
+	_druecke("ausbau_ok")
+	ok(k0 - e.cash_cent == a["kosten_cent"] and e.s_werksstufe[sm] == 2, "Ausbau: Kasse −%d ¢ = Vorschau, Stufe 2" % (k0 - e.cash_cent))
+	ok(_letzte().begins_with("Erlenmühle verarbeitet jetzt ") and _letzte().ends_with(" E/min. Liefere mehr Getreide."), "Toast: %s" % _letzte())
+	ui.ausbau_klick("Erlenmühle")
+	ok(_letzte() == "Erlenmühle hat schon die höchste Werksstufe dieser Version.", "Höchste Stufe: %s" % _letzte())
+	# Fehlertexte
+	var n_log: int = ui.meldungen_log.size()
+	ui.kauf_klick("Erlenmühle")
+	ok(_letzte() == "Erlenmühle gehört dir schon. Baue das Werk aus, wenn es geht.", "schon gekauft: %s" % _letzte())
+	ui.ausbau_klick("Hof Hasenwinkel")
+	ok(_letzte() == "Ausbauen geht erst nach dem Kauf. Kaufe zuerst Hof Hasenwinkel.", "F6.5: %s" % _letzte())
+	var echt: int = e.cash_cent
+	e.cash_cent = 1000
+	_klick("Hof Hasenwinkel")
+	var qh: Dictionary = ps.kauf_angebot("Hof Hasenwinkel")
+	_druecke("kaufen")
+	ok(not ui.knoepfe.has("kauf_ok") and _letzte() == "Kauf kostet %s, es fehlen %s. Gekauft wird nur aus der Kasse, nicht mit Kredit." % [ui.geld(qh["preis_cent"]), ui.fehlbetrag(qh["preis_cent"] - 1000)],
+		"F6.1 Geld: %s" % _letzte())
+	e.cash_cent = -100
+	ui.kauf_klick("Hof Hasenwinkel")
+	ok(_letzte() == "Die Kasse ist im Minus. Eine Firma kaufst du erst wieder ab 0 $.", "Kasse im Minus: %s" % _letzte())
+	e.cash_cent = echt
+	var sh: int = ui.site_of("Hof Hasenwinkel")
+	e.s_owner[sh] = 2                                # Testaufbau: reserviert (C2/KI, ab S9)
+	ui.kauf_klick("Hof Hasenwinkel")
+	ok(_letzte() == "Hof Hasenwinkel steht nicht zum Verkauf. Kaufbar sind Farmen und die Mühle.", "F6.3: %s" % _letzte())
+	e.s_owner[sh] = 0
+	# Kreditgeld: Kasse ≥ Preis, ohne Kredit zu wenig
+	while ps.sim.tick_count < 7200:
+		ps.tick()
+	for i in 4:
+		ps.kredit_aufnehmen()
+	qh = ps.kauf_angebot("Hof Hasenwinkel")
+	e.cash_cent = qh["preis_cent"] + 100
+	k0 = e.cash_cent
+	ui.kauf_klick("Hof Hasenwinkel")
+	ok(e.cash_cent == k0 and e.s_owner[sh] == 0 and _letzte() == "Kreditgeld kauft keine Firma: ohne Kredit fehlen dir %s. Warte auf Einnahmen." % ui.fehlbetrag(ps.credit.loan_cent - 100),
+		"F6.2 kredit_sperrt_firmenkauf: %s" % _letzte())
+	ok(ui.meldungen_log.size() == n_log + 6, "6 Ablehnungen, 6 Meldungen (nie stumm)")
+	var lang: Array = []
+	for m in ui.meldungen_log:
+		if String(m["text"]).length() > 90:
+			lang.append(m["text"])
+	ok(lang.is_empty(), "alle Meldungen ≤ 90 Zeichen %s" % str(lang))
 
 static func Economy_rdiv(z: int, n: int) -> int:
 	return preload("res://economy.gd").rdiv(z, maxi(1, n))

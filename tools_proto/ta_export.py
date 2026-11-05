@@ -3,7 +3,7 @@
 
 Aufruf (aus der Repo-Wurzel der Arbeitskopie):
     python3 -I tools_proto/ta_export.py [--quelle <ds_v2-Ordner>] [--vorgabe <ausschnitt_vorgabe.json>]
-                                        [--ziel slice/world/data/proto] [--orte <proto_orte.json>] [--nur-boden]
+                                        [--ziel slice/world/data/proto] [--orte <proto_orte.json>] [--nur-boden] [--see-radius-m 75]
 
 Schreibt nach --ziel:
   proto_hoehe.r16        161x145 Knoten, uint16 LE x 0,05 m (25-m-Raster, inkl. Stempel See/Teiche/Bachrinne)
@@ -322,6 +322,7 @@ def main():
     ap.add_argument("--vorgabe", default=DEF_VORGABE)
     ap.add_argument("--ziel", default=DEF_ZIEL)
     ap.add_argument("--orte", default="", help="proto_orte.json der Stadt-Rolle (Ackerguertel an echten Orten)")
+    ap.add_argument("--see-radius-m", type=float, default=None, help="WA-12: Seeradius statt Vorgabe (Binsensee 75 m = Teich, Aequivalentdurchmesser <= 150 m)")
     ap.add_argument("--nur-boden", action="store_true", help="nur Acker-Maske + Bodenkarte neu (Hoehen unveraendert)")
     a = ap.parse_args()
     os.makedirs(a.ziel, exist_ok=True)
@@ -334,6 +335,8 @@ def main():
 
     # ---------------- See (Vorgabe)
     see = dict(v["see"])
+    if a.see_radius_m is not None:
+        see["radius_m"] = a.see_radius_m
     sx, sz = see["mitte_m"]
     sr, sp = float(see["radius_m"]), float(see["pegel_m"])
     see_par = {"mitte_m": [sx, sz], "radius_m": sr, "pegel_m": sp, "tiefe_m": 4.0, "boeschung_m": 40.0, "rand_min_m": 0.8,

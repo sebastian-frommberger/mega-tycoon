@@ -15,11 +15,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from stadt_geo import (astar, BACH_PUNKTE, BILD_DIR, Gelaende, KERN_B, KERN_T, MUEHLE_VORSCHLAG, MUEHLTEICH_MITTE, MUEHLTEICH_R,
+from stadt_geo import (obb_ueberlappt, astar, BACH_PUNKTE, BILD_DIR, Gelaende, KERN_B, KERN_T, MUEHLE_VORSCHLAG, MUEHLTEICH_MITTE, MUEHLTEICH_R,
                        OUT_DIR, PCG, ROOT, SEE_MITTE, SEE_PEGEL, SEE_R, SRC_DEFAULT, clark_evans, konvexe_huelle,
                        flaeche, min_radius, obb_ecken, poly_abstand, punkt_in_obb, poly_laenge, resample, r2, vereinfachen)
 from stadt_bau import HAUS, NEBEN, PARZ, Szene, Weg, baue_hofstelle, gelaende_ok, rot_zu, weg_frei
 from stadt_dorf import Ortslage, Parzelle, Punktweg
+import stadt_ladeplatz as lp
 from stadt_wege import (BRUECKE_LAENGE, BRUECKE_N, BRUECKE_S, BRUECKE_X, KREUZUNG_DORF, RINNE_BREITE, _sperre_chaussee,
                         _zusatz_chaussee, glatt, route, steigungsprofil)
 
@@ -48,6 +49,7 @@ DORFTEICH = (1512.0, 818.0, 12.5)      # am Bach, Bachgasse
 SIM_EW = {"erlenbach": {"sim_knoten": True, "sim_stufe": "dorf", "sim_ew": 500},
           "lindenfurt": {"sim_knoten": True, "sim_stufe": "kleinstadt", "sim_ew": 2400, "ew_ort": 2000, "ew_umland": 400, "ew_ausschnitt": 387},
           "hasenwinkel": {"sim_knoten": False}}
+HOF_SCHLAG_ABSTAND = 5.0               # WA-10: Schlag mindestens so weit vom Hofrand (m)
 FARM2_FELDER = (36.0, 48.0)            # WA-07: Soll 35-50 Felder (Luftlinie Muehle - Farm 2), je 1 Feld Reserve zum Rand
 FARM2_KANDIDATEN = [(x, z) for z in range(700, 781, 10) for x in range(640, 761, 10)]   # nordwestlich des Weilers, Ebene
 FISCHER_WINKEL_DEG = -47.0             # Fischerhuette am NO-Ufer
@@ -372,10 +374,12 @@ def farm2_bauen(geo, szene, wo):
     szene.add("holzstapel", hx + ez[0] * 23 + ex[0] * 10, hz + ez[1] * 23 + ex[1] * 10, rot, pid, GUT2["id"])
     n = 0
     schlaege = []
-    for (dx, dz, r_) in ((-135.0, -40.0, 0.0), (10.0, -110.0, 90.0), (-20.0, 100.0, 90.0), (140.0, -30.0, 0.0)):
+    for (dx, dz, r_) in ((-135.0, -40.0, 0.0), (10.0, -140.0, 90.0), (-20.0, 140.0, 90.0), (140.0, -30.0, 0.0)):     # WA-10: dz 110 -> 140 bzw. 100 -> 140 (Schlag lag 10-20 m auf dem Hof)
         sx, sz = hx + dx, hz + dz
         b_, t_ = (200.0, 125.0) if r_ == 0 else (125.0, 200.0)
         ecken = obb_ecken(sx, sz, b_, t_, 0.0)
+        if obb_ueberlappt(ecken, obb_ecken(hx, hz, 40.0 + 2 * HOF_SCHLAG_ABSTAND, 40.0 + 2 * HOF_SCHLAG_ABSTAND, rot)):      # WA-10: kein Schlag auf dem eigenen Hof
+            continue
         if n >= 2 or any(geo.steigung(c[0], c[1]) > 8.0 or geo.rinne_abstand(c[0], c[1]) < 30 or geo.see_abstand(c[0], c[1]) < 30 for c in ecken):
             continue
         # Schlag darf kein Gebaeude (auch nicht die Weilerhoefe) und keinen Weg ausser dem Hofweg ueberdecken
@@ -424,7 +428,7 @@ def see_bauen(geo, szene, rng):
     return dict(huette=[r2(hx), r2(hz)], steg_wurzel=[r2(SEE_MITTE[0] + (r + 4.0) * u[0]), r2(SEE_MITTE[1] + (r + 4.0) * u[1])],
                 steg_ende=[r2(SEE_MITTE[0] + (r - 21.0) * u[0]), r2(SEE_MITTE[1] + (r - 21.0) * u[1])],
                 boot_am_steg=[r2(bx), r2(bz)], uferwinkel_deg=FISCHER_WINKEL_DEG, ufer_radius_m=r2(r),
-                boot_schleife=dict(mitte=[r2(SEE_MITTE[0] - 30.0), r2(SEE_MITTE[1] + 20.0)], radius_m=110.0, umlauf_s=300.0,
+                boot_schleife=dict(mitte=[r2(SEE_MITTE[0] - 9.0), r2(SEE_MITTE[1] + 6.0)], radius_m=33.0, umlauf_s=90.0,      # WA-12: Seeradius 75 m (vorher 250 m: 110 m / 300 s, gleiche Bootsgeschwindigkeit 2,3 m/s)
                                    hinweis="Kulissen-Animation, keine Sim; Boot 4,5 m, Kreisbahn im Uhrzeigersinn"),
                 pfad_start=[r2(hx), r2(hz)])
 
@@ -441,6 +445,9 @@ STADT_PARZ = {  # Front, Tiefe (m): 8-12 m Front (05 Abschnitt 3e), geschlossene
     "gasthaus": (16.0, 26.0),
     "speicher": (22.0, 22.0),
 }
+
+
+MARKTSTRASSE_RA = 4.5       # WA-10 Baulinie Kleinstadt 0-3 m: Achsabstand der Parzellenkante (Strasse 6 m = Wegrand bei 3,0 m, Luecke 1,5 m); vorher 7,5 (Luecke 4,5 m)
 
 
 def markt_rahmen():
@@ -561,7 +568,7 @@ def markt_bauen(geo, szene, wege, TOR):
         return ok
     sonder(pw["markt_s"], 1, 38.0, "rathaus")
     sonder(pw["markt_o1"], 1, 12.0, "gasthaus")
-    sonder(pw["marktstrasse"], -1, 28.0, "speicher", 7.5)
+    sonder(pw["marktstrasse"], -1, 28.0, "speicher", MARKTSTRASSE_RA)
     wahl = lambda s, r: "buergerhaus" if r.random() < 0.7 else "handwerkerhaus"
     reihe_geschlossen(szene, ol, pw["markt_n"], -1, 0.0, 80.0, 0.3, wahl, rng)
     reihe_geschlossen(szene, ol, pw["markt_s"], 1, 0.0, 80.0, 0.3, wahl, rng)
@@ -569,8 +576,8 @@ def markt_bauen(geo, szene, wege, TOR):
     reihe_geschlossen(szene, ol, pw["markt_o1"], 1, 0.0, 21.0, 0.3, wahl, rng)
     reihe_geschlossen(szene, ol, pw["markt_o2"], 1, 0.0, 21.0, 0.3, wahl, rng)
     pm = pw["marktstrasse"]
-    reihe_geschlossen(szene, ol, pm, -1, 24.0, pm.L - 14.0, 7.5, wahl, rng)
-    reihe_geschlossen(szene, ol, pm, 1, 24.0, pm.L - 14.0, 7.5, wahl, rng)
+    reihe_geschlossen(szene, ol, pm, -1, 24.0, pm.L - 14.0, MARKTSTRASSE_RA, wahl, rng)
+    reihe_geschlossen(szene, ol, pm, 1, 24.0, pm.L - 14.0, MARKTSTRASSE_RA, wahl, rng)
     pg = pw["gasse_lindenfurt"]
     reihe_geschlossen(szene, ol, pg, -1, 10.0, pg.L - 4.0, 3.0, wahl, rng)
     reihe_geschlossen(szene, ol, pg, 1, 40.0, pg.L - 4.0, 3.0, wahl, rng, max_n=4)
@@ -816,8 +823,204 @@ def bauen(src=SRC_DEFAULT):
     br_boxen = [(BRUECKE_S[0], BRUECKE_N[1], BRUECKE_S[0], BRUECKE_S[1]), (BACHBRUECKE[0], BACHBRUECKE[1], BACHBRUECKE[0], BACHBRUECKE[1])]
     anderes = [w for k, w in wo.items() if k != "chaussee"]
     n_allee, allee_abs = allee_bauen(geo, szene, wo["chaussee"].punkte, br_boxen, [(K[0], K[1], 150.0), (TOR[0], TOR[1], 30.0)], anderes)
+    n_bezug = bezug_ausrichten(szene, wo)     # WA-10 Bezugslinie, rein geometrisch
     farm2 = farm2_bauen(geo, szene, wo)       # WA-07, bewusst zuletzt: bestehende Instanzen/Wege/Zufallsstroeme bleiben bitgleich
-    return geo, szene, wo, TOR, chaussee_roh, dict(farm2=farm2, allee=(n_allee, allee_abs), dorf=ol_d, weiler=ol_w, markt=ol_m, see=see, luecken=luecken, mauer=mauer, n_schlag=n_schlag)
+    ladeplaetze = ladeplaetze_bauen(geo, szene, wo, ol_d, ol_w, ol_m)     # WA-08, rein geometrisch (kein Zufallsstrom)
+    return geo, szene, wo, TOR, chaussee_roh, dict(farm2=farm2, allee=(n_allee, allee_abs), dorf=ol_d, weiler=ol_w, markt=ol_m, see=see, luecken=luecken, mauer=mauer, n_schlag=n_schlag,
+                                                   ladeplaetze=ladeplaetze)
+
+
+def steigung_entschaerfen(geo, punkte, ziel_pct, rng, schritt=5.0, iterationen=3000):
+    """WA-10: lokale Umlegung eines Wegabschnitts, dessen Steigung (5-m-Raster) ueber ziel_pct liegt. Kontrollpunkte alle 6 Abtastpunkte,
+    Zufallssuche (eigener Strom) minimiert max. Steigung + Knickwinkel + Laenge. Liefert die Punkte unveraendert, wenn nichts zu tun ist."""
+    def prof(q):
+        r = resample(q, schritt)
+        return [abs(geo.hoehe(*r[k + 1]) - geo.hoehe(*r[k])) / math.hypot(r[k + 1][0] - r[k][0], r[k + 1][1] - r[k][1]) * 100.0 for k in range(len(r) - 1)]
+    r = resample(punkte, schritt)
+    s = prof(punkte)
+    bad = [k for k, v in enumerate(s) if v > ziel_pct]
+    if not bad:
+        return punkte
+    i0, i1 = max(0, bad[0] - 16), min(len(r) - 1, bad[-1] + 16)
+    ctrl = [r[i0]] + [r[i] for i in range(i0 + 6, i1 - 5, 6)] + [r[i1]]
+
+    def zielwert(c):
+        q = glatt(c, schritt, 8)
+        rr = resample(q, schritt)
+        knick = 0.0
+        for k in range(1, len(rr) - 1):
+            a1 = math.atan2(rr[k][1] - rr[k - 1][1], rr[k][0] - rr[k - 1][0])
+            a2 = math.atan2(rr[k + 1][1] - rr[k][1], rr[k + 1][0] - rr[k][0])
+            knick = max(knick, abs((math.degrees(a2 - a1) + 180.0) % 360.0 - 180.0))
+        m = max(prof(q))
+        return m + max(0.0, knick - KNICK_MAX) * 0.5 + 0.0005 * poly_laenge(q), m
+    best = zielwert(ctrl)
+    for _ in range(iterationen):
+        k = 1 + int(rng.random() * (len(ctrl) - 2))
+        c = list(ctrl)
+        c[k] = (c[k][0] + rng.uniform(-6.0, 6.0), c[k][1] + rng.uniform(-6.0, 6.0))
+        o = zielwert(c)
+        if o[0] < best[0]:
+            ctrl, best = c, o
+    neu = glatt(ctrl, schritt, 8)
+    return [tuple(map(float, q)) for q in r[:i0]] + [tuple(map(float, q)) for q in neu] + [tuple(map(float, q)) for q in r[i1 + 1:]]
+
+
+BEZUG_AUSLOESER_GRAD = 8.0     # WA-10: Haupthaus mit mehr als so viel Abweichung zur naechsten Wegtangente wird nachgedreht
+BEZUG_KORR_MAX_GRAD = 6.0      # ... um hoechstens so viel (Gebaeude bleibt in seiner Parzelle)
+
+
+def _winkel_abw(rot_deg, p, q):
+    r = math.radians(rot_deg)
+    ab = math.degrees(math.atan2(-math.sin(r), math.cos(r)))
+    ar = math.degrees(math.atan2(q[1] - p[1], q[0] - p[0]))
+    d = (ab - ar) % 90.0
+    return min(d, 90.0 - d)
+
+
+def bezug_ausrichten(szene, wo):
+    """WA-10 Bezugslinie (Traufe/Giebel +-10 Grad zur naechsten Wegtangente): an gekruemmten Wegen (Gasse Kirch) weicht die Parzellenachse von der Tangente
+    am naechsten Wegpunkt ab. Haupthaeuser darueber werden um die Abweichung (max. BEZUG_KORR_MAX_GRAD) nachgedreht, sofern der gedrehte Footprint
+    kein anderes Gebaeude beruehrt. Rein geometrisch, kein Zufallsstrom."""
+    haupt = set(HAUS) - {"nebengebaeude", "stadttor"}
+    n = 0
+    for d in szene.inst:
+        if d["typ"] not in haupt or "b" not in d or d["ort"] not in ("erlenbach", "hasenwinkel", "lindenfurt"):
+            continue
+        best = None
+        for w in wo.values():
+            dist, k, _ = poly_abstand((d["x"], d["z"]), w.punkte)
+            if best is None or dist < best[0]:
+                best = (dist, w, k)
+        _, w, k = best
+        abw = _winkel_abw(d["rot_deg"], w.punkte[k], w.punkte[k + 1])
+        if abw <= BEZUG_AUSLOESER_GRAD:
+            continue
+        c = min(abw, BEZUG_KORR_MAX_GRAD)
+        for rot_neu in sorted((d["rot_deg"] + c, d["rot_deg"] - c), key=lambda r: _winkel_abw(r, w.punkte[k], w.punkte[k + 1])):
+            if _winkel_abw(rot_neu, w.punkte[k], w.punkte[k + 1]) >= abw:
+                continue
+            e_neu = obb_ecken(d["x"], d["z"], d["b"], d["t"], rot_neu)
+            e_alt = obb_ecken(d["x"], d["z"], d["b"], d["t"], d["rot_deg"])
+            andere = [f for f in szene.foot if not (f[1] == d["typ"] and f[2] == d["parzelle"] and abs(sum(q[0] for q in f[0]) / 4.0 - d["x"]) < 0.01)]
+            if any(obb_ueberlappt(e_neu, f[0]) for f in andere):
+                continue
+            for i, f in enumerate(szene.foot):
+                if f[1] == d["typ"] and f[2] == d["parzelle"] and abs(sum(q[0] for q in f[0]) / 4.0 - d["x"]) < 0.01:
+                    szene.foot[i] = (e_neu, f[1], f[2], f[3])
+            d["rot_deg"] = r2(((rot_neu + 180.0) % 360.0) - 180.0)
+            n += 1
+            break
+    return n
+
+
+# ---------------------------------------------------------------- WA-08 Ladeplaetze
+LADEGUETER = {
+    "gut_kuppenhof": [dict(gut="getreide", rolle="heuhaufen", bezug="Station-Lagerbestand getreide / Ausgangspuffer")],
+    "hof_hasenwinkel": [dict(gut="getreide", rolle="heuhaufen", bezug="Station-Lagerbestand getreide / Ausgangspuffer")],
+    "erlenmuehle": [dict(gut="getreide", rolle="heuhaufen", bezug="Eingangspuffer getreide / Puffergroesse"),
+                    dict(gut="mehl", rolle="heuhaufen", bezug="Ausgangsbestand mehl / Puffergroesse")],
+    "erlenbach": [dict(gut="mehl", rolle="heuhaufen", bezug="zuletzt abgeladene Menge mehl / Nachfrage je Periode")],
+    "lindenfurt": [dict(gut="mehl", rolle="heuhaufen", bezug="zuletzt abgeladene Menge mehl / Nachfrage je Periode")],
+}
+KNICK_MAX = 12.0
+GUTSWEG_ZIEL_STEIG = 9.0     # WA-10: Steigung (5-m-Raster) im Gutsweg hoechstens so hoch (vorher 10,1 %, Wert im 10-m-Raster schwankte 9,99 .. 10,17 je nach Abtastphase)
+GUTSWEG_TORABSTAND = 7.0     # WA-10: Wegende des Gutswegs endet so weit vor dem Hofrand (Zufahrt <= 12 m)
+
+
+def _hof_ecken(szene, ort):
+    d = [d for d in szene.inst if d["typ"] in ("gutshof", "wassermuehle") and d["ort"] == ort][0]
+    return d, obb_ecken(d["x"], d["z"], d["b"], d["t"], d["rot_deg"])
+
+
+def ladeplaetze_bauen(geo, szene, wo, ol_d, ol_w, ol_m):
+    """Ladeplatz je Betrieb und je Sim-Ort; Gutsweg bis ans Hoftor verlaengert (WA-10 Zufahrt). Liefert dict id -> Ergebnis."""
+    import json as _json
+    import stadt_out as so
+    rw = _json.load(open(os.path.join(ROOT, "slice", "world", "data", "proto", "regelwerk.json"), encoding="utf-8"))
+    parz_ecken = list(ol_d.parz_ecken) + list(ol_w.parz_ecken) + list(ol_m.parz_ecken)
+    # --- Gutsweg bis ans Hoftor (WA-10): die letzten ~45 m laufen in Achse der Hoffassade (lokales +z) auf das Tor zu, Wegende 7 m vor dem Hofrand
+    gd, ge = _hof_ecken(szene, GUT["id"])
+    gw = wo["gutsweg"]
+    r_ = math.radians(gd["rot_deg"])
+    ez = (math.sin(r_), math.cos(r_))                    # Fassade zeigt zur Zufahrt
+    a_ = (-ez[0], -ez[1])                                # Fahrtrichtung am Tor
+    G = (gd["x"] + ez[0] * (20.0 + GUTSWEG_TORABSTAND), gd["z"] + ez[1] * (20.0 + GUTSWEG_TORABSTAND))
+    gw.punkte = steigung_entschaerfen(geo, gw.punkte, GUTSWEG_ZIEL_STEIG, PCG(PCG.hash_seed(WELT_SEED, "gutsweg", "steigung")))
+    keep = list(gw.punkte)
+    L_ab = 0.0
+    while len(keep) > 3 and L_ab < 45.0:
+        L_ab += math.hypot(keep[-1][0] - keep[-2][0], keep[-1][1] - keep[-2][1])
+        keep.pop()
+    tail = glatt(keep[-3:] + [(G[0] - a_[0] * 14.0, G[1] - a_[1] * 14.0), G], 5.0, 8)
+    gw.punkte = keep[:-3] + [tuple(map(float, q)) for q in tail]
+    pl = lp.Planer(geo, szene, wo, rw, parz_ecken)
+    erg = {}
+    # --- Betriebe an vorhandenen Wegenden
+    for oid, wid in ((GUT["id"], "gutsweg"), (GUT2["id"], "hofweg_hasenwinkel")):
+        w = wo[wid]
+        erg[oid] = (pl.vorhandenes_ende(wid, w.punkte[-1], lp._ende_richtung(w.punkte)), wid)
+    # --- Muehle: Ladestich (vorhandene Wege enden nicht an der Muehle)
+    md, me = _hof_ecken(szene, MUEHLE["id"])
+    # Der Ladestich (Sackgasse im 90-Grad-Abzweig) liess proto_easing_test Teil B rot (E3/E5, siehe WA-08.md). Die Muehle bekommt deshalb einen Durchgangs-Ladeplatz
+    # am Knoten Muehlweg/Gutsweg (Halt wie bisher im Knoten, Gespann steht mit der Mitte dort).
+    kn = wo["muehlweg"].punkte[-1]
+    r_mw = lp._ende_richtung(wo["muehlweg"].punkte)
+    r_gw = lp._ende_richtung(list(reversed(wo["gutsweg"].punkte)))
+    erg[MUEHLE["id"]] = (pl.durchgang(kn, [r_gw, r_mw], ("muehlweg", "gutsweg"), me, max_dist=60.0), "gutsweg")
+    # --- Orte
+    ctr = lambda ol: (sum(p["cx"] for p in ol.parz) / len(ol.parz), sum(p["cz"] for p in ol.parz) / len(ol.parz))
+    w = wo["marktstrasse"]
+    erg["lindenfurt"] = (pl.vorhandenes_ende("marktstrasse", w.punkte[-1], lp._ende_richtung(w.punkte)), "marktstrasse")
+    if erg["lindenfurt"][0] is None:
+        erg["lindenfurt"] = (pl.plane(MARKT_MITTE, max_dist=120.0), None)
+    erg["erlenbach"] = (pl.plane(ctr(ol_d), max_dist=150.0, stamm_ok=[k for k in wo if k not in ("chaussee",)] + ["chaussee"]), None)
+    namen = {GUT["id"]: GUT["name"], GUT2["id"]: GUT2["name"], MUEHLE["id"]: MUEHLE["name"], "lindenfurt": STADT["name"], "erlenbach": DORF["name"]}
+    out = {}
+    for oid in ("gut_kuppenhof", "hof_hasenwinkel", "erlenmuehle", "erlenbach", "lindenfurt"):
+        e, wid = erg[oid]
+        if e is None:
+            raise RuntimeError("Ladeplatz: kein Platz fuer %s" % oid)
+        if wid is None and e.get("wid"):
+            wid = e["wid"]
+        if e["stich"] is not None:
+            A, E = e["stich"]
+            stamm = wo[e["stamm"]]
+            mitte = ((A[0] + E[0]) / 2.0, (A[1] + E[1]) / 2.0)
+            wid = "ladestich_" + oid
+            wo[wid] = Weg(wid, "feldweg", [A, mitte, E], lp.STICH_BREITE, "Ladestich " + namen[oid])
+            if wid not in so.WEG_REIHENFOLGE:
+                so.WEG_REIHENFOLGE.append(wid)
+        kies = lp._ecken(e["f"]["kies"])
+        band = lp._aufblasen(lp.obb_ecken(*e["f"]["P"], 4.0, 4.0, 0.0), 0.0)
+        # Baeume im Ladeplatz weg
+        n0 = len(szene.inst)
+        szene.inst[:] = [d for d in szene.inst if not (d["typ"] in lp.ENTFERNBAR and "b" not in d and punkt_in_obb((d["x"], d["z"]), lp._aufblasen(kies, 1.5)))]
+        boden = "pflaster" if oid == "lindenfurt" else "kies"
+        dct = lp.ladeplatz_dict(e, pl, None, LADEGUETER[oid], namen[oid], boden, wid)
+        dct["baeume_entfernt_n"] = n0 - len(szene.inst)
+        out[oid] = dct
+    # --- WA-15: kaufbare Muehle hat eine Ausbauflaeche (>= 1 Muehlen-Footprint, frei von Gebaeuden, Ladeplatz, Wegen, Wasser) fuer die Werksstufe 2
+    md_, me_ = _hof_ecken(szene, MUEHLE["id"])
+    fp = out[MUEHLE["id"]]
+    extra = [obb_ecken(f["x"], f["z"], f["b"], f["t"], f["rot_deg"]) for f in [fp["kies_hof"], fp["rampe"]] + list(fp["lagerhaufen"])]
+    extra += [obb_ecken(d["x"], d["z"], d["b"], d["t"], d["rot_deg"]) for d in szene.inst if d["ort"] == MUEHLE["id"] and "b" in d]
+    ab = pl.ausbauflaeche((md_["x"], md_["z"]), md_["rot_deg"], md_["b"], md_["t"], extra)
+    if ab is None:
+        raise RuntimeError("Ausbauflaeche: kein Platz fuer die Muehle")
+    n0 = len(szene.inst)
+    szene.inst[:] = [d for d in szene.inst if not (d["typ"] in lp.ENTFERNBAR and "b" not in d and punkt_in_obb((d["x"], d["z"]), lp._aufblasen(ab["e"], 1.5)))]
+    u = (fp["x"] - md_["x"], fp["z"] - md_["z"])
+    ul = math.hypot(*u)
+    u = (u[0] / ul, u[1] / ul)
+    out["_ausbau_" + MUEHLE["id"]] = {
+        "x": r2(ab["c"][0]), "z": r2(ab["c"][1]), "rot_deg": md_["rot_deg"], "b": md_["b"], "t": md_["t"],
+        "footprint_ref": "wassermuehle %.0f x %.0f m (1 Footprint, gleiche Ausrichtung)" % (md_["b"], md_["t"]),
+        "abstand_zur_muehle_m": r2(ab["d"]), "baeume_entfernt_n": n0 - len(szene.inst),
+        "zweck": "Werksausbau Stufe 2 (C1, D-F): Anbau/Platz fuer das zweite Werk der kaufbaren Muehle; nur Daten, Modell folgt (Sophie)",
+        "hofschild_platz": {"x": r2(md_["x"] + u[0] * (md_["b"] / 2.0 + 3.0)), "z": r2(md_["z"] + u[1] * (md_["t"] / 2.0 + 3.0)),
+                            "hinweis": "Platz fuer das Hofschild (Werksstufe sichtbar), 3 m vor der Muehle zum Ladeplatz hin"}}
+    return out
 
 
 # ---------------------------------------------------------------- Wachstum (A10)
@@ -899,6 +1102,8 @@ def erzeuge(out_dir=OUT_DIR, bilder=True, src=SRC_DEFAULT, still=False):
              "gebaeude_n": sum(z.values()), "parzellen_n": len(ol.parz), "luecken_n": sum(1 for p in ol.parz if p["status"] == "luecke")}
         o.update(extra)
         o.update(SIM_EW.get(d["id"], {}))
+        if d["id"] in ex["ladeplaetze"]:
+            o["ladeplatz"] = ex["ladeplaetze"][d["id"]]
         if d["id"] == "erlenbach":
             o["ew_ort"] = o["ew"]
             o["ew_umland"] = SIM_EW["erlenbach"]["sim_ew"] - o["ew"]
@@ -918,20 +1123,21 @@ def erzeuge(out_dir=OUT_DIR, bilder=True, src=SRC_DEFAULT, still=False):
     schlaege = [{"x": d["x"], "z": d["z"], "b": d["b"], "t": d["t"]} for d in szene.inst if d["typ"] == "flaeche_schlag" and d["ort"] == GUT["id"]]
     f2p = [d for d in szene.inst if d["typ"] == "gutshof" and d["ort"] == GUT2["id"]][0]
     f2_schlaege = ex["farm2"]["schlaege"]
+    LP = ex["ladeplaetze"]
     industrie = [
         {"id": GUT["id"], "name": GUT["name"], "typ": "getreidefarm", "x": gutp["x"], "z": gutp["z"], "rot_deg": gutp["rot_deg"],
          "hofform": "vierseithof_40x40", "schlaege": schlaege, "abstand_dorf_m": abst((gutp["x"], gutp["z"]), K),
-         "abstand_muehle_m": abst((gutp["x"], gutp["z"]), (mu["x"], mu["z"])), "zufahrt": "gutsweg"},
+         "abstand_muehle_m": abst((gutp["x"], gutp["z"]), (mu["x"], mu["z"])), "zufahrt": "gutsweg", "ladeplatz": LP[GUT["id"]]},
         {"id": MUEHLE["id"], "name": MUEHLE["name"], "typ": "wassermuehle", "x": mu["x"], "z": mu["z"], "rot_deg": mu["rot_deg"],
          "muehlteich": {"x": MUEHLTEICH_MITTE[0], "z": MUEHLTEICH_MITTE[1], "r_m": MUEHLTEICH_R},
          "abstand_dorf_m": abst((mu["x"], mu["z"]), K), "zufahrt": "muehlweg",
-         "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)"},
+         "abweichung": "17 m oestlich der Bach-Achse (TA-Vorschlag lag auf der Achse, Rinne +-12 m)", "ladeplatz": LP[MUEHLE["id"]],
+         "kaufbar": True, "ausbauflaeche": LP["_ausbau_" + MUEHLE["id"]]},
         {"id": GUT2["id"], "name": GUT2["name"], "typ": "getreidefarm", "x": f2p["x"], "z": f2p["z"], "rot_deg": f2p["rot_deg"],
          "hofform": "vierseithof_40x40", "schlaege": f2_schlaege, "lage": "ebene", "abstand_dorf_m": abst((f2p["x"], f2p["z"]), K),
          "abstand_muehle_m": abst((f2p["x"], f2p["z"]), (mu["x"], mu["z"])),
          "abstand_muehle_felder": r2(math.hypot(f2p["x"] - mu["x"], f2p["z"] - mu["z"]) / 25.0), "zufahrt": "hofweg_hasenwinkel",
-         "ladeplatz": {"x": r2(ex["farm2"]["tor"][0]), "z": r2(ex["farm2"]["tor"][1]), "weg": "hofweg_hasenwinkel", "abstand_netz_m": 0.0,
-                       "hinweis": "Datenpunkt am Tor-Ende des Hofwegs; Kies-Hof, Rampe und Lagerhaufen folgen mit WA-08"}}]
+         "ladeplatz": LP[GUT2["id"]]}]
     gewaesser = [
         {"id": "binsensee", "typ": "see", "name": SEE_NAME, "x": SEE_MITTE[0], "z": SEE_MITTE[1], "r_m": SEE_R, "pegel_m": SEE_PEGEL, "quelle": "Vorgabe"},
         {"id": "rotach", "typ": "fluss", "name": FLUSS_NAME, "quelle": "Vorgabe/ds_v2"},

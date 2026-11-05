@@ -31,7 +31,7 @@ KERN_B, KERN_T = 2000.0, 1600.0
 
 # ---------------------------------------------------------------- Konstanten Wasser (Vorgabe + TA-Stand 03.11. 06:40)
 SEE_MITTE = (1212.5, 1012.5)
-SEE_R = 250.0
+SEE_R = 75.0     # WA-12: Binsensee auf Teichgroesse (Aequivalentdurchmesser 143,7 m <= 150 m, Kartentyp Flusstal); vorher 250 m (494 m)
 SEE_PEGEL = 44.8
 SEE_UFER_RAUSCHEN = 0.07  # TA proto_see.json: r_eff = r * (1 + (...)*staerke/0.07)
 SEE_PHASE = 0.0

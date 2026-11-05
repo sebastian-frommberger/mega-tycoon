@@ -275,35 +275,35 @@
   "bach_gefaelle_promille": 56.3,
   "bach_laenge_m": 955.9,
   "boden_anteile_gesamt_pct": {
-   "acker_dunkel": 3.0,
-   "acker_hell": 5.7,
-   "auenboden": 19.3,
+   "acker_dunkel": 3.2,
+   "acker_hell": 5.9,
+   "auenboden": 19.8,
    "fels": 0.0,
    "heide": 7.9,
    "schnee": 0.0,
    "schotter": 0.0,
-   "sumpf": 2.0,
+   "sumpf": 2.1,
    "ufer": 1.4,
-   "waldboden": 28.0,
-   "wasser": 4.0,
-   "wiese": 28.8
+   "waldboden": 28.2,
+   "wasser": 2.8,
+   "wiese": 28.7
   },
   "boden_anteile_kern_pct": {
-   "acker_dunkel": 3.8,
-   "acker_hell": 11.0,
-   "auenboden": 35.3,
+   "acker_dunkel": 4.6,
+   "acker_hell": 12.1,
+   "auenboden": 37.7,
    "fels": 0.0,
    "heide": 0.0,
    "schnee": 0.0,
    "schotter": 0.0,
-   "sumpf": 4.0,
+   "sumpf": 4.7,
    "ufer": 3.1,
-   "waldboden": 15.3,
-   "wasser": 11.7,
-   "wiese": 15.7
+   "waldboden": 15.5,
+   "wasser": 6.2,
+   "wiese": 16.1
   },
   "dorfteich_flaeche_m2": 425,
-  "fein_felder": 805,
+  "fein_felder": 338,
   "fluss_flaeche_m2": 419062,
   "fluss_pegel_m": {
    "kern_mitte": 39.89,
@@ -330,16 +330,16 @@
   ],
   "muehlteich_flaeche_m2": 5975,
   "neigung_kern_landfelder_pct": {
-   "15-30%": 7.3,
-   "2-6%": 13.9,
-   "30-60%": 2.0,
-   "6-15%": 4.4,
-   "<2%": 72.4,
+   "15-30%": 6.8,
+   "2-6%": 12.9,
+   "30-60%": 1.9,
+   "6-15%": 3.4,
+   "<2%": 75.0,
    ">60%": 0.0
   },
   "neigung_kern_median_promille": 8.5,
-  "see_durchmesser_aequivalent_m": 494.3,
-  "see_flaeche_m2": 191900
+  "see_durchmesser_aequivalent_m": 143.7,
+  "see_flaeche_m2": 16225
  },
  "knoten": [
   161,
@@ -348,14 +348,14 @@
  "koordinaten": "lokal in Metern, Ursprung = NW-Ecke des Kerns, +x Ost, +z Sued, y = Hoehe ueber NN (m)",
  "m_pro_feld": 25.0,
  "md5": {
-  "proto_acker_maske.u8": "925f4af02b5ca676e602c1d1ffbd837e",
-  "proto_bach.json": "fcd989b3e8285b739845a71c7c8a48fd",
-  "proto_boden.png": "a2bd6e0fc3f955608d37cf097c3d3f34",
-  "proto_fein.r16": "0b05f7559d49f40752da15d38d76eded",
-  "proto_fein_maske.u8": "a64f7b64d5ac5bfb31de372012991382",
-  "proto_fluss.u8": "c85c4f25853b71665e6f2219188442de",
-  "proto_hoehe.r16": "4a69966a38578a2fadb44992f9acdf4a",
-  "proto_see.json": "0318e3bb02197aceabe94ff904ac1d5f"
+  "proto_acker_maske.u8": "49f055faaef60b163784b45b75f74e28",
+  "proto_bach.json": "2da92c8ffa077bd356dd8d5af2fbc629",
+  "proto_boden.png": "f75de42232b92b8b08ee0ce33a6247f7",
+  "proto_fein.r16": "68bbe76786458e1647bd4e64d5fc8f57",
+  "proto_fein_maske.u8": "9fe3709cacc4601c0296d4beeee62a94",
+  "proto_fluss.u8": "5da95130d2777f19376d52177b979e0c",
+  "proto_hoehe.r16": "5201b737a74da972991fd9b8cef5f317",
+  "proto_see.json": "f2709b65c6322c6a6f48282983e4771a"
  },
  "plateaus_w2": {
   "farm2_61": {

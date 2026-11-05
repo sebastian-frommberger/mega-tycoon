@@ -1,8 +1,8 @@
 Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
-PROTO_WELT stufen { "lies_daten": 6.086, "baue_gelaende": 338.162, "baue_wege": 409.092, "baue_modelle": 634.093, "baue_fahrzeuge": 634.096, "baue_schilder": 642.414 } sim []
-PROTO_WELT lade_ms 654.3 terrain=TA wege=16 instanzen=1003 knoten=13 bruecken=1 fahrzeuge=0 kette=aus
-s8_loop_bot: n=20, Strategien ["naiv", "normal", "plan"], Seeds 1..20, 45 min, Takt 300 Ticks, Szene laden 816 ms
+PROTO_WELT stufen { "lies_daten": 6.186, "baue_gelaende": 325.061, "baue_wege": 395.5, "baue_modelle": 622.072, "baue_fahrzeuge": 622.075, "baue_schilder": 630.058 } sim []
+PROTO_WELT lade_ms 641.8 terrain=TA wege=16 instanzen=1003 knoten=13 bruecken=1 fahrzeuge=0 kette=aus
+s8_loop_bot: n=20, Strategien ["naiv", "normal", "plan"], Seeds 1..20, 45 min, Takt 300 Ticks, Szene laden 802 ms
   Determinismus naiv Seed 1: gleich (Prüfsumme 3757530730292070119 / 3757530730292070119)
   Determinismus normal Seed 1: gleich (Prüfsumme -3631646330060050107 / -3631646330060050107)
   Determinismus plan Seed 1: gleich (Prüfsumme -8145127284670268450 / -8145127284670268450)
@@ -69,7 +69,7 @@ CSV: /tmp/claude-0/gd/s8work/qt3/sprints/s8/umsetzung/qt03b/n20_k4_fkaus.csv (60
   Sprint-Band: VERLETZT
 Parameter: {"naiv_bau_max":4,"naiv_fehl_pct":50,"naiv_fk_pct":0,"naiv_fz_max":14,"naiv_rest_max":8,"naiv_vergessen_pct":50,"normal_extra_pct":50,"normal_fk_min":28,"normal_reserve":150000,"normal_tilge":150000,"plan_ausbau":1,"plan_farm2":1,"plan_farm2_min":20,"plan_fk":1,"plan_fk_min":14,"plan_jitter":2,"plan_lindenfurt_min":10,"plan_mehl_dorf2":15,"plan_mehl_stadt2":25,"plan_reserve":150000}
 Firmenkauf-Schnittstelle (FK-02): angebunden: kauf_angebot/firma_kaufen/ausbau_angebot/werk_ausbauen
-LAUFZEIT 60 Läufe: Summe 99.3 s, Mittel 1656 ms/Lauf, Max 6172 ms; Gesamtlauf inkl. Determinismus-Doppel 105.8 s, Szene laden 0.8 s
-HOCHRECHNUNG n=300 (Mittel x 300 x 3 Strategien, linear): 24.8 min; n=150: 12.4 min (Annahme: Laufzeit je Lauf unabhängig von n, gleiche Last)
+LAUFZEIT 60 Läufe: Summe 62.2 s, Mittel 1037 ms/Lauf, Max 1778 ms; Gesamtlauf inkl. Determinismus-Doppel 68.8 s, Szene laden 0.8 s
+HOCHRECHNUNG n=300 (Mittel x 300 x 3 Strategien, linear): 15.6 min; n=150: 7.8 min (Annahme: Laufzeit je Lauf unabhängig von n, gleiche Last)
 Determinismus: OK 
 s8_loop_bot Exit 0

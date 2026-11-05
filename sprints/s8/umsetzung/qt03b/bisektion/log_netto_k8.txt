@@ -1,0 +1,12 @@
+a-Bisektion k=8 n=20 Ziel netto 1107.0 Intervall [1000; 5077] (k_eff 5.077) Toleranz 50 ‰
+  a= 1000 ‰  Bankrott 20/20  F2 erreicht 0/20  F2-Minute P50 inf  Netto5(Min 30) P50 0 $/min
+  a= 5077 ‰  Bankrott 0/20  F2 erreicht 20/20  F2-Minute P50 28.0  Netto5(Min 30) P50 2870 $/min
+  a= 3038 ‰  Bankrott 0/20  F2 erreicht 1/20  F2-Minute P50 inf  Netto5(Min 30) P50 1035 $/min
+  a= 4057 ‰  Bankrott 0/20  F2 erreicht 5/20  F2-Minute P50 inf  Netto5(Min 30) P50 1953 $/min
+  a= 3547 ‰  Bankrott 0/20  F2 erreicht 1/20  F2-Minute P50 inf  Netto5(Min 30) P50 1494 $/min
+  a= 3292 ‰  Bankrott 0/20  F2 erreicht 1/20  F2-Minute P50 inf  Netto5(Min 30) P50 1264 $/min
+  a= 3165 ‰  Bankrott 0/20  F2 erreicht 1/20  F2-Minute P50 inf  Netto5(Min 30) P50 1149 $/min
+  a= 3101 ‰  Bankrott 0/20  F2 erreicht 1/20  F2-Minute P50 inf  Netto5(Min 30) P50 1091 $/min
+  a= 3133 ‰  Bankrott 0/20  F2 erreicht 1/20  F2-Minute P50 inf  Netto5(Min 30) P50 1120 $/min
+Intervall am Ende [3101; 3133] (32 ‰), kleinstes erfülltes a = 3133 ‰ (Schritte 7)
+ERGEBNIS_A 3133

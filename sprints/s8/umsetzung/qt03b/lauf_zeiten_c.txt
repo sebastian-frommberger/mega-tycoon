@@ -1,0 +1,10 @@
+v2 k=1 fk=an exit=0 wanduhr=69 s load=0.72
+v2 k=1 fk=aus exit=0 wanduhr=66 s load=0.91
+v2 k=4 fk=an exit=0 wanduhr=69 s load=0.97
+v2 k=4 fk=aus exit=0 wanduhr=69 s load=0.99
+v2 k=8 fk=an exit=0 wanduhr=40 s load=1.00
+v2 k=8 fk=aus exit=0 wanduhr=39 s load=1.00
+v2 k=20 fk=an exit=0 wanduhr=23 s load=1.00
+v2 k=20 fk=aus exit=0 wanduhr=24 s load=1.00
+n100 plan k=1 exit=0 wanduhr=130 s load=1.00
+FERTIG

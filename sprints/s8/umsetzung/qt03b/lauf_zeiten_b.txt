@@ -1,0 +1,13 @@
+bisektion k=4 wanduhr=96 s load=3.30
+bisektion netto k=4 wanduhr=642 s load=4.43
+bisektion netto k=8 wanduhr=739 s load=2.07
+bisektion f2min k=4 wanduhr=344 s load=2.33
+attr k=1 basis exit=0 wanduhr=59 s load=2.58
+attr k=1 alterung_aus exit=0 wanduhr=64 s load=2.85
+attr k=1 deckel0 exit=0 wanduhr=58 s load=2.99
+attr k=1 beide exit=0 wanduhr=61 s load=2.20
+attr k=4 basis exit=0 wanduhr=67 s load=1.80
+attr k=4 alterung_aus exit=0 wanduhr=70 s load=1.63
+attr k=4 deckel0 exit=0 wanduhr=66 s load=1.37
+attr k=4 beide exit=0 wanduhr=71 s load=1.53
+FERTIG

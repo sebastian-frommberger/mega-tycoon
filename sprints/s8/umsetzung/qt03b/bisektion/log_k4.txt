@@ -1,0 +1,5 @@
+a-Bisektion k=4 n=20 Ziel f2min 25.0 Intervall [1000; 2746] (k_eff 2.746) Toleranz 50 ‰
+  a= 1000 ‰  Bankrott 14/20  F2 erreicht 0/20  F2-Minute P50 inf  Netto5(Min 30) P50 0 $/min
+  a= 2746 ‰  Bankrott 0/20  F2 erreicht 20/20  F2-Minute P50 26.0  Netto5(Min 30) P50 2786 $/min
+Ziel auch bei a=2746 (obere Grenze) NICHT erfüllt: Klammer leer. Entweder Obergrenze > k_eff x 1000 (holt den Exploit zurück, W2) oder Fix/Kap zuerst kalibrieren (OE-02 Folge 3).
+ERGEBNIS_A None

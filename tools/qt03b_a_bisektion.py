@@ -5,10 +5,12 @@ Werkzeug, keine Kalibrierung: economy_proto.json bleibt unberührt, a kommt als 
 Bonus a/1000 auf jeden Lieferertrag, siehe s8_loop_bot.gd). Tobias entscheidet, welchen Wert die Datei bekommt.
 
 Zielfunktionen (--ziel=):
-  f2min   (Standard) kleinstes a, bei dem die MEDIAN-Minute von F2 (f2_op, 5 Perioden >= Schwelle, Kredit 0) <= --wert (25) liegt.
-          Nicht erreicht oder Bankrott zählt als unendlich. Ziel laut W2: Minute 25 +- 5 (Ergebnis wird gegen [wert-5, wert+5] geprüft).
+  f2min   kleinstes a, bei dem die MEDIAN-Minute von F2 (f2_op, 5 Perioden >= Schwelle, Kredit 0) <= --wert + --band liegt (Standard 25 + 5).
+          Nicht erreicht oder Bankrott zählt als unendlich. Ziel laut W2: Minute 25 +- 5. ACHTUNG: F2 ist durch den Fahrplan nach unten begrenzt
+          (Kauf ~15, Farm 2 ~20, 5 Perioden): gemessen ~26-28 schon bei kleinem a, die Minute ist daher als Bisektionsziel schwach.
           Schwelle F2 = ziele_welt.json (Platzhalter 600 $/min, OE-04 ersetzt ihn aus demselben Bot: Zirkularität, OE-01 OFFEN 2).
-  netto   kleinstes a, bei dem das P50 des 5-Perioden-Netto bei Minute 30 (netto5_op_min30) >= --wert ($/min) liegt.
+  netto   (empfohlen) kleinstes a, bei dem das P50 des 5-Perioden-Netto bei Minute 30 (netto5_op_min30) >= --wert ($/min) liegt,
+          z. B. --wert=<Wert bei k=1, a=1000> ("€/min kippt nicht", design.md 2.4).
 Annahme Monotonie: Mehr a -> mehr Ertrag -> früheres F2 / mehr Netto (im Prinzip; Bankrott-Rauschen kann Stufen erzeugen, die Tabelle zeigt es).
 Intervall: [--lo 1000, --hi]; --hi Standard = k_eff x 1000 mit k_eff aus --keff (Zahl) oder k (Fallback). Klammer wird zuerst gemessen.
 Abbruch: Intervall <= --tol (50 Promille) oder Schritte > --max.
@@ -60,14 +62,14 @@ def messen(a, opt, log):
 
 def erfuellt(res, opt):
     if opt["ziel"] == "f2min":
-        return res["f2_min_p50"] is not None and res["f2_min_p50"] <= opt["wert"]
+        return res["f2_min_p50"] is not None and res["f2_min_p50"] <= opt["wert"] + opt["band"]
     return res["netto5_min30_p50_usd"] >= opt["wert"]
 
 
 def main():
     a = argv()
     opt = {
-        "k": int(a.get("k", "4")), "n": int(a.get("n", "20")), "ziel": a.get("ziel", "f2min"), "wert": float(a.get("wert", "25")),
+        "k": int(a.get("k", "4")), "n": int(a.get("n", "20")), "ziel": a.get("ziel", "f2min"), "wert": float(a.get("wert", "25")), "band": float(a.get("band", "5")),
         "lo": int(a.get("lo", "1000")), "tol": int(a.get("tol", "50")), "max": int(a.get("max", "8")),
         "godot": a.get("godot", GODOT), "arbeit": a.get("arbeit", os.path.join(os.getcwd(), "slice")),
         "out": a.get("out", tempfile.mkdtemp(prefix="bisektion_")), "extra": [x for x in sys.argv[1:] if x.startswith("--p_") or x.startswith("--startkapital")],
@@ -106,7 +108,7 @@ def main():
     if ergebnis is not None and opt["ziel"] == "f2min":
         res = [x for x in log if x["a"] == ergebnis][0]
         m = res["f2_min_p50"]
-        print(f"Prüfung W2 (Minute {opt['wert']} +- 5): F2-Minute P50 bei a={ergebnis} = {m} -> {'im Band' if m is not None and opt['wert'] - 5 <= m <= opt['wert'] + 5 else 'AUSSERHALB'}")
+        print(f"Prüfung W2 (Minute {opt['wert']} +- {opt['band']}): F2-Minute P50 bei a={ergebnis} = {m} -> {'im Band' if m is not None and opt['wert'] - opt['band'] <= m <= opt['wert'] + opt['band'] else 'AUSSERHALB'}")
     print("ERGEBNIS_A", ergebnis)
     return 0
 

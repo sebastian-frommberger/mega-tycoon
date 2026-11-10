@@ -29,6 +29,12 @@ const KOHLE := "Kohlegrube Schwarzgrund"
 const ERZ := "Erzgrube Silberkuppe"
 const HUETTE := "Rotachhütte"
 const SCHMIEDE := "Hammerschmiede"
+const OST := "Erlenbach Ostend"
+const KIRCHE := "Erlenbach Kirchgasse"
+const TOR := "Lindenfurt Tor"
+const HINTERGASSE := "Lindenfurt Hintergasse"
+const HALT_HW := "Hasenwinkel"
+const GLEIS_PERSONEN := [Vector2(1660, 640), Vector2(1400, 760), Vector2(1000, 830), Vector2(800, 870)]
 const HQ_ORTE := [Vector2(1668, 688), Vector2(1600, 700), Vector2(160, 150), Vector2(735, 835), Vector2(1700, 760)]
 const WEG_FORST := [Vector2(1282, 938), Vector2(1330, 1100), Vector2(1050, 1250)]
 const GLEIS_KOHLE := [Vector2(370, 1235), Vector2(700, 1120), Vector2(985, 1020)]
@@ -55,6 +61,7 @@ var streng_ticks: Array = []          # dasselbe ohne „mehr vom Gleichen“ (F
 var arten_summe := 0                  # Σ verschiedene Aktionsarten je Takt (Vielfalt)
 var abl: Dictionary = {}              # API-Ablehnungen
 var z: Dictionary = {}                # Strategiezustand
+var gate_erw := true
 var kauf_sperre: Dictionary = {}      # Linie -> Tick des letzten Kaufs
 
 
@@ -109,14 +116,15 @@ func _run() -> void:
 
 
 func _kopf() -> String:
-	return "seed,strategie,bankrott_min,kasse,aktionen,fenster_ohne,luecke_max_s,luecke_streng_s,arten_x10,luecke_ohne_aktion_max_s,meilensteine,skillpunkte,skills,vertraege_ok,vertraege_fehl,vertraege_angenommen,ruf,strassen,gleise,zuege,ersetzt,firmen,hq_stufe,anbauten,ertrag_min30,fahrzeuge,sim_fehler,ablehnungen,pruefsumme"
+	return "seed,strategie,bankrott_min,kasse,aktionen,fenster_ohne,luecke_max_s,luecke_streng_s,arten_x10,luecke_ohne_aktion_max_s,meilensteine,skillpunkte,skills,vertraege_ok,vertraege_fehl,vertraege_angenommen,ruf,strassen,gleise,zuege,ersetzt,firmen,hq_stufe,anbauten,ertrag_min30,fahrzeuge,sim_fehler,ablehnungen,pruefsumme,fahrgaeste,linien_3_halte,depots,personenzuege,gueterzuege,stadtfahrzeuge,depot_kauf,verkauft,strecke_gekauft"
 
 
 func _zeile(r: Dictionary) -> String:
 	return "%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [r["seed"], strategie,
 		str(r["bankrott_min"]), r["kasse"], r["aktionen"], r["fenster_ohne"], r["luecke_max_s"], r["luecke_streng_s"], r["arten_x10"], r["luecke_akt_s"], r["meilensteine"],
 		r["skillpunkte"], r["skills"], r["v_ok"], r["v_fehl"], r["v_an"], r["ruf"], r["strassen"], r["gleise"], r["zuege"], r["ersetzt"],
-		r["firmen"], r["hq_stufe"], r["anbauten"], r["ertrag_min30"], r["fahrzeuge"], r["sim_fehler"], r["ablehnungen"], r["pruefsumme"]]
+		r["firmen"], r["hq_stufe"], r["anbauten"], r["ertrag_min30"], r["fahrzeuge"], r["sim_fehler"], r["ablehnungen"], r["pruefsumme"]] + ",%d,%d,%d,%d,%d,%d,%d,%d,%d" % [
+		r["fahrgaeste"], r["plan3"], r["depots"], r["pzug"], r["gzug"], r["stadt_fz"], r["depot_kauf"], r["verkauft"], r["strecke_gekauft"]]
 
 
 # ------------------------------------------------------------------ ein Lauf
@@ -136,7 +144,7 @@ func _lauf(sd: int) -> Dictionary:
 	kauf_sperre = {}
 	z = {"hq": HQ_ORTE[sd % HQ_ORTE.size()], "ast": sd % 3, "verz": rng.randi_range(0, 2) * 100, "v_an": 0, "ersetzt": 0,
 		"forst_min": 5 + rng.randi_range(0, 2), "farm2_min": 9 + rng.randi_range(0, 2), "gleis_min": 12 + rng.randi_range(0, 1),
-		"stadt_min": 3 + rng.randi_range(0, 2)}
+		"stadt_min": 3 + rng.randi_range(0, 2), "stadt1_min": 2 + rng.randi_range(0, 2), "depot_min": 7 + rng.randi_range(0, 2), "pzug_min": 19 + rng.randi_range(0, 2)}
 	var ende := minuten * PERIODE
 	while ps.sim.tick_count < ende and not ps.konto.bankrupt:
 		if verbose and ps.sim.tick_count % 1800 == 0 and ps.sim.tick_count > 0:
@@ -174,6 +182,24 @@ func _lauf(sd: int) -> Dictionary:
 	var n_abl := 0
 	for k in abl:
 		n_abl += int(abl[k])
+	var pzug := 0
+	var gzug := 0
+	var stadt_fz := 0
+	for f in ps.fahrzeuge:
+		if f["verkauft"]:
+			continue
+		var fd: Dictionary = ps.vdef(String(f["def_id"]))
+		if ps.auf_gleis(fd):
+			if ps.fracht(fd) == "personen":
+				pzug += 1
+			else:
+				gzug += 1
+		elif ps.fracht(fd) == "personen":
+			stadt_fz += 1
+	var plan3 := 0
+	for l in ps.linien:
+		if l["halte"].size() >= 3 and not ps.linie_fahrzeuge(int(l["id"])).is_empty():
+			plan3 += 1
 	var strassen := 0
 	var gleise := 0
 	for bw in ps.bauwerke:
@@ -189,7 +215,9 @@ func _lauf(sd: int) -> Dictionary:
 		"strassen": strassen, "gleise": gleise, "zuege": zuege, "ersetzt": int(z["ersetzt"]), "firmen": ps.eco.owned_count,
 		"hq_stufe": ps.hq_stufe, "anbauten": ps.hq_anbauten.size(), "ertrag_min30": ps.ertrag_periode_cent / 100, "fahrzeuge": fz,
 		"sim_fehler": ps.fehler.size(), "fehler": ps.fehler.duplicate(), "ablehnungen": n_abl, "abl": abl.duplicate(),
-		"pruefsumme": ps.pruefsumme(), "frei": ps.freischaltungen.duplicate()}
+		"pruefsumme": ps.pruefsumme(), "frei": ps.freischaltungen.duplicate(),
+		"fahrgaeste": int(ps.geliefert.get("fahrgaeste", 0)), "plan3": plan3, "depots": ps.depots.size(), "pzug": pzug, "gzug": gzug, "stadt_fz": stadt_fz,
+		"depot_kauf": int(akt.get("depot_kauf", 0)), "verkauft": int(akt.get("verkauf", 0)), "strecke_gekauft": 1 if ps.maut_gekauft else 0}
 
 
 ## 60-s-Fenster ohne Angebot, längste Angebotslücke (s), längste Lücke zwischen ausgeführten Aktionen (s).
@@ -343,6 +371,7 @@ func _takt(t: int) -> void:
 	_verstaerken(FARM1, MUEHLE, 2)
 	if strategie == "faul":
 		return
+	_stadtverkehr()
 	if _min() >= float(z["stadt_min"]):
 		_linie(MUEHLE, STADT, 2)
 		_verstaerken(MUEHLE, STADT, 4)
@@ -356,6 +385,7 @@ func _takt(t: int) -> void:
 	if _min() >= float(z["farm2_min"]):
 		_linie(FARM2, MUEHLE, 2)
 	_firmen()
+	_personenzug()
 	# Kette 3: Gleis (ab 1824), Kohle + Erz → Eisen → Werkzeug
 	if ps.gleis_frei() and _min() >= float(z["gleis_min"]):
 		if _bauen("gleis", GLEIS_KOHLE, "gleis_kohle") and _linie(KOHLE, HUETTE, 1, true):
@@ -369,6 +399,72 @@ func _takt(t: int) -> void:
 						_verstaerken(HUETTE, STADT, 5)
 	_hq()
 	_ersetzen()
+	_strecke()
+
+
+## Stadtverkehr (Linienpläne mit 3 Halten), Depot (Kauf mit Rabatt, Überholung, ein Verkauf), Personenzug.
+func _stadtverkehr() -> void:
+	if _min() >= float(z["stadt1_min"]) and not z.has("l_dorf"):
+		var d: Dictionary = ps.vdef(ps.def_fuer("kutsche"))
+		if ps._preis(d) + reserve / 2 <= _cash():
+			var r: Dictionary = ps.linienplan_anlegen([DORF, OST, KIRCHE], ps.def_fuer("kutsche"), [], "Stadtlinie Erlenbach")
+			if _a("linienplan", r):
+				z["l_dorf"] = int(r["linie"])
+	if _min() >= float(z["depot_min"]) and ps.depots.is_empty():
+		var q: Dictionary = ps.depot_angebot(ps.naechster_strassenknoten(ps.hq_pos))
+		if q.get("ok", false) and int(q["kosten_cent"]) + reserve <= _cash():
+			_a("depot", ps.depot_bauen(ps.naechster_strassenknoten(ps.hq_pos)))
+	if _min() >= float(z["stadt1_min"]) + 5.0 and not z.has("l_stadt"):
+		var d2: Dictionary = ps.vdef(ps.def_fuer("kutsche"))
+		if ps._preis(d2) + reserve <= _cash():
+			var r2: Dictionary = ps.linienplan_anlegen([STADT, TOR, HINTERGASSE], ps.def_fuer("kutsche"), [], "Stadtlinie Lindenfurt")
+			if _a("linienplan", r2):
+				z["l_stadt"] = int(r2["linie"])
+	# Kauf im Depot: zweite Kutsche für die Erlenbacher Linie, sobald dort Fahrgäste stehen bleiben
+	if z.has("l_dorf") and not ps.depots.is_empty() and not z.has("depot_kauf") and ps.wartende(DORF) >= 16:
+		var d3: Dictionary = ps.vdef(ps.def_fuer("kutsche"))
+		if ps._preis(d3) + reserve <= _cash() and ps.depot_erreicht(DORF, false) >= 0:
+			var r3: Dictionary = ps.depot_kauf(ps.depot_erreicht(DORF, false), ps.def_fuer("kutsche"), int(z["l_dorf"]))
+			if _a("depot_kauf", r3):
+				z["depot_kauf"] = int(r3["vid"])
+				z["depot_kauf_tick"] = ps.sim.tick_count
+	# Verkauf: die Zweitkutsche geht nach 6 Minuten wieder weg, wenn der Omnibus die Linie allein schafft (oder spätestens Minute 26)
+	if z.has("depot_kauf") and not z.has("verkauft") and ps.sim.tick_count - int(z["depot_kauf_tick"]) >= 3600 and (ps.wartende(DORF) < 8 or _min() >= 26.0):
+		if _a("verkauf", ps.fahrzeug_verkaufen(int(z["depot_kauf"]))):
+			z["verkauft"] = true
+	# Überholung, wenn sie sich in 5 Minuten rechnet
+	for f in ps.fahrzeuge:
+		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0 or ps.neueres_modell(int(f["vid"])) != "":
+			continue
+		var uq: Dictionary = ps.ueberholen_angebot(int(f["vid"]))
+		if uq.get("ok", false) and int(uq["spart_cent_pro_periode"]) * 5 >= int(uq["kosten_cent"]) and int(uq["kosten_cent"]) + reserve <= _cash():
+			_a("ueberholen", ps.fahrzeug_ueberholen(int(f["vid"])))
+			break
+
+
+func _personenzug() -> void:
+	if not ps.gleis_frei() or _min() < float(z["pzug_min"]):
+		return
+	if not _bauen("gleis", GLEIS_PERSONEN, "gleis_personen"):
+		return
+	if not z.has("l_pzug"):
+		var d: Dictionary = ps.vdef(ps.def_fuer("pzug"))
+		if ps._preis(d) + reserve <= _cash():
+			var r: Dictionary = ps.linienplan_anlegen([DORF, HALT_HW], ps.def_fuer("pzug"), [], "Bahn Erlenbach – Hasenwinkel")
+			if _a("personenzug", r):
+				z["l_pzug"] = int(r["linie"])
+	elif not z.has("lokschuppen"):
+		var kp: Vector3 = ps.knoten_pos[ps.bahnhof[DORF]]
+		var q: Dictionary = ps.depot_angebot(Vector2(kp.x, kp.z))
+		if q.get("ok", false) and int(q["kosten_cent"]) + reserve + 50000 <= _cash():
+			if _a("depot", ps.depot_bauen(Vector2(kp.x, kp.z))):
+				z["lokschuppen"] = true
+
+
+func _strecke() -> void:
+	var q: Dictionary = ps.strecke_kauf_angebot("chaussee")
+	if q.get("ok", false) and q.get("kaufbar", false) and int(q["maut_cent_pro_periode"]) > int(q["unterhalt_cent"]) * 2 and int(q["preis_cent"]) + reserve + 150000 <= _cash() - ps.credit.loan_cent:
+		_a("strecke_kauf", ps.strecke_kaufen("chaussee"))
 
 
 func _skills() -> void:
@@ -486,7 +582,8 @@ func _zusammenfassung(res: Array, det_ok: bool, ms: int) -> bool:
 		fen_max = maxi(fen_max, int(r["fenster_ohne"]))
 		fehler_summe += int(r["sim_fehler"])
 		for k in ["kasse", "aktionen", "luecke_max_s", "luecke_streng_s", "arten_x10", "luecke_akt_s", "meilensteine", "skillpunkte", "skills", "v_ok", "v_fehl", "v_an",
-				"strassen", "gleise", "zuege", "ersetzt", "firmen", "hq_stufe", "anbauten", "ertrag_min30", "fahrzeuge", "ablehnungen"]:
+				"strassen", "gleise", "zuege", "ersetzt", "firmen", "hq_stufe", "anbauten", "ertrag_min30", "fahrzeuge", "ablehnungen",
+				"fahrgaeste", "plan3", "depots", "pzug", "gzug", "stadt_fz", "depot_kauf", "verkauft", "strecke_gekauft"]:
 			if not cols.has(k):
 				cols[k] = []
 			cols[k].append(int(r[k]))
@@ -530,5 +627,12 @@ func _zusammenfassung(res: Array, det_ok: bool, ms: int) -> bool:
 	print("  Determinismus: %s" % ("OK" if det_ok else "FEHLER") + ("" if det_check else " (nicht geprüft)"))
 	print("  LAUFZEIT %.1f s gesamt, %.0f ms je Lauf" % [ms / 1000.0, float(ms) / maxi(1, n + (1 if det_check else 0))])
 	var gate_ok: bool = bank == 0 and fen_summe == 0 and fehler_summe == 0 and int(_p(cols.get("luecke_max_s", [0]), 1.0)) <= 120
+	var erw := 0
+	for r in res:
+		if int(r["plan3"]) >= 1 and int(r["depot_kauf"]) >= 1 and int(r["verkauft"]) >= 1 and int(r["pzug"]) >= 1 and int(r["gzug"]) >= 1 and int(r["stadt_fz"]) >= 1 and int(r["fahrgaeste"]) > 0:
+			erw += 1
+	print("  Erweiterung (Mehrpunkt-Linie befahren, Depotkauf und Verkauf, Personenzug und Güterzug, Stadtverkehr mit Fahrgästen): %d/%d Läufe vollständig" % [erw, n])
+	if strategie == "plan":
+		gate_erw = erw == n
 	print("  Gate A (kein Bankrott, kein 60-s-Fenster ohne Angebot, Lücke ≤ 120 s, 0 Sim-Fehler): %s" % ("ERFÜLLT" if gate_ok else "VERLETZT"))
-	return det_ok and fehler_summe == 0 and (gate_ok or not gate)
+	return det_ok and fehler_summe == 0 and ((gate_ok and gate_erw) or not gate)

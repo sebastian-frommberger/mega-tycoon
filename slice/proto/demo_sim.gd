@@ -170,6 +170,24 @@ func spiel_starten(orte: Dictionary) -> bool:
 			"abstand_m": lp.distance_to(Vector2(knoten_pos[n].x, knoten_pos[n].z))}
 		betrieb_pos[nm] = p
 		betrieb_typ[nm] = String(b["typ"])
+	var pd: Dictionary = daten.get("personen", {})
+	for h in pd.get("haltestellen", []):
+		var hn := String(h["name"])
+		var hp := Vector2(float(h["x"]), float(h["z"]))
+		var hk := _freier_knoten_bei(hp)
+		if hk < 0:
+			fehler.append("Haltestelle %s: kein freier Straßenknoten" % hn)
+			continue
+		var cid := "halt_" + String(h["id"])
+		eco.c_index[cid] = {"id": cid, "stage_id": "haltestelle", "einwohner_anzahl": int(h["ew"])}
+		var hs: int = eco.add_city_site(hk, cid)
+		stationen[hn] = {"knoten": hk, "site": hs, "k": eco.s_station[hs], "id": cid, "ort_id": String(h["id"]), "abstand_m": 0.0, "haltestelle": true}
+		betrieb_pos[hn] = hp
+	for nm in stationen:
+		var ps_site: int = stationen[nm]["site"]
+		if eco.s_kind[ps_site] == Economy.K_STADT and eco.g_index.has(String(pd.get("gut", "fahrgaeste"))):
+			personen_sites.append(ps_site)
+			personen_acc.append(0)
 	if not eco.start_company_at(_reg["n_dorf"], "dorf"):
 		fehler.append("Start: Firma nicht gegründet")
 		return false
@@ -248,7 +266,7 @@ func modelle(kategorie: String, nur_verfuegbar := true) -> Array:
 
 ## Neuestes kaufbares Modell der Kategorie.
 func def_fuer(kat: String) -> String:
-	var kategorie := "zug" if kat in ["zug", "pferdebahn", "dampflok", "dampfzug"] else "fuhrwerk"
+	var kategorie := "zug" if kat in ["zug", "pferdebahn", "dampflok", "dampfzug"] else ("fuhrwerk" if not (kat in ["kutsche", "pzug"]) else kat)
 	var m := modelle(kategorie)
 	if m.is_empty():
 		return super.def_fuer(kat)
@@ -269,7 +287,7 @@ func bonus(key: String) -> int:
 
 func _kap(d: Dictionary) -> int:
 	var k := int(d.get("kapazitaet_einheiten", 10))
-	var pm := bonus("kap_zug_pm") if String(d.get("kategorie", "")) == "zug" else bonus("kap_strasse_pm")
+	var pm := bonus("kap_zug_pm") if auf_gleis(d) else bonus("kap_strasse_pm")
 	return k * (1000 + pm) / 1000
 
 
@@ -277,13 +295,20 @@ func _preis(d: Dictionary) -> int:
 	return int(d.get("kauf_cent", 0)) * (1000 - mini(500, bonus("fz_kauf_pm"))) / 1000
 
 
+## Unterhalt mit Alterung ab der letzten Überholung (Depot) und Boni.
 func fix_eff(f: Dictionary) -> int:
-	return super.fix_eff(f) * (1000 - mini(500, bonus("fz_fix_pm"))) / 1000
+	if f["verkauft"]:
+		return 0
+	var fix := int(f.get("fix_cent", 0))
+	if alterung_an and fix > 0:
+		var bp := int(vdef(String(f.get("def_id", ""))).get("alterung_unterhalt_bp_pro_jahr", 0))
+		fix = fix * (10000 + bp * maxi(0, alter_jahre(f) - int(f.get("ueberholt_jahre", 0)))) / 10000
+	return fix * (1000 - mini(500, bonus("fz_fix_pm"))) / 1000
 
 
 func profil_fuer(kat: String, d: Dictionary):
 	var tempo := int(d.get("tempo_promille", 600))
-	var gleis := String(d.get("kategorie", "")) == "zug"
+	var gleis := auf_gleis(d)
 	var key := "%s:%d:%s" % [kat, tempo, str(gleis)]
 	if _prof_cache.has(key):
 		return _prof_cache[key]
@@ -305,7 +330,24 @@ func profil_fuer(kat: String, d: Dictionary):
 
 
 func ist_zug(f: Dictionary) -> bool:
-	return String(vdef(String(f.get("def_id", ""))).get("kategorie", "")) == "zug"
+	return auf_gleis(vdef(String(f.get("def_id", ""))))
+
+
+func auf_gleis(d: Dictionary) -> bool:
+	return bool(d.get("gleis", String(d.get("kategorie", "")) == "zug"))
+
+
+func fracht(d: Dictionary) -> String:
+	return String(d.get("fracht", "gueter"))
+
+
+## Passt die Fracht des Modells zur Station? Personen nur an Orten/Haltestellen, Güter nur ab Betrieben.
+func fracht_passt(d: Dictionary, name: String, als_quelle: bool) -> bool:
+	var site: int = stationen[name]["site"]
+	var stadt: bool = eco.s_kind[site] == Economy.K_STADT
+	if fracht(d) == "personen":
+		return stadt
+	return not stadt if als_quelle else true
 
 
 ## Straßenweg zwischen zwei Stationen (leer = keine Verbindung). Ergebnis je Paar gemerkt, bis wieder gebaut wird
@@ -331,7 +373,7 @@ func gleisroute(von_name: String, nach_name: String) -> Array:
 
 
 func route_fuer(von_name: String, nach_name: String, def_id: String) -> Array:
-	if String(vdef(def_id).get("kategorie", "")) == "zug":
+	if auf_gleis(vdef(def_id)):
 		return gleisroute(von_name, nach_name)
 	return strassenroute(von_name, nach_name)
 
@@ -343,8 +385,14 @@ func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_i
 	if d.is_empty():
 		return _nein("unbekanntes_fahrzeug")
 	var dar := String(d.get("darstellung", "fuhrwerk"))
-	if String(d.get("kategorie", "")) != "zug":
-		return super.linie_anlegen(von_name, nach_name, dar, def_id)
+	if stationen.has(von_name) and stationen.has(nach_name) and hq_platziert and not (fracht_passt(d, von_name, true) and fracht_passt(d, nach_name, false)):
+		return _nein("falsche_fracht", {"fracht": fracht(d)})
+	if not auf_gleis(d):
+		var rs := super.linie_anlegen(von_name, nach_name, dar, def_id)
+		if rs.get("ok", false):
+			_nach_kauf(fahrzeug(int(rs["vid"])), von_name)
+			rs["preis_cent"] = int(fahrzeug(int(rs["vid"]))["kauf_cent"])
+		return rs
 	var g := _spielbar()
 	if g != "":
 		return _nein(g)
@@ -380,7 +428,8 @@ func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_i
 	f["kauf_tick"] = sim.tick_count
 	_fix_dirty = true
 	zug_gekauft = true
-	return _ok({"vid": f["vid"], "preis_cent": preis})
+	_nach_kauf(f, von_name)
+	return _ok({"vid": f["vid"], "preis_cent": int(f["kauf_cent"])})
 
 
 ## Ersetzen: neues Modell derselben Kategorie; Tempo und Darstellung des neuen Modells (Linie, Position, Ladung bleiben).
@@ -405,6 +454,7 @@ func fahrzeug_ersetzen(vid: int, def_id := "") -> Dictionary:
 		_probe(f)
 		f["zustand"].folger_setzen()
 	f["name"] = "%s %d" % [String(d.get("name", "Fahrzeug")), vid]
+	_var_neu(f)
 	_log("ersetzt", "%s fährt jetzt auf der Linie." % f["name"], false)
 	return r
 
@@ -426,8 +476,13 @@ func neueres_modell(vid: int) -> String:
 
 func _fix_extra() -> int:
 	var c := 0
+	var su := 1000 - mini(800, bonus("strecke_unterhalt_pm"))
 	for bw in bauwerke:
-		c += int(bw.get("unterhalt_cent", 0))
+		if not bw.get("verkauft", false):
+			c += int(bw.get("unterhalt_cent", 0)) * su / 1000
+	if maut_gekauft:
+		c += int(daten.get("maut", {}).get("unterhalt_cent_pro_periode", 0)) * su / 1000
+	c += depots.size() * int(daten.get("depot", {}).get("unterhalt_cent_pro_periode", 0)) * (1000 - mini(1000, bonus("depot_unterhalt_pm"))) / 1000
 	var st: Array = daten.get("hq", {}).get("stufen", [])
 	if hq_platziert and hq_stufe - 1 < st.size():
 		c += int(st[hq_stufe - 1].get("unterhalt_cent_pro_periode", 0))
@@ -444,6 +499,8 @@ func boni_anwenden() -> void:
 	var cat := {}
 	if bonus("ertrag_nahrung_pm") > 0:
 		cat["nahrung"] = mini(cap - eco.skill_bonus, bonus("ertrag_nahrung_pm"))
+	if bonus("ertrag_personen_pm") > 0:
+		cat["personen"] = mini(cap - eco.skill_bonus, bonus("ertrag_personen_pm"))
 	eco.demo_cat_bonus = cat
 	eco.demand_factor = int(_basis["demand"]) * (1000 + bonus("nachfrage_pm")) / 1000
 	eco.lic_share = int(_basis["lic_share"]) * (1000 - mini(800, bonus("lizenz_pm"))) / 1000
@@ -459,6 +516,7 @@ func boni_anwenden() -> void:
 		if f["verkauft"] or String(f.get("def_id", "")) == "":
 			continue
 		sim.v_cargo_cap[sim.slot_of(f["vid"])] = _kap(vdef(String(f["def_id"])))
+		_var_neu(f)
 	_fix_dirty = true
 
 
@@ -1030,6 +1088,10 @@ func _meilensteine_pruefen() -> void:
 		_meilenstein("bretter")
 	if int(geliefert.get("werkzeug", 0)) > 0:
 		_meilenstein("werkzeug")
+	if int(geliefert.get("fahrgaeste", 0)) > 0:
+		_meilenstein("fahrgast")
+	if plan3_geliefert:
+		_meilenstein("linienplan")
 	if zug_gekauft:
 		_meilenstein("zug")
 	if eco.owned_count >= 1:
@@ -1238,6 +1300,9 @@ func tick() -> void:
 	if eco == null or not eco.company_started:
 		return
 	_vertraege_tick()
+	_plan_tick()
+	if sim.tick_count % 60 == 0:
+		_fahrgaeste_erzeugen()
 	if sim.tick_count % eco.periode_ticks == 0:
 		ertrag_periode_cent = eco.revenue_total - _rev_alt
 		_rev_alt = eco.revenue_total
@@ -1256,7 +1321,7 @@ func pruefsumme() -> int:
 	var h: int = sim.checksum()
 	var prime: int = 1099511628211
 	for v in [ruf, skillpunkte, skills.size(), hq_stufe, hq_anbauten.size(), vertraege_erfuellt, vertraege_verfehlt, _vertrag_nr,
-			bauwerke.size(), roundi(hq_pos.x * 10.0), roundi(hq_pos.y * 10.0), meilensteine_erreicht.size(), _vz]:
+			bauwerke.size(), linien.size(), depots.size(), 1 if maut_gekauft else 0, roundi(hq_pos.x * 10.0), roundi(hq_pos.y * 10.0), meilensteine_erreicht.size(), _vz]:
 		h = (h ^ int(v)) * prime
 	for bw in bauwerke:
 		h = (h ^ int(bw["kosten_cent"])) * prime
@@ -1360,4 +1425,793 @@ func aktionen_moeglich() -> Array:
 			var eq := ersetzen_angebot(int(f["vid"]), neu)
 			if eq.get("ok", false) and eq.get("kaufbar", false):
 				a.append("ersetzen:%d" % int(f["vid"]))
+		var uq := ueberholen_angebot(int(f["vid"]))
+		if uq.get("ok", false) and uq.get("kaufbar", false) and int(uq["spart_cent_pro_periode"]) * 10 >= int(f.get("fix_cent", 0)) * 2:
+			a.append("ueberholen:%d" % int(f["vid"]))
+	# Personenverkehr: Halt mit wartenden Fahrgästen, den keine Linie bedient
+	var kd := vdef(def_fuer("kutsche"))
+	if not kd.is_empty() and _preis(kd) <= cash:
+		for site in personen_sites:
+			var hn := _name_von_site(site)
+			if sim.st_stock[eco.s_station[site]] >= _kap(kd) and not _halt_bedient(hn):
+				a.append("personen:" + hn)
+	var dq := depot_angebot(naechster_strassenknoten(hq_pos))
+	if depots.is_empty() and dq.get("ok", false) and dq.get("kaufbar", false):
+		a.append("depot")
+	var mq := strecke_kauf_angebot("chaussee")
+	if mq.get("ok", false) and mq.get("kaufbar", false) and int(mq["maut_cent_pro_periode"]) > int(mq["unterhalt_cent"]):
+		a.append("strecke:chaussee")
 	return a
+
+
+# ====================================================================== Teil 2: Personen, Linienpläne, Depots, Strecken
+# (Erweiterung 10.11.: Punkte 7–11 des Demo-Auftrags)
+
+var personen_sites: Array = []        # Standorte (Orte, Haltestellen), die Fahrgäste erzeugen und annehmen
+var personen_acc: Array = []
+var linien: Array = []                # Linienpläne [{id, name, halte [Namen], auftrag ["voll"|"mitnehmen"|"nichts"], def_kat, gleis, fracht}]
+var _linie_nr := 0
+var plan3_geliefert := false
+var depots: Array = []                # [{id, art "strasse"|"gleis", knoten, pos Vector2, tick}]
+var maut_gekauft := false
+var maut_gezahlt_cent := 0            # Σ Chausseegeld (in den Fahrkosten enthalten), Anzeige
+var _leg_cache: Dictionary = {}
+
+
+func _name_von_site(site: int) -> String:
+	for nm in stationen:
+		if int(stationen[nm]["site"]) == site:
+			return nm
+	return ""
+
+
+func _halt_bedient(name: String) -> bool:
+	for l in linien:
+		if name in l["halte"]:
+			for f in fahrzeuge:
+				if not f["verkauft"] and int(f.get("plan", -1)) == int(l["id"]):
+					return true
+	return false
+
+
+## Fahrgäste entstehen an jedem Ort/Halt: je Minute so viele, wie er annimmt; Vorrat höchstens wartend_max_perioden Minuten.
+func _fahrgaeste_erzeugen() -> void:
+	var pd: Dictionary = daten.get("personen", {})
+	var gid := String(pd.get("gut", "fahrgaeste"))
+	if not eco.g_index.has(gid):
+		return
+	var g: int = eco.g_index[gid]
+	var mx := int(pd.get("wartend_max_perioden", 3))
+	for i in personen_sites.size():
+		var site: int = personen_sites[i]
+		var je: int = maxi(1, eco.city_demand(site))
+		personen_acc[i] = int(personen_acc[i]) + je * 60
+		var n: int = int(personen_acc[i]) / eco.periode_ticks
+		if n <= 0:
+			continue
+		personen_acc[i] = int(personen_acc[i]) - n * eco.periode_ticks
+		var k: int = eco.s_station[site]
+		n = mini(n, je * mx - sim.st_stock[k])
+		if n > 0:
+			eco._push_lot(site, [g, site, -1, n])
+			sim.st_stock[k] += n
+
+
+func wartende(name: String) -> int:
+	return sim.st_stock[int(stationen[name]["k"])] if stationen.has(name) and eco.s_kind[int(stationen[name]["site"])] == Economy.K_STADT else 0
+
+
+# ------------------------------------------------------------------ Maut und Fahrkosten je Feld
+
+## Anteil der Route (Promille der Länge) auf der Mautstrecke.
+func maut_anteil_pm(route: Array) -> int:
+	var wi := int(daten.get("maut", {}).get("weg_index", -1))
+	if wi < 0 or route.is_empty():
+		return 0
+	var ges := 0
+	var auf := 0
+	for st in route:
+		var l: int = int(sim.graph.edges[st["edge"]]["length"])
+		ges += l
+		if int(kante[st["edge"]][0]) == wi:
+			auf += l
+	return auf * 1000 / maxi(1, ges)
+
+
+func maut_cent_pro_feld() -> int:
+	if maut_gekauft:
+		return 0
+	return int(daten.get("maut", {}).get("cent_pro_feld", 0)) * (1000 - mini(1000, bonus("maut_pm"))) / 1000
+
+
+## Fahrkosten je Feld eines Fahrzeugs = Modell + Chausseegeld × Anteil der Route auf der Chaussee (gerundet).
+func _var_neu(f: Dictionary) -> void:
+	var d := vdef(String(f.get("def_id", "")))
+	if d.is_empty() or f["verkauft"]:
+		return
+	var m := (maut_cent_pro_feld() * maut_anteil_pm(f["route"]) + 500) / 1000
+	f["maut_cent_pro_feld"] = m
+	sim.v_var_cent[sim.slot_of(f["vid"])] = int(d.get("variabel_cent_pro_feld", 0)) + m
+
+
+## Nach jedem Kauf: Depot-Rabatt (Linienstart vom Depot erreichbar) gutschreiben, Fahrkosten mit Maut setzen.
+func _nach_kauf(f: Dictionary, von_name: String) -> void:
+	var d := vdef(String(f["def_id"]))
+	if depot_erreicht(von_name, auf_gleis(d)) >= 0:
+		var rab: int = int(f["kauf_cent"]) * int(daten.get("depot", {}).get("rabatt_promille", 0)) / 1000
+		if rab > 0:
+			konto.erstatten(rab)
+			kauf_total -= rab
+			f["kauf_cent"] = int(f["kauf_cent"]) - rab
+			f["depot_rabatt_cent"] = rab
+	_var_neu(f)
+
+
+# ------------------------------------------------------------------ Linienpläne (mehrere Halte)
+
+func linie_plan(id: int) -> Dictionary:
+	for l in linien:
+		if int(l["id"]) == id:
+			return l
+	return {}
+
+
+func _halt_knoten(name: String, gleis: bool) -> int:
+	if gleis:
+		return int(bahnhof.get(name, -1))
+	return int(stationen[name]["knoten"]) if stationen.has(name) else -1
+
+
+func _hop(von: String, nach: String, gleis: bool) -> Array:
+	return gleisroute(von, nach) if gleis else strassenroute(von, nach)
+
+
+## Prüft einen Plan: ≥ 2 Halte, keine gleichen Nachbarn, jede Teilstrecke (auch zurück zum ersten Halt) befahrbar,
+## Fracht passt zu den Halten. {ok, strecke_m, teilstrecken} oder {ok: false, fehler, von, nach, name}.
+func plan_pruefen(halte: Array, def_id: String) -> Dictionary:
+	var d := vdef(def_id)
+	if d.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	if halte.size() < 2:
+		return _nein("zu_wenig_halte")
+	if halte.size() > 8:
+		return _nein("zu_viele_halte", {"max": 8})
+	var gl := auf_gleis(d)
+	var mm := 0
+	var laden_moeglich := false
+	for i in halte.size():
+		var a := String(halte[i])
+		var b := String(halte[(i + 1) % halte.size()])
+		if not stationen.has(a):
+			return _nein("unbekannter_ort", {"name": a})
+		if a == b:
+			return _nein("gleicher_ort", {"name": a})
+		if gl and not bahnhof.has(a):
+			return _nein("kein_bahnhof", {"name": a})
+		if fracht(d) == "personen" and not fracht_passt(d, a, true):
+			return _nein("falsche_fracht", {"fracht": "personen", "name": a})
+		if fracht_passt(d, a, true):
+			laden_moeglich = true
+		var r := _hop(a, b, gl)
+		if r.is_empty():
+			return _nein("keine_gleisverbindung" if gl else "keine_verbindung", {"von": a, "nach": b})
+		mm += sim.graph.route_length(r)
+	if not laden_moeglich:
+		return _nein("falsche_fracht", {"fracht": fracht(d), "name": String(halte[0])})
+	return _ok({"strecke_m": int(mm / mm_pro_m), "teilstrecken": halte.size()})
+
+
+func _auftrag_standard(halte: Array, d: Dictionary) -> Array:
+	var r: Array = []
+	for h in halte:
+		if not fracht_passt(d, String(h), true):
+			r.append("nichts")
+		elif fracht(d) == "personen":
+			r.append("mitnehmen")
+		else:
+			r.append("voll")
+	return r
+
+
+## Linie mit mehreren Halten anlegen und das erste Fahrzeug kaufen. Die Fahrzeuge fahren die Halte reihum ab
+## (… → letzter → erster), entladen an jedem Halt, was dort angenommen wird, und laden nach dem Ladeauftrag des Halts:
+## "voll" (warten, bis die Ladung voll ist), "mitnehmen" (nehmen, was da ist, höchstens 5 s warten), "nichts".
+func linienplan_anlegen(halte: Array, def_id := "", auftrag: Array = [], name := "") -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if def_id == "":
+		def_id = def_fuer("fuhrwerk")
+	var d := vdef(def_id)
+	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d.get("verfuegbar_ab_jahr", 0))})
+	var q := plan_pruefen(halte, def_id)
+	if not q["ok"]:
+		return q
+	if _preis(d) > eco.cash_cent:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": _preis(d) - eco.cash_cent})
+	_linie_nr += 1
+	var l := {"id": _linie_nr, "name": name if name != "" else "Linie %d" % _linie_nr, "halte": halte.duplicate(),
+		"auftrag": auftrag.duplicate() if auftrag.size() == halte.size() else _auftrag_standard(halte, d),
+		"gleis": auf_gleis(d), "fracht": fracht(d), "kategorie": String(d.get("kategorie", ""))}
+	linien.append(l)
+	var r := linie_fahrzeug_dazu(int(l["id"]), def_id)
+	if not r.get("ok", false):
+		linien.erase(l)
+		_linie_nr -= 1
+		return r
+	r["linie"] = int(l["id"])
+	_log("linie", "%s eingerichtet: %s." % [l["name"], " → ".join(PackedStringArray(halte))], false)
+	return r
+
+
+## Weiteres Fahrzeug auf einen Linienplan setzen (Start am ersten Halt).
+func linie_fahrzeug_dazu(id: int, def_id := "") -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	if def_id == "":
+		def_id = def_fuer(String(l["kategorie"]))
+	var d := vdef(def_id)
+	if d.is_empty() or auf_gleis(d) != bool(l["gleis"]) or fracht(d) != String(l["fracht"]):
+		return _nein("passt_nicht_zur_linie")
+	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d.get("verfuegbar_ab_jahr", 0))})
+	var q := plan_pruefen(l["halte"], def_id)
+	if not q["ok"]:
+		return q
+	var preis := _preis(d)
+	if preis > eco.cash_cent:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": preis - eco.cash_cent})
+	var a := String(l["halte"][0])
+	var b := String(l["halte"][1])
+	var gl: bool = l["gleis"]
+	var dar := String(d.get("darstellung", "fuhrwerk"))
+	var f := linie(dar, "%s %d" % [String(d.get("name", "Fahrzeug")), fahrzeuge.size() + 1], _halt_knoten(a, gl), _halt_knoten(b, gl),
+		int(stationen[a]["k"]), int(stationen[b]["k"]), false, d)
+	if f.is_empty():
+		return _nein("linie")
+	konto.charge(preis)
+	kauf_total += preis
+	f["von"] = int(stationen[a]["knoten"])
+	f["nach"] = int(stationen[b]["knoten"])
+	f["gleis"] = gl
+	f["def_id"] = def_id
+	f["kauf_cent"] = preis
+	f["fix_cent"] = int(d.get("fix_cent_pro_periode", 0))
+	f["kauf_tick"] = sim.tick_count
+	f["plan"] = id
+	f["halt"] = 0
+	_fix_dirty = true
+	if gl:
+		zug_gekauft = true
+	_nach_kauf(f, a)
+	_halt_laden(f, l, 0)
+	return _ok({"vid": f["vid"], "preis_cent": int(f["kauf_cent"])})
+
+
+## Ladeauftrag am Halt idx auf das Sim-Fahrzeug legen (Zustand „lädt“ oder gleich „fährt“).
+func _halt_laden(f: Dictionary, l: Dictionary, idx: int) -> void:
+	var i: int = sim.slot_of(f["vid"])
+	var modus := String(l["auftrag"][idx]) if idx < l["auftrag"].size() else "mitnehmen"
+	var d := vdef(String(f["def_id"]))
+	if not fracht_passt(d, String(l["halte"][idx]), true):
+		modus = "nichts"
+	sim.v_lwait[i] = 0
+	sim.v_timer[i] = 0
+	if modus == "nichts":
+		sim.v_state[i] = SimWorld.S_UNTERWEGS
+	else:
+		sim.v_state[i] = SimWorld.S_WARTET_LADUNG
+		sim.set_line_flags(f["vid"], modus == "mitnehmen", MAX_WAIT_TICKS)
+
+
+func _route_setzen(f: Dictionary, route: Array, prof) -> void:
+	var i: int = sim.slot_of(f["vid"])
+	sim.v_rstart[i] = sim.r_edge.size()
+	sim.v_rlen[i] = route.size()
+	for st in route:
+		var e: Dictionary = sim.graph.edges[st["edge"]]
+		var fwd: bool = st["fwd"]
+		sim.r_edge.append(int(st["edge"]))
+		sim.r_fwd.append(1 if fwd else 0)
+		sim.r_block.append(e["block_fwd"] if fwd else e["block_rev"])
+		sim.r_len.append(e["length"])
+		sim.r_from.append(e["a"] if fwd else e["b"])
+		sim.r_to.append(e["b"] if fwd else e["a"])
+		sim.r_stop.append(0)
+	sim.v_idx[i] = 0
+	sim.v_pos[i] = 0
+	sim.v_leg[i] = 0
+	f["route"] = route
+	f["route_kanten"] = route.size()
+	f["sim_mm"] = sim.graph.route_length(route)
+	var key := "%d|%d|%d|%s" % [int(route[0]["edge"]), int(route[-1]["edge"]), route.size(), String(prof.kat) + str(prof.v_nom)]
+	if not _leg_cache.has(key):
+		_leg_cache[key] = [routenlinie(route, prof), routenlinie(sim.graph.reverse_route(route), prof)]
+	f["legs"] = _leg_cache[key]
+	f["zustand"] = Easing.Zustand.new(prof, f["legs"])
+	_probe(f)
+	f["zustand"].folger_setzen()
+
+
+## Fahrzeuge auf Linienplänen: nach dem Entladen am Ziel der Teilstrecke geht es zum nächsten Halt des Plans weiter.
+func _plan_tick() -> void:
+	for f in fahrzeuge:
+		if f["verkauft"] or not f.has("plan"):
+			continue
+		var i: int = sim.slot_of(f["vid"])
+		if sim.v_leg[i] != 1 or sim.v_state[i] != SimWorld.S_UNTERWEGS:
+			continue
+		var l := linie_plan(int(f["plan"]))
+		if l.is_empty():
+			continue
+		var n: int = l["halte"].size()
+		var cur := (int(f["halt"]) + 1) % n
+		var nxt := (cur + 1) % n
+		var a := String(l["halte"][cur])
+		var b := String(l["halte"][nxt])
+		var route := _hop(a, b, bool(l["gleis"]))
+		if route.is_empty():
+			sim.line_stop(f["vid"])
+			if not f.get("gestrandet", false):
+				f["gestrandet"] = true
+				_log("linie_unterbrochen", "%s steht: zwischen %s und %s fehlt die Strecke." % [f["name"], a, b])
+			continue
+		if n >= 3 and int(f.get("hops", 0)) + 1 >= n:
+			plan3_geliefert = true
+		f["hops"] = int(f.get("hops", 0)) + 1
+		f["halt"] = cur
+		_route_setzen(f, route, f["profil"])
+		sim.v_src_k[i] = int(stationen[a]["k"])
+		sim.v_dst_k[i] = int(stationen[b]["k"])
+		f["von_halt"] = a
+		_var_neu(f)
+		_halt_laden(f, l, cur)
+
+
+func _plan_neu_einsetzen(f: Dictionary, l: Dictionary) -> bool:
+	var a := String(l["halte"][0])
+	var b := String(l["halte"][1])
+	var route := _hop(a, b, bool(l["gleis"]))
+	if route.is_empty():
+		return false
+	var i: int = sim.slot_of(f["vid"])
+	sim.v_cargo[i] = 0
+	if eco.v_lots.has(f["vid"]):
+		eco.v_lots.erase(f["vid"])
+	f["halt"] = 0
+	f["hops"] = 0
+	_route_setzen(f, route, f["profil"])
+	sim.v_src_k[i] = int(stationen[a]["k"])
+	sim.v_dst_k[i] = int(stationen[b]["k"])
+	f["von"] = int(stationen[a]["knoten"])
+	f["nach"] = int(stationen[b]["knoten"])
+	_var_neu(f)
+	_halt_laden(f, l, 0)
+	return true
+
+
+## Plan ändern. Die Änderung gilt sofort; Fahrzeuge der Linie beginnen wieder am ersten Halt (Ladung verfällt wie beim Verkauf).
+func _plan_geaendert(l: Dictionary, halte_alt: Array, auftrag_alt: Array) -> Dictionary:
+	var def_id := ""
+	for f in fahrzeuge:
+		if not f["verkauft"] and int(f.get("plan", -1)) == int(l["id"]):
+			def_id = String(f["def_id"])
+	if def_id == "":
+		def_id = def_fuer(String(l["kategorie"]))
+	var q := plan_pruefen(l["halte"], def_id)
+	if not q["ok"]:
+		l["halte"] = halte_alt
+		l["auftrag"] = auftrag_alt
+		return q
+	for f in fahrzeuge:
+		if not f["verkauft"] and int(f.get("plan", -1)) == int(l["id"]):
+			_plan_neu_einsetzen(f, l)
+	return _ok({"halte": l["halte"].duplicate()})
+
+
+func linie_halt_dazu(id: int, name: String, pos := -1) -> Dictionary:
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	var ha: Array = l["halte"].duplicate()
+	var aa: Array = l["auftrag"].duplicate()
+	var p: int = l["halte"].size() if pos < 0 else clampi(pos, 0, l["halte"].size())
+	l["halte"].insert(p, name)
+	var d := vdef(def_fuer(String(l["kategorie"])))
+	l["auftrag"].insert(p, _auftrag_standard([name], d)[0] if stationen.has(name) else "nichts")
+	return _plan_geaendert(l, ha, aa)
+
+
+func linie_halt_weg(id: int, idx: int) -> Dictionary:
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	if idx < 0 or idx >= l["halte"].size():
+		return _nein("unbekannter_halt")
+	if l["halte"].size() <= 2:
+		return _nein("zu_wenig_halte")
+	var ha: Array = l["halte"].duplicate()
+	var aa: Array = l["auftrag"].duplicate()
+	l["halte"].remove_at(idx)
+	l["auftrag"].remove_at(idx)
+	return _plan_geaendert(l, ha, aa)
+
+
+## Halt um eine Stelle nach vorn (richtung −1) oder hinten (+1) schieben.
+func linie_halt_schieben(id: int, idx: int, richtung: int) -> Dictionary:
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	var j := idx + richtung
+	if idx < 0 or idx >= l["halte"].size() or j < 0 or j >= l["halte"].size():
+		return _nein("unbekannter_halt")
+	var ha: Array = l["halte"].duplicate()
+	var aa: Array = l["auftrag"].duplicate()
+	var t = l["halte"][idx]
+	l["halte"][idx] = l["halte"][j]
+	l["halte"][j] = t
+	t = l["auftrag"][idx]
+	l["auftrag"][idx] = l["auftrag"][j]
+	l["auftrag"][j] = t
+	return _plan_geaendert(l, ha, aa)
+
+
+## Ladeauftrag eines Halts setzen: "voll" | "mitnehmen" | "nichts" (gilt ab der nächsten Ankunft, kein Neustart).
+func linie_auftrag(id: int, idx: int, modus: String) -> Dictionary:
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	if idx < 0 or idx >= l["halte"].size():
+		return _nein("unbekannter_halt")
+	if not (modus in ["voll", "mitnehmen", "nichts"]):
+		return _nein("unbekannter_auftrag")
+	l["auftrag"][idx] = modus
+	return _ok({})
+
+
+## Fahrzeug einer anderen Linie zuweisen (gleiche Art: Straße/Gleis und Güter/Personen). Es beginnt am ersten Halt.
+func fahrzeug_zuweisen(vid: int, id: int) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var f := fahrzeug(vid)
+	var l := linie_plan(id)
+	if f.is_empty() or f["verkauft"] or String(f.get("def_id", "")) == "":
+		return _nein("unbekanntes_fahrzeug")
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	var d := vdef(String(f["def_id"]))
+	if auf_gleis(d) != bool(l["gleis"]) or fracht(d) != String(l["fracht"]):
+		return _nein("passt_nicht_zur_linie")
+	var q := plan_pruefen(l["halte"], String(f["def_id"]))
+	if not q["ok"]:
+		return q
+	f["plan"] = id
+	f.erase("gestrandet")
+	if not _plan_neu_einsetzen(f, l):
+		return _nein("keine_verbindung")
+	return _ok({"linie": id})
+
+
+func linie_fahrzeuge(id: int) -> Array:
+	return fahrzeuge.filter(func(f): return not f["verkauft"] and int(f.get("plan", -1)) == id)
+
+
+## Linie auflösen: nur ohne Fahrzeuge (erst verkaufen oder umsetzen).
+func linie_aufloesen(id: int) -> Dictionary:
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	if not linie_fahrzeuge(id).is_empty():
+		return _nein("linie_hat_fahrzeuge", {"n": linie_fahrzeuge(id).size()})
+	linien.erase(l)
+	return _ok({})
+
+
+func fahrzeug_verkaufen(vid: int) -> Dictionary:
+	var r := super.fahrzeug_verkaufen(vid)
+	if r.get("ok", false):
+		_log("verkauf", "%s verkauft: +%d $ Restwert." % [fahrzeug(vid)["name"], int(r["restwert_cent"]) / 100], false)
+	return r
+
+
+## Linienname eines Fahrzeugs für Listen: Plan „Linie 2“ oder „A → B“.
+func linie_text(f: Dictionary) -> String:
+	if f.has("plan"):
+		var l := linie_plan(int(f["plan"]))
+		if not l.is_empty():
+			return "%s (%d Halte)" % [l["name"], l["halte"].size()]
+	var a := ""
+	var b := ""
+	for nm in stationen:
+		if int(stationen[nm]["knoten"]) == int(f["von"]):
+			a = nm
+		if int(stationen[nm]["knoten"]) == int(f["nach"]):
+			b = nm
+	return "%s → %s" % [a, b]
+
+
+# ------------------------------------------------------------------ Depots
+
+## Depot-Vorschau an einem Punkt: rastet an einen Straßenknoten (Betriebshof) oder Gleisknoten/Bahnhof (Lokschuppen).
+func depot_angebot(p: Vector2) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var dd: Dictionary = daten.get("depot", {})
+	var best := -1
+	var bd := float(dd.get("fang_m", 30.0))
+	for nid in knoten_grad:
+		if knoten_grad[nid] == 0:
+			continue
+		var q: Vector3 = knoten_pos[nid]
+		var d := p.distance_to(Vector2(q.x, q.z))
+		if d < bd:
+			bd = d
+			best = nid
+	if best < 0:
+		return _nein("kein_anschluss")
+	for dp in depots:
+		if int(dp["knoten"]) == best:
+			return _nein("schon_gebaut")
+	var art := "gleis" if gleis_knoten.has(best) else "strasse"
+	var kosten := int(dd.get("kosten_cent", 0))
+	return _ok({"knoten": best, "art": art, "name": String(dd.get("name_" + art, "Depot")), "kosten_cent": kosten,
+		"unterhalt_cent": int(dd.get("unterhalt_cent_pro_periode", 0)), "pos": Vector2(knoten_pos[best].x, knoten_pos[best].z),
+		"kaufbar": kosten <= eco.cash_cent, "fehlt_cent": maxi(0, kosten - eco.cash_cent)})
+
+
+func depot_bauen(p: Vector2) -> Dictionary:
+	var q := depot_angebot(p)
+	if not q["ok"]:
+		return q
+	if not q["kaufbar"]:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": int(q["fehlt_cent"])})
+	konto.charge(int(q["kosten_cent"]))
+	kauf_total += int(q["kosten_cent"])
+	var dp := {"id": depots.size() + 1, "art": String(q["art"]), "knoten": int(q["knoten"]), "pos": q["pos"], "tick": sim.tick_count,
+		"name": "%s %d" % [String(q["name"]), depots.size() + 1]}
+	depots.append(dp)
+	_fix_dirty = true
+	_log("depot", "%s gebaut: Fahrzeuge im Einzugsbereich 8 %% billiger, Überholung möglich." % dp["name"], false)
+	var r := _ok(dp)
+	return r
+
+
+## Index des Depots, das die Station über das Netz erreicht (−1 = keins). Gleis: Depot im selben Gleisnetz wie der Bahnhof.
+func depot_erreicht(name: String, gleis: bool) -> int:
+	if not stationen.has(name):
+		return -1
+	var ziel := _halt_knoten(name, gleis)
+	if ziel < 0:
+		return -1
+	for i in depots.size():
+		var dp: Dictionary = depots[i]
+		if (String(dp["art"]) == "gleis") != gleis:
+			continue
+		var key := "d|%d|%d" % [int(dp["knoten"]), ziel]
+		if not _routen.has(key):
+			_routen[key] = int(dp["knoten"]) == ziel or not sim.graph.find_path(int(dp["knoten"]), ziel).is_empty()
+		if _routen[key]:
+			return i
+	return -1
+
+
+func _start_name(f: Dictionary) -> String:
+	if f.has("plan"):
+		var l := linie_plan(int(f["plan"]))
+		if not l.is_empty():
+			return String(l["halte"][0])
+	for nm in stationen:
+		if int(stationen[nm]["knoten"]) == int(f["von"]):
+			return nm
+	return ""
+
+
+## Überholung im Depot: setzt den Alterszuschlag auf den Unterhalt zurück (Alter und Restwert bleiben).
+## {ok, kosten_cent, fix_alt_cent, fix_neu_cent, spart_cent_pro_periode, depot, kaufbar}
+func ueberholen_angebot(vid: int) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var f := fahrzeug(vid)
+	if f.is_empty() or f["verkauft"] or String(f.get("def_id", "")) == "":
+		return _nein("unbekanntes_fahrzeug")
+	var d := vdef(String(f["def_id"]))
+	var di := depot_erreicht(_start_name(f), auf_gleis(d))
+	if di < 0:
+		return _nein("kein_depot", {"art": "Lokschuppen" if auf_gleis(d) else "Betriebshof"})
+	var jahre: int = alter_jahre(f) - int(f.get("ueberholt_jahre", 0))
+	if jahre <= 0:
+		return _nein("nichts_zu_ueberholen")
+	var kosten := int(d.get("kauf_cent", 0)) * int(daten.get("depot", {}).get("ueberholung_promille", 200)) / 1000
+	kosten = kosten * (1000 - mini(900, bonus("ueberholung_pm"))) / 1000
+	var alt := fix_eff(f)
+	var neu := int(f.get("fix_cent", 0)) * (1000 - mini(500, bonus("fz_fix_pm"))) / 1000
+	return _ok({"kosten_cent": kosten, "fix_alt_cent": alt, "fix_neu_cent": neu, "spart_cent_pro_periode": alt - neu, "depot": String(depots[di]["name"]),
+		"kaufbar": kosten <= eco.cash_cent, "fehlt_cent": maxi(0, kosten - eco.cash_cent)})
+
+
+func fahrzeug_ueberholen(vid: int) -> Dictionary:
+	var q := ueberholen_angebot(vid)
+	if not q["ok"]:
+		return q
+	if not q["kaufbar"]:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": int(q["fehlt_cent"])})
+	var f := fahrzeug(vid)
+	konto.charge(int(q["kosten_cent"]))
+	kauf_total += int(q["kosten_cent"])
+	f["ueberholt_jahre"] = alter_jahre(f)
+	_fix_dirty = true
+	_log("ueberholt", "%s überholt: Unterhalt %d → %d $/min." % [f["name"], int(q["fix_alt_cent"]) / 100, int(q["fix_neu_cent"]) / 100], false)
+	return q
+
+
+## Kauf im Depot: Fahrzeug für eine Linie (Plan-ID > 0) oder eine Direktlinie von → nach; das Depot muss den Start erreichen.
+func depot_kauf(depot_idx: int, def_id: String, plan_id := 0, von := "", nach := "") -> Dictionary:
+	if depot_idx < 0 or depot_idx >= depots.size():
+		return _nein("kein_depot")
+	var d := vdef(def_id)
+	var start := von
+	if plan_id > 0:
+		var l := linie_plan(plan_id)
+		if l.is_empty():
+			return _nein("unbekannte_linie")
+		start = String(l["halte"][0])
+	if depot_erreicht(start, auf_gleis(d)) < 0:
+		return _nein("depot_erreicht_linie_nicht", {"name": start})
+	if plan_id > 0:
+		return linie_fahrzeug_dazu(plan_id, def_id)
+	return linie_anlegen(von, nach, "fuhrwerk", def_id)
+
+
+# ------------------------------------------------------------------ Strecken: Besitz, Kauf, Verkauf
+
+func _weg_benutzt(wi: int) -> int:
+	var n := 0
+	for f in fahrzeuge:
+		if f["verkauft"]:
+			continue
+		for st in f["route"]:
+			if int(kante[st["edge"]][0]) == wi:
+				n += 1
+				break
+	return n
+
+
+## Alle Strecken, die dem Spieler gehören oder die er kaufen kann.
+## [{id, name, art, laenge_m, besitz "eigen"|"staat", unterhalt_cent, wert_cent (Verkaufserlös bzw. Kaufpreis), benutzt}]
+func strecken() -> Array:
+	var r: Array = []
+	var md: Dictionary = daten.get("maut", {})
+	var erst := int(daten.get("strecken", {}).get("erstattung_promille", 500))
+	var su := 1000 - mini(800, bonus("strecke_unterhalt_pm"))
+	if not md.is_empty():
+		r.append({"id": String(md.get("id", "chaussee")), "name": String(md.get("name", "Chaussee")), "art": "strasse", "laenge_m": int(md.get("laenge_m", 0)),
+			"besitz": "eigen" if maut_gekauft else "staat", "unterhalt_cent": int(md.get("unterhalt_cent_pro_periode", 0)) * su / 1000 if maut_gekauft else 0,
+			"wert_cent": int(md.get("kaufpreis_cent", 0)) * (erst if maut_gekauft else 1000) / 1000, "benutzt": _weg_benutzt(int(md.get("weg_index", -1))),
+			"maut_cent_pro_feld": maut_cent_pro_feld()})
+	for i in bauwerke.size():
+		var bw: Dictionary = bauwerke[i]
+		if bw.get("verkauft", false):
+			continue
+		var nm := "%s %d" % ["Gleis" if bw["art"] == "gleis" else "Straße", i + 1]
+		if String(bw["von"]) != "" or String(bw["nach"]) != "":
+			nm += " (%s)" % " – ".join(PackedStringArray([String(bw["von"]), String(bw["nach"])].filter(func(x): return x != "")))
+		r.append({"id": "bau_%d" % i, "name": nm, "art": String(bw["art"]), "laenge_m": int(bw["laenge_m"]), "besitz": "eigen",
+			"unterhalt_cent": int(bw.get("unterhalt_cent", 0)) * su / 1000, "wert_cent": int(bw["kosten_cent"]) * erst / 1000, "benutzt": _weg_benutzt(int(bw["weg"]))})
+	return r
+
+
+## Maut je Minute, die die eigenen Fahrzeuge zuletzt auf der Staatsstrecke zahlten (Schätzung aus Route und Umlauf).
+func _maut_je_periode() -> int:
+	var c := 0
+	for f in fahrzeuge:
+		if f["verkauft"]:
+			continue
+		var m := int(f.get("maut_cent_pro_feld", 0))
+		if m <= 0:
+			continue
+		var i: int = sim.slot_of(f["vid"])
+		var felder: int = int(f["sim_mm"]) / maxi(1, eco.feld_mm)
+		var umlauf: int = 2 * int(f["sim_mm"]) / maxi(1, sim.v_speed[i]) + 200
+		c += 2 * felder * m * eco.periode_ticks / maxi(1, umlauf)
+	return c
+
+
+func strecke_kauf_angebot(id: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var md: Dictionary = daten.get("maut", {})
+	if md.is_empty() or id != String(md.get("id", "")):
+		return _nein("nicht_kaeuflich")
+	if maut_gekauft:
+		return _nein("schon_gekauft")
+	var preis := int(md.get("kaufpreis_cent", 0))
+	var frei: int = eco.cash_cent - credit.loan_cent
+	return _ok({"preis_cent": preis, "unterhalt_cent": int(md.get("unterhalt_cent_pro_periode", 0)) * (1000 - mini(800, bonus("strecke_unterhalt_pm"))) / 1000,
+		"maut_cent_pro_periode": _maut_je_periode(), "kaufbar": frei >= preis, "fehlt_cent": maxi(0, preis - frei)})
+
+
+## Staatsstrecke kaufen (Pacht auf Dauer): keine Maut mehr, dafür Unterhalt. Nur aus der Kasse (kein Kreditgeld).
+func strecke_kaufen(id: String) -> Dictionary:
+	var q := strecke_kauf_angebot(id)
+	if not q["ok"]:
+		return q
+	if not q["kaufbar"]:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": int(q["fehlt_cent"])})
+	konto.charge(int(q["preis_cent"]))
+	kauf_total += int(q["preis_cent"])
+	maut_gekauft = true
+	for f in fahrzeuge:
+		_var_neu(f)
+	_fix_dirty = true
+	_log("strecke_kauf", "%s gekauft: keine Maut mehr, Unterhalt %d $/min." % [String(daten["maut"].get("name", "")), int(q["unterhalt_cent"]) / 100], false)
+	return q
+
+
+## Strecke verkaufen: eigene Trasse (bau_<n>) wird abgebaut, wenn kein Fahrzeug sie befährt; die Chaussee geht an den Staat zurück.
+## Erlös = Kaufpreis × erstattung_promille.
+func strecke_verkaufen(id: String) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var erst := int(daten.get("strecken", {}).get("erstattung_promille", 500))
+	var md: Dictionary = daten.get("maut", {})
+	if id == String(md.get("id", "?")):
+		if not maut_gekauft:
+			return _nein("nicht_im_besitz")
+		var erl := int(md.get("kaufpreis_cent", 0)) * erst / 1000
+		konto.erstatten(erl)
+		maut_gekauft = false
+		for f in fahrzeuge:
+			_var_neu(f)
+		_fix_dirty = true
+		_log("strecke_verkauf", "%s verkauft: +%d $. Deine Fahrzeuge zahlen dort wieder Maut." % [String(md.get("name", "")), erl / 100], false)
+		return _ok({"erloes_cent": erl})
+	if not id.begins_with("bau_") or not id.substr(4).is_valid_int():
+		return _nein("unbekannte_strecke")
+	var bi := int(id.substr(4))
+	if bi < 0 or bi >= bauwerke.size() or bauwerke[bi].get("verkauft", false):
+		return _nein("unbekannte_strecke")
+	var bw: Dictionary = bauwerke[bi]
+	var wi := int(bw["weg"])
+	var n := _weg_benutzt(wi)
+	if n > 0:
+		return _nein("strecke_benutzt", {"n": n})
+	for dp in depots:
+		for eid in kante:
+			if int(kante[eid][0]) == wi:
+				var e: Dictionary = sim.graph.edges[eid]
+				if int(e["a"]) == int(dp["knoten"]) or int(e["b"]) == int(dp["knoten"]):
+					if int(knoten_grad[int(dp["knoten"])]) <= 1:
+						return _nein("depot_an_strecke", {"name": String(dp["name"])})
+	# Kanten aus dem Sim-Graphen nehmen
+	var weg_kanten: Array = []
+	for eid in kante:
+		if int(kante[eid][0]) == wi:
+			weg_kanten.append(eid)
+	for eid in weg_kanten:
+		var e: Dictionary = sim.graph.edges[eid]
+		for nd in [int(e["a"]), int(e["b"])]:
+			sim.graph._adj[nd] = sim.graph._adj[nd].filter(func(x): return int(x["edge"]) != int(eid))
+			knoten_grad[nd] = int(knoten_grad[nd]) - 1
+		sim.graph.edges.erase(eid)
+		kante.erase(eid)
+	for nm in bahnhof.keys():
+		if int(knoten_grad.get(int(bahnhof[nm]), 0)) <= 0:
+			bahnhof.erase(nm)
+	_routen = {}
+	_leg_cache = {}
+	bw["verkauft"] = true
+	var erl2 := int(bw["kosten_cent"]) * erst / 1000
+	konto.erstatten(erl2)
+	_fix_dirty = true
+	_log("strecke_verkauf", "Strecke abgebaut und verkauft: +%d $." % (erl2 / 100), false)
+	return _ok({"erloes_cent": erl2, "weg": wi})

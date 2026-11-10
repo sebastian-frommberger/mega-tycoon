@@ -42,6 +42,12 @@
     "id": "werkzeug",
     "kategorie_id": "werkzeug",
     "preis_cent_pro_einheit_feld": 72
+   },
+   {
+    "id": "fahrgaeste",
+    "kategorie_id": "personen",
+    "zeitklasse_modus": "massen",
+    "preis_cent_pro_einheit_feld": 30
    }
   ],
   "industrien": [
@@ -121,13 +127,18 @@
   "korb_je_stufe": {
    "dorf": [
     "nahrung",
-    "baustoff"
+    "baustoff",
+    "personen"
    ],
    "kleinstadt": [
     "nahrung",
     "baustoff",
     "werkzeug",
-    "metall"
+    "metall",
+    "personen"
+   ],
+   "haltestelle": [
+    "personen"
    ]
   },
   "ketten": [
@@ -213,7 +224,8 @@
   "kohle": "Kohle",
   "erz": "Erz",
   "eisen": "Eisen",
-  "werkzeug": "Werkzeug"
+  "werkzeug": "Werkzeug",
+  "fahrgaeste": "Fahrgäste"
  },
  "betriebe": [
   {
@@ -418,7 +430,9 @@
    "lebensdauer_jahre": 15,
    "alterung_unterhalt_bp_pro_jahr": 500,
    "verfuegbar_ab_jahr": 1820,
-   "generation": 1
+   "generation": 1,
+   "fracht": "gueter",
+   "gleis": false
   },
   {
    "id": "planwagen_d",
@@ -434,7 +448,9 @@
    "lebensdauer_jahre": 18,
    "alterung_unterhalt_bp_pro_jahr": 450,
    "verfuegbar_ab_jahr": 1822,
-   "generation": 2
+   "generation": 2,
+   "fracht": "gueter",
+   "gleis": false
   },
   {
    "id": "frachtwagen_d",
@@ -450,11 +466,13 @@
    "lebensdauer_jahre": 20,
    "alterung_unterhalt_bp_pro_jahr": 400,
    "verfuegbar_ab_jahr": 1826,
-   "generation": 3
+   "generation": 3,
+   "fracht": "gueter",
+   "gleis": false
   },
   {
    "id": "pferdebahn_d",
-   "name": "Pferdebahn",
+   "name": "Pferdebahn (Güter)",
    "typ": "zug",
    "kategorie": "zug",
    "darstellung": "pferdebahn",
@@ -466,11 +484,13 @@
    "lebensdauer_jahre": 15,
    "alterung_unterhalt_bp_pro_jahr": 500,
    "verfuegbar_ab_jahr": 1824,
-   "generation": 1
+   "generation": 1,
+   "fracht": "gueter",
+   "gleis": true
   },
   {
    "id": "dampfzug_d",
-   "name": "Dampfzug",
+   "name": "Güterzug (Dampf)",
    "typ": "zug",
    "kategorie": "zug",
    "darstellung": "dampflok",
@@ -478,6 +498,82 @@
    "fix_cent_pro_periode": 12000,
    "variabel_cent_pro_feld": 90,
    "kapazitaet_einheiten": 120,
+   "tempo_promille": 1000,
+   "lebensdauer_jahre": 25,
+   "alterung_unterhalt_bp_pro_jahr": 400,
+   "verfuegbar_ab_jahr": 1828,
+   "generation": 2,
+   "fracht": "gueter",
+   "gleis": true
+  },
+  {
+   "id": "kutsche_d",
+   "name": "Stadtkutsche",
+   "typ": "kutsche",
+   "kategorie": "kutsche",
+   "darstellung": "postkutsche",
+   "fracht": "personen",
+   "gleis": false,
+   "kauf_cent": 30000,
+   "fix_cent_pro_periode": 900,
+   "variabel_cent_pro_feld": 20,
+   "kapazitaet_einheiten": 8,
+   "tempo_promille": 600,
+   "lebensdauer_jahre": 15,
+   "alterung_unterhalt_bp_pro_jahr": 500,
+   "verfuegbar_ab_jahr": 1820,
+   "generation": 1
+  },
+  {
+   "id": "omnibus_d",
+   "name": "Pferdeomnibus",
+   "typ": "kutsche",
+   "kategorie": "kutsche",
+   "darstellung": "postkutsche",
+   "fracht": "personen",
+   "gleis": false,
+   "kauf_cent": 48000,
+   "fix_cent_pro_periode": 1300,
+   "variabel_cent_pro_feld": 25,
+   "kapazitaet_einheiten": 16,
+   "tempo_promille": 600,
+   "lebensdauer_jahre": 15,
+   "alterung_unterhalt_bp_pro_jahr": 500,
+   "verfuegbar_ab_jahr": 1825,
+   "generation": 2,
+   "quelle_text": "Omnibus: Nantes 1826, Paris 1828, London 1829; in der Demo 1825 (Zeitraffer)"
+  },
+  {
+   "id": "pferdetram_d",
+   "name": "Pferdestraßenbahn",
+   "typ": "zug",
+   "kategorie": "pzug",
+   "darstellung": "pferdebahn",
+   "fracht": "personen",
+   "gleis": true,
+   "kauf_cent": 65000,
+   "fix_cent_pro_periode": 2200,
+   "variabel_cent_pro_feld": 20,
+   "kapazitaet_einheiten": 30,
+   "tempo_promille": 600,
+   "lebensdauer_jahre": 15,
+   "alterung_unterhalt_bp_pro_jahr": 500,
+   "verfuegbar_ab_jahr": 1824,
+   "generation": 1,
+   "quelle_text": "Pferdestraßenbahn: New York 1832; in der Demo mit dem Gleis 1824 (Zeitraffer)"
+  },
+  {
+   "id": "personenzug_d",
+   "name": "Personenzug (Dampf)",
+   "typ": "zug",
+   "kategorie": "pzug",
+   "darstellung": "dampflok",
+   "fracht": "personen",
+   "gleis": true,
+   "kauf_cent": 170000,
+   "fix_cent_pro_periode": 9000,
+   "variabel_cent_pro_feld": 70,
+   "kapazitaet_einheiten": 80,
    "tempo_promille": 1000,
    "lebensdauer_jahre": 25,
    "alterung_unterhalt_bp_pro_jahr": 400,
@@ -629,6 +725,15 @@
        "kap_zug_pm": 250,
        "bau_gleis_pm": 200
       }
+     },
+     {
+      "id": "betriebshof",
+      "name": "Betriebsmeister",
+      "text": "Überholung im Depot kostet die Hälfte, Depots ohne Unterhalt.",
+      "wirkung": {
+       "ueberholung_pm": 500,
+       "depot_unterhalt_pm": 1000
+      }
      }
     ]
    },
@@ -668,6 +773,14 @@
       "text": "Alle Lieferungen bringen 10 % mehr.",
       "wirkung": {
        "ertrag_pm": 100
+      }
+     },
+     {
+      "id": "fahrkarten",
+      "name": "Fahrkartenkontor",
+      "text": "Fahrgäste bringen 20 % mehr.",
+      "wirkung": {
+       "ertrag_personen_pm": 200
       }
      }
     ]
@@ -710,6 +823,15 @@
       "wirkung": {
        "kredit_limit_cent": 150000,
        "zins_pm": 10
+      }
+     },
+     {
+      "id": "chausseerecht",
+      "name": "Chausseerecht",
+      "text": "Maut −50 %, Streckenunterhalt −30 %.",
+      "wirkung": {
+       "maut_pm": 500,
+       "strecke_unterhalt_pm": 300
       }
      }
     ]
@@ -787,6 +909,18 @@
    "id": "dampf",
    "name": "Dampf auf der Strecke",
    "tipp": "Ab 1828: ersetze eine Pferdebahn durch den Dampfzug.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "fahrgast",
+   "name": "Erste Fahrgäste befördert",
+   "tipp": "Taste L: Linie mit Haltestellen in einem Ort anlegen, Stadtkutsche kaufen.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "linienplan",
+   "name": "Linie mit drei Halten",
+   "tipp": "Taste L: eine Linie mit mindestens drei Halten betreiben.",
    "skillpunkte": 1
   }
  ],
@@ -910,6 +1044,24 @@
      1020,
      1015
     ]
+   ],
+   "Erlenbach>Hasenwinkel": [
+    [
+     1660,
+     640
+    ],
+    [
+     1400,
+     760
+    ],
+    [
+     1000,
+     830
+    ],
+    [
+     800,
+     870
+    ]
    ]
   }
  },
@@ -922,6 +1074,80 @@
   "Kohlegrube Schwarzgrund": "Kohlegrube",
   "Erzgrube Silberkuppe": "Erzgrube",
   "Rotachhütte": "Hütte",
-  "Hammerschmiede": "Schmiede"
+  "Hammerschmiede": "Schmiede",
+  "Erlenbach Ostend": "E. Ostend",
+  "Erlenbach Kirchgasse": "E. Kirchgasse",
+  "Lindenfurt Tor": "L. Tor",
+  "Lindenfurt Hintergasse": "L. Hintergasse"
+ },
+ "personen": {
+  "text": "Fahrgastmodell (einfach): jeder Ort und jede Haltestelle erzeugt je Minute so viele Fahrgäste, wie er annimmt (Einwohner/100 x Stufenfaktor), höchstens wartend_max_perioden Minuten Vorrat. Ertrag wie Güter: Preis x Distanz (mind. 6 Felder) x Sättigung des Ziels. Ziel = nächster Halt der Linie, der Fahrgäste annimmt.",
+  "gut": "fahrgaeste",
+  "wartend_max_perioden": 3,
+  "haltestellen": [
+   {
+    "id": "erlenbach_ostend",
+    "name": "Erlenbach Ostend",
+    "x": 1892.0,
+    "z": 606.0,
+    "ew": 300,
+    "ort": "Erlenbach"
+   },
+   {
+    "id": "erlenbach_kirche",
+    "name": "Erlenbach Kirchgasse",
+    "x": 1627.0,
+    "z": 812.0,
+    "ew": 300,
+    "ort": "Erlenbach"
+   },
+   {
+    "id": "lindenfurt_tor",
+    "name": "Lindenfurt Tor",
+    "x": 267.43,
+    "z": 241.01,
+    "ew": 800,
+    "ort": "Lindenfurt"
+   },
+   {
+    "id": "lindenfurt_hintergasse",
+    "name": "Lindenfurt Hintergasse",
+    "x": 90.9,
+    "z": 64.94,
+    "ew": 700,
+    "ort": "Lindenfurt"
+   },
+   {
+    "id": "hasenwinkel_halt",
+    "name": "Hasenwinkel",
+    "x": 790.0,
+    "z": 858.0,
+    "ew": 250,
+    "ort": "Hasenwinkel"
+   }
+  ]
+ },
+ "depot": {
+  "name_strasse": "Betriebshof",
+  "name_gleis": "Lokschuppen",
+  "kosten_cent": 60000,
+  "unterhalt_cent_pro_periode": 800,
+  "fang_m": 35,
+  "rabatt_promille": 80,
+  "ueberholung_promille": 200,
+  "text": "Depot: Fahrzeuge für Linien, die das Depot über das Netz erreicht, kosten 8 % weniger und können überholt werden (20 % des Neupreises: Alterszuschlag auf den Unterhalt zurück auf 0)."
+ },
+ "maut": {
+  "id": "chaussee",
+  "name": "Chaussee Erlenbach–Lindenfurt",
+  "weg_index": 0,
+  "cent_pro_feld": 15,
+  "kaufpreis_cent": 280000,
+  "unterhalt_cent_pro_periode": 1500,
+  "laenge_m": 1676,
+  "text": "Chausseegeld: 15 Cent je Feld für jedes eigene Fahrzeug auf der Staatschaussee. Wer die Chaussee pachtet (kauft), fährt mautfrei und zahlt den Unterhalt."
+ },
+ "strecken": {
+  "erstattung_promille": 500
  }
 }

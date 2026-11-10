@@ -1352,6 +1352,10 @@ func kauf_fehlertext(nm: String, r: Dictionary) -> String:
 			return text("kauf_schon", {"name": nm})
 		"bankrott":
 			return text("bankrott")
+	if demo and f == "noch_nicht_verfuegbar":
+		return "Betriebe stehen erst ab %d zum Verkauf. Bis dahin: Lizenz kaufen." % int(ps.daten.get("firmenkauf_ab_jahr", 0))
+	if demo and demo_ui != null and demo_ui.fehlertext(r) != "":
+		return demo_ui.fehlertext(r)
 	return text("kauf_sonst", {"code": f})
 
 

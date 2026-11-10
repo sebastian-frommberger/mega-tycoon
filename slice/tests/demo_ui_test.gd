@@ -288,6 +288,36 @@ func _run() -> void:
 	var e2 := _taste(KEY_ESCAPE)
 	pruef(e1 and zu1 and e2 and ud.menue_panel.visible, "U28 Esc schließt erst das Panel, dann fragt es nach (kein stiller Verlust des Spielstands)")
 	_taste(KEY_ESCAPE)
+	# Alle Stationspanels und Linienvorschauen öffnen (Demo-Betriebe im Bestandspanel), Linienliste aufklappen
+	var offen := 0
+	for nm in ps.stationen:
+		uw.oeffnen(nm)
+		if uw.panel.visible and uw.panel_vb.get_child_count() >= 2:
+			offen += 1
+		if uw.ausgang(uw.site_of(nm)) != "":
+			uw.linie_von_hier(nm)
+			for k in ps.kanten():
+				if k["von"] == nm:
+					uw.ziel_waehlen(k["nach"])
+			uw.modus_ende()
+	uw.schliessen()
+	uw.linien_neu()
+	var lk: String = uw.linien_werte.keys()[0]
+	(uw.knoepfe["linie_" + lk] as Button).pressed.emit()
+	n0 = uw.meldungen_log.size()
+	uw.kauf_klick("Hof Hasenwinkel")
+	pruef(offen == ps.stationen.size() and uw.linie_offen == lk and uw.linien_werte.size() == 3 and uw.linien_scroll != null,
+		"U28b alle %d Stationspanels und Vorschauen öffnen, kompakte Linienliste mit %d Linien klappt auf" % [offen, uw.linien_werte.size()])
+	# Bilanz nach 30 Minuten
+	_ticks(18000)
+	ud._t = 1.0
+	ud._process(0.0)
+	await _frames(2)
+	pruef(ud.ende_gezeigt and ud.ende_panel.visible and s.sim_tempo == 0 and int(ud.werte["ende"]["kasse"]) == ps.eco.cash_cent and int(ud.werte["ende"]["meilensteine"]) == ps.meilensteine_erreicht.size(),
+		"U28c Minute 30: Bilanzkarte mit Spielwerten (Kasse %d $, %d Meilensteine), Spiel pausiert" % [ps.eco.cash_cent / 100, ps.meilensteine_erreicht.size()])
+	_kamera(1300, 900, 1500, 0.4)
+	await _shot("13_bilanz_minute_30")
+	_taste(KEY_ESCAPE)
 	# Fehlertexte
 	var zu_lang: Array = []
 	for k in ud.FT:

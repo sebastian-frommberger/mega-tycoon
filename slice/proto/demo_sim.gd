@@ -308,17 +308,26 @@ func ist_zug(f: Dictionary) -> bool:
 	return String(vdef(String(f.get("def_id", ""))).get("kategorie", "")) == "zug"
 
 
-## Straßenweg zwischen zwei Stationen (leer = keine Verbindung).
+## Straßenweg zwischen zwei Stationen (leer = keine Verbindung). Ergebnis je Paar gemerkt, bis wieder gebaut wird
+## (aktionen_moeglich und die UI fragen das mehrmals je Sekunde; das Netz ändert sich nur in bauen()).
+var _routen: Dictionary = {}
+
 func strassenroute(von_name: String, nach_name: String) -> Array:
 	if not stationen.has(von_name) or not stationen.has(nach_name):
 		return []
-	return sim.graph.find_path(int(stationen[von_name]["knoten"]), int(stationen[nach_name]["knoten"]))
+	var key := "s|%s|%s" % [von_name, nach_name]
+	if not _routen.has(key):
+		_routen[key] = sim.graph.find_path(int(stationen[von_name]["knoten"]), int(stationen[nach_name]["knoten"]))
+	return _routen[key]
 
 
 func gleisroute(von_name: String, nach_name: String) -> Array:
 	if not bahnhof.has(von_name) or not bahnhof.has(nach_name):
 		return []
-	return sim.graph.find_path(int(bahnhof[von_name]), int(bahnhof[nach_name]))
+	var key := "g|%s|%s" % [von_name, nach_name]
+	if not _routen.has(key):
+		_routen[key] = sim.graph.find_path(int(bahnhof[von_name]), int(bahnhof[nach_name]))
+	return _routen[key]
 
 
 func route_fuer(von_name: String, nach_name: String, def_id: String) -> Array:
@@ -727,6 +736,8 @@ func bauen(art: String, punkte: PackedVector2Array) -> Dictionary:
 			bahnhof[String(a["name"])] = ids[0]
 		if b["typ"] == "bahnhof_neu":
 			bahnhof[String(b["name"])] = ids[-1]
+	_routen = {}
+	_kanten = []
 	konto.charge(int(q["kosten_cent"]))
 	kauf_total += int(q["kosten_cent"])
 	var bw := {"art": art, "weg": wi, "felder": int(q["felder"]), "kosten_cent": int(q["kosten_cent"]), "laenge_m": int(q["laenge_m"]),
@@ -1043,8 +1054,12 @@ func gutname(gid: String) -> String:
 	return String(daten.get("gutnamen", {}).get(gid, gid.capitalize()))
 
 
-## Kanten der Welt: [{von, nach, gut, felder}] für jede Quelle und jeden Abnehmer ihres Guts.
+## Kanten der Welt: [{von, nach, gut, felder}] für jede Quelle und jeden Abnehmer ihres Guts (fest nach dem Start).
+var _kanten: Array = []
+
 func kanten() -> Array:
+	if not _kanten.is_empty():
+		return _kanten
 	var r: Array = []
 	for a in stationen:
 		var sa: int = stationen[a]["site"]
@@ -1064,6 +1079,7 @@ func kanten() -> Array:
 				ok = eco.s_inbuf[sb].has(g)
 			if ok:
 				r.append({"von": a, "nach": b, "gut": String(eco.g_ids[g]), "felder": eco.luftlinie_felder(sa, sb)})
+	_kanten = r
 	return r
 
 

@@ -93,7 +93,9 @@ var _sig_hq := ""
 var _sig_fz := ""
 var _n_bauwerke := 0
 var _n_bahnhof := 0
-var _ereignis_idx := 0
+const ENDE_TICK := 18000              # 30 Spielminuten: Bilanzkarte (das Spiel läuft danach weiter)
+var ende_gezeigt := false
+var ende_panel: PanelContainer
 # 3D
 var raum: Node3D
 var vorschau_mi: MeshInstance3D
@@ -982,6 +984,61 @@ func hilfe_umschalten() -> void:
 		(knoepfe["start_los"] as Button).text = "Weiter spielen" if ps.hq_platziert else "Los geht's: Firmensitz platzieren"
 
 
+## Bilanz nach 30 Minuten: Zahlen aus dem Spiel, Pause, „Weiter spielen“ lässt die Welt weiterlaufen.
+func ende_zeigen() -> void:
+	ende_gezeigt = true
+	var k := _karte("30 Minuten: deine Bilanz %d" % ps.kalenderjahr(), C_GOLD, 560.0, ende_schliessen, "ende")
+	ende_panel = k[0]
+	ende_panel.name = "EndePanel"
+	var vb: VBoxContainer = k[1]
+	var zuege := 0
+	var fz := 0
+	for f in ps.fahrzeuge:
+		if not f["verkauft"]:
+			fz += 1
+			if ps.ist_zug(f):
+				zuege += 1
+	var gleis_m := 0
+	var strasse_m := 0
+	for bw in ps.bauwerke:
+		if bw["art"] == "gleis":
+			gleis_m += int(bw["laenge_m"])
+		else:
+			strasse_m += int(bw["laenge_m"])
+	werte["ende"] = {"kasse": ps.eco.cash_cent, "ertrag": ps.eco.revenue_total, "meilensteine": ps.meilensteine_erreicht.size(), "fahrzeuge": fz}
+	var zeilen := [
+		["Kasse", geld(ps.eco.cash_cent) + ((" · Kredit %s" % geld(ps.credit.loan_cent)) if ps.credit.loan_cent > 0 else "")],
+		["Ertrag gesamt", geld(ps.eco.revenue_total) + " · letzte Minute " + geld(ps.ertrag_periode_cent)],
+		["Meilensteine", "%d von %d · Skills gesetzt %d" % [ps.meilensteine_erreicht.size(), ps.daten["meilensteine"].size(), ps.skills.size()]],
+		["Verträge", "%d erfüllt · %d verfehlt · Ruf %+d" % [ps.vertraege_erfuellt, ps.vertraege_verfehlt, ps.ruf]],
+		["Fuhrpark", "%d Fahrzeuge, davon %d Züge" % [fz, zuege]],
+		["Gebaut", "%s m Straße · %s m Gleis" % [uw._tsd(strasse_m), uw._tsd(gleis_m)]],
+		["Werke", "%d gekauft · Firmensitz: %s in %s" % [ps.eco.owned_count, String(ps._hq_stufe_daten().get("name", "")), ps.hq_ort]],
+	]
+	var gr := GridContainer.new()
+	gr.columns = 2
+	gr.add_theme_constant_override("h_separation", 22)
+	gr.add_theme_constant_override("v_separation", 6)
+	for z in zeilen:
+		gr.add_child(_lbl(String(z[0]), 16, C_MATT))
+		gr.add_child(_lbl(String(z[1]), 18, C_CREME))
+	vb.add_child(gr)
+	vb.add_child(_umbruch(_lbl("Das war der Demo-Bogen 1820–1830. Du kannst weiterspielen; neue Modelle kommen danach nicht mehr.", 14, C_MATT), 520))
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_child(_knopf("Weiter spielen", "ende_weiter", ende_schliessen, C_GOLD))
+	vb.add_child(hb)
+	_mitte(ende_panel)
+	welt.setze_tempo(0)
+
+
+func ende_schliessen() -> void:
+	if ende_panel != null:
+		ende_panel.visible = false
+	if welt.sim_tempo == 0:
+		welt.setze_tempo(1)
+
+
 func _baue_menue() -> void:
 	var k := _karte("Zurück ins Menü?", C_BAD, 460.0, func(): menue_panel.visible = false, "menue")
 	menue_panel = k[0]
@@ -1010,6 +1067,9 @@ func eingabe(ev: InputEvent) -> bool:
 			return true
 		if start_panel.visible:
 			start_schliessen()
+			return true
+		if ende_panel != null and ende_panel.visible:
+			ende_schliessen()
 			return true
 		if bau_art != "":
 			modus_ende()
@@ -1218,8 +1278,9 @@ func _process(delta: float) -> void:
 		return
 	_t = 0.0
 	leiste_neu()
-	_ereignisse()
 	_bauwerke_pruefen()
+	if not ende_gezeigt and ps.sim.tick_count >= ENDE_TICK:
+		ende_zeigen()
 	var sv := "%d|%d|%d|%d" % [ps.vertraege_angebote.size(), ps.vertraege_aktiv.size(), ps.vertraege_erfuellt + ps.vertraege_verfehlt, ps.sim.tick_count / 10]
 	if sv != _sig_vertrag:
 		_sig_vertrag = sv
@@ -1241,15 +1302,6 @@ func _process(delta: float) -> void:
 		if _sig_fz != "":
 			uw._fahrzeuge_neu()
 		_sig_fz = sf
-
-
-## Chronik-Ereignisse der Sim, die nicht schon als Toast kamen (Meilenstein, Vertrag, Freischaltung laufen über ps.meldungen).
-func _ereignisse() -> void:
-	while _ereignis_idx < ps.ereignisse.size():
-		var e: Dictionary = ps.ereignisse[_ereignis_idx]
-		_ereignis_idx += 1
-		if String(e["art"]) == "meilenstein" and ps.skillpunkte_frei() > 0 and not skill_panel.visible:
-			pass
 
 
 # ------------------------------------------------------------------ 3D: Vorschau, Marker, Firmensitz, Gleis

@@ -632,11 +632,17 @@ func bau_angebot(art: String, punkte: PackedVector2Array) -> Dictionary:
 		return _nein("bruecke_zu_lang", {"max_m": int(bd.get("max_bruecke_m", 160))})
 	if ist_nass(pkt[0]) or ist_nass(pkt[-1]):
 		return _nein("ende_im_wasser")
-	# Steigung über 30 m (außerhalb von Wasser/Brücke)
+	# Steigung über 30 m; Uferböschungen neben Wasser zählen nicht (dort liegen Rampe und Brücke, ±50 m)
 	var max_pct := float(rg.get("max_steigung_pct", 12.0))
+	var ufer := PackedByteArray()
+	ufer.resize(dicht.size())
+	for i in dicht.size():
+		if ist_nass(dicht[i]):
+			for j in range(maxi(0, i - 5), mini(dicht.size(), i + 6)):
+				ufer[j] = 1
 	var steil := 0.0
 	for i in range(3, dicht.size()):
-		if ist_nass(dicht[i]) or ist_nass(dicht[i - 3]) or ist_nass(dicht[i - 1]) or ist_nass(dicht[i - 2]):
+		if ufer[i] == 1 or ufer[i - 3] == 1:
 			continue
 		var dh := absf(_hoehe(dicht[i]) - _hoehe(dicht[i - 3]))
 		var dl := maxf(1.0, dicht[i].distance_to(dicht[i - 3]))

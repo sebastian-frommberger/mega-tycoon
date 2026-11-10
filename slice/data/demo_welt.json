@@ -847,5 +847,70 @@
    "praemie_cent": 25000
   }
  },
- "firmenkauf_ab_jahr": 1823
+ "firmenkauf_ab_jahr": 1823,
+ "bau_vorschlag": {
+  "text": "Geprüfte Trassen (Ketten-Validator demo_sim_test B, Demo-Bot, Screenshots). Der Spieler baut frei; das hier sind nur Beispiele, die sicher gehen.",
+  "strasse": {
+   "Forsthaus Rotwald": [
+    [
+     1282,
+     938
+    ],
+    [
+     1330,
+     1100
+    ],
+    [
+     1050,
+     1250
+    ]
+   ],
+   "Rotachhütte": "naechster_knoten",
+   "Kohlegrube Schwarzgrund": "naechster_knoten",
+   "Erzgrube Silberkuppe": [
+    [
+     1450,
+     1330
+    ],
+    [
+     1480,
+     1120
+    ],
+    [
+     1612,
+     1074
+    ]
+   ]
+  },
+  "gleis": {
+   "Kohlegrube Schwarzgrund>Rotachhütte": [
+    [
+     370,
+     1235
+    ],
+    [
+     700,
+     1120
+    ],
+    [
+     985,
+     1020
+    ]
+   ],
+   "Erzgrube Silberkuppe>Rotachhütte": [
+    [
+     1435,
+     1318
+    ],
+    [
+     1230,
+     1170
+    ],
+    [
+     1020,
+     1015
+    ]
+   ]
+  }
+ }
 }

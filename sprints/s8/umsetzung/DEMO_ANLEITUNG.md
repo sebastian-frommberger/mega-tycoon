@@ -28,6 +28,9 @@ Godot 4.7.2 starten, Ordner `C:\Dev\mega-tycoon\slice` öffnen, warten bis der I
 5. Jeder Meilenstein gibt einen Skillpunkt: Taste **K**, einen Knoten anklicken.
 6. Taste **B**: Straße zum Forsthaus Rotwald. Startpunkt am Ende des Fischerpfads (am See), ein Zwischenpunkt östlich um den See herum, Klick auf den Ring am Forsthaus baut.
 
+7. Taste **L**: Stadtlinie. „Stadtkutsche“ wählen, Erlenbach, Erlenbach Ostend und Erlenbach Kirchgasse anklicken (lila Ringe), „Linie anlegen“.
+8. Taste **U**: Fuhrpark. Reiter „Depots“ → Depot bauen → Stelle an einer Straße anklicken. Danach kosten Fahrzeuge dort 8 % weniger.
+
 Die Zeile **„Jetzt möglich“** unter der Werkzeugleiste zeigt immer, was gerade bezahlbar ist. **„Nächster Schritt“** oben nennt den nächsten Meilenstein.
 
 ## 5 Tasten
@@ -36,6 +39,8 @@ Die Zeile **„Jetzt möglich“** unter der Werkzeugleiste zeigt immer, was ger
 | H | Firmensitz platzieren, danach Panel Firmensitz (Ausbau, Anbauten, Umzug) |
 | B / G | Straße / Gleis bauen (Gleis ab 1824). Enter baut bis zum letzten Punkt, Entf nimmt einen Punkt zurück, Esc bricht ab |
 | V / K | Verträge / Skilltree |
+| L | Linienplaner: Linie mit mehreren Halten (Modell wählen, Halte in der Welt anklicken, Ladeauftrag je Halt) |
+| U | Fuhrpark: Fahrzeugliste (Überholen, Verkaufen), Depots (bauen, im Depot kaufen), Strecken (kaufen, verkaufen) |
 | F1 | Hilfe (Startbild) |
 | Leertaste | Pause. Tempo 1×/2×/4× oben rechts |
 | WASD, Q/E, Mausrad, 1–5 | Kamera schieben, drehen, zoomen, Ansichten |
@@ -48,9 +53,10 @@ Die Zeile **„Jetzt möglich“** unter der Werkzeugleiste zeigt immer, was ger
 | 0 | 1820 | Fuhrwerk, Straße bauen |
 | 6 | 1822 | Planwagen (27 E): Fahrzeug anklicken → Ersetzen |
 | 9 | 1823 | Betriebe kaufen (aus der Kasse, nicht mit Kredit) |
-| 12 | 1824 | Gleis und Pferdebahn (60 E), Kredit |
+| 12 | 1824 | Gleis, Pferdebahn (Güter, 60 E), Pferdestraßenbahn (Personen, 30 Plätze), Kredit |
+| 15 | 1825 | Pferdeomnibus (16 Plätze) |
 | 18 | 1826 | Frachtwagen (36 E) |
-| 24 | 1828 | Dampfzug (120 E, schneller) |
+| 24 | 1828 | Güterzug mit Dampf (120 E) und Personenzug mit Dampf (80 Plätze), beide schneller |
 
 Die Jahre sind für die Demo vorgezogen (Zeitraffer), historisch stimmen sie nicht.
 
@@ -59,6 +65,8 @@ Die Jahre sind für die Demo vorgezogen (Zeitraffer), historisch stimmen sie nic
 - Baumodus: Hat das Einrasten an Straße, Betrieb und Bahnhof beim ersten Mal geklappt? Wenn nein, wo?
 - Firmensitz: Hat die Vorschau deine Wahl beeinflusst?
 - Skills und Verträge: echte Entscheidung oder Klickarbeit?
+- Linienplaner: Hast du eine Linie mit drei Halten ohne Hilfe angelegt? Ist „voll / mitnehmen / nur abladen“ verständlich?
+- Stadtverkehr, Depot, Strecken: Wofür hast du sie benutzt, was hat gefehlt?
 - Tempo k = 8: wirkt das Fahrtempo richtig, zu langsam, zu schnell?
 - Bildrate oben im Blick behalten (ruckelt es mit Zügen und vielen Linien?). Auf der GPU ist nichts gemessen.
 - Alles, was schief aussieht: F12 (Stelle merken) und ein Satz dazu.

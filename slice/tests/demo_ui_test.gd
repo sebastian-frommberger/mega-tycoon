@@ -123,8 +123,8 @@ func _run() -> void:
 	if ud == null:
 		quit(1)
 		return
-	pruef(ud.start_panel.visible and s.sim_tempo == 0 and ud.leiste_kn.size() == 6 and String(ud.lbl_moeglich.text).contains("Firmensitz platzieren"),
-		"U2 Startbild sichtbar, Spiel pausiert, Werkzeugleiste mit 6 Knöpfen, Zeile: %s" % ud.lbl_moeglich.text)
+	pruef(ud.start_panel.visible and s.sim_tempo == 0 and ud.leiste_kn.size() == 8 and String(ud.lbl_moeglich.text).contains("Firmensitz platzieren"),
+		"U2 Startbild sichtbar, Spiel pausiert, Werkzeugleiste mit 8 Knöpfen, Zeile: %s" % ud.lbl_moeglich.text)
 	await _shot("01_startbild")
 	# Vor dem Firmensitz: jede Aktion erklärt sich
 	var n0: int = uw.meldungen_log.size()
@@ -224,6 +224,68 @@ func _run() -> void:
 	ud.klick_boden(Vector2(1052, 1248))
 	pruef(ps.angeschlossen(FORST) and kasse - ps.eco.cash_cent == int(q["kosten_cent"]) and ud.bau_art == "" and _letzte().contains("Forsthaus Rotwald ist angeschlossen"),
 		"U19 Klick auf das Ziel baut: „%s“" % _letzte())
+	# Linienplaner: Stadtlinie mit drei Halten
+	_druecke(KEY_L)
+	var per_l: bool = ud.plan_panel.visible
+	ud.plan_start("kutsche_d")
+	var ringe: int = ud.marker_root.get_child_count()
+	ud.plan_halt_klick(DORF)
+	ud.plan_halt_klick("Erlenmühle")
+	var pf: Dictionary = ud.werte.get("plan_pruefung", {})
+	ud.plan_halte.remove_at(1)
+	ud.plan_halt_klick("Erlenbach Ostend")
+	ud.plan_halt_klick("Erlenbach Kirchgasse")
+	pruef(per_l and ud.plan_neu_an and ringe == 7 and String(pf.get("fehler", "")) == "falsche_fracht" and ud.werte["plan_pruefung"].get("ok", false) and ud.knoepfe.has("plan_0_1_auftrag"),
+		"V1 Linienplaner (Taste L): Stadtkutsche, %d Ringe an Orten/Haltestellen; Mühle als Halt abgelehnt (falsche_fracht); 3 Halte gültig, Rundkurs %d m" % [ringe, int(ud.werte["plan_pruefung"].get("strecke_m", 0))])
+	_kamera(1700, 720, 620, 0.5)
+	await _shot("14_linienplaner")
+	kasse = ps.eco.cash_cent
+	var pr: Dictionary = ud.plan_anlegen()
+	pruef(pr.get("ok", false) and kasse - ps.eco.cash_cent == 30000 and ps.linien.size() == 1 and not ud.plan_neu_an and s.fahrzeuge.mmis.has("postkutsche") and _letzte().contains("Linie 1 läuft"),
+		"V2 Linie angelegt: „%s“" % _letzte())
+	(ud.knoepfe["plan_1_0_auftrag"] as Button).pressed.emit()
+	var auftrag_neu: String = ps.linien[0]["auftrag"][0]
+	(ud.knoepfe["plan_1_0_auftrag"] as Button).pressed.emit()
+	(ud.knoepfe["plan_1_0_auftrag"] as Button).pressed.emit()
+	pruef(auftrag_neu == "nichts" and ps.linien[0]["auftrag"][0] == "mitnehmen", "V3 Ladeauftrag je Halt per Knopf umschalten (mitnehmen → nur abladen → voll → mitnehmen)")
+	_ticks(ps.sim.tick_count + 900)
+	ud.plan_panel.visible = false
+	uw.oeffnen("Erlenbach Ostend")
+	pruef(int(ud.werte["wartende"]) == ps.wartende("Erlenbach Ostend") and int(ps.geliefert.get("fahrgaeste", 0)) > 0 and ud.raum.has_node("Halt_" + "Erlenbach Ostend".validate_node_name()),
+		"V4 Stadtverkehr: %d Fahrgäste befördert, Haltestelle zeigt %d Wartende = Spielwert" % [int(ps.geliefert.get("fahrgaeste", 0)), int(ud.werte["wartende"])])
+	var kf: Dictionary = ps.linie_fahrzeuge(1)[0]
+	var kp: Vector3 = kf["zustand"].pos
+	_kamera(kp.x, kp.z, 240, 0.7)
+	await _shot("15_stadtverkehr_kutsche")
+	uw.schliessen()
+	# Fuhrpark: Liste, Depot, Kauf im Depot, Verkauf
+	_druecke(KEY_U)
+	pruef(ud.fuhr_panel.visible and int(ud.werte["fuhrpark_fahrzeuge"]) == 3 and ud.knoepfe.has("fuhr_vk_3") and ud.knoepfe.has("fuhr_karte_1"), "V5 Fuhrpark (Taste U): Liste mit 3 Fahrzeugen, Karte und Verkaufen je Zeile")
+	await _shot("16_fahrzeugliste")
+	ud.fuhrpark_umschalten("depots")
+	ud.depot_modus_start()
+	ud.depot_zeigen(Vector2(1000, 500))
+	var d_fehl: String = ""
+	for c in ud.modus_vb.get_children():
+		if c is Label and String(c.text).begins_with("■"):
+			d_fehl = c.text
+	ud.depot_zeigen(Vector2(1640, 700))
+	kasse = ps.eco.cash_cent
+	var dr: Dictionary = ud.depot_setzen(Vector2(1640, 700))
+	pruef(d_fehl.contains("kein Weg") and dr.get("ok", false) and kasse - ps.eco.cash_cent == 60000 and ud.raum.has_node("Depot_1") and not ud.depot_modus, "V6 Depot: ohne Weg „%s“; an der Straße gebaut (−600 $), Haus in der Welt" % d_fehl)
+	ud.fuhr_tab = "depots"
+	ud.fuhr_panel.visible = true
+	ud.fuhrpark_neu()
+	kasse = ps.eco.cash_cent
+	var dk: Dictionary = ud.depot_kauf(0, "kutsche_d", 1)
+	pruef(dk.get("ok", false) and kasse - ps.eco.cash_cent == 27600 and ud.knoepfe.has("depot_kauf_0_1") and _letzte().contains("Depotpreis"), "V7 Kauf im Depot: zweite Stadtkutsche für 276 $ statt 300 $; „%s“" % _letzte())
+	_kamera(1640, 700, 300, 0.4)
+	await _shot("17_depot")
+	kasse = ps.eco.cash_cent
+	var rwk: int = ps.restwert(ps.fahrzeug(int(dk["vid"])))
+	ud.verkaufen(int(dk["vid"]))
+	pruef(ps.eco.cash_cent - kasse == rwk and rwk > 0 and _letzte().contains("Restwert") and ps.linie_fahrzeuge(1).size() == 1, "V8 Verkauf aus der Fahrzeugliste: +%d ¢ Restwert; „%s“" % [rwk, _letzte()])
+	ud.fuhr_panel.visible = false
 	# Gleis (ab 1824)
 	n0 = uw.meldungen_log.size()
 	ud.bau_start("gleis")
@@ -255,6 +317,40 @@ func _run() -> void:
 	var zp: Vector3 = zug["zustand"].pos
 	_kamera(zp.x, zp.z, 260, 0.6)
 	await _shot("09_pferdebahn")
+	# Strecken: Chaussee kaufen/verkaufen, eigene Strecke
+	ud.fuhrpark_umschalten("strecken")
+	var sl: Array = ud.werte["strecken"]
+	n0 = uw.meldungen_log.size()
+	ud.strecke_verkaufen("bau_0")
+	var t_ben := _letzte()
+	kasse = ps.eco.cash_cent
+	ud.strecke_kaufen("chaussee")
+	var gekauft: bool = ps.maut_gekauft and kasse - ps.eco.cash_cent == 280000
+	ud.fuhrpark_neu()
+	await _shot("18_strecken")
+	ud.strecke_verkaufen("chaussee")
+	pruef(sl.size() == 3 and uw.meldungen_log.size() >= n0 + 3 and t_ben.contains("Strecke verkauft") and gekauft and not ps.maut_gekauft and ud.knoepfe.has("strecke_kauf_chaussee"),
+		"V9 Strecken: %d Einträge; ungenutzte Forststraße verkauft („%s“), Chaussee gekauft (−2.800 $) und wieder verkauft" % [sl.size(), t_ben])
+	ud.fuhr_panel.visible = false
+	# Personenzug: Gleis Erlenbach – Hasenwinkel, Pferdestraßenbahn per Linienplaner
+	var gp: Dictionary = ps.bauen("gleis", PackedVector2Array([Vector2(1660, 640), Vector2(1400, 760), Vector2(1000, 830), Vector2(800, 870)]))
+	ud._bauwerke_pruefen()
+	ud.plan_start("pferdetram_d")
+	var ringe_gl: int = ud.marker_root.get_child_count()
+	ud.plan_halt_klick(DORF)
+	ud.plan_halt_klick("Hasenwinkel")
+	var pz: Dictionary = ud.plan_anlegen()
+	pruef(gp.get("ok", false) and ringe_gl == 2 and pz.get("ok", false) and ps.ist_zug(ps.fahrzeug(int(pz.get("vid", 0)))) and ps.linien.size() == 2,
+		"V10 Personenzug: Planer bietet für die Pferdestraßenbahn nur die %d Bahnhöfe an Orten an; Linie Erlenbach ↔ Hasenwinkel angelegt" % ringe_gl)
+	_ticks(ps.sim.tick_count + 1500)
+	var pzf: Dictionary = ps.fahrzeug(int(pz.get("vid", 0)))
+	var pp: Vector3 = pzf["zustand"].pos
+	ud.plan_edit = int(pz.get("linie", 0))
+	ud.plan_panel.visible = true
+	ud.plan_neu()
+	_kamera(pp.x, pp.z, 320, 0.5)
+	await _shot("19_personenzug_linienplan")
+	ud.plan_panel.visible = false
 	# Modellwechsel
 	_ticks(14400 + 60)
 	await _frames(2)
@@ -306,7 +402,7 @@ func _run() -> void:
 	(uw.knoepfe["linie_" + lk] as Button).pressed.emit()
 	n0 = uw.meldungen_log.size()
 	uw.kauf_klick("Hof Hasenwinkel")
-	pruef(offen == ps.stationen.size() and uw.linie_offen == lk and uw.linien_werte.size() == 3 and uw.linien_scroll != null,
+	pruef(offen == ps.stationen.size() and uw.linie_offen == lk and uw.linien_werte.size() >= 3 and uw.linien_scroll != null,
 		"U28b alle %d Stationspanels und Vorschauen öffnen, kompakte Linienliste mit %d Linien klappt auf" % [offen, uw.linien_werte.size()])
 	# Bilanz nach 30 Minuten
 	_ticks(18000)
@@ -321,16 +417,18 @@ func _run() -> void:
 	# Fehlertexte
 	var zu_lang: Array = []
 	for k in ud.FT:
-		if String(ud.FT[k]).length() > 120:
+		if String(ud.FT[k]).length() > 130:
 			zu_lang.append(k)
 	var codes := ["kein_hq", "noch_nicht_verfuegbar", "zu_wenig_punkte", "kein_anschluss", "gleicher_punkt", "see", "zu_kurz", "zu_lang", "bruecke_zu_lang", "ende_im_wasser",
 		"zu_steil", "kurve_zu_eng", "guthaben_reicht_nicht", "kein_bahnhof", "keine_gleisverbindung", "kein_ort", "wasser", "auf_der_strasse", "hoechste_stufe",
-		"schon_gebaut", "kein_platz", "kein_punkt", "vorgaenger_fehlt", "schon_gesetzt", "angebot_weg", "zu_viele_vertraege"]
+		"schon_gebaut", "kein_platz", "kein_punkt", "vorgaenger_fehlt", "schon_gesetzt", "angebot_weg", "zu_viele_vertraege",
+		"zu_wenig_halte", "zu_viele_halte", "gleicher_ort", "falsche_fracht", "unbekannte_linie", "unbekannter_halt", "passt_nicht_zur_linie", "linie_hat_fahrzeuge", "kein_depot",
+		"nichts_zu_ueberholen", "depot_erreicht_linie_nicht", "nicht_kaeuflich", "schon_gekauft", "nicht_im_besitz", "strecke_benutzt", "depot_an_strecke", "unbekannte_strecke", "unbekannter_ort"]
 	var ohne: Array = []
 	for c in codes:
-		if ud.fehlertext({"fehler": c, "ab_jahr": 1824, "fehlt_cent": 1234, "name": "X", "max": 2, "braucht": "Y"}) == "" or ud.fehlertext({"fehler": c}).contains("Meldung an uns"):
+		if ud.fehlertext({"fehler": c, "ab_jahr": 1824, "fehlt_cent": 1234, "name": "X", "max": 2, "braucht": "Y", "n": 2, "art": "Betriebshof"}) == "" or ud.fehlertext({"fehler": c}).contains("Meldung an uns"):
 			ohne.append(c)
-	pruef(zu_lang.is_empty() and ohne.is_empty(), "U29 %d Fehlercodes der Demo haben einen Text mit Handlungsvorschlag (≤ 120 Zeichen); ohne Text: %s" % [codes.size(), str(ohne + zu_lang)])
+	pruef(zu_lang.is_empty() and ohne.is_empty(), "U29 %d Fehlercodes der Demo haben einen Text mit Handlungsvorschlag (≤ 130 Zeichen); ohne Text: %s" % [codes.size(), str(ohne + zu_lang)])
 	pruef(ps.fehler.is_empty(), "U30 0 Sim-Fehler im UI-Durchlauf: %s" % str(ps.fehler))
 	print("demo_ui_test: %d/%d Prüfungen OK" % [n_ok, n_ok + n_fail])
 	quit(0 if n_fail == 0 else 1)

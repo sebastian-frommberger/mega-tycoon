@@ -541,6 +541,8 @@ func panel_neu() -> void:
 	panel_werte = {"name": auswahl}
 	if auswahl.begins_with("#"):                           # FZ-04: Fahrzeugkarte im selben Panel
 		_panel_fahrzeug(int(auswahl.substr(1)))
+		if demo and demo_ui != null:
+			demo_ui.fahrzeug_zusatz(int(auswahl.substr(1)))
 		return
 	var site := site_of(auswahl)
 	if site < 0:
@@ -1734,7 +1736,11 @@ func _linien_neu_demo(gruppen: Dictionary) -> void:
 				sz = "%s %s zu %d %% versorgt%s" % [marke, nach, pct, (": mehr bringt wenig, +%s/min mit neuem Abnehmer" % geld(int(sa["x_cent"]))) if int(sa["ampel"]) >= 1 else ""]
 		var hb := HBoxContainer.new()
 		hb.add_theme_constant_override("separation", 6)
-		var titel := _knopf("%s → %s" % [_kurz(von), _kurz(nach)], "linie_" + k, func():
+		var plan_id := int(fz[0].get("plan", 0)) if fz[0].has("plan") else 0
+		var titel_text := "%s → %s" % [_kurz(von), _kurz(nach)]
+		if plan_id > 0:
+			titel_text = "%s (%d Halte)" % [String(ps.linie_plan(plan_id).get("name", "Linie")), ps.linie_plan(plan_id).get("halte", []).size()]
+		var titel := _knopf(titel_text, "linie_" + k, func():
 			linie_offen = "" if linie_offen == k else k
 			linien_neu(), false, false, "linien")
 		titel.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -1751,8 +1757,10 @@ func _linien_neu_demo(gruppen: Dictionary) -> void:
 		hb.add_child(nl)
 		hb.add_child(_label(marke, 15, mfarbe))
 		var ld: Dictionary = demo_ui.linie_def(von, nach) if demo_ui != null else fuhrwerk_def()
+		if plan_id > 0:
+			ld = ps.vdef(ps.def_fuer(String(ps.linie_plan(plan_id).get("kategorie", "fuhrwerk"))))
 		var preis: int = ps._preis(ld)
-		var plus := _knopf("+", "lplus_" + k, fuhrwerk_kaufen.bind(von, nach), false, preis > ps.eco.cash_cent, "linien")
+		var plus := _knopf("+", "lplus_" + k, (demo_ui.plan_plus.bind(plan_id) if plan_id > 0 else fuhrwerk_kaufen.bind(von, nach)), false, preis > ps.eco.cash_cent, "linien")
 		plus.tooltip_text = "+ %s %s" % [String(ld.get("name", "Fuhrwerk")), geld(preis)]
 		plus.custom_minimum_size = Vector2(30, 28)
 		hb.add_child(plus)

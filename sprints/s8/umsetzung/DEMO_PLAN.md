@@ -36,3 +36,6 @@ Erwartung: ~45–60 ausgeführte Aktionen in 30 min (Bot), also 1,5–2 je Minut
 
 ## Schnitt (nicht in der Demo)
 Speichern, Signale/Blockstrecken (ein Zug je Fahrt, Züge blockieren sich nicht), Personen, Konkurrenz, freier Abriss, Weichenbild, Brückenwahl (Brücke entsteht automatisch über Wasser, teurer), Esc-Bestätigung nur falls blockierend.
+
+## Nachtrag 10.11.: Erweiterung um Punkte 7–11
+Reihenfolge: (1) Fahrgäste + Haltestellen, (2) Linienpläne mit mehreren Halten, (3) Depots, Fahrzeugliste, Verkauf, (4) Personenzüge und Stadtfahrzeuge, (5) Streckenhandel. Im Spielbogen: Stadtlinie ab Minute 2–4 (Stadtkutsche), Depot ab Minute 7, Omnibus Minute 15, Personenzug ab Minute 19 (Gleis Erlenbach – Hasenwinkel), Chaussee-Kauf spät (2.800 $). Entscheidungen im Entscheidungslog, Messung in DEMO.md.

@@ -2215,3 +2215,7 @@ func strecke_verkaufen(id: String) -> Dictionary:
 	_fix_dirty = true
 	_log("strecke_verkauf", "Strecke abgebaut und verkauft: +%d $." % (erl2 / 100), false)
 	return _ok({"erloes_cent": erl2, "weg": wi})
+
+
+func zustand_text(f: Dictionary) -> String:
+	return super.zustand_text(f).replace("Fahrgaeste", "Fahrgäste")

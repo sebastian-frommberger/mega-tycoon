@@ -158,6 +158,8 @@ var _schnapp: Array = []             # Schnappschüsse an den letzten zwei Perio
 var demo := false
 var demo_ui = null
 var kauf_def := ""                   # Demo: in der Vorschau gewähltes Modell ("" = neuestes Straßenfahrzeug)
+var linien_scroll: ScrollContainer = null
+var linie_offen := ""                # Demo: aufgeklappte Linie (Schlüssel) in der kompakten Liste
 
 
 func einbauen(p_welt: Node) -> void:
@@ -1585,7 +1587,15 @@ func _baue_links() -> void:
 	links_vb.add_child(linien_panel)
 	linien_vb = VBoxContainer.new()
 	linien_vb.add_theme_constant_override("separation", 3)
-	linien_panel.add_child(linien_vb)
+	if demo:                                              # Demo: viele Linien → kompakte Zeilen in einem Rollfeld
+		linien_scroll = ScrollContainer.new()
+		linien_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		linien_scroll.custom_minimum_size = Vector2(LINIEN_B - 20, 60)
+		linien_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		linien_panel.add_child(linien_scroll)
+		linien_scroll.add_child(linien_vb)
+	else:
+		linien_panel.add_child(linien_vb)
 
 
 ## Sättigung einer Linie am Ziel (nur Orte): economy.saett_linie mit den Einheiten der letzten Minute
@@ -1622,6 +1632,9 @@ func linien_neu() -> void:
 		gruppen[k].append(f)
 	linien_panel.visible = not gruppen.is_empty()
 	if gruppen.is_empty():
+		return
+	if demo:
+		_linien_neu_demo(gruppen)
 		return
 	linien_vb.add_child(_label("Linien (Netto der letzten Minute)", 16, C_GRAU))
 	for k in gruppen:
@@ -1677,6 +1690,83 @@ func linien_neu() -> void:
 		linien_vb.add_child(hb)
 		linien_werte[k] = w
 	_umbrechen(linien_vb)
+
+
+## Demo: eine Zeile je Linie (Strecke, Fahrzeuge, Netto, Sättigung als Form, [+]); Klick auf die Strecke klappt die Fahrzeuge auf.
+func _kurz(nm: String) -> String:
+	return String(ps.daten.get("kurznamen", {}).get(nm, nm))
+
+
+func _linien_neu_demo(gruppen: Dictionary) -> void:
+	linien_vb.add_child(_label("Linien · Netto der letzten Minute · Klick klappt auf", 14, C_GRAU))
+	var zeilen := 1
+	for k in gruppen:
+		var fz: Array = gruppen[k]
+		var von := _stationsname(int(fz[0]["von"]))
+		var nach := _stationsname(int(fz[0]["nach"]))
+		var alter := 0
+		var fix := 0
+		for f in fz:
+			alter = maxi(alter, ps.alter_jahre(f))
+			fix += ps.fix_eff(f)
+		var w := {"alter": alter, "fix": fix, "n": fz.size()}
+		var netto := "—"
+		var farbe := C_TEXT
+		if statistik.linien.has(k):
+			var z: Dictionary = statistik.linien[k]
+			w["gewinn"] = int(z["gewinn"])
+			netto = "%s%s" % ["+" if int(z["gewinn"]) > 0 else "", geld(int(z["gewinn"]))]
+			farbe = C_BAD if int(z["gewinn"]) < 0 else C_OK
+		var marke := "●"
+		var mfarbe := C_GRAU
+		var sz := ""
+		if statistik.linien.has(k):
+			var sa := linie_saettigung(k)
+			if sa.get("ok", false):
+				w["ampel"] = int(sa["ampel"])
+				var pct: int = Economy.rdiv(int(sa["v_promille"]), 10)
+				marke = ["●", "▲", "■"][clampi(int(sa["ampel"]), 0, 2)]
+				mfarbe = [C_OK, C_WARN, C_BAD][clampi(int(sa["ampel"]), 0, 2)]
+				sz = "%s %s zu %d %% versorgt%s" % [marke, nach, pct, (": mehr bringt wenig, +%s/min mit neuem Abnehmer" % geld(int(sa["x_cent"]))) if int(sa["ampel"]) >= 1 else ""]
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 6)
+		var titel := _knopf("%s → %s" % [_kurz(von), _kurz(nach)], "linie_" + k, func():
+			linie_offen = "" if linie_offen == k else k
+			linien_neu(), false, false, "linien")
+		titel.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		titel.clip_text = true
+		titel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		titel.add_theme_font_size_override("font_size", 15)
+		titel.tooltip_text = "%s → %s (%s)" % [von, nach, gut_text(ausgang(site_of(von)))]
+		hb.add_child(titel)
+		var anz := _label("%d×" % fz.size(), 14, C_GRAU)
+		hb.add_child(anz)
+		var nl := _label(netto, 15, farbe)
+		nl.custom_minimum_size = Vector2(72, 0)
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		hb.add_child(nl)
+		hb.add_child(_label(marke, 15, mfarbe))
+		var ld: Dictionary = demo_ui.linie_def(von, nach) if demo_ui != null else fuhrwerk_def()
+		var preis: int = ps._preis(ld)
+		var plus := _knopf("+", "lplus_" + k, fuhrwerk_kaufen.bind(von, nach), false, preis > ps.eco.cash_cent, "linien")
+		plus.tooltip_text = "+ %s %s" % [String(ld.get("name", "Fuhrwerk")), geld(preis)]
+		plus.custom_minimum_size = Vector2(30, 28)
+		hb.add_child(plus)
+		linien_vb.add_child(hb)
+		zeilen += 1
+		if linie_offen == k:
+			var hb2 := _fz_knoepfe_bereich(fz, "linien")
+			hb2.add_child(_label("Unterhalt %s/min · ältestes %d J · + %s %s" % [geld(fix), alter, String(ld.get("name", "")), geld(preis)], 13, C_GRAU))
+			linien_vb.add_child(hb2)
+			zeilen += 1
+			if sz != "":
+				var sl := _label(sz, 13, mfarbe)
+				sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				linien_vb.add_child(sl)
+				zeilen += 1
+		linien_werte[k] = w
+	if linien_scroll != null:
+		linien_scroll.custom_minimum_size.y = minf(zeilen * 33.0 + 4.0, 300.0)
 
 
 func _fz_knoepfe_bereich(liste: Array, bereich: String) -> HBoxContainer:

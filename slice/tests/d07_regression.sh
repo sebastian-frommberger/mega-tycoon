@@ -158,14 +158,16 @@ fi
 
 # --- 2g) QT-01b (S8): Proto-Suiten (Welt/Prototyp). Ausgabe außerhalb res:// bzw. in $LOGS, damit getrackte CSV-Dateien unberührt bleiben.
 for ps in proto_terrain_test ta_import_test proto_epochen_test proto_strassenband_test proto_welt_test proto_easing_test proto_sim_test \
-          proto_band_hoehe_test proto_schilder_test proto_fixpass_test proto_licht_test proto_ui_welt_test s8_fk02_test proto_mass; do
+          proto_band_hoehe_test proto_schilder_test proto_fixpass_test proto_licht_test proto_ui_welt_test s8_fk02_test proto_mass \
+          demo_sim_test demo_ui_test demo_bot; do
   extra=""
   [ "$ps" = proto_easing_test ] && extra="-- --csv=$HERE/$LOGS/proto_easing.csv"
   [ "$ps" = proto_mass ] && extra="-- --csv=$HERE/$LOGS/proto_mass.csv"
+  [ "$ps" = demo_bot ] && extra="-- --n=5 --gate"       # Demo-Sprint: Gate A (kein Bankrott, kein Fenster ohne Aktion), Determinismus
   $(TO $ps) $G --headless --path . -s res://tests/$ps.gd $extra > "$LOGS/$ps.txt" 2>&1; r=$?
   e=$(grep -c "SCRIPT ERROR" "$LOGS/$ps.txt"); [ "$e" -gt 0 ] && [ $r -eq 0 ] && r=1
   fl=$(grep "^  FAIL" "$LOGS/$ps.txt" | sed 's/^  FAIL //' | cut -c1-90 | head -3 | tr '\n' ';')
-  record "$ps (Proto-Suite)" $r "$(grep -E 'Prüfungen OK|[0-9]+ OK, [0-9]+ FAIL|ERGEBNIS|Messzeilen' "$LOGS/$ps.txt" | tail -1 | cut -c1-90) ${fl:+ -- FAIL: $fl}"
+  record "$ps (Proto-Suite)" $r "$(grep -E 'Prüfungen OK|[0-9]+ OK, [0-9]+ FAIL|ERGEBNIS|Messzeilen|Gate A' "$LOGS/$ps.txt" | tail -1 | cut -c1-90) ${fl:+ -- FAIL: $fl}"
 done
 
 # --- 2h) QT-03c (S8): Rauchtests für Loop-Bot (n=2 alle Strategien, Determinismus, Abgleich, CSV-Form) und Exploit-Sweep (Determinismus,

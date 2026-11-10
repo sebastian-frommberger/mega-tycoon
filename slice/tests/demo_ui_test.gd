@@ -89,6 +89,28 @@ func _taste(k: int) -> bool:
 	return ud.eingabe(ev)
 
 
+func _druecke(k: int) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = k
+	ev.physical_keycode = k
+	ev.pressed = true
+	root.push_input(ev)
+	var ev2 := InputEventKey.new()
+	ev2.keycode = k
+	ev2.pressed = false
+	root.push_input(ev2)
+
+
+func _klick(pos: Vector2) -> void:
+	for druck in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = druck
+		ev.position = pos
+		ev.global_position = pos
+		root.push_input(ev)
+
+
 func _run() -> void:
 	print("demo_ui_test (Bilder: %s)" % (shots if kann_bild else "aus"))
 	await _frames(3)
@@ -113,6 +135,19 @@ func _run() -> void:
 	pruef(not ud.start_panel.visible and ud.hq_modus and s.sim_tempo == 1 and ud.modus_panel.visible, "U4 Leertaste schließt das Startbild, Zeit läuft, Firmensitz-Modus ist an")
 	s.setze_tempo(0)
 	_kamera(1640, 760, 620, 0.5)
+	# Echter Eingabeweg: Geländepunkt unter der Maus, Taste und Mausklick durch den Viewport
+	var abw := 0.0
+	for wp in [Vector2(1668, 688), Vector2(1500, 900), Vector2(1900, 700)]:
+		var sp: Vector2 = s.cam.unproject_position(Vector3(wp.x, s.hoehe_at(wp.x, wp.y), wp.y))
+		var zur = ud.boden(sp)
+		abw = maxf(abw, (zur as Vector2).distance_to(wp) if zur is Vector2 else 999.0)
+	pruef(abw < 2.0, "U4b Geländepunkt unter der Maus: Bildpunkt → Welt weicht höchstens %.2f m ab" % abw)
+	ud.hq_modus_ende()
+	_druecke(KEY_H)
+	var per_taste: bool = ud.hq_modus
+	_klick(s.cam.unproject_position(Vector3(1000, s.hoehe_at(1000, 500), 500)))
+	await _frames(2)
+	pruef(per_taste and not ps.hq_platziert and _letzte().contains("Ort"), "U4c Taste H und Mausklick laufen durch die Szene: Klick außerhalb meldet „%s“" % _letzte())
 	ud.hq_zeigen(Vector2(1000, 500))
 	var t_fehl: String = ""
 	for c in ud.modus_vb.get_children():

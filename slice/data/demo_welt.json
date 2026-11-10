@@ -912,5 +912,16 @@
     ]
    ]
   }
+ },
+ "kurznamen": {
+  "Gut Kuppenhof": "Kuppenhof",
+  "Hof Hasenwinkel": "Hasenwinkel",
+  "Erlenmühle": "Mühle",
+  "Forsthaus Rotwald": "Forsthaus",
+  "Sägemühle am Teich": "Sägemühle",
+  "Kohlegrube Schwarzgrund": "Kohlegrube",
+  "Erzgrube Silberkuppe": "Erzgrube",
+  "Rotachhütte": "Hütte",
+  "Hammerschmiede": "Schmiede"
  }
 }

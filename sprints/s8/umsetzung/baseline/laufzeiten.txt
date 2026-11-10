@@ -43,3 +43,7 @@ spike_f04-signal 6.4
 # QT-03c (05.11.2026): Rauchtests, gemessen bei Loadavg 2-3 durch andere Agenten (Wanduhr, 1 Lauf)
 s8_bot_smoke 50
 s8_exploit_smoke 8
+demo_sim_test 12
+demo_ui_test 12
+demo_bot_smoke 20
+demo_bot 40

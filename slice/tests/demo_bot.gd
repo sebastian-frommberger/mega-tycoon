@@ -7,6 +7,8 @@ extends SceneTree
 ## Strategie "plan": spielt den Bogen aus DEMO_PLAN.md nach (HQ, Kette 1, Straße + Holz, Gleis + Eisen, Firmenkauf, HQ-Ausbau,
 ##   Skills, Verträge, Ersetzen) mit 800 $ Reserve; je Seed andere Reaktionszeiten, HQ-Lage und Skill-Spezialisierung.
 ## Strategie "faul": baut nur Kette 1 und nimmt sonst nichts an: misst, ob trotzdem Aktionen ANGEBOTEN bleiben.
+## luecke_streng_s: längste Zeit ohne eine Aktion außer „Fahrzeug/Zug nachkaufen“ und „Ersetzen“ (strengere Lesart von Gate A);
+## arten_x10: mittlere Zahl verschiedener angebotener Aktionsarten je Takt × 10; luecke_akt_s: längste Pause des Bots (Reserve!).
 ## Messgrößen je Lauf: Bankrott, Aktionen je Art, "Aktionsfenster" (60-s-Fenster, in denen aktionen_moeglich() nie etwas bot),
 ##   längste Lücke ohne Angebot, Meilensteine/Skillpunkte, Verträge, Generationswechsel/Ersetzen, Bauwerke, Sim-Fehler.
 ## Exit 0, wenn alle Läufe durchliefen, Determinismus hält und (mit --gate) Gate A erfüllt ist.
@@ -49,6 +51,8 @@ var rng := RandomNumberGenerator.new()
 var akt: Dictionary = {}              # Art -> Anzahl ausgeführt
 var akt_ticks: Array = []
 var angebot_ticks: Array = []         # Ticks (Takt), an denen aktionen_moeglich() nicht leer war
+var streng_ticks: Array = []          # dasselbe ohne „mehr vom Gleichen“ (Fahrzeug/Zug nachkaufen, Ersetzen)
+var arten_summe := 0                  # Σ verschiedene Aktionsarten je Takt (Vielfalt)
 var abl: Dictionary = {}              # API-Ablehnungen
 var z: Dictionary = {}                # Strategiezustand
 var kauf_sperre: Dictionary = {}      # Linie -> Tick des letzten Kaufs
@@ -105,12 +109,12 @@ func _run() -> void:
 
 
 func _kopf() -> String:
-	return "seed,strategie,bankrott_min,kasse,aktionen,fenster_ohne,luecke_max_s,luecke_ohne_aktion_max_s,meilensteine,skillpunkte,skills,vertraege_ok,vertraege_fehl,vertraege_angenommen,ruf,strassen,gleise,zuege,ersetzt,firmen,hq_stufe,anbauten,ertrag_min30,fahrzeuge,sim_fehler,ablehnungen,pruefsumme"
+	return "seed,strategie,bankrott_min,kasse,aktionen,fenster_ohne,luecke_max_s,luecke_streng_s,arten_x10,luecke_ohne_aktion_max_s,meilensteine,skillpunkte,skills,vertraege_ok,vertraege_fehl,vertraege_angenommen,ruf,strassen,gleise,zuege,ersetzt,firmen,hq_stufe,anbauten,ertrag_min30,fahrzeuge,sim_fehler,ablehnungen,pruefsumme"
 
 
 func _zeile(r: Dictionary) -> String:
-	return "%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [r["seed"], strategie,
-		str(r["bankrott_min"]), r["kasse"], r["aktionen"], r["fenster_ohne"], r["luecke_max_s"], r["luecke_akt_s"], r["meilensteine"],
+	return "%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [r["seed"], strategie,
+		str(r["bankrott_min"]), r["kasse"], r["aktionen"], r["fenster_ohne"], r["luecke_max_s"], r["luecke_streng_s"], r["arten_x10"], r["luecke_akt_s"], r["meilensteine"],
 		r["skillpunkte"], r["skills"], r["v_ok"], r["v_fehl"], r["v_an"], r["ruf"], r["strassen"], r["gleise"], r["zuege"], r["ersetzt"],
 		r["firmen"], r["hq_stufe"], r["anbauten"], r["ertrag_min30"], r["fahrzeuge"], r["sim_fehler"], r["ablehnungen"], r["pruefsumme"]]
 
@@ -126,6 +130,8 @@ func _lauf(sd: int) -> Dictionary:
 	akt = {}
 	akt_ticks = []
 	angebot_ticks = []
+	streng_ticks = []
+	arten_summe = 0
 	abl = {}
 	kauf_sperre = {}
 	z = {"hq": HQ_ORTE[sd % HQ_ORTE.size()], "ast": sd % 3, "verz": rng.randi_range(0, 2) * 100, "v_an": 0, "ersetzt": 0,
@@ -141,8 +147,17 @@ func _lauf(sd: int) -> Dictionary:
 				ps.ertrag_periode_cent / 100, ps.konto.running_cost_per_period / 100, ps.eco.revenue_total / 100, ps.konto.expenses_total / 100,
 				ps.fahrkosten_total / 100, ps.kauf_total / 100, rv])
 		if ps.sim.tick_count % TAKT == 0:
-			if not ps.aktionen_moeglich().is_empty():
+			var am: Array = ps.aktionen_moeglich()
+			if not am.is_empty():
 				angebot_ticks.append(ps.sim.tick_count)
+			var arten := {}
+			for a in am:
+				arten[String(a).split(":")[0]] = true
+			arten_summe += arten.size()
+			for a in arten:
+				if not (a in ["fahrzeug", "zug", "ersetzen"]):
+					streng_ticks.append(ps.sim.tick_count)
+					break
 			_takt(ps.sim.tick_count)
 		ps.tick()
 	var fen := _fenster(ende)
@@ -168,6 +183,7 @@ func _lauf(sd: int) -> Dictionary:
 			strassen += 1
 	return {"seed": sd, "bankrott_min": (ps.bankrott_tick / PERIODE) if ps.konto.bankrupt else -1, "kasse": ps.eco.cash_cent / 100,
 		"aktionen": n_akt, "akt": akt.duplicate(), "fenster_ohne": fen[0], "luecke_max_s": fen[1], "luecke_akt_s": fen[2],
+		"luecke_streng_s": int(z["luecke_streng_s"]), "arten_x10": int(z["arten_mittel_x10"]),
 		"meilensteine": ps.meilensteine_erreicht.size(), "ms": ps.meilensteine_erreicht.duplicate(), "skillpunkte": ps.skillpunkte,
 		"skills": ps.skills.size(), "v_ok": ps.vertraege_erfuellt, "v_fehl": ps.vertraege_verfehlt, "v_an": int(z["v_an"]), "ruf": ps.ruf,
 		"strassen": strassen, "gleise": gleise, "zuege": zuege, "ersetzt": int(z["ersetzt"]), "firmen": ps.eco.owned_count,
@@ -195,6 +211,14 @@ func _fenster(ende: int) -> Array:
 		lue = maxi(lue, t - letzt)
 		letzt = t
 	lue = maxi(lue, mini(ende, ps.sim.tick_count) - letzt)
+	var lue3 := 0
+	letzt = 0
+	for t in streng_ticks:
+		lue3 = maxi(lue3, t - letzt)
+		letzt = t
+	lue3 = maxi(lue3, mini(ende, ps.sim.tick_count) - letzt)
+	z["luecke_streng_s"] = lue3 / 10
+	z["arten_mittel_x10"] = arten_summe * 10 / maxi(1, mini(ende, ps.sim.tick_count) / TAKT)
 	var lue2 := 0
 	letzt = 0
 	for t in akt_ticks:
@@ -461,7 +485,7 @@ func _zusammenfassung(res: Array, det_ok: bool, ms: int) -> bool:
 		fen_summe += int(r["fenster_ohne"])
 		fen_max = maxi(fen_max, int(r["fenster_ohne"]))
 		fehler_summe += int(r["sim_fehler"])
-		for k in ["kasse", "aktionen", "luecke_max_s", "luecke_akt_s", "meilensteine", "skillpunkte", "skills", "v_ok", "v_fehl", "v_an",
+		for k in ["kasse", "aktionen", "luecke_max_s", "luecke_streng_s", "arten_x10", "luecke_akt_s", "meilensteine", "skillpunkte", "skills", "v_ok", "v_fehl", "v_an",
 				"strassen", "gleise", "zuege", "ersetzt", "firmen", "hq_stufe", "anbauten", "ertrag_min30", "fahrzeuge", "ablehnungen"]:
 			if not cols.has(k):
 				cols[k] = []

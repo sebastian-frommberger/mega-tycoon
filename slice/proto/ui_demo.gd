@@ -70,6 +70,8 @@ var modus_panel: PanelContainer
 var modus_vb: VBoxContainer
 var vertrag_panel: PanelContainer
 var vertrag_vb: VBoxContainer
+var vertrag_kopf_vb: VBoxContainer
+var vertrag_scroll: ScrollContainer
 var skill_panel: PanelContainer
 var skill_vb: VBoxContainer
 var hq_panel: PanelContainer
@@ -703,7 +705,15 @@ func hq_anbauen(id: String) -> Dictionary:
 func _baue_vertraege() -> void:
 	var k := _karte("Verträge", C_VERTRAG, 430.0, func(): vertrag_panel.visible = false, "vertrag")
 	vertrag_panel = k[0]
-	vertrag_vb = k[1]
+	vertrag_kopf_vb = k[1]
+	vertrag_scroll = ScrollContainer.new()
+	vertrag_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vertrag_scroll.custom_minimum_size = Vector2(404, 80)
+	vertrag_kopf_vb.add_child(vertrag_scroll)
+	vertrag_vb = VBoxContainer.new()
+	vertrag_vb.add_theme_constant_override("separation", 8)
+	vertrag_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vertrag_scroll.add_child(vertrag_vb)
 	vertrag_panel.name = "VertragPanel"
 	vertrag_panel.offset_left = 8.0
 	vertrag_panel.offset_top = 176.0
@@ -736,7 +746,9 @@ func _balken(anteil: float, farbe: Color, breite := 380.0) -> Control:
 func vertraege_neu() -> void:
 	if not vertrag_panel.visible:
 		return
-	_leeren(vertrag_vb, 2)
+	_leeren(vertrag_vb)
+	var karten: int = ps.vertraege_angebote.size() + ps.vertraege_aktiv.size()
+	vertrag_scroll.custom_minimum_size.y = clampf(60.0 + ps.vertraege_aktiv.size() * 96.0 + ps.vertraege_angebote.size() * 142.0 + (56.0 if karten > 0 else 30.0), 110.0, 430.0)
 	var t: int = ps.sim.tick_count
 	var ruf: int = ps.ruf
 	var sterne := ""
@@ -746,7 +758,7 @@ func vertraege_neu() -> void:
 	vertrag_vb.add_child(_lbl("%s · erfüllt %d · verfehlt %d · %d von %d Plätzen belegt" % [rt, ps.vertraege_erfuellt, ps.vertraege_verfehlt,
 		ps.vertraege_aktiv.size(), ps.vertraege_max()], 14, C_MATT))
 	if ps.vertraege_angebote.is_empty() and ps.vertraege_aktiv.is_empty():
-		vertrag_vb.add_child(_umbruch(_lbl("Noch kein Angebot. Orte und Betriebe melden sich alle paar Minuten: eine Menge, eine Frist, eine Prämie.", 16), 400))
+		vertrag_vb.add_child(_umbruch(_lbl("Noch kein Angebot. Orte und Betriebe melden sich alle paar Minuten: eine Menge, eine Frist, eine Prämie.", 16), 380))
 	if not ps.vertraege_aktiv.is_empty():
 		vertrag_vb.add_child(_lbl("LÄUFT", 15, C_GOLD, true))
 	for v in ps.vertraege_aktiv:
@@ -759,7 +771,7 @@ func vertraege_neu() -> void:
 		var zeit_ant := float(t - int(v["start_tick"])) / maxf(1.0, float(v["frist_ticks"]))
 		var farbe := C_OK if ant >= zeit_ant else (C_WARN if ant >= zeit_ant - 0.25 else C_BAD)
 		bv.add_child(_lbl("%s: %d %s" % [v["ort"], int(v["menge"]), ps.gutname(v["gut"])], 18))
-		bv.add_child(_balken(ant, farbe))
+		bv.add_child(_balken(ant, farbe, 360.0))
 		bv.add_child(_lbl("%d / %d geliefert · noch %s · Prämie %s%s" % [int(v["geliefert"]), int(v["menge"]), _zeit(int(v["ende_tick"]) - t),
 			geld(ps.vertrag_praemie(v)), (" + %d %% Preisbonus" % (int(v["bonus_promille"]) / 10)) if int(v["bonus_promille"]) > 0 else ""], 14, farbe))
 		vertrag_vb.add_child(box)
@@ -1266,6 +1278,8 @@ func _process(delta: float) -> void:
 		_t_vorschau = 0.0
 		var mp := get_viewport().get_mouse_position()
 		var p = boden(mp)
+		if uw._taste_unten or (modus_panel.visible and modus_panel.get_global_rect().has_point(mp)) or leiste.get_global_rect().has_point(mp):
+			p = null                                        # Maus über dem Panel oder Taste gehalten: Vorschau bleibt stehen (Knöpfe bleiben klickbar)
 		if p is Vector2 and (not (_maus_boden is Vector2) or (_maus_boden as Vector2).distance_to(p) > 1.5):
 			_maus_boden = p
 			if bau_art != "":

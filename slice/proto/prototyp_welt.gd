@@ -41,6 +41,8 @@ const ProtoSim := preload("res://proto/proto_sim.gd")
 const Fahrzeuge := preload("res://proto/proto_fahrzeuge.gd")
 const StelleMerken := preload("res://proto/stelle_merken.gd")     # WA-02: F12
 const UiWelt := preload("res://proto/ui_welt.gd")               # S8 AT-07ff. (Mira): Welt-Panel, Linienbau, Kopfleiste
+const DemoSim := preload("res://proto/demo_sim.gd")            # Demo-Sprint: nur mit --demo / Startmenü „Demo spielen“
+const UiDemo := preload("res://proto/ui_demo.gd")
 const STUB := "res://proto/proto_terrain_stub.gd"
 const TA_TERRAIN := "res://world/proto_terrain.gd"
 const DATEN := "res://world/data/proto/"
@@ -116,6 +118,10 @@ var hud_an := true
 var _hud_t := 0.0
 var _drag := 0                       # 0 nichts, 1 schieben, 2 drehen
 var ui_welt = null                   # S8 AT-07: proto/ui_welt.gd (nur mit Sim)
+static var demo_start := false       # Demo-Sprint: Startmenü setzt das vor dem Szenenwechsel
+var demo := false                    # Demo-Modus (DemoSim + ui_demo)
+var ui_demo = null
+var demo_daten: Dictionary = {}
 var _klick_start := Vector2(-1, -1)  # AT-07: Linksklick ohne Ziehen = Weltklick
 
 
@@ -141,9 +147,15 @@ func _ready() -> void:
 	epochen = Epochen.laden()
 	regelwerk = epochen.regelwerk
 	startjahr = epochen.startjahr_standard()
+	demo = demo or demo_start
 	for a in OS.get_cmdline_user_args() + OS.get_cmdline_args():
 		if a.begins_with("--startjahr=") and a.substr(12).is_valid_int():
 			startjahr = int(a.substr(12))
+		elif a == "--demo":
+			demo = true
+	if demo and FileAccess.file_exists(DemoSim.DEMO_JSON):
+		var dd = JSON.parse_string(FileAccess.get_file_as_string(DemoSim.DEMO_JSON))
+		demo_daten = dd if dd is Dictionary else {}
 	welt_epoche = epochen.fuer_jahr(startjahr)
 	_lies_daten()
 	tz["lies_daten"] = (Time.get_ticks_usec() - t0) / 1000.0
@@ -156,12 +168,15 @@ func _ready() -> void:
 	_baue_fahrzeuge()
 	tz["baue_fahrzeuge"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_kamera()
-	schilder = ProtoSchilder.bauen(self, cam, orte, terrain)
+	schilder = ProtoSchilder.bauen(self, cam, orte, terrain, _demo_industrie())
 	tz["baue_schilder"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_baue_hud()
 	if proto_sim != null and proto_sim.eco != null:     # AT-07: Welt-UI über dem HUD
 		ui_welt = UiWelt.new()
 		ui_welt.einbauen(self)
+		if demo:
+			ui_demo = UiDemo.new()
+			ui_demo.einbauen(self, ui_welt)
 	_presets_berechnen()
 	setze_preset(1)
 	lade_ms = (Time.get_ticks_usec() - t0) / 1000.0
@@ -183,6 +198,26 @@ func _lies_daten() -> void:
 	wege = w if w is Array else []
 	var s = _json("proto_see.json")
 	see = s if s is Dictionary else {}
+	if demo:                                           # Demo-Betriebe: Gebäude als zusätzliche Instanzen (gleiche Prefabs)
+		instanzen = instanzen.duplicate()
+		for b in demo_daten.get("betriebe", []):
+			for m in b.get("modelle", []):
+				var inst := {"typ": String(m["typ"]), "x": float(b["x"]) + float(m.get("dx", 0)), "z": float(b["z"]) + float(m.get("dz", 0)),
+					"rot_deg": float(m.get("rot_deg", 0)), "parzelle": "demo_" + String(b["id"]), "ort": String(b["id"])}
+				for k in ["b", "t", "variante"]:
+					if m.has(k):
+						inst[k] = m[k]
+				instanzen.append(inst)
+
+
+## Demo: Schilder auch für die neuen Betriebe (leer = ProtoSchilder liest proto_orte.json wie bisher).
+func _demo_industrie() -> Array:
+	if not demo:
+		return []
+	var l: Array = orte_json.get("industrie", []).duplicate()
+	for b in demo_daten.get("betriebe", []):
+		l.append({"id": String(b["id"]), "name": String(b["name"]), "typ": String(b["typ"]), "x": float(b["x"]), "z": float(b["z"])})
+	return l
 
 
 func _baue_umgebung() -> void:
@@ -250,7 +285,7 @@ func _baue_fahrzeuge() -> void:
 	if sim_aus:
 		return
 	var t0 := Time.get_ticks_usec()
-	proto_sim = ProtoSim.new(regelwerk)
+	proto_sim = DemoSim.new(regelwerk) if demo else ProtoSim.new(regelwerk)
 	proto_sim.kalender.startjahr = startjahr          # FZ-02: Kalender der Welt (jahr_ticks 1.800), Startjahr der Szene
 	proto_sim.graph_bauen(strassen)
 	var t1 := Time.get_ticks_usec()
@@ -462,6 +497,9 @@ func vollbild_umschalten() -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
+	if ui_demo != null and ui_demo.eingabe(ev):          # Demo: Baumodus, Firmensitz, Verträge, Skills, Esc-Abfrage
+		get_viewport().set_input_as_handled()
+		return
 	if ui_welt != null and ui_welt.eingabe(ev):          # AT-07 (G5): Esc schließt zuerst Panel/Modus
 		get_viewport().set_input_as_handled()
 		return
@@ -512,7 +550,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			if mb.pressed:
 				_klick_start = mb.position
 			elif ui_welt != null and _klick_start.x >= 0.0 and mb.position.distance_to(_klick_start) < 6.0:
-				ui_welt.welt_klick(mb.position)              # AT-07: Loslassen ohne Ziehen = Klick
+				if ui_demo == null or not ui_demo.welt_klick(mb.position):
+					ui_welt.welt_klick(mb.position)          # AT-07: Loslassen ohne Ziehen = Klick
 		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			_drag = 2 if mb.pressed else 0
 	elif ev is InputEventMouseMotion and _drag != 0:

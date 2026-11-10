@@ -35,6 +35,9 @@ func _ready() -> void:
 	for a in args:
 		if a == "--modus=neu" or a == "--modus=beispiel":
 			direkt = a.substr(8)
+	if args.has("--demo"):                       # Demo-Sprint: direkt in die Demo (tools/play_demo.sh, play_demo.bat)
+		starte_demo()
+		return
 	if args.has("--proto"):
 		get_tree().change_scene_to_file.call_deferred(PROTO)
 		return
@@ -87,7 +90,13 @@ func _baue() -> void:
 		b.add_child(rand)
 		reihe.add_child(b)
 		karten.append(b)
-	welt_knopf = Kit.button("Welt spielen (Loop S8)", "ButtonPrimary", "", starte_welt)
+	var demo_knopf := Kit.button("Demo spielen (30 Minuten)", "ButtonPrimary", "", starte_demo)
+	demo_knopf.name = "Knopf_Demo"
+	demo_knopf.tooltip_text = "Demo: Firmensitz, drei Warenketten, Straße und Gleis bauen, Verträge, Skilltree (Taste D)"
+	demo_knopf.custom_minimum_size = Vector2(320, 52)
+	demo_knopf.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(demo_knopf)
+	welt_knopf = Kit.button("Welt spielen (Loop S8)", "ButtonSecondary", "", starte_welt)
 	welt_knopf.name = "Knopf_Welt_S8"
 	welt_knopf.tooltip_text = "Prototyp-Welt mit Fuhrwerken, Tempo und Datum (Taste P)"
 	welt_knopf.custom_minimum_size = Vector2(320, 48)
@@ -144,10 +153,19 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_zeige_welt()
 		KEY_P:
 			starte_welt()
+		KEY_D:
+			starte_demo()
 
 
 ## AT-06: Prototyp-Welt laden (Knopf und Taste P). Deferred, damit ein Knopfdruck das Menü nicht mitten im Signal abbaut.
 func starte_welt() -> void:
+	(load("res://proto/prototyp_welt.gd") as Script).set("demo_start", false)
+	get_tree().change_scene_to_file.call_deferred(PROTO)
+
+
+## Demo-Sprint: dieselbe Szene im Demo-Modus (DemoSim + ui_demo).
+func starte_demo() -> void:
+	(load("res://proto/prototyp_welt.gd") as Script).set("demo_start", true)
 	get_tree().change_scene_to_file.call_deferred(PROTO)
 
 

@@ -154,11 +154,16 @@ var linien_panel: PanelContainer
 var linien_vb: VBoxContainer
 var linien_werte: Dictionary = {}    # "von|nach" -> angezeigte Zahlen (Test gegen Spielwert)
 var _schnapp: Array = []             # Schnappschüsse an den letzten zwei Periodengrenzen
+# Demo-Sprint: Zusätze nur mit DemoSim (ps.demo). ui_demo.gd hängt sich als `demo_ui` ein.
+var demo := false
+var demo_ui = null
+var kauf_def := ""                   # Demo: in der Vorschau gewähltes Modell ("" = neuestes Straßenfahrzeug)
 
 
 func einbauen(p_welt: Node) -> void:
 	welt = p_welt
 	ps = welt.proto_sim
+	demo = ps != null and ps.get("demo") == true
 	name = "UiWelt"
 	layer = 2
 	welt.add_child(self)
@@ -182,6 +187,10 @@ func _orte_lesen() -> void:
 	for o in oj.get("orte", []):
 		var nm := String(o.get("name", ""))
 		orte_pos[nm] = Vector3(float(o["x"]), welt.hoehe_at(float(o["x"]), float(o["z"])), float(o["z"]))
+	if demo:
+		for nm in ps.betrieb_pos:
+			var p: Vector2 = ps.betrieb_pos[nm]
+			orte_pos[nm] = Vector3(p.x, welt.hoehe_at(p.x, p.y), p.y)
 
 
 func _sim_ok() -> bool:
@@ -316,7 +325,18 @@ func nimmt_an(site: int, g: int) -> bool:
 
 
 func fuhrwerk_def() -> Dictionary:
+	if demo and kauf_def != "" and not ps.vdef(kauf_def).is_empty():
+		return ps.vdef(kauf_def)
 	return ps.vdef(ps.def_fuer("fuhrwerk"))
+
+
+## Demo: Name des Fahrzeugs in Texten (Fuhrwerk, Planwagen, Pferdebahn, …).
+func fz_name() -> String:
+	return String(fuhrwerk_def().get("name", "Fuhrwerk"))
+
+
+func gut_text(gid: String) -> String:
+	return ps.gutname(gid) if demo else gid.capitalize()
 
 
 # ------------------------------------------------------------------ Aufbau
@@ -533,6 +553,8 @@ func panel_neu() -> void:
 	var typ := "Ort"
 	if ist_industrie(site):
 		typ = {"getreidefarm": "Getreidefarm", "muehle": "Mühle"}.get(String(e.i_ids[e.s_def[site]]), String(e.i_ids[e.s_def[site]]))
+		if demo:
+			typ = String(ps.daten.get("typnamen", {}).get(String(e.i_ids[e.s_def[site]]), typ))
 	elif ist_ort(site):
 		typ = {"dorf": "Dorf", "kleinstadt": "Kleinstadt"}.get(String(e.s_stage[site]), String(e.s_stage[site]))
 	kopf.add_child(_label(typ, 16, C_GRAU))
@@ -542,8 +564,10 @@ func panel_neu() -> void:
 		_panel_industrie(site)
 	elif ist_ort(site):
 		_panel_ort(site)
-	if ist_hq(site):
+	if ist_hq(site) and not demo:
 		_panel_hq()
+	if demo and demo_ui != null:
+		demo_ui.panel_zusatz(auswahl, site)
 
 
 func _trenner() -> void:
@@ -692,6 +716,8 @@ func lizenz_fehlertext(nm: String, r: Dictionary) -> String:
 			return text("bankrott")
 		"keine_lizenzierbare_industrie":
 			return text("lizenz_nicht_noetig", {"name": nm})
+	if demo and demo_ui != null and demo_ui.fehlertext(r) != "":
+		return demo_ui.fehlertext(r)
 	return text("lizenz_sonst", {"code": f})
 
 
@@ -802,9 +828,11 @@ func ziel_waehlen(nm: String) -> void:
 	var sv := site_of(von)
 	var sz := site_of(nm)
 	var g: int = ps.eco.s_out_good[sv]
+	if demo and demo_ui != null:
+		demo_ui.modell_waehlen(von, nm)                     # Straße oder Gleis, neuestes kaufbares Modell
 	var v := route_vorschau(von, nm, 1)
 	if not v["ok"]:
-		meldung(text("keine_verbindung", {"a": von, "b": nm}))
+		meldung(demo_ui.text_keine_verbindung(von, nm) if demo and demo_ui != null else text("keine_verbindung", {"a": von, "b": nm}))
 		return
 	if not nimmt_an(sz, g):
 		meldung(text("nimmt_nicht", {"ziel": nm, "ware": String(ps.eco.g_ids[g]).capitalize()}))
@@ -822,18 +850,18 @@ func ziel_waehlen(nm: String) -> void:
 func route_vorschau(von: String, nach: String, n: int) -> Dictionary:
 	var a: Dictionary = ps.stationen[von]
 	var b: Dictionary = ps.stationen[nach]
-	var route: Array = ps.sim.graph.find_path(int(a["knoten"]), int(b["knoten"]))
+	var d := fuhrwerk_def()
+	var route: Array = ps.route_fuer(von, nach, String(d.get("id", ""))) if demo else ps.sim.graph.find_path(int(a["knoten"]), int(b["knoten"]))
 	if route.is_empty():
 		return {"ok": false, "fehler": "keine_verbindung"}
 	var e = ps.eco
-	var d := fuhrwerk_def()
 	var sv := int(a["site"])
 	var sz := int(b["site"])
 	var g: int = e.s_out_good[sv]
-	var cap := int(d.get("kapazitaet_einheiten", 10))
+	var cap: int = ps._kap(d)
 	var route_mm: int = ps.sim.graph.route_length(route)
 	var strecke_m: float = route_mm / ps.mm_pro_m
-	var v_nom: float = maxf(0.001, ps.profil("fuhrwerk").v_nom)
+	var v_nom: float = maxf(0.001, ps.profil_fuer(String(d.get("darstellung", "fuhrwerk")), d).v_nom)
 	var fahr_ticks: float = strecke_m / v_nom
 	var load_ticks := int(e.slice.get("fahrzeug_ref", {}).get("load_ticks", 100))
 	var umlauf: float = 2.0 * fahr_ticks + 2.0 * load_ticks
@@ -845,7 +873,7 @@ func route_vorschau(von: String, nach: String, n: int) -> Dictionary:
 	var fix := int(d.get("fix_cent_pro_periode", 0))
 	return {"ok": true, "strecke_m": roundi(strecke_m), "fahrzeit_s": roundi(fahr_ticks / 10.0), "felder": felder,
 		"ertrag_fuhre_cent": ertrag, "fahrkosten_fuhre_cent": fahrk, "fuhren_min": fuhren,
-		"netto_min_cent": roundi(fuhren * (ertrag - fahrk)) - n * fix, "preis_cent": int(d.get("kauf_cent", 0)), "fix_cent": fix,
+		"netto_min_cent": roundi(fuhren * (ertrag - fahrk)) - n * fix, "preis_cent": ps._preis(d), "fix_cent": fix,
 		"gut": String(e.g_ids[g]) if g >= 0 else "", "quelle_begrenzt": fuhren_fz > fuhren and n > 1, "quelle_rate": int(e.s_rate[sv])}
 
 
@@ -860,8 +888,10 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 		(" · %d Fuhrwerk(e) fahren schon" % n_alt) if n_alt > 0 else ""], 18))
 	vorschau_vb.add_child(_label("Strecke %s m · Fahrzeit ~%d s · Ertrag je Fuhre %s · ca. %s%s/min" % [_tsd(v["strecke_m"]), v["fahrzeit_s"],
 		geld(v["ertrag_fuhre_cent"]), "+" if v["netto_min_cent"] >= 0 else "", geld(v["netto_min_cent"])], 16))
-	vorschau_vb.add_child(_label("Fuhrwerk: %s einmalig · Unterhalt %s/min · Fahrkosten %s je Fuhre" % [geld(v["preis_cent"]),
+	vorschau_vb.add_child(_label("%s: %s einmalig · Unterhalt %s/min · Fahrkosten %s je Fuhre" % [fz_name(), geld(v["preis_cent"]),
 		geld(v["fix_cent"]), geld(v["fahrkosten_fuhre_cent"])], 16))
+	if demo and demo_ui != null:
+		demo_ui.vorschau_modelle(vorschau_vb, von, nach, n_alt)
 	if v["quelle_begrenzt"]:                                # F3.2: Hinweis, Kauf bleibt möglich
 		vorschau_vb.add_child(_label("▲ " + text("liefert_wenig", {"name": von, "x": v["quelle_rate"]}), 16, C_WARN))
 	vorschau_vb.add_child(_label("Schätzung: volle Frische, ohne Sättigung des Abnehmers.", 15, C_GRAU))
@@ -878,7 +908,7 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 	var summe: int = int(v["preis_cent"]) + lic
 	vorschau_werte["summe_cent"] = summe
 	var grau: bool = summe > ps.eco.cash_cent
-	var t := ("+ Fuhrwerk · %s" if n_alt > 0 else "Anlegen · %s") % geld(v["preis_cent"])
+	var t := ("+ " + fz_name() + " · %s" if n_alt > 0 else "Anlegen · %s") % geld(v["preis_cent"])
 	if not lizenz_ok(sv):
 		t = "Lizenz + Anlegen · %s" % geld(summe)
 	var b := _knopf(t, "anlegen", anlegen, not grau, grau, "vorschau")
@@ -898,7 +928,7 @@ func anlegen() -> Dictionary:
 	var sv := site_of(von)
 	var mit_lizenz := sv >= 0 and not lizenz_ok(sv)
 	if mit_lizenz:                                         # gemeinsamer Knopf: erst prüfen, dann Lizenz, dann Fuhrwerk
-		var summe := int(ps.eco.licence_quote(sv, false).get("zu_zahlen_cent", 0)) + int(fuhrwerk_def().get("kauf_cent", 0))
+		var summe: int = int(ps.eco.licence_quote(sv, false).get("zu_zahlen_cent", 0)) + ps._preis(fuhrwerk_def())
 		if summe > ps.eco.cash_cent:
 			meldung(text("lizenz_linie_geld", {"x": geld(summe), "d": fehlbetrag(summe - ps.eco.cash_cent)}))
 			return {"ok": false, "fehler": "guthaben_reicht_nicht"}
@@ -929,7 +959,9 @@ func fuhrwerk_kaufen(von: String, nach: String, mit_lizenz := false) -> Dictiona
 		oeffnen(von)
 		return {"ok": false, "fehler": "keine_lizenz"}
 	var n_alt := linien_fahrzeuge(von, nach).size()
-	var r: Dictionary = ps.linie_anlegen(von, nach, "fuhrwerk")
+	if demo and demo_ui != null and not (vorschau_ziel == nach and modus_von == von):
+		kauf_def = String(demo_ui.linie_def(von, nach).get("id", ""))      # [+ Fahrzeug] in Liste/Panel: Modell passend zur Linie
+	var r: Dictionary = ps.linie_anlegen(von, nach, "fuhrwerk", kauf_def) if demo else ps.linie_anlegen(von, nach, "fuhrwerk")
 	if not r.get("ok", false):
 		meldung(linie_fehlertext(von, nach, r))
 		return r
@@ -964,6 +996,8 @@ func linie_fehlertext(von: String, nach: String, r: Dictionary) -> String:
 			return text("frachtwagen_1830")
 		"unbekannter_ort":
 			return text("ins_leere")
+	if demo and demo_ui != null and demo_ui.fehlertext(r) != "":
+		return demo_ui.fehlertext(r)
 	return text("linie_sonst", {"code": f})
 
 
@@ -996,14 +1030,19 @@ func _linien_ab(von: String) -> void:
 	var preis := int(fuhrwerk_def().get("kauf_cent", 0))
 	for nm in ziele:
 		var hb := HBoxContainer.new()
-		var l := _label("→ %s · %d Fuhrwerk(e)" % [nm, ziele[nm]], 16)
+		var l := _label("→ %s · %d %s" % [nm, ziele[nm], "Fahrzeug(e)" if demo else "Fuhrwerk(e)"], 16)
+		var plus_name := "Fuhrwerk"
+		if demo and demo_ui != null:
+			var ld: Dictionary = demo_ui.linie_def(von, nm)
+			preis = ps._preis(ld)
+			plus_name = String(ld.get("name", "Fuhrwerk"))
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hb.add_child(l)
 		panel_vb.add_child(hb)
 		panel_werte["linie_" + nm] = ziele[nm]
 		var zeile := _fz_knoepfe(linien_fahrzeuge(von, nm))
 		var grau: bool = preis > ps.eco.cash_cent
-		var b := _knopf("+ Fuhrwerk %s" % geld(preis), "plus_" + nm, fuhrwerk_kaufen.bind(von, nm), false, grau)
+		var b := _knopf("+ %s %s" % [plus_name, geld(preis)], "plus_" + nm, fuhrwerk_kaufen.bind(von, nm), false, grau)
 		if grau:
 			b.tooltip_text = "Es fehlen %s." % fehlbetrag(preis - ps.eco.cash_cent)
 		zeile.add_child(b)
@@ -1431,7 +1470,10 @@ func _panel_fahrzeug(vid: int) -> void:
 	panel_werte["restwert"] = ps.restwert(f)
 	_trenner()
 	var defs: Array = [String(f["def_id"])]
-	for id in ["frachtwagen_e1"]:                          # FZ-05: Folgemodell, sobald verfügbar
+	var folge: Array = ["frachtwagen_e1"]                  # FZ-05: Folgemodell, sobald verfügbar
+	if demo:
+		folge = [ps.neueres_modell(vid)] if ps.neueres_modell(vid) != "" else []   # Demo: neuestes Modell der Kategorie
+	for id in folge:
 		if id != String(f["def_id"]) and not ps.vdef(id).is_empty() and ps.kalenderjahr() >= int(ps.vdef(id).get("verfuegbar_ab_jahr", 9999)):
 			defs.append(id)
 	for id in defs:
@@ -1442,6 +1484,9 @@ func _panel_fahrzeug(vid: int) -> void:
 		panel_werte["ersetzen_" + id] = q
 		panel_vb.add_child(_label("Ersetzen durch %s: Restwert %s · neu %s · spart %s/min" % [nm, geld(q["restwert_cent"]),
 			geld(q["preis_cent"]), geld(q["spart_cent_pro_periode"])], 16))
+		if demo and id != String(f["def_id"]):
+			panel_vb.add_child(_label("Neues Modell: Ladung %d → %d E%s" % [ps.sim.v_cargo_cap[ps.sim.slot_of(vid)], int(q["kapazitaet_neu"]),
+				" · schneller" if int(ps.vdef(id).get("tempo_promille", 0)) > int(ps.vdef(String(f["def_id"])).get("tempo_promille", 0)) else ""], 16, C_OK))
 		if int(q["spart_cent_pro_periode"]) <= 0 and id == String(f["def_id"]):
 			panel_vb.add_child(_label("▲ " + text("ersetzen_nichts", {"z": geld(q["spart_cent_pro_periode"])}), 15, C_WARN))
 		var b := _knopf("Ersetzen%s · %s" % ["" if id == String(f["def_id"]) else " durch " + nm, geld(q["netto_cent"])],
@@ -1470,6 +1515,8 @@ func ersetzen(vid: int, def_id: String) -> Dictionary:
 	var r: Dictionary = ps.fahrzeug_ersetzen(vid, def_id)
 	if r.get("ok", false):
 		meldung(text("ersetzt", {"n": f["name"], "x": geld(int(r["netto_cent"])), "y": geld(ps.fix_eff(f)), "z": geld(fa)}))
+		if demo:
+			_fahrzeuge_neu()                               # neues Modell kann eine andere Darstellung haben (Dampfzug)
 	else:
 		meldung(fz_fehlertext(f, r))
 	panel_neu()
@@ -1588,7 +1635,7 @@ func linien_neu() -> void:
 			alter = maxi(alter, ps.alter_jahre(f))
 			fix += ps.fix_eff(f)
 		var w := {"alter": alter, "fix": fix, "n": fz.size()}
-		linien_vb.add_child(_label("%s → %s (%s) · %d Fuhrwerk(e)" % [von, nach, gut, fz.size()], 16))
+		linien_vb.add_child(_label("%s → %s (%s) · %d %s" % [von, nach, gut, fz.size(), "Fahrzeug(e)" if demo else "Fuhrwerk(e)"], 16))
 		var zeile := ""
 		var farbe := C_TEXT
 		if statistik.linien.has(k):
@@ -1621,7 +1668,12 @@ func linien_neu() -> void:
 			linien_vb.add_child(_label(sz, 15, sfarbe))
 		var hb := _fz_knoepfe_bereich(fz, "linien")
 		var preis := int(fuhrwerk_def().get("kauf_cent", 0))
-		hb.add_child(_knopf("+ Fuhrwerk %s" % geld(preis), "lplus_" + k, fuhrwerk_kaufen.bind(von, nach), false, preis > ps.eco.cash_cent, "linien"))
+		var plus_name := "Fuhrwerk"
+		if demo and demo_ui != null:
+			var ld: Dictionary = demo_ui.linie_def(von, nach)
+			preis = ps._preis(ld)
+			plus_name = String(ld.get("name", "Fuhrwerk"))
+		hb.add_child(_knopf("+ %s %s" % [plus_name, geld(preis)], "lplus_" + k, fuhrwerk_kaufen.bind(von, nach), false, preis > ps.eco.cash_cent, "linien"))
 		linien_vb.add_child(hb)
 		linien_werte[k] = w
 	_umbrechen(linien_vb)
@@ -1858,6 +1910,8 @@ func _toast_aktion(id: String, daten: Variant) -> void:
 # ------------------------------------------------------------------ AT-13 Ziele und Nächster Schritt (Szenario i: Textliste)
 
 func _ziele_pruefen(periode_ende: bool) -> void:
+	if demo:
+		return                                            # Demo: Meilensteine aus DemoSim (ui_demo zeigt sie)
 	ziele.pruefen(periode_ende, hud_werte.get("netto", null) if periode_ende else null)
 	for id in ziele.neu_erfuellt:
 		var z: Dictionary = ziele.ziel(id)
@@ -1869,6 +1923,8 @@ func _ziele_pruefen(periode_ende: bool) -> void:
 
 ## „Nächster Schritt“ für das erste offene Ziel, mit Preis aus dem Spiel.
 func naechster_text() -> String:
+	if demo and demo_ui != null:
+		return demo_ui.naechster_text()
 	var z: Dictionary = ziele.naechstes()
 	if z.is_empty():
 		return text("n_fertig")
@@ -1894,6 +1950,11 @@ func naechster_text() -> String:
 
 func ziele_neu() -> void:
 	if ziele_vb == null:
+		return
+	if demo:
+		ziele_panel.visible = false
+		if lbl_naechster != null:
+			lbl_naechster.text = "Nächster Schritt: " + naechster_text()
 		return
 	_leeren(ziele_vb)
 	var fertig := 0

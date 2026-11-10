@@ -351,12 +351,12 @@ func linie(kat: String, name: String, von: int, nach: int, src_k: int, dst_k: in
 	if route.is_empty():
 		fehler.append("%s: keine Verbindung %d → %d" % [name, von, nach])
 		return {}
-	var prof = profil(kat)
 	var lkw: Dictionary = vdef if not vdef.is_empty() else self.vdef(def_fuer(kat))   # FZ-01: Kosten je Kategorie
 	if lkw.is_empty():
 		lkw = _lkw()
+	var prof = profil_fuer(kat, lkw)
 	var vid := fahrzeuge.size() + 1
-	var cap := int(lkw.get("kapazitaet_einheiten", 10))
+	var cap := _kap(lkw)
 	var var_cent := int(lkw.get("variabel_cent_pro_feld", 0))
 	var load_ticks := 100
 	if eco != null:
@@ -614,6 +614,31 @@ func vdef(def_id: String) -> Dictionary:
 	return _vdefs.get(def_id, {})
 
 
+# Demo-Sprint: Haken für proto/demo_sim.gd (Boni aus Skilltree/HQ, Züge, Freischaltungen). Standard = Verhalten wie bisher.
+func profil_fuer(kat: String, _d: Dictionary):
+	return profil(kat)
+
+
+func _kap(d: Dictionary) -> int:
+	return int(d.get("kapazitaet_einheiten", 10))
+
+
+func _preis(d: Dictionary) -> int:
+	return int(d.get("kauf_cent", 0))
+
+
+func _gesperrt(id: String) -> bool:
+	return GESPERRT_S8.has(id)
+
+
+func _katalog() -> Array:
+	return _vdefs.keys()
+
+
+func _fix_extra() -> int:
+	return 0
+
+
 ## FZ-01: Standard-Datensatz je Kategorie = erster kaufbarer Datensatz mit "kategorie" == kat (vehicles.json,
 ## fuhrwerk → fuhrwerk_e1). Fehlt einer (Postkutsche: nicht kaufbar, W21), gilt der Slice-Lkw (Fahrkosten der Kulisse).
 const DEF_JE_KAT := {"fuhrwerk": "fuhrwerk_e1"}
@@ -639,7 +664,7 @@ func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_i
 		return _nein("gleicher_ort")
 	if def_id == "":
 		def_id = def_fuer(kat)
-	if GESPERRT_S8.has(def_id):
+	if _gesperrt(def_id):
 		return _nein("gesperrt")
 	var d := vdef(def_id)
 	if d.is_empty():
@@ -650,7 +675,7 @@ func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_i
 	var b: Dictionary = stationen[nach_name]
 	if sim.graph.find_path(int(a["knoten"]), int(b["knoten"])).is_empty():
 		return _nein("keine_verbindung")
-	var preis := int(d.get("kauf_cent", 0))
+	var preis := _preis(d)
 	if preis > eco.cash_cent:
 		return _nein("guthaben_reicht_nicht", {"fehlt_cent": preis - eco.cash_cent})
 	var n_alt := fehler.size()
@@ -759,15 +784,15 @@ func ersetzen_angebot(vid: int, def_id := "") -> Dictionary:
 		return _nein("andere_kategorie")
 	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
 		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d["verfuegbar_ab_jahr"])})
-	if sim.v_cargo[sim.slot_of(vid)] > int(d.get("kapazitaet_einheiten", 0)):
+	if sim.v_cargo[sim.slot_of(vid)] > _kap(d):
 		return _nein("ladung_zu_gross")
 	var rw := restwert(f)
-	var preis := int(d.get("kauf_cent", 0))
+	var preis := _preis(d)
 	var fa := fix_eff(f)
 	var fn := int(d.get("fix_cent_pro_periode", 0))
 	return _ok({"restwert_cent": rw, "preis_cent": preis, "netto_cent": preis - rw, "fix_alt_cent": fa, "fix_neu_cent": fn,
 		"spart_cent_pro_periode": fa - fn, "alter_jahre": alter_jahre(f), "def_id": def_id,
-		"kapazitaet_neu": int(d.get("kapazitaet_einheiten", 0)), "kaufbar": preis - rw <= eco.cash_cent})
+		"kapazitaet_neu": _kap(d), "kaufbar": preis - rw <= eco.cash_cent})
 
 
 ## FZ-04: Ersetzen. Restwert gutschreiben (konto.erstatten), Kauf buchen (konto.charge), Fahrzeug bleibt auf der Linie
@@ -784,7 +809,7 @@ func fahrzeug_ersetzen(vid: int, def_id := "") -> Dictionary:
 	konto.charge(int(q["preis_cent"]))
 	kauf_total += int(q["preis_cent"])
 	var i: int = sim.slot_of(vid)
-	sim.v_cargo_cap[i] = int(d.get("kapazitaet_einheiten", sim.v_cargo_cap[i]))
+	sim.v_cargo_cap[i] = _kap(d) if d.has("kapazitaet_einheiten") else sim.v_cargo_cap[i]
 	sim.v_var_cent[i] = int(d.get("variabel_cent_pro_feld", sim.v_var_cent[i]))
 	f["def_id"] = String(q["def_id"])
 	f["kauf_cent"] = int(q["preis_cent"])
@@ -799,7 +824,7 @@ func _fix_neu() -> void:
 	var liste: Array = []
 	for f in fahrzeuge:
 		liste.append(fix_eff(f))
-	konto.fix_neu(liste, eco.works_upkeep_cent_pro_periode() if eco != null else 0, 0)   # FK-02: Werksunterhalt über konto
+	konto.fix_neu(liste, eco.works_upkeep_cent_pro_periode() if eco != null else 0, _fix_extra())   # FK-02: Werksunterhalt über konto
 	_fix_dirty = false
 
 
@@ -816,11 +841,11 @@ func _jahreswechsel(jahr: int) -> void:
 		if String(k).ends_with("_moeglich") and bool(st[k]):
 			kandidaten.append(String(k))
 	vdef("")
-	for id in _vdefs:
+	for id in _katalog():
 		if int(_vdefs[id].get("verfuegbar_ab_jahr", -1)) == jahr:
 			kandidaten.append(String(id))
 	for id in kandidaten:
-		if GESPERRT_S8.has(id):
+		if _gesperrt(id):
 			gesperrt_log.append({"tick": sim.tick_count, "jahr": jahr, "id": id, "grund": GESPERRT_S8[id]})
 		else:
 			freischaltungen.append({"tick": sim.tick_count, "jahr": jahr, "id": id})

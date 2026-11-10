@@ -1,0 +1,851 @@
+{
+ "schema_version": 1,
+ "meta": {
+  "zweck_text": "Demo-Sprint (10.11.2026): Overlay der Welt im Demo-Modus (--demo). Gelesen nur von proto/demo_sim.gd und proto/ui_demo.gd. Slice und S8-Welt ohne --demo lesen diese Datei nicht.",
+  "etikett_text": "Setzungen des Demo-Leads, mit dem Demo-Bot (tests/demo_bot.gd) auf 'kein Bankrott, Aktionen in jedem Fenster' eingestellt. Nichts an Spielern gemessen.",
+  "zeitraffer_text": "Kalender bleibt 3 min je Jahr. Freischaltungen sind vorgezogen (Planwagen 1822, Gleis/Pferdebahn 1824, Frachtwagen 1826, Dampflok 1828), damit sie in 30 min fallen. Historisch: Frachtwagen-Patent ~1830, Pferdebahn Budweis-Linz 1827-32, Adler 1835."
+ },
+ "tempo_k": 8,
+ "oe_set": "k8d",
+ "startjahr": 1820,
+ "oekonomie": {
+  "gueter": [
+   {
+    "id": "holz",
+    "kategorie_id": "rohstoff",
+    "zeitklasse_modus": "massen",
+    "preis_cent_pro_einheit_feld": 26
+   },
+   {
+    "id": "bretter",
+    "kategorie_id": "baustoff",
+    "zeitklasse_modus": "massen",
+    "preis_cent_pro_einheit_feld": 70
+   },
+   {
+    "id": "kohle",
+    "kategorie_id": "rohstoff",
+    "preis_cent_pro_einheit_feld": 18
+   },
+   {
+    "id": "erz",
+    "kategorie_id": "rohstoff",
+    "preis_cent_pro_einheit_feld": 18
+   },
+   {
+    "id": "eisen",
+    "kategorie_id": "metall",
+    "zeitklasse_modus": "massen",
+    "preis_cent_pro_einheit_feld": 46
+   },
+   {
+    "id": "werkzeug",
+    "kategorie_id": "werkzeug",
+    "preis_cent_pro_einheit_feld": 72
+   }
+  ],
+  "industrien": [
+   {
+    "id": "forst",
+    "rolle_modus": "rohstoff",
+    "kaufpreis_stufe1_cent": 120000,
+    "ausgang_gut_id": "holz",
+    "produktion_l1_einheiten_pro_periode": 24
+   },
+   {
+    "id": "saegewerk",
+    "rolle_modus": "verarbeiter",
+    "kaufpreis_stufe1_cent": 220000,
+    "eingang_gut_ids": [
+     "holz"
+    ],
+    "ausgang_gut_id": "bretter",
+    "durchsatz_stufen": [
+     24,
+     40,
+     60
+    ]
+   },
+   {
+    "id": "kohlegrube",
+    "rolle_modus": "rohstoff",
+    "kaufpreis_stufe1_cent": 160000,
+    "ausgang_gut_id": "kohle",
+    "produktion_l1_einheiten_pro_periode": 40
+   },
+   {
+    "id": "erzgrube",
+    "rolle_modus": "rohstoff",
+    "kaufpreis_stufe1_cent": 180000,
+    "ausgang_gut_id": "erz",
+    "produktion_l1_einheiten_pro_periode": 40
+   },
+   {
+    "id": "eisenhuette",
+    "rolle_modus": "verarbeiter",
+    "kaufpreis_stufe1_cent": 380000,
+    "eingang_gut_ids": [
+     "erz",
+     "kohle"
+    ],
+    "ausgang_gut_id": "eisen",
+    "durchsatz_stufen": [
+     40,
+     60,
+     80
+    ]
+   },
+   {
+    "id": "hammerschmiede",
+    "rolle_modus": "verarbeiter",
+    "kaufpreis_stufe1_cent": 300000,
+    "eingang_gut_ids": [
+     "eisen"
+    ],
+    "ausgang_gut_id": "werkzeug",
+    "durchsatz_stufen": [
+     20,
+     40,
+     60
+    ]
+   }
+  ],
+  "durchsatz_stufen": {
+   "muehle": [
+    20,
+    40,
+    70
+   ]
+  },
+  "werk_max_stufe": 3,
+  "korb_je_stufe": {
+   "dorf": [
+    "nahrung",
+    "baustoff"
+   ],
+   "kleinstadt": [
+    "nahrung",
+    "baustoff",
+    "werkzeug",
+    "metall"
+   ]
+  },
+  "ketten": [
+   {
+    "id": "d2",
+    "name_text": "Holz, Saegemuehle, Bretter, Orte",
+    "kanten": [
+     {
+      "von_id": "forst",
+      "nach_id": "saegewerk",
+      "gut_id": "holz",
+      "strecke_felder": 26
+     },
+     {
+      "von_id": "saegewerk",
+      "nach_id": "proto_erlenbach",
+      "gut_id": "bretter",
+      "strecke_felder": 8
+     },
+     {
+      "von_id": "saegewerk",
+      "nach_id": "proto_lindenfurt",
+      "gut_id": "bretter",
+      "strecke_felder": 60
+     }
+    ]
+   },
+   {
+    "id": "d3",
+    "name_text": "Kohle und Erz, Eisenhuette, Eisen, Hammerschmiede, Werkzeug, Stadt",
+    "kanten": [
+     {
+      "von_id": "kohlegrube",
+      "nach_id": "eisenhuette",
+      "gut_id": "kohle",
+      "strecke_felder": 28
+     },
+     {
+      "von_id": "erzgrube",
+      "nach_id": "eisenhuette",
+      "gut_id": "erz",
+      "strecke_felder": 24
+     },
+     {
+      "von_id": "eisenhuette",
+      "nach_id": "hammerschmiede",
+      "gut_id": "eisen",
+      "strecke_felder": 22
+     },
+     {
+      "von_id": "eisenhuette",
+      "nach_id": "proto_lindenfurt",
+      "gut_id": "eisen",
+      "strecke_felder": 48
+     },
+     {
+      "von_id": "hammerschmiede",
+      "nach_id": "proto_lindenfurt",
+      "gut_id": "werkzeug",
+      "strecke_felder": 58
+     }
+    ]
+   }
+  ],
+  "lizenz_aufschlag_promille_je_feld": 25,
+  "lizenz_aufschlag_text": "Demo: 2,5 % je Feld ausserhalb des HQ-Radius (Slice 12 %), damit auch Lindenfurt/Hasenwinkel als Firmensitz spielbar sind."
+ },
+ "typnamen": {
+  "getreidefarm": "Getreidefarm",
+  "muehle": "Mühle",
+  "forst": "Forsthaus",
+  "saegewerk": "Sägemühle",
+  "kohlegrube": "Kohlegrube",
+  "erzgrube": "Erzgrube",
+  "eisenhuette": "Eisenhütte",
+  "hammerschmiede": "Hammerschmiede"
+ },
+ "gutnamen": {
+  "getreide": "Getreide",
+  "mehl": "Mehl",
+  "holz": "Holz",
+  "bretter": "Bretter",
+  "kohle": "Kohle",
+  "erz": "Erz",
+  "eisen": "Eisen",
+  "werkzeug": "Werkzeug"
+ },
+ "betriebe": [
+  {
+   "id": "forsthaus_rotwald",
+   "name": "Forsthaus Rotwald",
+   "typ": "forst",
+   "x": 1050.0,
+   "z": 1250.0,
+   "angeschlossen": false,
+   "modelle": [
+    {
+     "typ": "bauernhof",
+     "dx": 0,
+     "dz": 14,
+     "rot_deg": 180
+    },
+    {
+     "typ": "holzstapel",
+     "dx": -9,
+     "dz": 2,
+     "rot_deg": 0
+    },
+    {
+     "typ": "holzstapel",
+     "dx": -5,
+     "dz": 3,
+     "rot_deg": 20
+    },
+    {
+     "typ": "holzstapel",
+     "dx": 8,
+     "dz": 2,
+     "rot_deg": 90
+    },
+    {
+     "typ": "holzstapel",
+     "dx": 10,
+     "dz": 6,
+     "rot_deg": 80
+    }
+   ]
+  },
+  {
+   "id": "saegemuehle",
+   "name": "Sägemühle am Teich",
+   "typ": "saegewerk",
+   "x": 1549.0,
+   "z": 828.0,
+   "ladeplatz": {
+    "x": 1526.0,
+    "z": 812.0
+   },
+   "angeschlossen": true,
+   "modelle": [
+    {
+     "typ": "nebengebaeude",
+     "dx": 0,
+     "dz": 0,
+     "rot_deg": 60,
+     "variante": "stall_12x8",
+     "b": 12.0,
+     "t": 8.0
+    },
+    {
+     "typ": "holzstapel",
+     "dx": -9,
+     "dz": -7,
+     "rot_deg": 40
+    },
+    {
+     "typ": "holzstapel",
+     "dx": -6,
+     "dz": -10,
+     "rot_deg": 50
+    }
+   ]
+  },
+  {
+   "id": "grube_schwarzgrund",
+   "name": "Kohlegrube Schwarzgrund",
+   "typ": "kohlegrube",
+   "x": 350.0,
+   "z": 1250.0,
+   "angeschlossen": false,
+   "modelle": [
+    {
+     "typ": "nebengebaeude",
+     "dx": 0,
+     "dz": 14,
+     "rot_deg": 0,
+     "variante": "stall_12x8",
+     "b": 12.0,
+     "t": 8.0
+    },
+    {
+     "typ": "fass",
+     "dx": -7,
+     "dz": 3,
+     "rot_deg": 0
+    },
+    {
+     "typ": "fass",
+     "dx": -5,
+     "dz": 4,
+     "rot_deg": 0
+    },
+    {
+     "typ": "holzstapel",
+     "dx": 8,
+     "dz": 4,
+     "rot_deg": 0
+    }
+   ]
+  },
+  {
+   "id": "grube_silberkuppe",
+   "name": "Erzgrube Silberkuppe",
+   "typ": "erzgrube",
+   "x": 1450.0,
+   "z": 1330.0,
+   "angeschlossen": false,
+   "modelle": [
+    {
+     "typ": "nebengebaeude",
+     "dx": 0,
+     "dz": 14,
+     "rot_deg": 0,
+     "variante": "stall_12x8",
+     "b": 12.0,
+     "t": 8.0
+    },
+    {
+     "typ": "fass",
+     "dx": 7,
+     "dz": 3,
+     "rot_deg": 0
+    },
+    {
+     "typ": "holzstapel",
+     "dx": -8,
+     "dz": 4,
+     "rot_deg": 0
+    }
+   ]
+  },
+  {
+   "id": "rotachhuette",
+   "name": "Rotachhütte",
+   "typ": "eisenhuette",
+   "x": 1000.0,
+   "z": 1000.0,
+   "angeschlossen": false,
+   "modelle": [
+    {
+     "typ": "schmiede",
+     "dx": -8,
+     "dz": 14,
+     "rot_deg": 180
+    },
+    {
+     "typ": "speicher",
+     "dx": 14,
+     "dz": 18,
+     "rot_deg": 90,
+     "b": 20.0,
+     "t": 12.0
+    },
+    {
+     "typ": "fass",
+     "dx": -2,
+     "dz": 4,
+     "rot_deg": 0
+    }
+   ]
+  },
+  {
+   "id": "hammerschmiede_erlenbach",
+   "name": "Hammerschmiede",
+   "typ": "hammerschmiede",
+   "x": 1501.1,
+   "z": 725.25,
+   "ladeplatz": {
+    "x": 1500.0,
+    "z": 733.0
+   },
+   "angeschlossen": true,
+   "modelle": []
+  }
+ ],
+ "fahrzeuge": [
+  {
+   "id": "fuhrwerk_d",
+   "name": "Fuhrwerk",
+   "typ": "fuhrwerk",
+   "kategorie": "fuhrwerk",
+   "darstellung": "fuhrwerk",
+   "kauf_cent": 40000,
+   "fix_cent_pro_periode": 3500,
+   "variabel_cent_pro_feld": 70,
+   "kapazitaet_einheiten": 20,
+   "tempo_promille": 600,
+   "lebensdauer_jahre": 15,
+   "alterung_unterhalt_bp_pro_jahr": 500,
+   "verfuegbar_ab_jahr": 1820,
+   "generation": 1
+  },
+  {
+   "id": "planwagen_d",
+   "name": "Planwagen",
+   "typ": "fuhrwerk",
+   "kategorie": "fuhrwerk",
+   "darstellung": "fuhrwerk",
+   "kauf_cent": 52000,
+   "fix_cent_pro_periode": 3700,
+   "variabel_cent_pro_feld": 70,
+   "kapazitaet_einheiten": 27,
+   "tempo_promille": 600,
+   "lebensdauer_jahre": 18,
+   "alterung_unterhalt_bp_pro_jahr": 450,
+   "verfuegbar_ab_jahr": 1822,
+   "generation": 2
+  },
+  {
+   "id": "frachtwagen_d",
+   "name": "Frachtwagen",
+   "typ": "fuhrwerk",
+   "kategorie": "fuhrwerk",
+   "darstellung": "fuhrwerk",
+   "kauf_cent": 70000,
+   "fix_cent_pro_periode": 4900,
+   "variabel_cent_pro_feld": 75,
+   "kapazitaet_einheiten": 36,
+   "tempo_promille": 600,
+   "lebensdauer_jahre": 20,
+   "alterung_unterhalt_bp_pro_jahr": 400,
+   "verfuegbar_ab_jahr": 1826,
+   "generation": 3
+  },
+  {
+   "id": "pferdebahn_d",
+   "name": "Pferdebahn",
+   "typ": "zug",
+   "kategorie": "zug",
+   "darstellung": "pferdebahn",
+   "kauf_cent": 75000,
+   "fix_cent_pro_periode": 5500,
+   "variabel_cent_pro_feld": 50,
+   "kapazitaet_einheiten": 60,
+   "tempo_promille": 600,
+   "lebensdauer_jahre": 15,
+   "alterung_unterhalt_bp_pro_jahr": 500,
+   "verfuegbar_ab_jahr": 1824,
+   "generation": 1
+  },
+  {
+   "id": "dampfzug_d",
+   "name": "Dampfzug",
+   "typ": "zug",
+   "kategorie": "zug",
+   "darstellung": "dampflok",
+   "kauf_cent": 190000,
+   "fix_cent_pro_periode": 12000,
+   "variabel_cent_pro_feld": 90,
+   "kapazitaet_einheiten": 120,
+   "tempo_promille": 1000,
+   "lebensdauer_jahre": 25,
+   "alterung_unterhalt_bp_pro_jahr": 400,
+   "verfuegbar_ab_jahr": 1828,
+   "generation": 2
+  }
+ ],
+ "bau": {
+  "strasse": {
+   "name": "Straße",
+   "weg_typ": "feldweg",
+   "breite_m": 3.5,
+   "kosten_cent_pro_feld": 2500,
+   "unterhalt_cent_pro_feld_pro_periode": 0,
+   "max_steigung_pct": 14,
+   "ab_jahr": 1820,
+   "fang_knoten_m": 22,
+   "fang_betrieb_m": 45,
+   "bruecke_faktor_promille": 5000
+  },
+  "gleis": {
+   "name": "Gleis",
+   "weg_typ": "gleis",
+   "breite_m": 3.2,
+   "kosten_cent_pro_feld": 5000,
+   "unterhalt_cent_pro_feld_pro_periode": 30,
+   "max_steigung_pct": 5,
+   "ab_jahr": 1824,
+   "fang_knoten_m": 22,
+   "fang_betrieb_m": 70,
+   "bruecke_faktor_promille": 5000,
+   "max_knick_grad": 60
+  },
+  "min_laenge_m": 40,
+  "max_laenge_m": 3500,
+  "max_bruecke_m": 160
+ },
+ "hq": {
+  "umzug_cent": 50000,
+  "heimat_bonus_promille": {
+   "dorf": 100,
+   "kleinstadt": 150
+  },
+  "radius_felder": {
+   "dorf": 30,
+   "kleinstadt": 26
+  },
+  "stufen": [
+   {
+    "name": "Kontor",
+    "kosten_cent": 0,
+    "radius_bonus_felder": 0,
+    "vertraege_max": 2,
+    "anbauten_max": 1,
+    "kredit_bonus_cent": 0,
+    "unterhalt_cent_pro_periode": 0,
+    "skillpunkte": 0
+   },
+   {
+    "name": "Handelshaus",
+    "kosten_cent": 180000,
+    "radius_bonus_felder": 8,
+    "vertraege_max": 3,
+    "anbauten_max": 2,
+    "kredit_bonus_cent": 100000,
+    "unterhalt_cent_pro_periode": 2500,
+    "skillpunkte": 0
+   },
+   {
+    "name": "Direktion",
+    "kosten_cent": 450000,
+    "radius_bonus_felder": 16,
+    "vertraege_max": 4,
+    "anbauten_max": 3,
+    "kredit_bonus_cent": 250000,
+    "unterhalt_cent_pro_periode": 6000,
+    "skillpunkte": 1
+   }
+  ],
+  "anbauten": [
+   {
+    "id": "remise",
+    "name": "Wagenremise",
+    "kosten_cent": 90000,
+    "text": "Fahrzeuge kosten 10 % weniger.",
+    "wirkung": {
+     "fz_kauf_pm": 100
+    }
+   },
+   {
+    "id": "schreibstube",
+    "name": "Schreibstube",
+    "kosten_cent": 110000,
+    "text": "Vertragsprämien +20 %.",
+    "wirkung": {
+     "vertrag_praemie_pm": 200
+    }
+   },
+   {
+    "id": "stall",
+    "name": "Stallungen",
+    "kosten_cent": 100000,
+    "text": "Fahrzeug-Unterhalt −10 %.",
+    "wirkung": {
+     "fz_fix_pm": 100
+    }
+   }
+  ],
+  "heimat_text": "Lieferungen an den Heimatort bringen mehr Ertrag (Dorf +10 %, Kleinstadt +15 %). Weiler haben keinen Abnehmer, dafuer liegt Hasenwinkel mitten zwischen den schweren Betrieben."
+ },
+ "skilltree": {
+  "respec_frei": true,
+  "aeste": [
+   {
+    "id": "fuhrpark",
+    "name": "Fuhrpark",
+    "farbe": "#E0A848",
+    "text": "Fahrzeuge billiger, größer, später auf Schienen.",
+    "knoten": [
+     {
+      "id": "stellmacher",
+      "name": "Stellmacher",
+      "text": "Fahrzeuge kosten 10 % weniger.",
+      "wirkung": {
+       "fz_kauf_pm": 100
+      }
+     },
+     {
+      "id": "futtermeister",
+      "name": "Futtermeister",
+      "text": "Fahrzeug-Unterhalt −15 %.",
+      "wirkung": {
+       "fz_fix_pm": 150
+      }
+     },
+     {
+      "id": "ladeflaeche",
+      "name": "Große Ladefläche",
+      "text": "Straßenfahrzeuge laden 20 % mehr.",
+      "wirkung": {
+       "kap_strasse_pm": 200
+      }
+     },
+     {
+      "id": "eisenbahner",
+      "name": "Eisenbahner",
+      "text": "Züge laden 25 % mehr, Gleisbau −20 %.",
+      "wirkung": {
+       "kap_zug_pm": 250,
+       "bau_gleis_pm": 200
+      }
+     }
+    ]
+   },
+   {
+    "id": "handel",
+    "name": "Handel",
+    "farbe": "#6BC48A",
+    "text": "Mehr Ertrag je Lieferung, bessere Verträge.",
+    "knoten": [
+     {
+      "id": "marktstand",
+      "name": "Marktstand",
+      "text": "Nahrung bringt in Orten 12 % mehr.",
+      "wirkung": {
+       "ertrag_nahrung_pm": 120
+      }
+     },
+     {
+      "id": "verhandler",
+      "name": "Verhandler",
+      "text": "Vertragsprämien +25 %.",
+      "wirkung": {
+       "vertrag_praemie_pm": 250
+      }
+     },
+     {
+      "id": "kornspeicher",
+      "name": "Kornspeicher",
+      "text": "Orte nehmen 15 % mehr ab, bevor der Preis fällt.",
+      "wirkung": {
+       "nachfrage_pm": 150
+      }
+     },
+     {
+      "id": "handelshaus",
+      "name": "Handelsprivileg",
+      "text": "Alle Lieferungen bringen 10 % mehr.",
+      "wirkung": {
+       "ertrag_pm": 100
+      }
+     }
+    ]
+   },
+   {
+    "id": "werke",
+    "name": "Werke & Wege",
+    "farbe": "#7FA8D8",
+    "text": "Billiger bauen, mehr verarbeiten, mehr Kredit.",
+    "knoten": [
+     {
+      "id": "wegerecht",
+      "name": "Wegerecht",
+      "text": "Straßenbau −25 %, Lizenzen −20 %.",
+      "wirkung": {
+       "bau_strasse_pm": 250,
+       "lizenz_pm": 200
+      }
+     },
+     {
+      "id": "mahlrecht",
+      "name": "Mahlrecht",
+      "text": "Alle Werke verarbeiten 25 % mehr.",
+      "wirkung": {
+       "durchsatz_pm": 250
+      }
+     },
+     {
+      "id": "werksleiter",
+      "name": "Werksleiter",
+      "text": "Werksunterhalt −30 %.",
+      "wirkung": {
+       "werk_unterhalt_pm": 300
+      }
+     },
+     {
+      "id": "bankhaus",
+      "name": "Bankhaus",
+      "text": "Kreditrahmen +1.500 $, Zins −1 Punkt.",
+      "wirkung": {
+       "kredit_limit_cent": 150000,
+       "zins_pm": 10
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "meilensteine": [
+  {
+   "id": "hq",
+   "name": "Firmensitz gegründet",
+   "tipp": "Platziere deinen Firmensitz in einem Ort (Taste H).",
+   "skillpunkte": 1
+  },
+  {
+   "id": "mehl",
+   "name": "Erstes Mehl geliefert",
+   "tipp": "Lizenz Gut Kuppenhof, dann Linie Farm → Erlenmühle → Erlenbach.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "vertrag1",
+   "name": "Erster Vertrag erfüllt",
+   "tipp": "Nimm ein Vertragsangebot an (Taste V) und liefere bis zur Frist.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "strasse",
+   "name": "Erste eigene Straße",
+   "tipp": "Baue eine Straße zum Forsthaus Rotwald (Taste B).",
+   "skillpunkte": 1
+  },
+  {
+   "id": "bretter",
+   "name": "Bretter geliefert",
+   "tipp": "Holz zur Sägemühle, Bretter nach Erlenbach oder Lindenfurt.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "vertrag3",
+   "name": "Drei Verträge erfüllt",
+   "tipp": "Erfülle insgesamt drei Verträge.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "zug",
+   "name": "Erster Zug fährt",
+   "tipp": "Ab 1824: Gleis zwischen zwei Betrieben bauen (Taste G), Zug kaufen.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "firma",
+   "name": "Erstes Werk gekauft",
+   "tipp": "Kaufe einen Betrieb aus der Kasse (Panel des Betriebs).",
+   "skillpunkte": 1
+  },
+  {
+   "id": "werkzeug",
+   "name": "Werkzeug geliefert",
+   "tipp": "Kohle + Erz → Rotachhütte, Eisen → Hammerschmiede, Werkzeug → Lindenfurt.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "hq2",
+   "name": "Handelshaus",
+   "tipp": "Baue den Firmensitz auf Stufe 2 aus.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "umsatz",
+   "name": "1.500 $ Ertrag in einer Minute",
+   "tipp": "Erreiche 1.500 $ Ertrag in einer Spielminute.",
+   "skillpunkte": 1
+  },
+  {
+   "id": "dampf",
+   "name": "Dampf auf der Strecke",
+   "tipp": "Ab 1828: ersetze eine Pferdebahn durch den Dampfzug.",
+   "skillpunkte": 1
+  }
+ ],
+ "umsatz_ziel_cent": 150000,
+ "vertraege": {
+  "erstes_angebot_tick": 900,
+  "intervall_ticks": 1200,
+  "angebot_gilt_ticks": 2400,
+  "angebote_max": 3,
+  "ruf_min": -3,
+  "ruf_max": 5,
+  "ruf_praemie_promille_je_punkt": 60,
+  "strafe_anteil_promille": 350,
+  "bonus_jeder_n": 3,
+  "bonus_promille": 200,
+  "gut_ab_tick": {
+   "getreide": 0,
+   "mehl": 0,
+   "holz": 2400,
+   "bretter": 3000,
+   "kohle": 7200,
+   "erz": 7800,
+   "eisen": 8400,
+   "werkzeug": 9600
+  },
+  "dauer_ticks": [
+   2400,
+   3000,
+   3600,
+   4800
+  ],
+  "anteil_promille": [
+   450,
+   550,
+   650,
+   750
+  ],
+  "praemie_promille": [
+   800,
+   1000,
+   1200
+  ],
+  "praemie_cent_je_einheit": {
+   "getreide": 200,
+   "mehl": 600,
+   "holz": 200,
+   "bretter": 400,
+   "kohle": 150,
+   "erz": 150,
+   "eisen": 300,
+   "werkzeug": 600
+  },
+  "erster_vertrag": {
+   "ort": "Erlenbach",
+   "gut": "mehl",
+   "menge": 30,
+   "frist_ticks": 3000,
+   "praemie_cent": 25000
+  }
+ },
+ "firmenkauf_ab_jahr": 1823
+}

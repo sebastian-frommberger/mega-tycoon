@@ -170,6 +170,10 @@ var oe_set := ""                         # OE-02/03: aktives Kalibrier-Set (econ
 var oe_set_daten: Dictionary = {}
 var upgrade_cost_l2_override := -1       # OE-02/03: Ausbaukosten Werksstufe 2 aus dem Set, -1 = economy_slice.json
 var demand_factor := PROMILLE            # OE-02/03: Nachfrage-Faktor (Promille) aus dem Set, 1000 = unverändert
+# Demo-Sprint (nur Welt mit --demo, apply_demo): leer = aus, der Slice setzt nichts davon (bitgleich)
+var demo_cat_bonus: Dictionary = {}      # kategorie_id -> Promille Ertragsbonus (Skilltree)
+var demo_site_bonus: Dictionary = {}     # Ziel-Standort -> Promille Ertragsbonus (Heimatort des Firmensitzes)
+var demo_rate: Dictionary = {}           # industrie_id -> [Durchsatz Werksstufe 1, 2, 3] (Verarbeiter), sonst fabrik.*
 
 var _simref: WeakRef = null           # schwache Referenz: sim.economy hält das Modul, kein Ref-Zyklus
 
@@ -767,6 +771,69 @@ func _apply_oe_set(proto: Dictionary) -> void:
 		demand_factor = int(st["nachfrage_faktor_promille"])
 
 
+## Demo-Sprint: Welt-Overlay data/demo_welt.json Abschnitt "oekonomie" (nur DemoSim ruft das, nach load_from/apply_proto und
+## vor dem ersten add_*_site). Neue Güter, Betriebe, Ketten, Warenkörbe je Ortsstufe, Preise, Werksstufen. Der Slice ruft das nie.
+func apply_demo(d: Dictionary) -> void:
+	for g in d.get("gueter", []):
+		var kl: String = "fresh" if String(g.get("zeitklasse_modus", "massen")) == "frisch" else "bulk"
+		if not g_index.has(g["id"]):
+			g_index[g["id"]] = g_ids.size()
+			g_ids.append(g["id"])
+			g_price.append(int(g.get("preis_cent_pro_einheit_feld", 0)))
+			g_cat.append(String(g["kategorie_id"]))
+			g_grace.append(int(_need(slice, "zeitfaktor.%s_grace_ticks" % kl)))
+			g_decay.append(int(_need(slice, "zeitfaktor.%s_decay_ticks" % kl)))
+		else:
+			var gi: int = g_index[g["id"]]
+			if g.has("preis_cent_pro_einheit_feld"):
+				g_price[gi] = int(g["preis_cent_pro_einheit_feld"])
+			if g.has("kategorie_id"):
+				g_cat[gi] = String(g["kategorie_id"])
+	for ind in d.get("industrien", []):
+		if i_index.has(ind["id"]):
+			_err("Demo-Industrie doppelt: %s" % ind["id"])
+			continue
+		for gid in ind.get("eingang_gut_ids", []):
+			if not g_index.has(gid):
+				_err("Demo-Industrie %s: Gut %s unbekannt" % [ind["id"], gid])
+		if ind.has("ausgang_gut_id") and not g_index.has(ind["ausgang_gut_id"]):
+			_err("Demo-Industrie %s: Gut %s unbekannt" % [ind["id"], ind["ausgang_gut_id"]])
+		var kopie: Dictionary = {}
+		for k in ind:
+			kopie[k] = int(ind[k]) if ind[k] is float else ind[k]
+		i_index[ind["id"]] = i_ids.size()
+		i_ids.append(ind["id"])
+		i_def.append(kopie)
+		if ind.has("durchsatz_stufen"):
+			demo_rate[ind["id"]] = ind["durchsatz_stufen"].map(func(x): return int(x))
+	for id in d.get("durchsatz_stufen", {}):
+		demo_rate[id] = d["durchsatz_stufen"][id].map(func(x): return int(x))
+	for st in d.get("korb_je_stufe", {}):
+		basket[st] = d["korb_je_stufe"][st]
+	for ch in d.get("ketten", []):
+		chains.append(ch)
+	if d.has("werk_max_stufe"):
+		werk_max_stufe = int(d["werk_max_stufe"])
+	if d.has("lizenz_aufschlag_promille_je_feld"):
+		lic_surcharge = int(d["lizenz_aufschlag_promille_je_feld"])
+	ok = errors.is_empty()
+
+
+## Demo: Durchsatz eines Verarbeiters in seiner Werksstufe ohne Boni (demo_rate, sonst fabrik.factory_throughput_l<n>).
+func demo_rate_basis(site: int) -> int:
+	var st: int = s_werksstufe[site]
+	var tab: Array = demo_rate.get(i_ids[s_def[site]], [])
+	if st - 1 < tab.size():
+		return int(tab[st - 1])
+	return int(slice.get("fabrik", {}).get("factory_throughput_l%d_einheiten_pro_periode" % st, s_rate[site]))
+
+
+func _demo_extra(site: int, g: int) -> int:
+	if demo_cat_bonus.is_empty() and demo_site_bonus.is_empty():
+		return 0
+	return int(demo_cat_bonus.get(g_cat[g], 0)) + int(demo_site_bonus.get(site, 0))
+
+
 ## Werksmarge: Lose, deren Ursprung ein eigenes Werk ist (lot[1]).
 func _margin_of(lot: Array) -> int:
 	var o: int = lot[1]
@@ -851,8 +918,9 @@ func upgrade_quote(site: int) -> Dictionary:
 		return {"ok": false, "fehler": "hoechste_stufe"}
 	var f: Dictionary = slice.get("fabrik", {})
 	var kosten: int = upgrade_cost_l2_override if neu == 2 and upgrade_cost_l2_override >= 0 else int(f.get("factory_upgrade_cost_l%d_cent" % neu, 0))
+	var tab: Array = demo_rate.get(i_ids[s_def[site]], [])       # Demo: eigene Werksstufen je Betrieb, sonst fabrik.*
 	return {"ok": true, "stufe_neu": neu, "kosten_cent": kosten,
-		"durchsatz_neu": int(f.get("factory_throughput_l%d_einheiten_pro_periode" % neu, 0)),
+		"durchsatz_neu": int(tab[neu - 1]) if neu - 1 < tab.size() else int(f.get("factory_throughput_l%d_einheiten_pro_periode" % neu, 0)),
 		"unterhalt_neu_cent_pro_periode": upkeep_per_level * neu}
 
 
@@ -1058,7 +1126,7 @@ func on_unload(sim, i: int, k: int) -> int:
 						_activate_if_ready(site)
 						var d := luftlinie_felder(lot[1], site)
 						var fz := f_zeit_promille(g, t - lot[2])
-						_book(site, lot, acc, d, fz, acc * PROMILLE, yield_cent(g, d, fz, acc * PROMILLE, _margin_of(lot)))
+						_book(site, lot, acc, d, fz, acc * PROMILLE, yield_cent(g, d, fz, acc * PROMILLE, _margin_of(lot) + _demo_extra(site, g)))
 			K_STADT:
 				if city_accepts(site, g):
 					acc = q
@@ -1075,7 +1143,7 @@ func on_unload(sim, i: int, k: int) -> int:
 					sat[cat] = before + acc
 					var d := luftlinie_felder(lot[1], site)
 					var fz := f_zeit_promille(g, t - lot[2])
-					_book(site, lot, acc, d, fz, fs_sum, yield_cent(g, d, fz, fs_sum, _margin_of(lot)))
+					_book(site, lot, acc, d, fz, fs_sum, yield_cent(g, d, fz, fs_sum, _margin_of(lot) + _demo_extra(site, g)))
 		given += acc
 		if acc < q:
 			keep.append([g, lot[1], lot[2], q - acc])

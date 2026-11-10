@@ -103,7 +103,7 @@ const TYPEN := ["kate", "bauernhof", "grosshof", "handwerkerhaus", "buergerhaus"
 	"personenwagen", "gueterwagen", "flaeche_hof", "flaeche_garten", "flaeche_obstwiese", "flaeche_kirchhof",
 	"flaeche_marktplatz", "flaeche_schlag"]
 const FAHRZEUGE := {"fuhrwerk": "fuhrwerk_2_pferde", "fuhrwerk_2_pferde": "fuhrwerk_2_pferde", "postkutsche": "postkutsche_4_pferde",
-	"postkutsche_4_pferde": "postkutsche_4_pferde", "dampflok": "dampflok_zug", "personenwagen": "personenwagen",
+	"postkutsche_4_pferde": "postkutsche_4_pferde", "dampflok": "dampflok_zug", "pferdebahn": "fuhrwerk_2_pferde", "personenwagen": "personenwagen",
 	"gueterwagen": "gueterwagen", "ruderboot": "ruderboot", "floss": "floss"}
 
 static var _cache := {}

@@ -67,6 +67,7 @@ var profile := {
 	"gasse": {"fahrbahn": 5.0, "trasse": 5.0, "radius": 10.0, "graben": false},      # Radius Annahme Felix
 	"feldweg": {"fahrbahn": 3.5, "trasse": 3.5, "radius": 25.0, "graben": false},    # Radius Annahme Felix (W2: 25 m, E3)
 	"bruecke": {"fahrbahn": 6.0, "trasse": 6.0, "radius": 25.0, "graben": false},
+	"gleis": {"fahrbahn": 3.2, "trasse": 3.2, "radius": 60.0, "graben": false},          # Demo-Sprint: Bettung, Schienen legt ui_demo darauf
 }
 var abweichung_max_m := 11.0          # regelwerk strasse_gleis_bild.ortsstrasse_abweichung.m_max (PO W2: 11 m)
 var bogen_m := 15.0
@@ -227,6 +228,8 @@ static func _nass(fluss: Dictionary, x: float, z: float) -> bool:
 ## Alles bauen. wege = proto_wege.json, hoehe_fn(x_m, z_m) -> m, fluss = fluss_laden(...).
 func bauen(parent: Node3D, wege: Array, hoehe_fn: Callable, fluss: Dictionary) -> void:
 	hoehe_funktion = hoehe_fn
+	_parent = parent
+	_fluss = fluss
 	_mat = ShaderMaterial.new()
 	_mat.shader = SHADER
 	_mat_stein = StandardMaterial3D.new()
@@ -267,6 +270,59 @@ func bauen(parent: Node3D, wege: Array, hoehe_fn: Callable, fluss: Dictionary) -
 		var geo := _glaetten(roh[i], fest[i], float(pr["radius"]), fl)
 		_bauen_weg(parent, i, typ, geo, roh[i], fl, hoehe_fn, fluss, bool(pr.get("graben", false)))
 	_knoten_bauen(parent, kand, hoehe_fn)
+	_basis = [fahrlinien.size(), meshes.size(), bruecken.size(), parent.get_child_count()]
+
+
+## Demo-Sprint: einen Weg nach dem Laden anhängen (Spieler baut Straße oder Gleis). w = {typ, punkte [[x, z], …], breite_m}.
+## Kein Eingriff in bestehende Wege; die Enden liegen schon auf den Netzknoten (DemoSim rastet sie ein). Gibt den Weg-Index
+## zurück (fahrlinien[i]), das Band-Mesh ist meshes[mesh_ab …]. Brücken über Wasser entstehen wie beim Laden.
+var _parent: Node3D = null
+var _fluss: Dictionary = {}
+
+func weg_hinzufuegen(w: Dictionary) -> int:
+	var p := PackedVector2Array()
+	for q in w.get("punkte", []):
+		var v := Vector2(float(q[0]), float(q[1]))
+		if p.is_empty() or p[-1].distance_to(v) > 0.01:
+			p.append(v)
+	var i := fahrlinien.size()
+	var typ: String = w.get("typ", "feldweg")
+	var pr: Dictionary = profile.get(typ, profile["feldweg"])
+	var fl := Fahrlinie.new()
+	fl.weg_index = i
+	fl.typ = typ
+	fl.trasse_m = float(w.get("breite_m", pr["trasse"]))
+	fl.fahrbahn_m = fl.trasse_m
+	fahrlinien.append(fl)
+	if p.size() < 2 or _parent == null:
+		warnungen.append("Weg %d: weniger als 2 Punkte" % i)
+		return i
+	var fest := PackedByteArray()
+	fest.resize(p.size())
+	fest[0] = 1
+	fest[p.size() - 1] = 1
+	var geo := _glaetten(p, fest, float(pr["radius"]), fl)
+	_bauen_weg(_parent, i, typ, geo, p, fl, hoehe_funktion, _fluss, false)
+	return i
+
+
+## Demo-Sprint: alle nachträglich gebauten Wege entfernen (neues Spiel auf derselben Szene, Bot-Läufe).
+var _basis: Array = []
+
+func zuruecksetzen() -> void:
+	if _basis.is_empty() or _parent == null:
+		return
+	fahrlinien.resize(_basis[0])
+	meshes.resize(_basis[1])
+	bruecken.resize(_basis[2])
+	while _parent.get_child_count() > int(_basis[3]):
+		var c := _parent.get_child(_parent.get_child_count() - 1)
+		_parent.remove_child(c)
+		c.free()
+
+
+func nass(x: float, z: float) -> bool:
+	return _nass(_fluss, x, z)
 
 
 # ------------------------------------------------------------------ Knoten

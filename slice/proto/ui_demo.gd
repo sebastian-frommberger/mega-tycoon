@@ -996,7 +996,8 @@ const HILFE := [
 	["3", "Verträge", "Taste V: Orte und Betriebe bieten Menge, Frist und Prämie. Annehmen lohnt, wenn deine Linie die Menge schafft."],
 	["4", "Bauen", "Taste B Straße, ab 1824 Taste G Gleis: Start klicken, Zwischenpunkte, Ziel klicken. Forsthaus, Gruben und Hütte brauchen einen Anschluss."],
 	["5", "Skills", "Taste K: Jeder Meilenstein bringt einen Punkt. Drei Äste, du kannst nicht alles haben (Zurücksetzen ist frei)."],
-	["6", "Wachsen", "Neue Modelle (1822, 1824, 1826, 1828): Fahrzeug anklicken → Ersetzen. Betriebe kaufen ab 1823, Firmensitz ausbauen."],
+	["6", "Linien & Fuhrpark", "Taste L: Linien mit mehreren Halten und Stadtverkehr (Stadtkutsche, später Omnibus, Pferdestraßenbahn, Personenzug). Taste U: Fahrzeugliste, Depots, Strecken kaufen und verkaufen."],
+	["7", "Wachsen", "Neue Modelle (1822, 1824, 1826, 1828): Fahrzeug anklicken → Ersetzen. Betriebe kaufen ab 1823, Firmensitz ausbauen."],
 ]
 
 

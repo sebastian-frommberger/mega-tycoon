@@ -60,7 +60,7 @@ Rohdaten: `demo_messung/demo_bot_plan_n40.csv`, `demo_bot_faul_n20.csv`.
 | C | Straße und Gleis bauen, anschließen, befahren; klare Fehler | **erfüllt** (C1–C18) |
 | D | Verträge, HQ, Skilltree: Tests, Bot nutzt alle drei, Prüfsumme | **erfüllt** (D1–D28, P1) |
 | E | ≥ 2 Generationswechsel, Ersetzen-Angebot, Kosten/Kapazität/Verschleiß sichtbar | **erfüllt** (E1–E7, U24–U25) |
-| F | regress_fast < 300 s grün, d07 voll grün, d08 md5 | **__F__** |
+| F | regress_fast < 300 s grün, d07 voll grün, d08 md5 | **erfüllt** (Endstand): regress_fast GRÜN 196 s, d07 GRÜN 802 s (43 Zeilen), d08 `--n=20` md5 5cce648a53c1c2f3246147abcaca0988 unverändert |
 | G | Screenshots der Schlüsselmomente | **erfüllt** (19 Bilder; 14 Linienplaner, 15 Stadtverkehr, 16 Fahrzeugliste, 17 Depot, 18 Strecken, 19 Personenzug) |
 | H | Startskripte, Startbild, Anleitung | **erfüllt, Windows-Start ungetestet** |
 | + | Bot: Mehrpunkt-Linie anlegen und befahren, im Depot kaufen und verkaufen, Personenzug und Güterzug, Stadtverkehr | **erfüllt**, 40/40 Läufe |

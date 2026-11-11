@@ -1606,6 +1606,7 @@ func _plan_tick() -> void:
 			plan3_geliefert = true
 		f["hops"] = int(f.get("hops", 0)) + 1
 		f["halt"] = cur
+		f.erase("ausfahrt")                              # am ersten Halt angekommen: Der Umlauf beginnt
 		_route_setzen(f, route, f["profil"])
 		sim.v_src_k[i] = int(stationen[a]["k"])
 		sim.v_dst_k[i] = int(stationen[b]["k"])

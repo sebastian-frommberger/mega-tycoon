@@ -387,8 +387,8 @@ func _takt(t: int) -> void:
 				_verstaerken(SAEGE, STADT, 4)
 	if _min() >= float(z["farm2_min"]):
 		_linie(FARM2, MUEHLE, 2)
+	_personenzug()                                           # vor den Firmenkäufen: Gleis, Lokschuppen und Zug brauchen die Kasse zuerst
 	_firmen()
-	_personenzug()
 	# Kette 3: Gleis (ab 1824), Kohle + Erz → Eisen → Werkzeug
 	if ps.gleis_frei() and _min() >= float(z["gleis_min"]):
 		if _bauen("gleis", GLEIS_KOHLE, "gleis_kohle") and _lokschuppen(KOHLE) and _linie(KOHLE, HUETTE, 1, true):
@@ -474,7 +474,7 @@ func _personenzug() -> void:
 		return
 	if not z.has("l_pzug"):
 		var d: Dictionary = ps.vdef(ps.def_fuer("pzug"))
-		if ps._preis(d) + reserve <= _cash():
+		if ps._preis(d) + reserve / 4 <= _cash():                # Gleis und Lokschuppen stehen schon: Der Zug wartet nicht auf die volle Reserve
 			var r: Dictionary = ps.linienplan_anlegen([DORF, HALT_HW], ps.def_fuer("pzug"), [], "Bahn Erlenbach – Hasenwinkel")
 			if _a("personenzug", r):
 				z["l_pzug"] = int(r["linie"])

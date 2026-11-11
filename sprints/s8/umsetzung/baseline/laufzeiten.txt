@@ -45,5 +45,5 @@ s8_bot_smoke 50
 s8_exploit_smoke 8
 demo_sim_test 12
 demo_ui_test 12
-demo_bot_smoke 20
-demo_bot 40
+demo_bot_smoke 36
+demo_bot 67

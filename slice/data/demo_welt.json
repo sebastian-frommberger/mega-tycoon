@@ -848,7 +848,7 @@
   {
    "id": "mehl",
    "name": "Erstes Mehl geliefert",
-   "tipp": "Lizenz Gut Kuppenhof, dann Linie Farm → Erlenmühle → Erlenbach.",
+   "tipp": "Linien Gut Kuppenhof → Erlenmühle und Erlenmühle → Erlenbach anlegen (Taste L), Fuhrwerke im Fuhrhof kaufen und zuweisen.",
    "skillpunkte": 1
   },
   {
@@ -878,7 +878,7 @@
   {
    "id": "zug",
    "name": "Erster Zug fährt",
-   "tipp": "Ab 1824: Gleis zwischen zwei Betrieben bauen (Taste G), Zug kaufen.",
+   "tipp": "Ab 1824: Gleis zwischen zwei Betrieben bauen (Taste G), Lokschuppen ans Gleis, Zug dort kaufen und zuweisen.",
    "skillpunkte": 1
   },
   {
@@ -908,13 +908,13 @@
   {
    "id": "dampf",
    "name": "Dampf auf der Strecke",
-   "tipp": "Ab 1828: ersetze eine Pferdebahn durch den Dampfzug.",
+   "tipp": "Ab 1828: Pferdebahn in der Fahrzeugliste (Taste U) auswählen und durch den Dampfzug ersetzen.",
    "skillpunkte": 1
   },
   {
    "id": "fahrgast",
    "name": "Erste Fahrgäste befördert",
-   "tipp": "Taste L: Linie mit Haltestellen in einem Ort anlegen, Stadtkutsche kaufen.",
+   "tipp": "Taste L: Personenlinie mit Haltestellen in einem Ort anlegen, Stadtkutsche im Depot kaufen und zuweisen.",
    "skillpunkte": 1
   },
   {
@@ -1130,12 +1130,12 @@
  "depot": {
   "name_strasse": "Betriebshof",
   "name_gleis": "Lokschuppen",
-  "kosten_cent": 60000,
-  "unterhalt_cent_pro_periode": 800,
+  "kosten_cent": 25000,
+  "unterhalt_cent_pro_periode": 500,
   "fang_m": 35,
-  "rabatt_promille": 80,
+  "abgestellt_unterhalt_promille": 250,
   "ueberholung_promille": 200,
-  "text": "Depot: Fahrzeuge für Linien, die das Depot über das Netz erreicht, kosten 8 % weniger und können überholt werden (20 % des Neupreises: Alterszuschlag auf den Unterhalt zurück auf 0)."
+  "text": "Depot (Betriebshof an der Straße, Lokschuppen am Gleis): Hier kaufst du Fahrzeuge. Sie stehen im Depot (ein Viertel Unterhalt, kein Ertrag), bis du sie einer Linie zuweist. Überholung: 20 % des Neupreises, Alterszuschlag auf den Unterhalt zurück auf 0. Der Firmensitz bringt einen Fuhrhof als erstes Depot mit."
  },
  "maut": {
   "id": "chaussee",

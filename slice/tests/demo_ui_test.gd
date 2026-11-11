@@ -591,9 +591,9 @@ func _run() -> void:
 	ud.depot_zeigen(mp)
 	kasse = ps.eco.cash_cent
 	var dr: Dictionary = ud.depot_setzen(mp)
-	pruef(d_tab and d_modus and d_fehl.contains("kein Weg") and dr.get("ok", false) and kasse - ps.eco.cash_cent == 60000 and ud.raum.has_node("Depot_2") and not ud.depot_modus and not ud.banner.visible
+	pruef(d_tab and d_modus and d_fehl.contains("kein Weg") and dr.get("ok", false) and kasse - ps.eco.cash_cent == int(ps.daten["depot"]["kosten_cent"]) and int(ps.daten["depot"]["kosten_cent"]) == 25000 and ud.raum.has_node("Depot_2") and not ud.depot_modus and not ud.banner.visible
 		and vk.depot_offen == 1,
-		"V6 Reiter Depots → bauen: Banner „%s“; ohne Weg „%s“; an der Straße gebaut (−600 $), Haus in der Welt, Depotfenster öffnet sich" % [banner["depot"], d_fehl])
+		"V6 Reiter Depots → bauen: Banner „%s“; ohne Weg „%s“; an der Straße gebaut (−250 $), Haus in der Welt, Depotfenster öffnet sich" % [banner["depot"], d_fehl])
 	_druecke(KEY_ESCAPE)
 	await _frames(2)
 	var dpos: Vector2 = ps.depots[1]["pos"]

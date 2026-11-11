@@ -414,7 +414,21 @@ func _puls(b: Button, an: bool) -> void:
 	b.modulate = Color(1.0, 1.0, 1.0) if not an else Color(1.0, 0.92 + 0.08 * sin(_ring_t * 5.0), 0.7 + 0.2 * sin(_ring_t * 5.0))
 
 
+## „Nächster Schritt“ in der Kopfleiste: zuerst, was im neuen Ablauf gerade offen ist (Linie → Depot → Zuweisen → Lizenz), dann der Meilenstein.
 func naechster_text() -> String:
+	if ps.hq_platziert and vk != null:
+		if ps.linien.is_empty():
+			return "Lege deine erste Linie an: Taste L → Neue Linie → Gut Kuppenhof und Erlenmühle anklicken → Enter."
+		if not ps.abgestellt.is_empty():
+			return "%d Fahrzeug%s im Depot und verdien%s nichts: auswählen und einer Linie zuweisen (Depot anklicken oder Taste U)." % [ps.abgestellt.size(),
+				" steht" if ps.abgestellt.size() == 1 else "e stehen", "t" if ps.abgestellt.size() == 1 else "en"]
+		for l in ps.linien:
+			if ps.linie_fahrzeuge(int(l["id"])).is_empty():
+				return "%s hat noch kein Fahrzeug: im Depot kaufen und zuweisen (Taste L → Linie wählen → Zum Depot)." % l["name"]
+		for l in ps.linien:
+			var lf: Array = vk.lizenz_fehlt(l)
+			if not lf.is_empty():
+				return "Für %s fehlt die Lizenz: Ohne sie lädt dort kein Fahrzeug (Taste L → %s → Lizenz kaufen)." % [lf[0], l["name"]]
 	var m: Dictionary = ps.naechster_meilenstein()
 	if m.is_empty():
 		return "Alle Meilensteine erreicht. Baue dein Netz weiter aus."

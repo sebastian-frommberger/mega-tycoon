@@ -891,6 +891,15 @@ func _zuweis_leiste(liste: String, c: Container) -> void:
 	fl.add_theme_constant_override("v_separation", 4)
 	fl.add_child(ud._lbl("Zuweisen an:", 15, ud.C_MATT))
 	var linien := _passende_linien(keys)
+	var schon := {}                                           # Linien, auf denen die Auswahl gerade fährt
+	for k in keys:
+		schon[int(ps.fz(String(k)).get("plan", 0)) if String(k).begins_with("v") else 0] = true
+	if schon.size() == 1 and not schon.has(0):
+		linien = linien.filter(func(l): return not schon.has(int(l["id"])))
+		if linien.is_empty():
+			fl.add_child(ud._lbl("Die Auswahl fährt schon auf der einzigen Linie dieser Art.", 15, ud.C_MATT))
+			c.add_child(fl)
+			return
 	for l in linien:
 		var id := int(l["id"])
 		var b: Button = ud._knopf(String(l["name"]), "%s_zu_%d" % [liste, id], zuweisen.bind(keys, id), _farbe(l))

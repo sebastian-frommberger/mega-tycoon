@@ -261,8 +261,8 @@ func _c_gleis() -> void:
 			kohle += int(li["menge"])
 	pruef(ohne_lok.get("fehler", "") == "kein_depot" and z.get("ok", false) and ps.ist_zug(f) and String(f["kat"]) == "pferdebahn" and kohle >= 60 and ps.fehler.is_empty(),
 		"C15 Pferdebahn (ohne Lokschuppen: kein_depot) fährt: %d Kohle an der Hütte nach 5 min, Ladung %d E, 0 Sim-Fehler" % [kohle, ps.sim.v_cargo_cap[ps.sim.slot_of(f["vid"])]])
-	pruef(fix_mit == fix_zug + int(q["unterhalt_cent"]) + 800 and int(q["unterhalt_cent"]) == int(q["felder"]) * 30,
-		"C16 Gleisunterhalt läuft über konto: Fix %d ¢/min = Zug %d + Gleis %d + Lokschuppen 800" % [fix_mit, fix_zug, int(q["unterhalt_cent"])])
+	pruef(fix_mit == fix_zug + int(q["unterhalt_cent"]) + 500 and int(q["unterhalt_cent"]) == int(q["felder"]) * 30,
+		"C16 Gleisunterhalt läuft über konto: Fix %d ¢/min = Zug %d + Gleis %d + Lokschuppen 500" % [fix_mit, fix_zug, int(q["unterhalt_cent"])])
 	# Gleis an Gleis verlängern und Brücke
 	var ge := _vorschlag(ps, "gleis", ERZ + ">" + HUETTE)
 	var r2: Dictionary = ps.bauen("gleis", ge)
@@ -669,8 +669,8 @@ func _m_depot() -> void:
 	var idp: Dictionary = ps.ins_depot(z["keys"], 1)
 	ps._fix_neu()
 	pruef(d2["ok"] and idp["ok"] and int(idp["n"]) == 2 and ps.depot_bestand(1).size() == 2 and ps.linie_fahrzeuge(int(l1["linie"])).is_empty() and ps.alle_fahrzeuge().size() == 3
-		and ps.konto.running_cost_per_period == 800 + 3 * 918 and fix_vor == 800 + 2 * 3675 + 918 and f1["verkauft"] and f1.get("versteckt", false),
-		"M14a Betriebshof gebaut (8 $/min); „ins Depot“ nimmt 2 Fahrzeuge von der Linie: Unterhalt %d → %d ¢/min, Name und Nummer bleiben (%s)" % [fix_vor, ps.konto.running_cost_per_period, ps.depot_bestand(1)[0]["name"]])
+		and ps.konto.running_cost_per_period == 500 + 3 * 918 and fix_vor == 500 + 2 * 3675 + 918 and f1["verkauft"] and f1.get("versteckt", false),
+		"M14a Betriebshof gebaut (5 $/min); „ins Depot“ nimmt 2 Fahrzeuge von der Linie: Unterhalt %d → %d ¢/min, Name und Nummer bleiben (%s)" % [fix_vor, ps.konto.running_cost_per_period, ps.depot_bestand(1)[0]["name"]])
 	_bis(ps, 1800 * 4 + 10)
 	var key0: String = ps.depot_bestand(1)[0]["key"]
 	var uq: Dictionary = ps.ueberholen_angebot_key(key0)

@@ -237,6 +237,59 @@ func _dbg_unter(n: Node, pos: Vector2) -> void:
 		_dbg_unter(c, pos)
 
 
+func _wpx(wp: Vector2) -> Vector2:
+	return s.cam.unproject_position(Vector3(wp.x, s.hoehe_at(wp.x, wp.y), wp.y))
+
+
+## Maus über einen Weltpunkt: Bewegungsereignis durch den Viewport; der Geländepunkt wird gesetzt wie in ui_demo._process
+## (headless gibt es keinen Mauszeiger, den das Spiel abfragen könnte; echte Mausbewegung prüft demo_bau_befund unter xvfb).
+func _maus_welt(wp: Vector2) -> void:
+	var mv := InputEventMouseMotion.new()
+	mv.position = _fenster(_wpx(wp))
+	mv.global_position = mv.position
+	root.push_input(mv)
+	ud._maus_boden = ud.boden(_wpx(wp))
+	ud.modus_neu()
+
+
+## Echter Mausklick auf einen Weltpunkt.
+func _klick_welt(wp: Vector2) -> void:
+	_klick(_wpx(wp))
+	await _frames(3)
+
+
+func _klick_rechts(p_pos: Vector2) -> void:
+	var pos := _fenster(p_pos)
+	for druck in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_RIGHT
+		ev.pressed = druck
+		ev.position = pos
+		ev.global_position = pos
+		root.push_input(ev)
+
+
+## Kamera so stellen, dass alle Weltpunkte im freien Bildbereich liegen (nicht unter Banner, Leiste, Karten).
+func _sicht_punkte(punkte: Array, gier := 0.3) -> void:
+	var m := Vector2.ZERO
+	for p in punkte:
+		m += p
+	m /= float(punkte.size())
+	var gr: Vector2 = root.get_viewport().get_visible_rect().size
+	var ab := 380.0
+	for versuch in 12:
+		_kamera(m.x, m.y, ab, gier)
+		await _ruhig()
+		var passt := true
+		for p in punkte:
+			var px := _wpx(p)
+			if px.x < 470.0 or px.x > gr.x - 420.0 or px.y < 270.0 or px.y > gr.y - 300.0:
+				passt = false
+		if passt:
+			return
+		ab *= 1.18
+
+
 func _frei_px() -> Vector2:
 	return Vector2(root.get_viewport().get_visible_rect().size.x * 0.5, root.get_viewport().get_visible_rect().size.y * 0.62)
 
@@ -513,24 +566,166 @@ func _run() -> void:
 	banner["bau_strasse"] = String(ud.werte.get("banner", ""))
 	pruef(m1 and ud.modus() == "bau" and not vk.halte_an and not vk.editor_panel.visible and banner["bau_strasse"].contains("Straße bauen") and banner["bau_strasse"].contains("Startpunkt"),
 		"A15 ein Modus beendet den anderen: Linien-Editor startet (Auswahl weg), Taste B wechselt in den Straßenbau, Editor zu, Banner „%s“" % banner["bau_strasse"])
-	# Straße bauen
-	pruef(ud.bau_art == "strasse" and ud.marker_root.get_child_count() == 4 and ud.modus_panel.visible, "U16 Baumodus Straße: %d Ringe an Betrieben ohne Anschluss" % ud.marker_root.get_child_count())
+	# ------------------------------------------------------------ Teil 4: Bauwerkzeug (Marke, Vorschau, eine Klickregel, Kurve, Plan)
+	var start_k := Vector2(1284, 936)
+	var forst_p: Vector2 = ps.halt_pos(FORST)
+	pruef(ud.bau_art == "strasse" and ud.marker_root.get_child_count() == 4 and ud.modus_panel.visible and int(ud.werte["bau_see_ringe"]) == ps.see_kreise.size()
+		and _kn("banner_kurve") != null and _kn("banner_planen") != null,
+		"U16 Baumodus Straße: %d Ringe an Betrieben ohne Anschluss, Seesperre sichtbar (%d Ringe), Banner mit Umschaltern Kurve und Planen" % [ud.marker_root.get_child_count(), int(ud.werte["bau_see_ringe"])])
+	await _sicht_punkte([start_k, Vector2(1330, 1100), forst_p, Vector2(900, 1300)], -0.4)
+	# B1 Marke und Schild unter der Maus VOR dem ersten Klick
+	_maus_welt(Vector2(900, 1300))
+	var m_frei: bool = ud.werte["bau_fang"] == "frei" and ud.bau.marke.visible and String(ud.werte["bau_schild"]).contains("Hier kein Anschluss")
+	_maus_welt(start_k)
+	var m_knoten: bool = ud.werte["bau_fang"] == "knoten" and String(ud.werte["bau_schild"]).contains("Start: an der Straße")
+	_maus_welt(forst_p + Vector2(20, -10))
+	var m_betrieb: bool = ud.werte["bau_fang"] == "betrieb" and String(ud.werte["bau_schild"]).contains("Start: Forsthaus Rotwald")
+	pruef(m_frei and m_knoten and m_betrieb and ud.bau_punkte.is_empty(), "B1 vor dem ersten Klick: Marke unter der Maus, Schild „Hier kein Anschluss“ / „Start: an der Straße“ / „Start: Forsthaus Rotwald“")
 	n0 = uw.meldungen_log.size()
-	ud.klick_boden(Vector2(900, 1300))
-	pruef(ud.bau_punkte.is_empty() and uw.meldungen_log.size() == n0 + 1 and _letzte().contains("hängt in der Luft"), "U17 Start im Nichts: „%s“" % _letzte())
-	ud.klick_boden(Vector2(1284, 936))
-	ud.klick_boden(Vector2(1330, 1100))
-	ud._maus_boden = Vector2(1052, 1248)
-	ud.modus_neu()
-	var q: Dictionary = ps.bau_angebot("strasse", PackedVector2Array([Vector2(1284, 936), Vector2(1330, 1100), Vector2(1052, 1248)]))
-	pruef(ud.bau_punkte.size() == 2 and int(ud.werte["bau_kosten"]) == int(q["kosten_cent"]) and ud.vorschau_mi.visible and String(ud.werte["banner"]).contains("2 Punkte gesetzt"),
-		"U18 Vorschau = Spielwert: %d ¢ für %d m; Banner zählt mit („%s“)" % [int(q["kosten_cent"]), int(q["laenge_m"]), ud.werte["banner"]])
+	await _klick_welt(Vector2(900, 1300))
+	pruef(ud.bau_punkte.is_empty() and uw.meldungen_log.size() == n0 + 1 and _letzte().contains("hängt in der Luft"), "U17 Mausklick im Nichts: kein Punkt, „%s“" % _letzte())
+	# B2 erster Klick → sofort Vorschau in Straßenbreite, Länge und Preis an der Maus
+	_druecke(KEY_C)
+	var gerade_an: bool = not ud.bau.kurve and String(ud.werte["banner"]).contains("gerade")
+	await _klick_welt(start_k)
+	_maus_welt(Vector2(1330, 1100))
+	var q_t4: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([start_k, Vector2(1330, 1100)]), {"kurve": false})
+	pruef(gerade_an and ud.bau_punkte.size() == 1 and ud.werte["bau_vorschau"] and ud.bau.vorschau.has_node("Gut") and int(ud.werte["bau_kosten"]) == int(q_t4["kosten_cent"])
+		and String(ud.werte["bau_schild"]).contains("%s m" % uw._tsd(int(q_t4["laenge_m"]))) and String(ud.werte["bau_schild"]).contains(uw.geld(int(q_t4["kosten_cent"]))) and String(ud.werte["bau_schild"]).contains("Endet frei"),
+		"B2 Taste C schaltet auf gerade; nach dem ersten Klick liegt die Vorschau bis zur Maus da, Schild an der Maus „%s“ = Spielwert" % ud.werte["bau_schild"])
+	# B3 eine Klickregel: auch der Klick auf ein einrastendes Ziel setzt nur einen Punkt
+	kasse = ps.eco.cash_cent
+	var wege0_t4: int = ps.bauwerke.size()
+	await _klick_welt(Vector2(1330, 1100))
+	_maus_welt(forst_p)
+	var ziel_schild: String = ud.werte["bau_schild"]
+	await _klick_welt(forst_p)
+	var drei_b: bool = ud.bau_punkte.size() == 3 and ps.bauwerke.size() == wege0_t4 and ps.eco.cash_cent == kasse
+	# B4 Rechtsklick nimmt den letzten Punkt zurück
+	_klick_rechts(_wpx(Vector2(1200, 1150)))
+	await _frames(3)
+	var zwei_b: bool = ud.bau_punkte.size() == 2 and ud.bau_art == "strasse"
+	await _klick_welt(forst_p)
+	_maus_welt(forst_p)
+	q_t4 = ps.trasse_angebot("strasse", ud.bau_punkte, {"kurve": false})
+	pruef(drei_b and zwei_b and ud.bau_punkte.size() == 3 and ziel_schild.contains("Ende: Forsthaus Rotwald") and String(ud.werte["banner"]).contains("3 Punkte") and q_t4["ok"],
+		"B3 eine Klickregel: Klick auf das einrastende Ziel setzt nur den Punkt (nichts gebaut, Kasse gleich), Schild „%s“; Rechtsklick nimmt ihn zurück" % ziel_schild)
 	_kamera(1180, 1100, 760, -0.4)
 	await _shot("07_strassenbau")
 	kasse = ps.eco.cash_cent
-	ud.klick_boden(Vector2(1052, 1248))
-	pruef(ps.angeschlossen(FORST) and kasse - ps.eco.cash_cent == int(q["kosten_cent"]) and ud.bau_art == "" and not ud.banner.visible and _letzte().contains("Forsthaus Rotwald ist angeschlossen"),
-		"U19 Klick auf das Ziel baut, Banner weg: „%s“" % _letzte())
+	_druecke(KEY_ENTER)
+	await _frames(3)
+	var abw_bau := 99.0
+	if ps.bauwerke.size() == wege0_t4 + 1:
+		abw_bau = 0.0
+		var fl_t4 = ps.strassen.fahrlinien[int(ps.bauwerke[-1]["weg"])]
+		for gp2 in q_t4["punkte"]:
+			var best_t4 := INF
+			for k2_t4 in range(0, fl_t4.punkte.size(), 2):
+				best_t4 = minf(best_t4, Vector2(fl_t4.punkte[k2_t4].x, fl_t4.punkte[k2_t4].z).distance_to(gp2))
+			abw_bau = maxf(abw_bau, best_t4)
+	pruef(ps.angeschlossen(FORST) and kasse - ps.eco.cash_cent == int(q_t4["kosten_cent"]) and abw_bau < 1.2 and ud.bau_art == "strasse" and ud.bau_punkte.size() == 1 and ud.banner.visible
+		and _letzte().contains("Forsthaus Rotwald ist angeschlossen"),
+		"U19 Enter baut genau die Vorschau (Abweichung %.2f m), das Werkzeug bleibt an (1 Punkt am Ende, Banner da): „%s“" % [abw_bau, _letzte()])
+	# B5 Kurve: tangentialer Bogen; B6 Fehler nur an der Stelle
+	_klick_rechts(_wpx(Vector2(1200, 1150)))
+	await _frames(2)
+	_druecke(KEY_C)
+	var s2_t4: Vector2 = ps.fang("strasse", Vector2(1330, 1100))["pos"]
+	var frei_p := Vector2.ZERO
+	var frei_p2 := Vector2.ZERO
+	for wi2 in 16:
+		var d2_t4 := Vector2(cos(TAU * wi2 / 16.0), sin(TAU * wi2 / 16.0))
+		var c1_t4 := s2_t4 + d2_t4 * 120.0
+		var c2_t4 := c1_t4 + d2_t4.rotated(deg_to_rad(50.0)) * 110.0
+		var qa_t4: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([s2_t4, c1_t4, c2_t4]), {"kurve": true})
+		if qa_t4["ok"] and int(qa_t4["bruecke_m"]) == 0 and qa_t4["ende"]["typ"] == "frei" and qa_t4["kreuzungen"].is_empty():
+			frei_p = c1_t4
+			frei_p2 = c2_t4
+			break
+	await _sicht_punkte([s2_t4, frei_p, frei_p2], -0.4)
+	await _klick_welt(s2_t4)
+	await _klick_welt(frei_p)
+	_maus_welt(frei_p2)
+	var qk_t4: Dictionary = ud.bau_angebot
+	var knick_b := 0.0
+	var gk_t4: PackedVector2Array = qk_t4.get("punkte", PackedVector2Array())
+	for i2_t4 in range(2, gk_t4.size()):
+		knick_b = maxf(knick_b, absf(rad_to_deg((gk_t4[i2_t4 - 1] - gk_t4[i2_t4 - 2]).angle_to(gk_t4[i2_t4] - gk_t4[i2_t4 - 1]))))
+	pruef(ud.bau.kurve and frei_p != Vector2.ZERO and qk_t4.get("ok", false) and float(qk_t4["r_min"]) < 1000.0 and float(qk_t4["r_min"]) >= ps.bau_radius("strasse") and knick_b < 8.0
+		and String(ud.werte["banner"]).contains("Kurve"),
+		"B5 Kurve (Taste C): zweites Stück als Kreisbogen mit Radius %.0f m, tangential (größter Knick zwischen Punkten %.1f°)" % [float(qk_t4.get("r_min", 0.0)), knick_b])
+	await _shot("29_bau_kurve")
+	var sk_b: Array = ps.see_kreise[0]
+	for k3_t4 in ps.see_kreise:
+		if Vector2(k3_t4[0], k3_t4[1]).distance_to(s2_t4) < Vector2(sk_b[0], sk_b[1]).distance_to(s2_t4):
+			sk_b = k3_t4
+	var sm_b := Vector2(sk_b[0], sk_b[1])
+	_klick_rechts(_wpx(frei_p))
+	await _frames(2)
+	_druecke(KEY_C)
+	_maus_welt(sm_b + (sm_b - s2_t4).normalized() * (float(sk_b[2]) + 90.0))
+	var rot_b: int = int(ud.werte["bau_rot_punkte"])
+	var see_text := false
+	for c_t4 in ud.bau.marken.get_children():
+		if c_t4 is Label3D and String((c_t4 as Label3D).text).contains("See"):
+			see_text = true
+	wege0_t4 = ps.bauwerke.size()
+	n0 = uw.meldungen_log.size()
+	await _shot("30_bau_fehler_lokal")
+	_druecke(KEY_ENTER)
+	await _frames(2)
+	pruef(not ud.bau_angebot.get("ok", true) and rot_b > 0 and rot_b < int(ud.werte["bau_punkte_gesamt"]) and int(ud.werte["bau_fehlerstellen"]) >= 1 and see_text and ud.bau.vorschau.has_node("Fehler")
+		and ud.bau.vorschau.has_node("Gut") and String(ud.werte["bau_schild"]).begins_with("✕ See") and ps.bauwerke.size() == wege0_t4,
+		"B6 Trasse durch den See: nur %d von %d Punkten rot, Marke „See“ an der Stelle, Schild „%s“; Enter baut nichts" % [rot_b, int(ud.werte["bau_punkte_gesamt"]), ud.werte["bau_schild"]])
+	# B7 Doppelklick baut; freies Ende wird angesagt
+	_druecke(KEY_C)
+	_maus_welt(frei_p)
+	var frei_schild: String = ud.werte["bau_schild"]
+	kasse = ps.eco.cash_cent
+	await _klick_welt(frei_p)
+	var vor_doppel: int = ps.bauwerke.size()
+	await _klick_welt(frei_p)
+	pruef(ud.bau.kurve and frei_schild.contains("Endet frei: verbindet noch nichts") and vor_doppel == wege0_t4 and ps.bauwerke.size() == wege0_t4 + 1 and ps.eco.cash_cent < kasse and ud.bau_punkte.size() == 1,
+		"B7 freies Ende: Schild „%s“; erster Klick setzt den Punkt, der zweite Klick auf denselben Punkt (Doppelklick) baut" % frei_schild)
+	# B8 Planen: Abschnitte ablegen ohne Geld, Summe, verwerfen, Plan bauen nur wenn bezahlbar
+	_druecke(KEY_P)
+	kasse = ps.eco.cash_cent
+	_maus_welt(frei_p2)
+	await _klick_welt(frei_p2)
+	_druecke(KEY_ENTER)
+	await _frames(2)
+	var plan1: bool = ud.bau.planen and ud.bau.plan.size() == 1 and ps.eco.cash_cent == kasse and ps.bauwerke.size() == wege0_t4 + 1 and ud.bau.plan_wurzel.get_child_count() == 1
+	var p3_t4 := frei_p2 + (frei_p2 - frei_p).normalized().rotated(deg_to_rad(20.0)) * 100.0
+	_maus_welt(frei_p2)
+	var am_plan: bool = ud.werte["bau_fang"] == "plan"
+	_maus_welt(p3_t4)
+	await _klick_welt(p3_t4)
+	_druecke(KEY_ENTER)
+	await _frames(3)
+	var summe_b: int = ud.bau.plan_kosten()
+	var plan2: bool = ud.bau.plan.size() == 2 and int(ud.werte["bau_plan_kosten"]) == summe_b and summe_b == int(ud.bau.plan[0]["q"]["kosten_cent"]) + int(ud.bau.plan[1]["q"]["kosten_cent"])
+	await _shot("28_bau_plan")
+	var geld_alt: int = ps.eco.cash_cent
+	ps.eco.cash_cent = summe_b - 100                              # Testwerkzeug: zu wenig Geld für den ganzen Plan
+	ud.bau.neu()
+	n0 = uw.meldungen_log.size()
+	ud.bau.plan_bauen(false)
+	var zu_teuer: bool = ud.bau.plan.size() == 2 and ps.bauwerke.size() == wege0_t4 + 1 and _letzte().contains("Der Plan kostet")
+	ps.eco.cash_cent = geld_alt
+	ud.bau.neu()
+	await _knopf_klick("plan_weg_1")
+	var verworfen: bool = ud.bau.plan.size() == 1
+	kasse = ps.eco.cash_cent
+	var k1_t4: int = int(ud.bau.plan[0]["q"]["kosten_cent"]) if ud.bau.plan.size() == 1 else -1
+	await _knopf_klick("plan_bauen")
+	pruef(plan1 and am_plan and plan2 and zu_teuer and verworfen and ud.bau.plan.is_empty() and ps.bauwerke.size() == wege0_t4 + 2 and kasse - ps.eco.cash_cent == k1_t4 and ud.bau.plan_wurzel.get_child_count() == 0,
+		"B8 Planen (Taste P): 2 Abschnitte als Blaupause ohne Geld (zweiter setzt am geplanten Ende an), Summe %d $; zu wenig Geld: „Der Plan kostet …“; Abschnitt 2 verworfen; „Plan bauen“ baut Abschnitt 1 für %d $" % [summe_b / 100, k1_t4 / 100])
+	_druecke(KEY_P)
+	_druecke(KEY_ESCAPE)
+	await _frames(2)
+	pruef(ud.bau_art == "" and not ud.banner.visible and not ud.bau.schild.visible and not ud.bau.marke.visible and ud.bau.vorschau.get_child_count() == 0 and not ud.bau.planen,
+		"B9 Esc beendet das Werkzeug: Banner, Schild, Marke und Vorschau sind weg")
 	# Stadtlinie mit drei Halten über das Ortspanel („Personenlinie hier beginnen“)
 	uw.oeffnen(DORF)
 	await _frames(2)
@@ -629,6 +824,7 @@ func _run() -> void:
 	await _frames(2)
 	ud._process(0.2)
 	banner["bau_gleis"] = String(ud.werte.get("banner", ""))
+	ud.bau.kurve = false
 	ud.klick_boden(Vector2(370, 1235))
 	ud.klick_boden(Vector2(700, 1120))
 	ud._maus_boden = Vector2(985, 1020)
@@ -636,6 +832,9 @@ func _run() -> void:
 	_kamera(680, 1130, 820, 0.2)
 	await _shot("08_gleisbau")
 	ud.klick_boden(Vector2(985, 1020))
+	ud.bau_fertig()
+	ud.modus_ende()
+	ud.bau.kurve = true
 	await _frames(2)
 	var wi: int = ps.bauwerke[-1]["weg"]
 	pruef(banner["bau_gleis"].contains("Gleis bauen") and ps.bahnhof.has(KOHLE) and ps.bahnhof.has(HUETTE) and ud.raum.has_node("Schienen_%d" % wi) and ud.raum.has_node("Bahnhof_" + KOHLE.validate_node_name()),
@@ -679,7 +878,7 @@ func _run() -> void:
 	await _shot("18_verkehr_strecken")
 	vk.strecke_verkaufen("chaussee")
 	await _frames(2)
-	pruef(sl.size() == 3 and uw.meldungen_log.size() >= n0 + 3 and t_ben.contains("Strecke verkauft") and gekauft and not ps.maut_gekauft and _kn("strecke_kauf_chaussee") != null,
+	pruef(sl.size() >= 3 and uw.meldungen_log.size() >= n0 + 3 and t_ben.contains("Strecke verkauft") and gekauft and not ps.maut_gekauft and _kn("strecke_kauf_chaussee") != null,
 		"V9 Reiter Strecken: %d Einträge; ungenutzte Forststraße verkauft („%s“), Chaussee gekauft (−2.800 $) und wieder verkauft" % [sl.size(), t_ben])
 	vk.schliessen()
 	# Personenzug: Gleis Erlenbach – Hasenwinkel, Pferdestraßenbahn

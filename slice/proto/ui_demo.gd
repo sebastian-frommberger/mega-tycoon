@@ -79,6 +79,10 @@ const FT := {
 	"unbekannte_strecke": "Diese Strecke gibt es nicht mehr.",
 	"unbekannter_ort": "Diesen Ort kennt der Fahrplan nicht. Klicke einen Betrieb, Ort oder eine Haltestelle an.",
 	"keine_firma": "Das Spiel läuft noch nicht. Starte die Demo neu.",
+	"radius_zu_klein": "Der Bogen ist zu eng ({radius_m} m, mindestens {min_m} m). Setze den Punkt weiter weg oder schalte auf Gerade (C).",
+	"wende_zu_eng": "Das Ziel liegt hinter dem Bogenanfang: So entstünde eine Kehre. Setze einen Zwischenpunkt oder schalte auf Gerade (C).",
+	"plan_leer": "Im Plan ist kein Abschnitt ausgewählt. Hake Abschnitte an oder plane zuerst welche (Taste P).",
+	"plan_zu_teuer": "Der Plan kostet {kosten}, dir fehlen {fehlt}. Wähle Abschnitte ab oder warte auf Einnahmen.",
 }
 
 var welt: Node = null
@@ -121,6 +125,7 @@ var _sig_fz := ""
 var _n_bauwerke := 0
 var _n_bahnhof := 0
 var _n_depots := 0
+var bau = null                        # ui_bau.gd: Bauwerkzeug Straße/Gleis (Kurven, Plan, Marke und Schild an der Maus)
 var vk = null                         # ui_verkehr.gd: Fenster Verkehr, Depotfenster, Linien-Editor
 var depot_modus := false
 var depot_vorschau: Dictionary = {}
@@ -169,6 +174,8 @@ func einbauen(p_welt: Node, p_uw) -> void:
 	_baue_vertraege()
 	_baue_skills()
 	_baue_hq_panel()
+	bau = preload("res://proto/ui_bau.gd").new()
+	bau.einbauen(self)
 	vk = preload("res://proto/ui_verkehr.gd").new()
 	vk.einbauen(self)
 	_baue_banner()
@@ -389,6 +396,7 @@ func leiste_neu() -> void:
 	leiste_kn["skill"].text = "Skills%s  [K]" % ((" · %d Punkt%s frei" % [frei, "" if frei == 1 else "e"]) if frei > 0 else "")
 	leiste_kn["hq"].text = "%s  [H]" % ("Firmensitz platzieren" if not ps.hq_platziert else String(ps._hq_stufe_daten().get("name", "Firmensitz")))
 	leiste_kn["gleis"].text = "Gleis  [G]" if ps.gleis_frei() else "Gleis ab %d" % int(ps.bau_regel("gleis").get("ab_jahr", 0))
+	leiste_kn["strasse"].text = "Straße%s  [B]" % ((" · Plan %d" % bau.plan.size()) if bau != null and not bau.plan.is_empty() else "")
 	var im_depot: int = ps.abgestellt.size()
 	leiste_kn["verkehr"].text = "Verkehr%s  [L]" % ((" · %d im Depot" % im_depot) if im_depot > 0 else "")
 	_puls(leiste_kn["verkehr"], im_depot > 0 and not ps.linien.is_empty())
@@ -538,6 +546,10 @@ func _baue_banner() -> void:
 	hb.add_child(banner_titel)
 	banner_hinweis = _lbl("", 17, C_CREME)
 	hb.add_child(banner_hinweis)
+	for e in [["banner_kurve", func(): bau.kurve_umschalten()], ["banner_planen", func(): bau.planen_umschalten()]]:
+		var bb := _knopf("", String(e[0]), e[1])
+		bb.visible = false
+		hb.add_child(bb)
 	hb.add_child(_knopf("Abbrechen · Esc", "banner_abbrechen", modus_beenden))
 
 
@@ -545,11 +557,11 @@ func _baue_banner() -> void:
 func banner_text() -> Array:
 	match modus():
 		"bau":
-			var name := String(ps.bau_regel(bau_art).get("name", bau_art))
+			var name := "%s %s · %s" % [String(ps.bau_regel(bau_art).get("name", bau_art)), "planen" if bau.planen else "bauen", "Kurve" if bau.kurve else "gerade"]
 			if bau_punkte.is_empty():
-				return ["%s bauen" % name, "Startpunkt anklicken (Ringe) · Esc bricht ab"]
-			return ["%s bauen" % name, "%d Punkt%s gesetzt · nächsten Punkt oder Ziel anklicken · Enter baut · Entf nimmt zurück · Esc bricht ab" % [
-				bau_punkte.size(), "" if bau_punkte.size() == 1 else "e"]]
+				return [name, "Startpunkt anklicken · Esc beendet"]
+			return [name, "%d Punkt%s · Klick setzt Punkt · Enter oder Doppelklick %s · Rechtsklick zurück · Esc beendet" % [
+				bau_punkte.size(), "" if bau_punkte.size() == 1 else "e", "plant" if bau.planen else "baut"]]
 		"hq":
 			return ["Firmensitz platzieren" if not ps.hq_platziert else "Firmensitz umziehen", "Platz in einem Ort anklicken (helle Kreise) · Esc bricht ab"]
 		"depot":
@@ -574,6 +586,11 @@ func banner_neu() -> void:
 	var farbe: Color = MODUS_FARBE.get(m, C_GOLD)
 	banner_titel.text = String(t[0])
 	banner_hinweis.text = String(t[1])
+	(knoepfe["banner_kurve"] as Button).visible = m == "bau"
+	(knoepfe["banner_planen"] as Button).visible = m == "bau"
+	if m == "bau":
+		(knoepfe["banner_kurve"] as Button).text = "Kurve · C" if bau.kurve else "Gerade · C"
+		(knoepfe["banner_planen"] as Button).text = "Planen an · P" if bau.planen else "Planen · P"
 	banner_punkt.color = farbe.lightened(0.3)
 	var sb := _stil(farbe.darkened(0.62), farbe.lightened(0.15), 3, 10, 12)
 	sb.shadow_color = Color(0, 0, 0, 0.5)
@@ -772,46 +789,18 @@ func _baue_modus() -> void:
 	modus_panel = k[0]
 	modus_vb = k[1]
 	modus_panel.name = "BauModus"
-	modus_panel.anchor_left = 0.5
-	modus_panel.anchor_right = 0.5
-	modus_panel.anchor_top = 1.0
-	modus_panel.anchor_bottom = 1.0
-	modus_panel.offset_left = -260.0
-	modus_panel.offset_right = 360.0
-	modus_panel.offset_bottom = -14.0
-	modus_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	modus_panel.offset_left = 8.0                              # links unter der Werkzeugleiste: Die Bildmitte bleibt zum Bauen frei (Befund 8)
+	modus_panel.offset_top = 244.0
 	modus_panel.visible = false
 	add_child(modus_panel)
 
 
 func bau_start(art: String, start: Variant = null) -> void:
-	if not ps.hq_platziert:
-		melde_fehler({"fehler": "kein_hq"})
-		return
-	var rg: Dictionary = ps.bau_regel(art)
-	if ps.kalenderjahr() < int(rg.get("ab_jahr", 0)):
-		melde_fehler({"fehler": "noch_nicht_verfuegbar", "ab_jahr": int(rg["ab_jahr"])})
-		return
-	modus_beenden()
-	auswahl_leeren()
-	fenster_zu()
-	bau_art = art
-	bau_punkte = PackedVector2Array()
-	bau_angebot = {}
-	if start is Vector2:
-		bau_punkte.append(ps.fang(art, start)["pos"])
-	modus_panel.visible = true
-	modus_geaendert()
-	modus_neu()
+	bau.start(art, start)
 
 
 func modus_ende() -> void:
-	bau_art = ""
-	bau_punkte = PackedVector2Array()
-	bau_angebot = {}
-	modus_panel.visible = false
-	vorschau_mi.visible = false
-	modus_geaendert()
+	bau.ende()
 
 
 func _fang_text(f: Dictionary) -> String:
@@ -828,104 +817,47 @@ func _fang_text(f: Dictionary) -> String:
 
 
 func modus_neu() -> void:
-	if bau_art == "":
-		return
-	_leeren(modus_vb, 2)
-	banner_neu()
-	var rg: Dictionary = ps.bau_regel(bau_art)
-	(modus_vb.get_child(0).get_node("Titel") as Label).text = "%s bauen" % String(rg.get("name", bau_art))
-	var pkt := PackedVector2Array(bau_punkte)
-	if _maus_boden is Vector2 and not bau_punkte.is_empty():
-		pkt.append(_maus_boden)
-	werte["bau_punkte"] = bau_punkte.size()
-	if bau_punkte.is_empty():
-		var ziel := "an einer Straße oder einem Betrieb ohne Anschluss (Ring)" if bau_art == "strasse" else "an einem Betrieb, Ort oder Gleis (Ring)"
-		modus_vb.add_child(_umbruch(_lbl("Klicke den Startpunkt " + ziel + ". Danach Zwischenpunkte, zuletzt das Ziel.", 16), 590))
-		modus_vb.add_child(_lbl("%s je Feld (25 m)%s · Brücken ×%d" % [geld(int(rg.get("kosten_cent_pro_feld", 0))),
-			(" · Unterhalt %s/min je Feld" % _cent(int(rg.get("unterhalt_cent_pro_feld_pro_periode", 0)))) if int(rg.get("unterhalt_cent_pro_feld_pro_periode", 0)) > 0 else "",
-			int(rg.get("bruecke_faktor_promille", 1000)) / 1000], 15, C_MATT))
-		bau_angebot = {}
-	elif pkt.size() >= 2:
-		bau_angebot = ps.bau_angebot(bau_art, pkt)
-		if bau_angebot.get("ok", false):
-			var q := bau_angebot
-			werte["bau_kosten"] = int(q["kosten_cent"])
-			modus_vb.add_child(_lbl("%s m · %s%s%s" % [uw._tsd(int(q["laenge_m"])), geld(int(q["kosten_cent"])),
-				(" · Brücke %d m" % int(q["bruecke_m"])) if int(q["bruecke_m"]) > 0 else "",
-				(" · Unterhalt %s/min" % geld(int(q["unterhalt_cent"]))) if int(q["unterhalt_cent"]) > 0 else ""], 20, C_OK if q["kaufbar"] else C_WARN))
-			modus_vb.add_child(_lbl("Start: %s  →  Ende: %s" % [_fang_text(q["start"]), _fang_text(q["ende"])], 16))
-			if not q["kaufbar"]:
-				modus_vb.add_child(_lbl("▲ Es fehlen %s." % uw.fehlbetrag(int(q["fehlt_cent"])), 16, C_WARN))
-			elif String(q["ende"]["typ"]) == "frei":
-				modus_vb.add_child(_lbl("Das Ende ist frei: Klick auf ein Ziel (Ring) schließt an, Enter baut bis hierher.", 15, C_MATT))
-		else:
-			var ft := fehlertext(bau_angebot)
-			modus_vb.add_child(_umbruch(_lbl("■ " + (ft if ft != "" else String(bau_angebot.get("fehler", "?"))), 16, C_BAD), 590))
-	else:
-		modus_vb.add_child(_lbl("Bewege die Maus zum nächsten Punkt.", 16, C_MATT))
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 10)
-	var ok: bool = bau_angebot.get("ok", false) and bau_angebot.get("kaufbar", false) and bau_punkte.size() >= 2
-	hb.add_child(_knopf("Bauen · Enter", "bau_fertig", bau_fertig, C_OK if ok else Color.TRANSPARENT, not ok))
-	hb.add_child(_knopf("Punkt zurück · Entf", "bau_zurueck", bau_zurueck, Color.TRANSPARENT, bau_punkte.is_empty()))
-	hb.add_child(_knopf("Abbrechen · Esc", "bau_abbrechen", modus_ende))
-	modus_vb.add_child(hb)
-	_vorschau_mesh(pkt, bau_angebot)
+	bau.neu()
 
 
 func _cent(c: int) -> String:
 	return "%d,%02d $" % [c / 100, c % 100]
 
 
-## Klick im Baumodus (Weltpunkt in m). Rastet ein; ein Klick auf ein Ziel (kein freies Ende) baut sofort.
+## Klick im Baumodus (Weltpunkt in m): setzt genau einen Punkt (ui_bau.gd). Gebaut wird mit Enter oder Doppelklick.
 func klick_boden(p: Vector2) -> void:
-	if bau_art == "":
-		return
-	var f: Dictionary = ps.fang(bau_art, p)
-	if bau_punkte.is_empty():
-		if String(f["typ"]) == "frei":
-			melde_fehler({"fehler": "kein_anschluss"})
-			return
-		bau_punkte.append(f["pos"])
-		modus_neu()
-		return
-	bau_punkte.append(f["pos"] if String(f["typ"]) != "frei" else p)
-	if String(f["typ"]) != "frei":
-		var q: Dictionary = ps.bau_angebot(bau_art, bau_punkte)
-		if q.get("ok", false) and q.get("kaufbar", false):
-			bau_fertig()
-			return
-		if not q.get("ok", false):
-			melde_fehler(q)
-			bau_punkte.remove_at(bau_punkte.size() - 1)
-		else:
-			melde_fehler({"fehler": "guthaben_reicht_nicht", "fehlt_cent": int(q["fehlt_cent"])})
-	modus_neu()
+	bau.klick(p)
 
 
 func bau_zurueck() -> void:
-	if not bau_punkte.is_empty():
-		bau_punkte.remove_at(bau_punkte.size() - 1)
-	modus_neu()
+	bau.zurueck()
 
 
 func bau_fertig() -> Dictionary:
-	if bau_art == "" or bau_punkte.size() < 2:
-		melde_fehler({"fehler": "zu_wenig_punkte"})
-		return {"ok": false, "fehler": "zu_wenig_punkte"}
-	var art := bau_art
-	var r: Dictionary = ps.bauen(art, bau_punkte)
-	if not r.get("ok", false):
-		melde_fehler(r)
-		modus_neu()
-		return r
-	uw.meldung(String(r.get("text", "Gebaut.")))
-	modus_ende()
-	_bauwerke_pruefen()
-	uw.kopf_neu()
-	if uw.auswahl != "":
-		uw.panel_neu()
-	return r
+	return bau.fertig()
+
+
+## Rechtsklick ohne Ziehen (aus prototyp_welt): im Baumodus letzten Punkt zurück, im Linien-Editor letzten Halt zurück.
+func rechts_klick(_pos: Vector2) -> bool:
+	if bau_art != "":
+		bau.rechts_klick()
+		return true
+	if vk != null and vk.halte_an:
+		vk.halte_zurueck()
+		return true
+	return false
+
+
+## Gefüllte Scheibe um den Ursprung (Marken des Bauwerkzeugs).
+func _scheibe_lokal(radius: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 24
+	for i in n:
+		st.add_vertex(Vector3.ZERO)
+		st.add_vertex(Vector3(cos(TAU * i / n) * radius, 0.0, sin(TAU * i / n) * radius))
+		st.add_vertex(Vector3(cos(TAU * (i + 1) / n) * radius, 0.0, sin(TAU * (i + 1) / n) * radius))
+	return st.commit()
 
 
 # ------------------------------------------------------------------ Firmensitz
@@ -1532,6 +1464,14 @@ func eingabe(ev: InputEvent) -> bool:
 			vk.umschalten("fahrzeuge")
 		KEY_F1:
 			hilfe_umschalten()
+		KEY_C:
+			if bau_art == "":
+				return false
+			bau.kurve_umschalten()
+		KEY_P:
+			if bau_art == "":
+				return false
+			bau.planen_umschalten()
 		KEY_ENTER, KEY_KP_ENTER:
 			if vk.halte_an:
 				vk.halte_fertig()
@@ -1748,6 +1688,8 @@ func _process(delta: float) -> void:
 	_t_vorschau += delta
 	_t_hover += delta
 	vk.takt(delta)
+	if bau_art != "":
+		bau.takt(get_viewport().get_mouse_position(), (not maus_aus) and get_viewport().gui_get_hovered_control() != null)
 	# Puls: Banner, Auswahlring, Pfeil (Auswahl und Modus dürfen nie unbemerkt stehen bleiben)
 	var puls := 0.5 + 0.5 * sin(_ring_t * 5.0)
 	if banner.visible:

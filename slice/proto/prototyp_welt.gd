@@ -122,6 +122,7 @@ static var demo_start := false       # Demo-Sprint: Startmenü setzt das vor dem
 var demo := false                    # Demo-Modus (DemoSim + ui_demo)
 var ui_demo = null
 var demo_daten: Dictionary = {}
+var _rklick_start := Vector2(-1000, -1000)
 var _klick_start := Vector2(-1, -1)  # AT-07: Linksklick ohne Ziehen = Weltklick
 
 
@@ -554,6 +555,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 					ui_welt.welt_klick(mb.position)          # AT-07: Loslassen ohne Ziehen = Klick
 		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			_drag = 2 if mb.pressed else 0
+			if ui_demo != null and mb.button_index == MOUSE_BUTTON_RIGHT:   # Demo: Rechtsklick ohne Ziehen = Punkt zurück (Bauwerkzeug)
+				if mb.pressed:
+					_rklick_start = mb.position
+				elif mb.position.distance_to(_rklick_start) < 6.0:
+					ui_demo.rechts_klick(mb.position)
 	elif ev is InputEventMouseMotion and _drag != 0:
 		var r: Vector2 = (ev as InputEventMouseMotion).relative
 		if _drag == 2:

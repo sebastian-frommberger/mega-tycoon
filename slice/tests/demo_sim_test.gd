@@ -60,6 +60,12 @@ func _pkt(l) -> PackedVector2Array:
 	return p
 
 
+## Lokschuppen am Bahnhof einer Station (Züge werden nur im Depot gekauft).
+func _lok(ps, name: String) -> Dictionary:
+	var kp: Vector3 = ps.knoten_pos[ps.bahnhof[name]]
+	return ps.depot_bauen(Vector2(kp.x, kp.z))
+
+
 func _vorschlag(ps, art: String, key: String) -> PackedVector2Array:
 	var v = ps.daten["bau_vorschlag"][art][key]
 	if v is String:
@@ -241,6 +247,8 @@ func _c_gleis() -> void:
 		"C13 Fuhrwerk kann das Gleis nicht befahren (keine_verbindung), Gleisroute %d Kanten" % ps.gleisroute(KOHLE, HUETTE).size())
 	pruef(ps.linie_anlegen(ERZ, HUETTE, "zug").get("fehler", "") == "kein_bahnhof", "C14 Zug ohne Bahnhof am Start: kein_bahnhof")
 	ps.lizenz_kaufen(KOHLE)
+	var ohne_lok: Dictionary = ps.linie_anlegen(KOHLE, HUETTE, "zug")
+	_lok(ps, KOHLE)
 	var z: Dictionary = ps.linie_anlegen(KOHLE, HUETTE, "zug")
 	var f: Dictionary = ps.fahrzeug(int(z.get("vid", 0)))
 	ps._fix_neu()
@@ -251,10 +259,10 @@ func _c_gleis() -> void:
 	for li in ps.lieferungen:
 		if li["gut"] == "kohle":
 			kohle += int(li["menge"])
-	pruef(z.get("ok", false) and ps.ist_zug(f) and String(f["kat"]) == "pferdebahn" and kohle >= 60 and ps.fehler.is_empty(),
-		"C15 Pferdebahn fährt: %d Kohle an der Hütte nach 5 min, Ladung %d E, 0 Sim-Fehler" % [kohle, ps.sim.v_cargo_cap[ps.sim.slot_of(f["vid"])]])
-	pruef(fix_mit == fix_zug + int(q["unterhalt_cent"]) and int(q["unterhalt_cent"]) == int(q["felder"]) * 30,
-		"C16 Gleisunterhalt läuft über konto: Fix %d ¢/min = Zug %d + Gleis %d" % [fix_mit, fix_zug, int(q["unterhalt_cent"])])
+	pruef(ohne_lok.get("fehler", "") == "kein_depot" and z.get("ok", false) and ps.ist_zug(f) and String(f["kat"]) == "pferdebahn" and kohle >= 60 and ps.fehler.is_empty(),
+		"C15 Pferdebahn (ohne Lokschuppen: kein_depot) fährt: %d Kohle an der Hütte nach 5 min, Ladung %d E, 0 Sim-Fehler" % [kohle, ps.sim.v_cargo_cap[ps.sim.slot_of(f["vid"])]])
+	pruef(fix_mit == fix_zug + int(q["unterhalt_cent"]) + 800 and int(q["unterhalt_cent"]) == int(q["felder"]) * 30,
+		"C16 Gleisunterhalt läuft über konto: Fix %d ¢/min = Zug %d + Gleis %d + Lokschuppen 800" % [fix_mit, fix_zug, int(q["unterhalt_cent"])])
 	# Gleis an Gleis verlängern und Brücke
 	var ge := _vorschlag(ps, "gleis", ERZ + ">" + HUETTE)
 	var r2: Dictionary = ps.bauen("gleis", ge)
@@ -296,9 +304,11 @@ func _d_hq() -> void:
 		"D5 platziert in Erlenbach, kostenlos; Lizenz Gut Kuppenhof %d ¢ = Vorschau" % lic)
 	# Heimatbonus: gleiche Lieferung, einmal mit HQ in Erlenbach, einmal in Hasenwinkel
 	var cent := []
-	for p in [HQ_DORF, Vector2(735, 835)]:
+	for mit in [true, false]:
 		var a = _neu(false)
-		a.hq_platzieren(p)
+		a.hq_platzieren(HQ_DORF)
+		if not mit:
+			a.eco.demo_site_bonus = {}                     # Gegenprobe: gleicher Standort und Fahrplan, nur der Bonus fehlt
 		a.eco.cash_cent = 2000000
 		a.lizenz_kaufen(FARM)
 		a.lizenz_kaufen(MUEHLE)
@@ -527,6 +537,7 @@ func _e_fahrzeuge() -> void:
 		and ps.alter_jahre(f) == 0 and ps.neueres_modell(vid) == "", "E5 ersetzt: Kasse −%d ¢ = Angebot, Linie läuft weiter, Alter 0, Name %s" % [kasse - ps.eco.cash_cent, f["name"]])
 	# Pferdebahn → Dampfzug: Tempo und Darstellung wechseln, Linie bleibt
 	ps.bauen("gleis", _vorschlag(ps, "gleis", KOHLE + ">" + HUETTE))
+	_lok(ps, KOHLE)
 	ps.lizenz_kaufen(KOHLE)
 	pruef(ps.def_fuer("zug") == "dampfzug_d" and ps.modelle("zug") == ["pferdebahn_d", "dampfzug_d"], "E6 1830: Züge Pferdebahn und Dampfzug kaufbar")
 	var z: Dictionary = ps.linie_anlegen(KOHLE, HUETTE, "zug", "pferdebahn_d")
@@ -579,7 +590,8 @@ func _m_personen_linien() -> void:
 	var t_ende: int = ps.sim.tick_count + 3600
 	while ps.sim.tick_count < t_ende:
 		ps.tick()
-		gesehen[int(f["halt"])] = true
+		if int(f["halt"]) >= 0:
+			gesehen[int(f["halt"])] = true
 	var ziele := {}
 	for le in ps.eco.ledger:
 		if le["gut"] == "fahrgaeste":
@@ -623,39 +635,62 @@ func _m_personen_linien() -> void:
 func _m_depot() -> void:
 	var ps = _neu()
 	ps.eco.cash_cent = 2000000
-	ps.lizenz_kaufen(FARM)
-	var l1: Dictionary = ps.linie_anlegen(FARM, MUEHLE)
-	var ohne: Dictionary = ps.ueberholen_angebot(int(l1["vid"]))
-	var q: Dictionary = ps.depot_angebot(Vector2(1640, 700))
-	var frei: Dictionary = ps.depot_angebot(Vector2(1000, 500))
+	var fh: Dictionary = ps.depots[0] if ps.depots.size() == 1 else {}
+	ps._fix_neu()
+	pruef(fh.get("fuhrhof", false) and String(fh["art"]) == "strasse" and ps.konto.running_cost_per_period == 0 and ps.depot_katalog(0) == ["fuhrwerk_d", "kutsche_d"],
+		"M10 Firmensitz bringt den Fuhrhof mit (Straßendepot, kostenlos, kein Unterhalt); Katalog 1820: Fuhrwerk, Stadtkutsche")
 	var kasse: int = ps.eco.cash_cent
-	var d1: Dictionary = ps.depot_bauen(Vector2(1640, 700))
+	var k: Dictionary = ps.depot_kaufen(0, "fuhrwerk_d", 3)
 	ps._fix_neu()
-	pruef(ohne.get("fehler", "") == "kein_depot" and frei.get("fehler", "") == "kein_anschluss" and d1["ok"] and kasse - ps.eco.cash_cent == 60000 and String(d1["art"]) == "strasse"
-		and ps.konto.running_cost_per_period == 3500 + 800 and ps.depot_bauen(Vector2(1640, 700)).get("fehler", "") == "schon_gebaut",
-		"M10 Betriebshof gebaut: −600 $, Unterhalt 8 $/min über konto; ohne Netz/doppelt abgelehnt")
-	kasse = ps.eco.cash_cent
-	var l2: Dictionary = ps.depot_kauf(0, "fuhrwerk_d", 0, FARM, MUEHLE)
-	var f2: Dictionary = ps.fahrzeug(int(l2.get("vid", 0)))
-	pruef(l2.get("ok", false) and kasse - ps.eco.cash_cent == 40000 * 920 / 1000 and int(f2["kauf_cent"]) == 36800 and int(l2["preis_cent"]) == 36800
-		and ps.depot_kauf(0, "fuhrwerk_d", 0, FORST, SAEGE).get("fehler", "") == "depot_erreicht_linie_nicht",
-		"M11 Kauf im Depot: Fuhrwerk 368 $ statt 400 $ (−8 %%); Linie ohne Netzanschluss ans Depot abgelehnt")
+	var falsch := [ps.depot_kaufen(0, "pferdebahn_d", 1).get("fehler", ""), ps.depot_kaufen(5, "fuhrwerk_d", 1).get("fehler", ""), ps.depot_kaufen(0, "planwagen_d", 1).get("fehler", "")]
+	pruef(k["ok"] and k["keys"].size() == 3 and kasse - ps.eco.cash_cent == 120000 and ps.depot_bestand(0).size() == 3 and ps.fahrzeuge.is_empty()
+		and ps.konto.running_cost_per_period == 3 * 3500 * 250 / 1000 and falsch == ["falsches_depot", "kein_depot", "noch_nicht_verfuegbar"],
+		"M11 Kauf im Depot ohne Linie: 3 Fuhrwerke für 1.200 $ stehen im Fuhrhof (kein Sim-Fahrzeug, 25 %% Unterhalt); Zug im Fuhrhof, falsches Depot, zu früh abgelehnt")
+	ps.lizenz_kaufen(FARM)
+	ps.lizenz_kaufen(MUEHLE)
+	var l1: Dictionary = ps.linie_neu("strasse_gueter", [FARM, MUEHLE])
+	var l2: Dictionary = ps.linie_neu("strasse_personen", [DORF, OST])
+	var leer: bool = ps.linie_fahrzeuge(int(l1["linie"])).is_empty() and ps.linien.size() == 2
+	var z_falsch: Dictionary = ps.zuweisen(k["keys"], int(l2["linie"]))
+	var z: Dictionary = ps.zuweisen(k["keys"].slice(0, 2), int(l1["linie"]))
+	var f1: Dictionary = ps.fahrzeug(int(String(z["keys"][0]).substr(1)))
+	var i1: int = ps.sim.slot_of(f1["vid"])
+	var start: Vector3 = ps.knoten_pos[int(fh["knoten"])]
+	var p0: Vector3 = ps.knoten_pos[ps.sim.r_from[ps.sim.v_rstart[i1]]]
+	pruef(leer and l1["ok"] and z_falsch.get("fehler", "") == "passt_nicht_zur_linie" and z["ok"] and int(z["zugewiesen"]) == 2 and ps.depot_bestand(0).size() == 1
+		and f1.get("ausfahrt", false) and int(f1["halt"]) == -1 and Vector2(p0.x, p0.z).distance_to(Vector2(start.x, start.z)) < 30.0,
+		"M12 Linie ohne Fahrzeug angelegt; Sammelzuweisung: 2 Fuhrwerke rücken am Fuhrhof aus (Routenstart %.0f m vom Depotknoten), falsche Linienart abgelehnt" % Vector2(p0.x, p0.z).distance_to(Vector2(start.x, start.z)))
+	_bis(ps, 3000)
+	var getr := _summe(ps, "getreide")
+	pruef(int(f1["halt"]) >= 0 and getr >= 40 and ps.fehler.is_empty(), "M13 nach der Ausfahrt beginnt der Umlauf am ersten Halt: %d Getreide in 5 min" % getr)
+	var d2: Dictionary = ps.depot_bauen(Vector2(1640, 700))
+	ps._fix_neu()
+	var fix_vor: int = ps.konto.running_cost_per_period
+	var idp: Dictionary = ps.ins_depot(z["keys"], 1)
+	ps._fix_neu()
+	pruef(d2["ok"] and idp["ok"] and int(idp["n"]) == 2 and ps.depot_bestand(1).size() == 2 and ps.linie_fahrzeuge(int(l1["linie"])).is_empty() and ps.alle_fahrzeuge().size() == 3
+		and ps.konto.running_cost_per_period == 800 + 3 * 918 and fix_vor == 800 + 2 * 3675 + 918 and f1["verkauft"] and f1.get("versteckt", false),
+		"M14a Betriebshof gebaut (8 $/min); „ins Depot“ nimmt 2 Fahrzeuge von der Linie: Unterhalt %d → %d ¢/min, Name und Nummer bleiben (%s)" % [fix_vor, ps.konto.running_cost_per_period, ps.depot_bestand(1)[0]["name"]])
 	_bis(ps, 1800 * 4 + 10)
-	ps._fix_neu()
-	var f1: Dictionary = ps.fahrzeug(int(l1["vid"]))
-	var uq: Dictionary = ps.ueberholen_angebot(int(l1["vid"]))
+	var key0: String = ps.depot_bestand(1)[0]["key"]
+	var uq: Dictionary = ps.ueberholen_angebot_key(key0)
 	kasse = ps.eco.cash_cent
-	var ur: Dictionary = ps.fahrzeug_ueberholen(int(l1["vid"]))
-	pruef(uq["ok"] and int(uq["fix_alt_cent"]) == 3500 * 12000 / 10000 and int(uq["fix_neu_cent"]) == 3500 and int(uq["kosten_cent"]) == 8000 and ur["ok"] and kasse - ps.eco.cash_cent == 8000
-		and ps.fix_eff(f1) == 3500 and ps.alter_jahre(f1) == 4 and ps.fahrzeug_ueberholen(int(l1["vid"])).get("fehler", "") == "nichts_zu_ueberholen",
-		"M12 Überholung nach 4 Jahren: 80 $, Unterhalt %d → %d ¢/min, Alter bleibt 4 J" % [int(uq["fix_alt_cent"]), ps.fix_eff(f1)])
-	var rw: int = ps.restwert(f2)
-	var soll: int = 36800 * 500 / 1000 * maxi(200, 1000 - (ps.sim.tick_count - int(f2["kauf_tick"])) * 1000 / (15 * 1800)) / 1000
+	var ur: Dictionary = ps.ueberholen_key(key0)
+	var rec: Dictionary = ps.fz(key0)
+	pruef(uq["ok"] and int(uq["kosten_cent"]) == 8000 and ur["ok"] and kasse - ps.eco.cash_cent == 8000 and ps.fix_eff(rec) == 3500 and ps.alter_jahre(rec) == 4
+		and ps.ueberholen_key(key0).get("fehler", "") == "nichts_zu_ueberholen", "M14b Überholung im Depot nach 4 Jahren: 80 $, Unterhalt zurück auf 3.500 ¢/min, Alter bleibt 4 J")
+	var er: Dictionary = ps.ersetzen_viele(ps.alle_fahrzeuge())
+	var rw: int = ps.restwert(ps.fz(key0))
+	var soll: int = 52000 * 500 / 1000
 	kasse = ps.eco.cash_cent
-	var vk: Dictionary = ps.fahrzeug_verkaufen(int(l2["vid"]))
-	ps._fix_neu()
-	pruef(vk["ok"] and rw == soll and ps.eco.cash_cent - kasse == rw and f2["verkauft"] and ps.fix_eff(f2) == 0 and ps.fahrzeug_verkaufen(int(l2["vid"])).get("fehler", "") == "unbekanntes_fahrzeug",
-		"M13 Verkauf: Restwert %d ¢ = Kauf × 50 %% × Restlebensdauer (W20), Kasse +Restwert, kein Unterhalt mehr" % rw)
+	var vk: Dictionary = ps.verkaufen_viele([key0, "d999"])
+	pruef(er["ok"] and int(er["n"]) == 3 and String(ps.depot_bestand(1)[0]["def_id"]) == "planwagen_d" and rw == soll and vk["ok"] and int(vk["n"]) == 1 and ps.eco.cash_cent - kasse == rw
+		and ps.alle_fahrzeuge().size() == 2 and ps.verkaufen_viele([key0]).get("fehler", "") == "keine_auswahl",
+		"M14c Sammel-Ersetzen (3 → Planwagen) und Verkauf aus dem Depot: Restwert %d ¢ = Kauf × 50 %% (W20), unbekannter Schlüssel wird übergangen" % rw)
+	var zz: Dictionary = ps.zuweisen(ps.alle_fahrzeuge(), int(l1["linie"]))
+	_bis(ps, ps.sim.tick_count + 1200)
+	pruef(zz["ok"] and int(zz["zugewiesen"]) == 2 and ps.linie_fahrzeuge(int(l1["linie"])).size() == 2 and ps.abgestellt.is_empty() and ps.fehler.is_empty()
+		and int(ps.linie_kennzahlen(int(l1["linie"]))["fahrzeuge"]) == 2, "M14d wieder zugewiesen aus zwei Depots: 2 Planwagen auf der Linie, 0 Sim-Fehler")
 
 
 func _m_strecken() -> void:
@@ -665,10 +700,14 @@ func _m_strecken() -> void:
 	var l: Dictionary = ps.linie_anlegen(MUEHLE, STADT)
 	var f: Dictionary = ps.fahrzeug(int(l["vid"]))
 	var i: int = ps.sim.slot_of(f["vid"])
+	while int(f["halt"]) != 0 and ps.sim.tick_count < 3000:
+		ps.tick()
 	var ant: int = ps.maut_anteil_pm(f["route"])
 	var var_mit: int = ps.sim.v_var_cent[i]
 	var liste: Array = ps.strecken()
 	pruef(ant > 700 and var_mit == 70 + (15 * ant + 500) / 1000 and liste.size() == 1 and String(liste[0]["besitz"]) == "staat" and int(liste[0]["benutzt"]) == 1,
+		"M14 Chausseegeld: %d ‰ der Teilstrecke Mühle → Lindenfurt auf der Chaussee, Fahrkosten %d ¢/Feld (70 + Maut)" % [ant, var_mit])
+	pruef(true,
 		"M14 Chausseegeld: %d ‰ der Route Mühle → Lindenfurt auf der Chaussee, Fahrkosten %d ¢/Feld (70 + Maut)" % [ant, var_mit])
 	var kq: Dictionary = ps.strecke_kauf_angebot("chaussee")
 	var kasse: int = ps.eco.cash_cent
@@ -703,6 +742,8 @@ func _m_zuege() -> void:
 	var g1: Dictionary = ps.bauen("gleis", _vorschlag(ps, "gleis", KOHLE + ">" + HUETTE))
 	var g2: Dictionary = ps.bauen("gleis", _vorschlag(ps, "gleis", DORF + ">" + HALT_HW))
 	ps.lizenz_kaufen(KOHLE)
+	_lok(ps, KOHLE)
+	var lok: Dictionary = _lok(ps, DORF)
 	var gz: Dictionary = ps.linie_anlegen(KOHLE, HUETTE, "zug")
 	var pz: Dictionary = ps.linienplan_anlegen([DORF, HALT_HW], "pferdetram_d")
 	var falsch1: Dictionary = ps.linie_anlegen(DORF, HALT_HW, "zug", "pferdebahn_d")
@@ -722,11 +763,10 @@ func _m_zuege() -> void:
 	var neu: String = ps.neueres_modell(int(fp["vid"]))
 	var er: Dictionary = ps.fahrzeug_ersetzen(int(fp["vid"]), neu)
 	var d0: Dictionary = ps.depot_bauen(ps.halt_pos(DORF) + Vector2(3, 3))
-	var lok: Dictionary = ps.depot_bauen(Vector2(ps.knoten_pos[ps.bahnhof[DORF]].x, ps.knoten_pos[ps.bahnhof[DORF]].z))
 	var zuw: Dictionary = ps.fahrzeug_zuweisen(int(gz["vid"]), int(pz["linie"]))
 	_bis(ps, 14400 + 2400)
 	pruef(neu == "personenzug_d" and er["ok"] and ps.sim.v_cargo_cap[ps.sim.slot_of(fp["vid"])] == 80 and String(fp["kat"]) == "dampflok" and lok.get("ok", false) and String(lok["art"]) == "gleis"
-		and d0.get("ok", false) and ps.depot_erreicht(DORF, true) >= 0 and ps.depot_erreicht(KOHLE, true) < 0 and zuw.get("fehler", "") == "passt_nicht_zur_linie" and ps.fehler.is_empty(),
+		and d0.get("ok", false) and ps.depot_erreicht(DORF, true) == 2 and ps.depot_erreicht(KOHLE, true) == 1 and zuw.get("fehler", "") == "passt_nicht_zur_linie" and ps.fehler.is_empty(),
 		"M21 1828: Pferdestraßenbahn → Personenzug (Dampf, 80 Plätze) auf der Linie; Lokschuppen am Bahnhof erreicht nur sein Gleisnetz; Güterzug nicht auf Personenlinie")
 
 

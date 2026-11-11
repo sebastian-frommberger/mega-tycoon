@@ -73,6 +73,9 @@ func frame(alpha: float, dt: float) -> void:
 		var cu: Color = z.custom
 		cu.g = _variante[i]
 		pos.y += z.wipp
+		if f.get("versteckt", false):                  # Demo-Sprint: verkauft oder im Depot abgestellt (nur DemoSim setzt das)
+			bas = Basis.from_scale(Vector3.ONE * 0.001)
+			pos.y -= 500.0
 		mm.set_instance_transform(s[1], Transform3D(bas, pos))
 		mm.set_instance_custom_data(s[1], cu)
 	frame_usec = Time.get_ticks_usec() - t0

@@ -297,7 +297,7 @@ func _preis(d: Dictionary) -> int:
 
 ## Unterhalt mit Alterung ab der letzten Überholung (Depot) und Boni.
 func fix_eff(f: Dictionary) -> int:
-	if f["verkauft"]:
+	if f.is_empty() or f.get("verkauft", false):
 		return 0
 	var fix := int(f.get("fix_cent", 0))
 	if alterung_an and fix > 0:
@@ -378,60 +378,6 @@ func route_fuer(von_name: String, nach_name: String, def_id: String) -> Array:
 	return strassenroute(von_name, nach_name)
 
 
-func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_id := "") -> Dictionary:
-	if def_id == "":
-		def_id = def_fuer(kat)
-	var d := vdef(def_id)
-	if d.is_empty():
-		return _nein("unbekanntes_fahrzeug")
-	var dar := String(d.get("darstellung", "fuhrwerk"))
-	if stationen.has(von_name) and stationen.has(nach_name) and hq_platziert and not (fracht_passt(d, von_name, true) and fracht_passt(d, nach_name, false)):
-		return _nein("falsche_fracht", {"fracht": fracht(d)})
-	if not auf_gleis(d):
-		var rs := super.linie_anlegen(von_name, nach_name, dar, def_id)
-		if rs.get("ok", false):
-			_nach_kauf(fahrzeug(int(rs["vid"])), von_name)
-			rs["preis_cent"] = int(fahrzeug(int(rs["vid"]))["kauf_cent"])
-		return rs
-	var g := _spielbar()
-	if g != "":
-		return _nein(g)
-	if not stationen.has(von_name) or not stationen.has(nach_name):
-		return _nein("unbekannter_ort")
-	if von_name == nach_name:
-		return _nein("gleicher_ort")
-	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
-		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d["verfuegbar_ab_jahr"])})
-	for nm in [von_name, nach_name]:
-		if not bahnhof.has(nm):
-			return _nein("kein_bahnhof", {"name": nm})
-	if gleisroute(von_name, nach_name).is_empty():
-		return _nein("keine_gleisverbindung")
-	var preis := _preis(d)
-	if preis > eco.cash_cent:
-		return _nein("guthaben_reicht_nicht", {"fehlt_cent": preis - eco.cash_cent})
-	var a: Dictionary = stationen[von_name]
-	var b: Dictionary = stationen[nach_name]
-	var n_alt := fehler.size()
-	var f := linie(dar, "%s %d" % [String(d.get("name", kat)), fahrzeuge.size() + 1], int(bahnhof[von_name]), int(bahnhof[nach_name]),
-		int(a["k"]), int(b["k"]), false, d)
-	if f.is_empty():
-		return _nein(String(fehler[-1]) if fehler.size() > n_alt else "linie")
-	konto.charge(preis)
-	kauf_total += preis
-	f["von"] = int(a["knoten"])                  # UI/Bot erkennen die Linie an den Stationsknoten
-	f["nach"] = int(b["knoten"])
-	f["gleis"] = true
-	f["def_id"] = def_id
-	f["kauf_cent"] = preis
-	f["fix_cent"] = int(d.get("fix_cent_pro_periode", 0))
-	f["kauf_tick"] = sim.tick_count
-	_fix_dirty = true
-	zug_gekauft = true
-	_nach_kauf(f, von_name)
-	return _ok({"vid": f["vid"], "preis_cent": int(f["kauf_cent"])})
-
-
 ## Ersetzen: neues Modell derselben Kategorie; Tempo und Darstellung des neuen Modells (Linie, Position, Ladung bleiben).
 func fahrzeug_ersetzen(vid: int, def_id := "") -> Dictionary:
 	var f := fahrzeug(vid)
@@ -482,7 +428,13 @@ func _fix_extra() -> int:
 			c += int(bw.get("unterhalt_cent", 0)) * su / 1000
 	if maut_gekauft:
 		c += int(daten.get("maut", {}).get("unterhalt_cent_pro_periode", 0)) * su / 1000
-	c += depots.size() * int(daten.get("depot", {}).get("unterhalt_cent_pro_periode", 0)) * (1000 - mini(1000, bonus("depot_unterhalt_pm"))) / 1000
+	var n_dep := 0
+	for dp in depots:
+		if not dp.get("fuhrhof", false):
+			n_dep += 1
+	c += n_dep * int(daten.get("depot", {}).get("unterhalt_cent_pro_periode", 0)) * (1000 - mini(1000, bonus("depot_unterhalt_pm"))) / 1000
+	for rec in abgestellt:                               # abgestellte Fahrzeuge: Stallkosten (Anteil des Unterhalts)
+		c += fix_eff(rec) * int(daten.get("depot", {}).get("abgestellt_unterhalt_promille", 250)) / 1000
 	var st: Array = daten.get("hq", {}).get("stufen", [])
 	if hq_platziert and hq_stufe - 1 < st.size():
 		c += int(st[hq_stufe - 1].get("unterhalt_cent_pro_periode", 0))
@@ -915,6 +867,7 @@ func hq_platzieren(p: Vector2) -> Dictionary:
 	eco.demo_site_bonus = {}
 	if String(v["heimat"]) != "":
 		eco.demo_site_bonus[int(stationen[String(v["heimat"])]["site"])] = int(v["heimat_bonus_promille"])
+	_fuhrhof_setzen()
 	boni_anwenden()
 	_log("hq", "Firmensitz in %s gegründet: %d Betriebe im Umkreis, Lizenzen dort 30 %% billiger." % [hq_ort, int(v["im_radius_n"])], false)
 	return v
@@ -1321,7 +1274,7 @@ func pruefsumme() -> int:
 	var h: int = sim.checksum()
 	var prime: int = 1099511628211
 	for v in [ruf, skillpunkte, skills.size(), hq_stufe, hq_anbauten.size(), vertraege_erfuellt, vertraege_verfehlt, _vertrag_nr,
-			bauwerke.size(), linien.size(), depots.size(), 1 if maut_gekauft else 0, roundi(hq_pos.x * 10.0), roundi(hq_pos.y * 10.0), meilensteine_erreicht.size(), _vz]:
+			bauwerke.size(), linien.size(), depots.size(), abgestellt.size(), _fz_nr, 1 if maut_gekauft else 0, roundi(hq_pos.x * 10.0), roundi(hq_pos.y * 10.0), meilensteine_erreicht.size(), _vz]:
 		h = (h ^ int(v)) * prime
 	for bw in bauwerke:
 		h = (h ^ int(bw["kosten_cent"])) * prime
@@ -1435,8 +1388,11 @@ func aktionen_moeglich() -> Array:
 			var hn := _name_von_site(site)
 			if sim.st_stock[eco.s_station[site]] >= _kap(kd) and not _halt_bedient(hn):
 				a.append("personen:" + hn)
-	var dq := depot_angebot(naechster_strassenknoten(hq_pos))
-	if depots.is_empty() and dq.get("ok", false) and dq.get("kaufbar", false):
+	if not abgestellt.is_empty() and not linien.is_empty():
+		a.append("zuweisen")
+	if linien.is_empty():
+		a.append("linie")
+	if depots.size() <= 1 and int(daten.get("depot", {}).get("kosten_cent", 0)) <= cash and sim.tick_count >= 3600:
 		a.append("depot")
 	var mq := strecke_kauf_angebot("chaussee")
 	if mq.get("ok", false) and mq.get("kaufbar", false) and int(mq["maut_cent_pro_periode"]) > int(mq["unterhalt_cent"]):
@@ -1534,19 +1490,6 @@ func _var_neu(f: Dictionary) -> void:
 	sim.v_var_cent[sim.slot_of(f["vid"])] = int(d.get("variabel_cent_pro_feld", 0)) + m
 
 
-## Nach jedem Kauf: Depot-Rabatt (Linienstart vom Depot erreichbar) gutschreiben, Fahrkosten mit Maut setzen.
-func _nach_kauf(f: Dictionary, von_name: String) -> void:
-	var d := vdef(String(f["def_id"]))
-	if depot_erreicht(von_name, auf_gleis(d)) >= 0:
-		var rab: int = int(f["kauf_cent"]) * int(daten.get("depot", {}).get("rabatt_promille", 0)) / 1000
-		if rab > 0:
-			konto.erstatten(rab)
-			kauf_total -= rab
-			f["kauf_cent"] = int(f["kauf_cent"]) - rab
-			f["depot_rabatt_cent"] = rab
-	_var_neu(f)
-
-
 # ------------------------------------------------------------------ Linienpläne (mehrere Halte)
 
 func linie_plan(id: int) -> Dictionary:
@@ -1566,139 +1509,11 @@ func _hop(von: String, nach: String, gleis: bool) -> Array:
 	return gleisroute(von, nach) if gleis else strassenroute(von, nach)
 
 
-## Prüft einen Plan: ≥ 2 Halte, keine gleichen Nachbarn, jede Teilstrecke (auch zurück zum ersten Halt) befahrbar,
-## Fracht passt zu den Halten. {ok, strecke_m, teilstrecken} oder {ok: false, fehler, von, nach, name}.
-func plan_pruefen(halte: Array, def_id: String) -> Dictionary:
-	var d := vdef(def_id)
-	if d.is_empty():
-		return _nein("unbekanntes_fahrzeug")
-	if halte.size() < 2:
-		return _nein("zu_wenig_halte")
-	if halte.size() > 8:
-		return _nein("zu_viele_halte", {"max": 8})
-	var gl := auf_gleis(d)
-	var mm := 0
-	var laden_moeglich := false
-	for i in halte.size():
-		var a := String(halte[i])
-		var b := String(halte[(i + 1) % halte.size()])
-		if not stationen.has(a):
-			return _nein("unbekannter_ort", {"name": a})
-		if a == b:
-			return _nein("gleicher_ort", {"name": a})
-		if gl and not bahnhof.has(a):
-			return _nein("kein_bahnhof", {"name": a})
-		if fracht(d) == "personen" and not fracht_passt(d, a, true):
-			return _nein("falsche_fracht", {"fracht": "personen", "name": a})
-		if fracht_passt(d, a, true):
-			laden_moeglich = true
-		var r := _hop(a, b, gl)
-		if r.is_empty():
-			return _nein("keine_gleisverbindung" if gl else "keine_verbindung", {"von": a, "nach": b})
-		mm += sim.graph.route_length(r)
-	if not laden_moeglich:
-		return _nein("falsche_fracht", {"fracht": fracht(d), "name": String(halte[0])})
-	return _ok({"strecke_m": int(mm / mm_pro_m), "teilstrecken": halte.size()})
-
-
-func _auftrag_standard(halte: Array, d: Dictionary) -> Array:
-	var r: Array = []
-	for h in halte:
-		if not fracht_passt(d, String(h), true):
-			r.append("nichts")
-		elif fracht(d) == "personen":
-			r.append("mitnehmen")
-		else:
-			r.append("voll")
-	return r
-
-
-## Linie mit mehreren Halten anlegen und das erste Fahrzeug kaufen. Die Fahrzeuge fahren die Halte reihum ab
-## (… → letzter → erster), entladen an jedem Halt, was dort angenommen wird, und laden nach dem Ladeauftrag des Halts:
-## "voll" (warten, bis die Ladung voll ist), "mitnehmen" (nehmen, was da ist, höchstens 5 s warten), "nichts".
-func linienplan_anlegen(halte: Array, def_id := "", auftrag: Array = [], name := "") -> Dictionary:
-	var g := _spielbar()
-	if g != "":
-		return _nein(g)
-	if def_id == "":
-		def_id = def_fuer("fuhrwerk")
-	var d := vdef(def_id)
-	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
-		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d.get("verfuegbar_ab_jahr", 0))})
-	var q := plan_pruefen(halte, def_id)
-	if not q["ok"]:
-		return q
-	if _preis(d) > eco.cash_cent:
-		return _nein("guthaben_reicht_nicht", {"fehlt_cent": _preis(d) - eco.cash_cent})
-	_linie_nr += 1
-	var l := {"id": _linie_nr, "name": name if name != "" else "Linie %d" % _linie_nr, "halte": halte.duplicate(),
-		"auftrag": auftrag.duplicate() if auftrag.size() == halte.size() else _auftrag_standard(halte, d),
-		"gleis": auf_gleis(d), "fracht": fracht(d), "kategorie": String(d.get("kategorie", ""))}
-	linien.append(l)
-	var r := linie_fahrzeug_dazu(int(l["id"]), def_id)
-	if not r.get("ok", false):
-		linien.erase(l)
-		_linie_nr -= 1
-		return r
-	r["linie"] = int(l["id"])
-	_log("linie", "%s eingerichtet: %s." % [l["name"], " → ".join(PackedStringArray(halte))], false)
-	return r
-
-
-## Weiteres Fahrzeug auf einen Linienplan setzen (Start am ersten Halt).
-func linie_fahrzeug_dazu(id: int, def_id := "") -> Dictionary:
-	var g := _spielbar()
-	if g != "":
-		return _nein(g)
-	var l := linie_plan(id)
-	if l.is_empty():
-		return _nein("unbekannte_linie")
-	if def_id == "":
-		def_id = def_fuer(String(l["kategorie"]))
-	var d := vdef(def_id)
-	if d.is_empty() or auf_gleis(d) != bool(l["gleis"]) or fracht(d) != String(l["fracht"]):
-		return _nein("passt_nicht_zur_linie")
-	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
-		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d.get("verfuegbar_ab_jahr", 0))})
-	var q := plan_pruefen(l["halte"], def_id)
-	if not q["ok"]:
-		return q
-	var preis := _preis(d)
-	if preis > eco.cash_cent:
-		return _nein("guthaben_reicht_nicht", {"fehlt_cent": preis - eco.cash_cent})
-	var a := String(l["halte"][0])
-	var b := String(l["halte"][1])
-	var gl: bool = l["gleis"]
-	var dar := String(d.get("darstellung", "fuhrwerk"))
-	var f := linie(dar, "%s %d" % [String(d.get("name", "Fahrzeug")), fahrzeuge.size() + 1], _halt_knoten(a, gl), _halt_knoten(b, gl),
-		int(stationen[a]["k"]), int(stationen[b]["k"]), false, d)
-	if f.is_empty():
-		return _nein("linie")
-	konto.charge(preis)
-	kauf_total += preis
-	f["von"] = int(stationen[a]["knoten"])
-	f["nach"] = int(stationen[b]["knoten"])
-	f["gleis"] = gl
-	f["def_id"] = def_id
-	f["kauf_cent"] = preis
-	f["fix_cent"] = int(d.get("fix_cent_pro_periode", 0))
-	f["kauf_tick"] = sim.tick_count
-	f["plan"] = id
-	f["halt"] = 0
-	_fix_dirty = true
-	if gl:
-		zug_gekauft = true
-	_nach_kauf(f, a)
-	_halt_laden(f, l, 0)
-	return _ok({"vid": f["vid"], "preis_cent": int(f["kauf_cent"])})
-
-
 ## Ladeauftrag am Halt idx auf das Sim-Fahrzeug legen (Zustand „lädt“ oder gleich „fährt“).
 func _halt_laden(f: Dictionary, l: Dictionary, idx: int) -> void:
 	var i: int = sim.slot_of(f["vid"])
 	var modus := String(l["auftrag"][idx]) if idx < l["auftrag"].size() else "mitnehmen"
-	var d := vdef(String(f["def_id"]))
-	if not fracht_passt(d, String(l["halte"][idx]), true):
+	if not halt_ladbar(l, idx):
 		modus = "nichts"
 	sim.v_lwait[i] = 0
 	sim.v_timer[i] = 0
@@ -1707,6 +1522,32 @@ func _halt_laden(f: Dictionary, l: Dictionary, idx: int) -> void:
 	else:
 		sim.v_state[i] = SimWorld.S_WARTET_LADUNG
 		sim.set_line_flags(f["vid"], modus == "mitnehmen", MAX_WAIT_TICKS)
+
+
+## Kann am Halt idx sinnvoll geladen werden? Nur, wenn ein anderer Halt der Linie die Ware (bzw. Fahrgäste) abnimmt.
+## Sonst lädt das Fahrzeug dort nie, egal was der Ladeauftrag sagt (keine Fuhre, die niemand haben will).
+func halt_ladbar(l: Dictionary, idx: int) -> bool:
+	var nm := String(l["halte"][idx])
+	if not stationen.has(nm) or not _fracht_ok(String(l["fracht"]), nm, true):
+		return false
+	var site: int = stationen[nm]["site"]
+	var g := -1
+	if eco.s_kind[site] == Economy.K_STADT:
+		g = int(eco.g_index.get(String(daten.get("personen", {}).get("gut", "fahrgaeste")), -1))
+	else:
+		g = eco.s_out_good[site]
+	if g < 0:
+		return false
+	for j in l["halte"].size():
+		if j == idx or not stationen.has(String(l["halte"][j])):
+			continue
+		var zs: int = stationen[String(l["halte"][j])]["site"]
+		if eco.s_kind[zs] == Economy.K_STADT:
+			if eco.city_accepts(zs, g):
+				return true
+		elif eco.s_inbuf[zs].has(g):
+			return true
+	return false
 
 
 func _route_setzen(f: Dictionary, route: Array, prof) -> void:
@@ -1874,30 +1715,6 @@ func linie_auftrag(id: int, idx: int, modus: String) -> Dictionary:
 	return _ok({})
 
 
-## Fahrzeug einer anderen Linie zuweisen (gleiche Art: Straße/Gleis und Güter/Personen). Es beginnt am ersten Halt.
-func fahrzeug_zuweisen(vid: int, id: int) -> Dictionary:
-	var g := _spielbar()
-	if g != "":
-		return _nein(g)
-	var f := fahrzeug(vid)
-	var l := linie_plan(id)
-	if f.is_empty() or f["verkauft"] or String(f.get("def_id", "")) == "":
-		return _nein("unbekanntes_fahrzeug")
-	if l.is_empty():
-		return _nein("unbekannte_linie")
-	var d := vdef(String(f["def_id"]))
-	if auf_gleis(d) != bool(l["gleis"]) or fracht(d) != String(l["fracht"]):
-		return _nein("passt_nicht_zur_linie")
-	var q := plan_pruefen(l["halte"], String(f["def_id"]))
-	if not q["ok"]:
-		return q
-	f["plan"] = id
-	f.erase("gestrandet")
-	if not _plan_neu_einsetzen(f, l):
-		return _nein("keine_verbindung")
-	return _ok({"linie": id})
-
-
 func linie_fahrzeuge(id: int) -> Array:
 	return fahrzeuge.filter(func(f): return not f["verkauft"] and int(f.get("plan", -1)) == id)
 
@@ -1916,6 +1733,7 @@ func linie_aufloesen(id: int) -> Dictionary:
 func fahrzeug_verkaufen(vid: int) -> Dictionary:
 	var r := super.fahrzeug_verkaufen(vid)
 	if r.get("ok", false):
+		fahrzeug(vid)["versteckt"] = true
 		_log("verkauf", "%s verkauft: +%d $ Restwert." % [fahrzeug(vid)["name"], int(r["restwert_cent"]) / 100], false)
 	return r
 
@@ -1983,13 +1801,16 @@ func depot_bauen(p: Vector2) -> Dictionary:
 	return r
 
 
-## Index des Depots, das die Station über das Netz erreicht (−1 = keins). Gleis: Depot im selben Gleisnetz wie der Bahnhof.
+## Index des nächstgelegenen Depots, das die Station über das Netz erreicht (−1 = keins). Gleis: Depot im selben Gleisnetz wie der Bahnhof.
 func depot_erreicht(name: String, gleis: bool) -> int:
 	if not stationen.has(name):
 		return -1
 	var ziel := _halt_knoten(name, gleis)
 	if ziel < 0:
 		return -1
+	var best := -1
+	var bd := INF
+	var zp := Vector2(knoten_pos[ziel].x, knoten_pos[ziel].z)
 	for i in depots.size():
 		var dp: Dictionary = depots[i]
 		if (String(dp["art"]) == "gleis") != gleis:
@@ -1997,9 +1818,11 @@ func depot_erreicht(name: String, gleis: bool) -> int:
 		var key := "d|%d|%d" % [int(dp["knoten"]), ziel]
 		if not _routen.has(key):
 			_routen[key] = int(dp["knoten"]) == ziel or not sim.graph.find_path(int(dp["knoten"]), ziel).is_empty()
-		if _routen[key]:
-			return i
-	return -1
+		var dist: float = zp.distance_to(dp["pos"])
+		if _routen[key] and dist < bd:
+			bd = dist
+			best = i
+	return best
 
 
 func _start_name(f: Dictionary) -> String:
@@ -2052,35 +1875,34 @@ func fahrzeug_ueberholen(vid: int) -> Dictionary:
 	return q
 
 
-## Kauf im Depot: Fahrzeug für eine Linie (Plan-ID > 0) oder eine Direktlinie von → nach; das Depot muss den Start erreichen.
-func depot_kauf(depot_idx: int, def_id: String, plan_id := 0, von := "", nach := "") -> Dictionary:
-	if depot_idx < 0 or depot_idx >= depots.size():
-		return _nein("kein_depot")
-	var d := vdef(def_id)
-	var start := von
-	if plan_id > 0:
-		var l := linie_plan(plan_id)
-		if l.is_empty():
-			return _nein("unbekannte_linie")
-		start = String(l["halte"][0])
-	if depot_erreicht(start, auf_gleis(d)) < 0:
-		return _nein("depot_erreicht_linie_nicht", {"name": start})
-	if plan_id > 0:
-		return linie_fahrzeug_dazu(plan_id, def_id)
-	return linie_anlegen(von, nach, "fuhrwerk", def_id)
-
-
 # ------------------------------------------------------------------ Strecken: Besitz, Kauf, Verkauf
+
+## Alle Teilstrecken, die ein Fahrzeug befährt: sein laufender Weg (auch die Ausfahrt) und alle Teilstrecken seiner Linie.
+func _routen_von(f: Dictionary) -> Array:
+	var r: Array = [f["route"]]
+	var l := linie_plan(int(f.get("plan", -1)))
+	if not l.is_empty():
+		var n: int = l["halte"].size()
+		for i in n:
+			r.append(_hop(String(l["halte"][i]), String(l["halte"][(i + 1) % n]), bool(l["gleis"])))
+	return r
+
 
 func _weg_benutzt(wi: int) -> int:
 	var n := 0
 	for f in fahrzeuge:
 		if f["verkauft"]:
 			continue
-		for st in f["route"]:
-			if int(kante[st["edge"]][0]) == wi:
-				n += 1
+		var trifft := false
+		for route in _routen_von(f):
+			for st in route:
+				if kante.has(st["edge"]) and int(kante[st["edge"]][0]) == wi:
+					trifft = true
+					break
+			if trifft:
 				break
+		if trifft:
+			n += 1
 	return n
 
 
@@ -2111,16 +1933,23 @@ func strecken() -> Array:
 ## Maut je Minute, die die eigenen Fahrzeuge zuletzt auf der Staatsstrecke zahlten (Schätzung aus Route und Umlauf).
 func _maut_je_periode() -> int:
 	var c := 0
+	var satz := int(daten.get("maut", {}).get("cent_pro_feld", 0)) * (1000 - mini(1000, bonus("maut_pm"))) / 1000
 	for f in fahrzeuge:
 		if f["verkauft"]:
 			continue
-		var m := int(f.get("maut_cent_pro_feld", 0))
-		if m <= 0:
+		var l := linie_plan(int(f.get("plan", -1)))
+		if l.is_empty():
 			continue
-		var i: int = sim.slot_of(f["vid"])
-		var felder: int = int(f["sim_mm"]) / maxi(1, eco.feld_mm)
-		var umlauf: int = 2 * int(f["sim_mm"]) / maxi(1, sim.v_speed[i]) + 200
-		c += 2 * felder * m * eco.periode_ticks / maxi(1, umlauf)
+		var mm := 0
+		var maut_mm := 0
+		var n: int = l["halte"].size()
+		for i in n:
+			var route := _hop(String(l["halte"][i]), String(l["halte"][(i + 1) % n]), bool(l["gleis"]))
+			var hm: int = sim.graph.route_length(route)
+			mm += hm
+			maut_mm += hm * maut_anteil_pm(route) / 1000
+		var umlauf: int = mm / maxi(1, sim.v_speed[sim.slot_of(f["vid"])]) + 100 * n
+		c += maut_mm / maxi(1, eco.feld_mm) * satz * eco.periode_ticks / maxi(1, umlauf)
 	return c
 
 
@@ -2219,3 +2048,649 @@ func strecke_verkaufen(id: String) -> Dictionary:
 
 func zustand_text(f: Dictionary) -> String:
 	return super.zustand_text(f).replace("Fahrgaeste", "Fahrgäste")
+
+
+# ====================================================================== Teil 3: Depot als Kaufort, Linien ohne Fahrzeug, Sammelaktionen
+# (Umbau 11.11. nach Bastis Spieltest, Vorbild Transport Fever 2: Linie anlegen → im Depot kaufen → zuweisen)
+#
+# Modell: Eine Linie (linien[]) existiert ohne Fahrzeuge. Fahrzeuge werden nur im Depot gekauft und stehen dort als Datensatz in
+# `abgestellt` (Schlüssel "d<nr>", kein Sim-Fahrzeug, kein Ertrag, 25 % Unterhalt). Zuweisen erzeugt das Sim-Fahrzeug am Depotknoten;
+# es fährt über das Netz zum ersten Halt und beginnt dort den Umlauf (Schlüssel "v<vid>"). „Ins Depot“ nimmt es sofort von der Linie
+# (die Rückfahrt wird nicht simuliert: der Sim-Kern kann ein Linienfahrzeug nicht mitten auf der Route umleiten).
+
+const ARTEN := {
+	"strasse_gueter": {"gleis": false, "fracht": "gueter", "kategorie": "fuhrwerk", "name": "Straße · Güter"},
+	"strasse_personen": {"gleis": false, "fracht": "personen", "kategorie": "kutsche", "name": "Straße · Personen"},
+	"gleis_gueter": {"gleis": true, "fracht": "gueter", "kategorie": "zug", "name": "Gleis · Güter"},
+	"gleis_personen": {"gleis": true, "fracht": "personen", "kategorie": "pzug", "name": "Gleis · Personen"},
+}
+const LINIENFARBEN := ["#E0A848", "#6BC48A", "#7FA8D8", "#C98BD0", "#E07A5F", "#5FC9C9", "#D9D05A", "#B0B8C8"]
+
+var abgestellt: Array = []            # Fahrzeuge im Depot [{key, nr, def_id, kauf_cent, fix_cent, kauf_tick, ueberholt_jahre, name, depot, verkauft}]
+var _fz_nr := 0                       # laufende Fahrzeugnummer (Name bleibt über Depot und Linien hinweg)
+
+
+func art_von(d: Dictionary) -> String:
+	return ("gleis_" if auf_gleis(d) else "strasse_") + fracht(d)
+
+
+func art_der_linie(l: Dictionary) -> String:
+	return ("gleis_" if bool(l["gleis"]) else "strasse_") + String(l["fracht"])
+
+
+func _fracht_ok(fr: String, name: String, als_quelle: bool) -> bool:
+	var stadt: bool = eco.s_kind[int(stationen[name]["site"])] == Economy.K_STADT
+	if fr == "personen":
+		return stadt
+	return not stadt if als_quelle else true
+
+
+func _auftrag_std(halte: Array, fr: String) -> Array:
+	var r: Array = []
+	for h in halte:
+		if not stationen.has(String(h)) or not _fracht_ok(fr, String(h), true):
+			r.append("nichts")
+		else:
+			r.append("mitnehmen" if fr == "personen" else "voll")
+	return r
+
+
+func _auftrag_standard(halte: Array, d: Dictionary) -> Array:
+	return _auftrag_std(halte, fracht(d))
+
+
+## Prüft einen Plan für eine Linienart: ≥ 2 Halte, keine gleichen Nachbarn, jede Teilstrecke (auch zurück zum ersten Halt)
+## befahrbar, Fracht passt. {ok, strecke_m, teilstrecken} oder {ok: false, fehler, von, nach, name}.
+func plan_pruefen_art(halte: Array, gl: bool, fr: String) -> Dictionary:
+	if halte.size() < 2:
+		return _nein("zu_wenig_halte")
+	if halte.size() > 8:
+		return _nein("zu_viele_halte", {"max": 8})
+	var mm := 0
+	var laden_moeglich := false
+	for i in halte.size():
+		var a := String(halte[i])
+		var b := String(halte[(i + 1) % halte.size()])
+		if not stationen.has(a):
+			return _nein("unbekannter_ort", {"name": a})
+		if a == b:
+			return _nein("gleicher_ort", {"name": a})
+		if gl and not bahnhof.has(a):
+			return _nein("kein_bahnhof", {"name": a})
+		if fr == "personen" and not _fracht_ok(fr, a, true):
+			return _nein("falsche_fracht", {"fracht": "personen", "name": a})
+		if _fracht_ok(fr, a, true):
+			laden_moeglich = true
+		var r := _hop(a, b, gl)
+		if r.is_empty():
+			return _nein("keine_gleisverbindung" if gl else "keine_verbindung", {"von": a, "nach": b})
+		mm += sim.graph.route_length(r)
+	if not laden_moeglich:
+		return _nein("falsche_fracht", {"fracht": fr, "name": String(halte[0])})
+	return _ok({"strecke_m": int(mm / mm_pro_m), "teilstrecken": halte.size()})
+
+
+func plan_pruefen(halte: Array, def_id: String) -> Dictionary:
+	var d := vdef(def_id)
+	if d.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	return plan_pruefen_art(halte, auf_gleis(d), fracht(d))
+
+
+## Linie OHNE Fahrzeug anlegen. art: "strasse_gueter" | "strasse_personen" | "gleis_gueter" | "gleis_personen".
+func linie_neu(art: String, halte: Array, auftrag: Array = [], name := "") -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if not ARTEN.has(art):
+		return _nein("unbekannte_linienart")
+	var a: Dictionary = ARTEN[art]
+	if bool(a["gleis"]) and not gleis_frei():
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(bau_regel("gleis").get("ab_jahr", 0))})
+	var q := plan_pruefen_art(halte, bool(a["gleis"]), String(a["fracht"]))
+	if not q["ok"]:
+		return q
+	_linie_nr += 1
+	var l := {"id": _linie_nr, "name": name if name != "" else "Linie %d" % _linie_nr, "halte": halte.duplicate(),
+		"auftrag": auftrag.duplicate() if auftrag.size() == halte.size() else _auftrag_std(halte, String(a["fracht"])),
+		"gleis": bool(a["gleis"]), "fracht": String(a["fracht"]), "kategorie": String(a["kategorie"]), "art": art,
+		"farbe": LINIENFARBEN[(_linie_nr - 1) % LINIENFARBEN.size()]}
+	linien.append(l)
+	_log("linie", "%s angelegt: %s. Noch ohne Fahrzeug." % [l["name"], " → ".join(PackedStringArray(halte))], false)
+	return _ok({"linie": int(l["id"]), "strecke_m": int(q["strecke_m"])})
+
+
+func linie_umbenennen(id: int, name: String) -> Dictionary:
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	if name.strip_edges() != "":
+		l["name"] = name.strip_edges()
+	return _ok({})
+
+
+# ------------------------------------------------------------------ Fuhrhof des Firmensitzes, Depot-Bestand
+
+func _strassenknoten_id(p: Vector2) -> int:
+	var best := -1
+	var bd := INF
+	for nid in knoten_grad:
+		if knoten_grad[nid] == 0 or gleis_knoten.has(nid):
+			continue
+		var q: Vector3 = knoten_pos[nid]
+		var d := p.distance_to(Vector2(q.x, q.z))
+		if d < bd:
+			bd = d
+			best = nid
+	return best
+
+
+## Der Firmensitz bringt einen Fuhrhof mit (erstes Straßendepot, kostenlos, kein Unterhalt). Beim Umzug zieht er mit.
+func _fuhrhof_setzen() -> void:
+	var n := _strassenknoten_id(hq_pos)
+	if n < 0:
+		return
+	var pos := Vector2(knoten_pos[n].x, knoten_pos[n].z)
+	for dp in depots:
+		if dp.get("fuhrhof", false):
+			dp["knoten"] = n
+			dp["pos"] = pos
+			_routen = {}
+			return
+	depots.append({"id": depots.size() + 1, "art": "strasse", "knoten": n, "pos": pos, "tick": sim.tick_count, "name": "Fuhrhof am Firmensitz", "fuhrhof": true})
+	_routen = {}
+
+
+func depot_index_bei(p: Vector2, r_max := 30.0) -> int:
+	var best := -1
+	var bd := r_max
+	for i in depots.size():
+		var d := p.distance_to(depots[i]["pos"])
+		if d < bd:
+			bd = d
+			best = i
+	return best
+
+
+## Modelle, die dieses Depot verkauft (Straße oder Gleis), im laufenden Jahr kaufbar: neuestes je Kategorie zuerst.
+func depot_katalog(di: int) -> Array:
+	var r: Array = []
+	if di < 0 or di >= depots.size():
+		return r
+	var gl: bool = String(depots[di]["art"]) == "gleis"
+	for kat in (["zug", "pzug"] if gl else ["fuhrwerk", "kutsche"]):
+		var m := modelle(kat)
+		m.reverse()
+		for id in m:
+			r.append(String(id))
+	return r
+
+
+func depot_bestand(di: int) -> Array:
+	return abgestellt.filter(func(x): return int(x["depot"]) == di)
+
+
+## Kauf im Depot: `anzahl` Fahrzeuge eines Modells, sie stehen danach im Depot (ohne Linie).
+## {ok, keys [..], preis_cent (gesamt), stueck_cent} oder {ok: false, fehler}.
+func depot_kaufen(di: int, def_id: String, anzahl := 1) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if di < 0 or di >= depots.size():
+		return _nein("kein_depot", {"art": "Depot"})
+	var d := vdef(def_id)
+	if d.is_empty() or not _demo_katalog.has(def_id):
+		return _nein("unbekanntes_fahrzeug")
+	if auf_gleis(d) != (String(depots[di]["art"]) == "gleis"):
+		return _nein("falsches_depot", {"art": "Lokschuppen" if auf_gleis(d) else "Betriebshof"})
+	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d["verfuegbar_ab_jahr"])})
+	anzahl = clampi(anzahl, 1, 20)
+	var stueck := _preis(d)
+	if stueck * anzahl > eco.cash_cent:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": stueck * anzahl - eco.cash_cent})
+	var keys: Array = []
+	for i in anzahl:
+		konto.charge(stueck)
+		kauf_total += stueck
+		_fz_nr += 1
+		var rec := {"key": "d%d" % _fz_nr, "nr": _fz_nr, "def_id": def_id, "kauf_cent": stueck, "fix_cent": int(d.get("fix_cent_pro_periode", 0)),
+			"kauf_tick": sim.tick_count, "ueberholt_jahre": 0, "name": "%s %d" % [String(d.get("name", "Fahrzeug")), _fz_nr], "depot": di, "verkauft": false}
+		abgestellt.append(rec)
+		keys.append(rec["key"])
+	_fix_dirty = true
+	_log("kauf", "%d × %s im %s gekauft." % [anzahl, String(d.get("name", "")), String(depots[di]["name"])], false)
+	return _ok({"keys": keys, "preis_cent": stueck * anzahl, "stueck_cent": stueck})
+
+
+func fz_key(f: Dictionary) -> String:
+	return String(f["key"]) if f.has("key") and not f.has("vid") else "v%d" % int(f["vid"])
+
+
+## Fahrzeug zu einem Schlüssel: Depot-Datensatz ("d…") oder fahrendes Fahrzeug ("v…"); {} = gibt es nicht (mehr).
+func fz(key: String) -> Dictionary:
+	if key.begins_with("d"):
+		for rec in abgestellt:
+			if String(rec["key"]) == key:
+				return rec
+		return {}
+	if key.begins_with("v") and key.substr(1).is_valid_int():
+		var f := fahrzeug(int(key.substr(1)))
+		if not f.is_empty() and not f["verkauft"] and String(f.get("def_id", "")) != "":
+			return f
+	return {}
+
+
+## Alle Fahrzeuge des Spielers (fahrend und im Depot) als Schlüssel-Liste: Depot zuerst, dann nach Fahrzeugnummer.
+func alle_fahrzeuge() -> Array:
+	var r: Array = []
+	for rec in abgestellt:
+		r.append(String(rec["key"]))
+	for f in fahrzeuge:
+		if not f["verkauft"] and int(f.get("kauf_cent", 0)) > 0 and String(f.get("def_id", "")) != "":
+			r.append("v%d" % int(f["vid"]))
+	return r
+
+
+func _ausruecken(rec: Dictionary, l: Dictionary) -> Dictionary:
+	var d := vdef(String(rec["def_id"]))
+	var gl: bool = l["gleis"]
+	var dp: Dictionary = depots[int(rec["depot"])]
+	var a := String(l["halte"][0])
+	var b := String(l["halte"][1])
+	var ziel := _halt_knoten(a, gl)
+	var start := int(dp["knoten"])
+	var direkt: bool = start == ziel
+	if not direkt and sim.graph.find_path(start, ziel).is_empty():
+		return _nein("depot_erreicht_linie_nicht", {"name": a, "depot": String(dp["name"])})
+	var dar := String(d.get("darstellung", "fuhrwerk"))
+	var ka := int(stationen[a]["k"])
+	var f: Dictionary
+	if direkt:
+		f = linie(dar, String(rec["name"]), ziel, _halt_knoten(b, gl), ka, int(stationen[b]["k"]), false, d)
+	else:
+		f = linie(dar, String(rec["name"]), start, ziel, ka, ka, false, d)
+	if f.is_empty():
+		return _nein("linie")
+	f["von"] = int(stationen[a]["knoten"])
+	f["nach"] = int(stationen[b]["knoten"])
+	f["gleis"] = gl
+	f["def_id"] = String(rec["def_id"])
+	f["kauf_cent"] = int(rec["kauf_cent"])
+	f["fix_cent"] = int(rec["fix_cent"])
+	f["kauf_tick"] = int(rec["kauf_tick"])
+	f["ueberholt_jahre"] = int(rec.get("ueberholt_jahre", 0))
+	f["nr"] = int(rec["nr"])
+	f["heimat_depot"] = int(rec["depot"])
+	f["plan"] = int(l["id"])
+	if gl:
+		zug_gekauft = true
+	if direkt:
+		f["halt"] = 0
+		_halt_laden(f, l, 0)
+	else:
+		f["halt"] = -1                               # Ausfahrt: nach der Ankunft am ersten Halt beginnt der Umlauf (_plan_tick)
+		f["ausfahrt"] = true
+		var i: int = sim.slot_of(f["vid"])
+		sim.v_state[i] = SimWorld.S_UNTERWEGS
+		sim.v_lwait[i] = 0
+	_var_neu(f)
+	abgestellt.erase(rec)
+	_fix_dirty = true
+	return _ok({"vid": int(f["vid"]), "key": "v%d" % int(f["vid"])})
+
+
+## Sammelaktion: Fahrzeuge (Schlüssel aus Depot oder von anderen Linien) einer Linie zuweisen. Nur passende Art.
+## {ok (mind. eines zugewiesen), zugewiesen, keys (neue Schlüssel), abgelehnt [{key, fehler, …}]}; ok false + fehler, wenn keines ging.
+func zuweisen(keys: Array, linie_id: int) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var l := linie_plan(linie_id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	var q := plan_pruefen_art(l["halte"], bool(l["gleis"]), String(l["fracht"]))
+	if not q["ok"]:
+		return q
+	var neu: Array = []
+	var abg: Array = []
+	for key in keys:
+		var x := fz(String(key))
+		if x.is_empty():
+			abg.append({"key": key, "fehler": "unbekanntes_fahrzeug"})
+			continue
+		var d := vdef(String(x["def_id"]))
+		if art_von(d) != art_der_linie(l):
+			abg.append({"key": key, "fehler": "passt_nicht_zur_linie"})
+			continue
+		if String(key).begins_with("d"):
+			var r := _ausruecken(x, l)
+			if r["ok"]:
+				neu.append(r["key"])
+			else:
+				r["key"] = key
+				abg.append(r)
+		else:
+			if int(x.get("plan", -1)) == linie_id:
+				neu.append(key)
+				continue
+			x["plan"] = linie_id
+			x.erase("gestrandet")
+			x.erase("ausfahrt")
+			if _plan_neu_einsetzen(x, l):
+				neu.append(key)
+			else:
+				abg.append({"key": key, "fehler": "keine_verbindung"})
+	if neu.is_empty():
+		var erst: Dictionary = abg[0] if not abg.is_empty() else {"fehler": "keine_auswahl"}
+		return _nein(String(erst.get("fehler", "?")), {"abgelehnt": abg, "name": erst.get("name", ""), "depot": erst.get("depot", "")})
+	_log("zuweisen", "%d Fahrzeug(e) fahren jetzt auf %s." % [neu.size(), l["name"]], false)
+	return _ok({"zugewiesen": neu.size(), "keys": neu, "abgelehnt": abg, "linie": linie_id})
+
+
+## Sammelaktion: Fahrzeuge von der Linie nehmen und ins Depot stellen (di < 0: Heimatdepot, sonst nächstes passendes).
+func ins_depot(keys: Array, di := -1) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var n := 0
+	var neu: Array = []
+	for key in keys:
+		if not String(key).begins_with("v"):
+			continue
+		var f := fz(String(key))
+		if f.is_empty():
+			continue
+		var d := vdef(String(f["def_id"]))
+		var ziel := di
+		if ziel < 0 or ziel >= depots.size() or (String(depots[ziel]["art"]) == "gleis") != auf_gleis(d):
+			ziel = int(f.get("heimat_depot", -1))
+		if ziel < 0 or ziel >= depots.size() or (String(depots[ziel]["art"]) == "gleis") != auf_gleis(d):
+			ziel = -1
+			for i in depots.size():
+				if (String(depots[i]["art"]) == "gleis") == auf_gleis(d):
+					ziel = i
+					break
+		if ziel < 0:
+			continue
+		sim.line_stop(int(f["vid"]))
+		if eco.v_lots.has(int(f["vid"])):
+			eco.v_lots.erase(int(f["vid"]))
+		_fz_nr = maxi(_fz_nr, int(f.get("nr", 0)))
+		var nr: int = int(f["nr"]) if f.has("nr") else _fz_nr + 1
+		_fz_nr = maxi(_fz_nr, nr)
+		var rec := {"key": "d%d" % nr, "nr": nr, "def_id": String(f["def_id"]), "kauf_cent": int(f["kauf_cent"]), "fix_cent": int(f["fix_cent"]),
+			"kauf_tick": int(f["kauf_tick"]), "ueberholt_jahre": int(f.get("ueberholt_jahre", 0)), "name": String(f["name"]), "depot": ziel, "verkauft": false}
+		f["verkauft"] = true
+		f["versteckt"] = true
+		f["fix_cent"] = 0
+		abgestellt.append(rec)
+		neu.append(rec["key"])
+		n += 1
+	if n == 0:
+		return _nein("keine_auswahl")
+	_fix_dirty = true
+	_log("ins_depot", "%d Fahrzeug(e) stehen jetzt im Depot." % n, false)
+	return _ok({"n": n, "keys": neu})
+
+
+## Sammelaktion Verkauf (Restwert W20 je Fahrzeug, auch aus dem Depot).
+func verkaufen_viele(keys: Array) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var n := 0
+	var summe := 0
+	for key in keys:
+		var x := fz(String(key))
+		if x.is_empty():
+			continue
+		if String(key).begins_with("d"):
+			var rw := restwert(x)
+			konto.erstatten(rw)
+			abgestellt.erase(x)
+			summe += rw
+			n += 1
+		else:
+			var r := fahrzeug_verkaufen(int(x["vid"]))
+			if r.get("ok", false):
+				x["versteckt"] = true
+				summe += int(r["restwert_cent"])
+				n += 1
+	if n == 0:
+		return _nein("keine_auswahl")
+	_fix_dirty = true
+	return _ok({"n": n, "erloes_cent": summe})
+
+
+func neueres_modell_def(def_id: String) -> String:
+	var d := vdef(def_id)
+	var m := modelle(String(d.get("kategorie", "")))
+	if m.is_empty():
+		return ""
+	var neu := String(m[-1])
+	return neu if int(vdef(neu).get("generation", 0)) > int(d.get("generation", 0)) else ""
+
+
+## Angebot Ersetzen für einen Schlüssel (neuestes Modell der Kategorie): {ok, def_id, netto_cent, restwert_cent, preis_cent}.
+func ersetzen_angebot_key(key: String) -> Dictionary:
+	var x := fz(key)
+	if x.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	var neu := neueres_modell_def(String(x["def_id"]))
+	if neu == "":
+		return _nein("kein_neueres_modell")
+	if key.begins_with("v"):
+		var q := ersetzen_angebot(int(x["vid"]), neu)
+		if q.get("ok", false):
+			q["def_id"] = neu
+		return q
+	var rw := restwert(x)
+	var preis := _preis(vdef(neu))
+	return _ok({"def_id": neu, "restwert_cent": rw, "preis_cent": preis, "netto_cent": preis - rw, "kaufbar": preis - rw <= eco.cash_cent})
+
+
+## Sammelaktion Ersetzen: jedes gewählte Fahrzeug durch das neueste Modell seiner Kategorie (solange das Geld reicht).
+func ersetzen_viele(keys: Array) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	var n := 0
+	var summe := 0
+	var grund := "kein_neueres_modell"
+	var fehlt := 0
+	for key in keys:
+		var q := ersetzen_angebot_key(String(key))
+		if not q.get("ok", false):
+			if String(q.get("fehler", "")) != "kein_neueres_modell":
+				grund = String(q.get("fehler", grund))
+			continue
+		if not q.get("kaufbar", false):
+			grund = "guthaben_reicht_nicht"
+			fehlt = int(q["netto_cent"]) - eco.cash_cent
+			continue
+		var x := fz(String(key))
+		if String(key).begins_with("v"):
+			if fahrzeug_ersetzen(int(x["vid"]), String(q["def_id"])).get("ok", false):
+				n += 1
+				summe += int(q["netto_cent"])
+		else:
+			var d := vdef(String(q["def_id"]))
+			konto.erstatten(int(q["restwert_cent"]))
+			konto.charge(int(q["preis_cent"]))
+			kauf_total += int(q["preis_cent"])
+			x["def_id"] = String(q["def_id"])
+			x["kauf_cent"] = int(q["preis_cent"])
+			x["fix_cent"] = int(d.get("fix_cent_pro_periode", 0))
+			x["kauf_tick"] = sim.tick_count
+			x["ueberholt_jahre"] = 0
+			x["name"] = "%s %d" % [String(d.get("name", "Fahrzeug")), int(x["nr"])]
+			n += 1
+			summe += int(q["netto_cent"])
+	if n == 0:
+		return _nein(grund, {"fehlt_cent": fehlt})
+	_fix_dirty = true
+	return _ok({"n": n, "netto_cent": summe})
+
+
+## Überholung für einen Schlüssel: Fahrzeuge im Depot immer, fahrende, wenn ein Depot ihre Linie erreicht.
+func ueberholen_angebot_key(key: String) -> Dictionary:
+	if key.begins_with("v"):
+		var f := fz(key)
+		return ueberholen_angebot(int(f["vid"])) if not f.is_empty() else _nein("unbekanntes_fahrzeug")
+	var rec := fz(key)
+	if rec.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	if alter_jahre(rec) - int(rec.get("ueberholt_jahre", 0)) <= 0:
+		return _nein("nichts_zu_ueberholen")
+	var d := vdef(String(rec["def_id"]))
+	var kosten := int(d.get("kauf_cent", 0)) * int(daten.get("depot", {}).get("ueberholung_promille", 200)) / 1000 * (1000 - mini(900, bonus("ueberholung_pm"))) / 1000
+	return _ok({"kosten_cent": kosten, "kaufbar": kosten <= eco.cash_cent, "fehlt_cent": maxi(0, kosten - eco.cash_cent), "depot": String(depots[int(rec["depot"])]["name"])})
+
+
+func ueberholen_key(key: String) -> Dictionary:
+	if key.begins_with("v"):
+		var f := fz(key)
+		return fahrzeug_ueberholen(int(f["vid"])) if not f.is_empty() else _nein("unbekanntes_fahrzeug")
+	var q := ueberholen_angebot_key(key)
+	if not q["ok"]:
+		return q
+	if not q["kaufbar"]:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": int(q["fehlt_cent"])})
+	var rec := fz(key)
+	konto.charge(int(q["kosten_cent"]))
+	kauf_total += int(q["kosten_cent"])
+	rec["ueberholt_jahre"] = alter_jahre(rec)
+	_fix_dirty = true
+	return q
+
+
+## Ertrag (Cent) der letzten vollen Spielminute je Linie und Auslastung: {ertrag_cent, fahrzeuge, ladung, kapazitaet}.
+func linie_kennzahlen(id: int) -> Dictionary:
+	var fz_l := linie_fahrzeuge(id)
+	var vids := {}
+	var ladung := 0
+	var kap := 0
+	for f in fz_l:
+		vids[int(f["vid"])] = true
+		var i: int = sim.slot_of(f["vid"])
+		ladung += sim.v_cargo[i]
+		kap += sim.v_cargo_cap[i]
+	var ab: int = sim.tick_count - eco.periode_ticks
+	var cent := 0
+	var k := lieferungen.size() - 1
+	while k >= 0 and int(lieferungen[k]["tick"]) > ab:
+		if vids.has(int(lieferungen[k]["vid"])):
+			cent += int(lieferungen[k]["cent"])
+		k -= 1
+	return {"ertrag_cent": cent, "fahrzeuge": fz_l.size(), "ladung": ladung, "kapazitaet": kap}
+
+
+## Wegpunkte (m) des Rundkurses einer Linie für die Hervorhebung in der Welt.
+func linie_punkte(id: int) -> PackedVector2Array:
+	var l := linie_plan(id)
+	var r := PackedVector2Array()
+	if l.is_empty():
+		return r
+	var n: int = l["halte"].size()
+	for i in n:
+		var route := _hop(String(l["halte"][i]), String(l["halte"][(i + 1) % n]), bool(l["gleis"]))
+		for st in route:
+			var e: Dictionary = sim.graph.edges[st["edge"]]
+			var a: int = e["a"] if st["fwd"] else e["b"]
+			r.append(Vector2(knoten_pos[a].x, knoten_pos[a].z))
+		if not route.is_empty():
+			var e2: Dictionary = sim.graph.edges[route[-1]["edge"]]
+			var b: int = e2["b"] if route[-1]["fwd"] else e2["a"]
+			r.append(Vector2(knoten_pos[b].x, knoten_pos[b].z))
+	return r
+
+
+# ------------------------------------------------------------------ Komfort-API (Tests, Bot): Linie + Kauf im Depot + Zuweisen in einem Aufruf
+
+func _kauf_und_zuweisen(l: Dictionary, def_id: String) -> Dictionary:
+	var d := vdef(def_id)
+	if d.is_empty() or art_von(d) != art_der_linie(l):
+		return _nein("passt_nicht_zur_linie")
+	var pq := plan_pruefen_art(l["halte"], bool(l["gleis"]), String(l["fracht"]))
+	if not pq["ok"]:
+		return pq
+	var di := depot_erreicht(String(l["halte"][0]), bool(l["gleis"]))
+	if di < 0:
+		return _nein("kein_depot", {"art": "Lokschuppen" if bool(l["gleis"]) else "Betriebshof"})
+	var k := depot_kaufen(di, def_id, 1)
+	if not k["ok"]:
+		return k
+	var z := zuweisen(k["keys"], int(l["id"]))
+	if not z["ok"]:
+		verkaufen_viele(k["keys"])
+		return z
+	return _ok({"vid": int(String(z["keys"][0]).substr(1)), "preis_cent": int(k["stueck_cent"]), "linie": int(l["id"]), "depot": di})
+
+
+## Direktlinie von → nach (zwei Halte, am Ziel wird nur abgeladen) samt einem Fahrzeug aus dem Depot, das den Start erreicht.
+## Gibt es die Linie schon, kommt nur ein weiteres Fahrzeug dazu.
+func linie_anlegen(von_name: String, nach_name: String, kat := "fuhrwerk", def_id := "") -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if def_id == "":
+		def_id = def_fuer(kat)
+	var d := vdef(def_id)
+	if d.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	if not stationen.has(von_name) or not stationen.has(nach_name):
+		return _nein("unbekannter_ort")
+	if von_name == nach_name:
+		return _nein("gleicher_ort")
+	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d["verfuegbar_ab_jahr"])})
+	if not (fracht_passt(d, von_name, true) and fracht_passt(d, nach_name, false)):
+		return _nein("falsche_fracht", {"fracht": fracht(d)})
+	var art := art_von(d)
+	for l in linien:
+		if String(l["art"]) == art and l["halte"] == [von_name, nach_name]:
+			return _kauf_und_zuweisen(l, def_id)
+	var fr := fracht(d)
+	var r := linie_neu(art, [von_name, nach_name], [_auftrag_std([von_name], fr)[0], "nichts"], "%s → %s" % [von_name, nach_name])
+	if not r["ok"]:
+		return r
+	var l2 := linie_plan(int(r["linie"]))
+	var k := _kauf_und_zuweisen(l2, def_id)
+	if not k["ok"]:
+		linien.erase(l2)
+		_linie_nr -= 1
+	return k
+
+
+func linienplan_anlegen(halte: Array, def_id := "", auftrag: Array = [], name := "") -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if def_id == "":
+		def_id = def_fuer("fuhrwerk")
+	var d := vdef(def_id)
+	if d.is_empty():
+		return _nein("unbekanntes_fahrzeug")
+	if kalenderjahr() < int(d.get("verfuegbar_ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(d["verfuegbar_ab_jahr"])})
+	var r := linie_neu(art_von(d), halte, auftrag, name)
+	if not r["ok"]:
+		return r
+	var l := linie_plan(int(r["linie"]))
+	var k := _kauf_und_zuweisen(l, def_id)
+	if not k["ok"]:
+		linien.erase(l)
+		_linie_nr -= 1
+	return k
+
+
+func linie_fahrzeug_dazu(id: int, def_id := "") -> Dictionary:
+	var l := linie_plan(id)
+	if l.is_empty():
+		return _nein("unbekannte_linie")
+	return _kauf_und_zuweisen(l, def_id if def_id != "" else def_fuer(String(l["kategorie"])))
+
+
+func fahrzeug_zuweisen(vid: int, id: int) -> Dictionary:
+	return zuweisen(["v%d" % vid], id)

@@ -217,7 +217,7 @@ func _lauf(sd: int) -> Dictionary:
 		"sim_fehler": ps.fehler.size(), "fehler": ps.fehler.duplicate(), "ablehnungen": n_abl, "abl": abl.duplicate(),
 		"pruefsumme": ps.pruefsumme(), "frei": ps.freischaltungen.duplicate(),
 		"fahrgaeste": int(ps.geliefert.get("fahrgaeste", 0)), "plan3": plan3, "depots": ps.depots.size(), "pzug": pzug, "gzug": gzug, "stadt_fz": stadt_fz,
-		"depot_kauf": int(akt.get("depot_kauf", 0)), "verkauft": int(akt.get("verkauf", 0)), "strecke_gekauft": 1 if ps.maut_gekauft else 0}
+		"depot_kauf": int(akt.get("depot_kauf", 0)), "verkauft": int(akt.get("verkauf", 0)), "sammel": 1 if z.get("sammel", false) else 0, "linie_leer": int(akt.get("linie_neu", 0)), "strecke_gekauft": 1 if ps.maut_gekauft else 0}
 
 
 ## 60-s-Fenster ohne Angebot, längste Angebotslücke (s), längste Lücke zwischen ausgeführten Aktionen (s).
@@ -388,7 +388,7 @@ func _takt(t: int) -> void:
 	_personenzug()
 	# Kette 3: Gleis (ab 1824), Kohle + Erz → Eisen → Werkzeug
 	if ps.gleis_frei() and _min() >= float(z["gleis_min"]):
-		if _bauen("gleis", GLEIS_KOHLE, "gleis_kohle") and _linie(KOHLE, HUETTE, 1, true):
+		if _bauen("gleis", GLEIS_KOHLE, "gleis_kohle") and _lokschuppen(KOHLE) and _linie(KOHLE, HUETTE, 1, true):
 			if _bauen("gleis", GLEIS_ERZ, "gleis_erz") and _linie(ERZ, HUETTE, 1, true):
 				_verstaerken(ERZ, HUETTE, 2, true)
 				if _bauen("strasse", [ps.halt_pos(HUETTE), ps.naechster_strassenknoten(ps.halt_pos(HUETTE))], "weg_huette"):
@@ -400,52 +400,74 @@ func _takt(t: int) -> void:
 	_hq()
 	_ersetzen()
 	_strecke()
+	if not ps.abgestellt.is_empty() and ps.sim.tick_count % 600 == 0:
+		z["im_depot_vergessen"] = int(z.get("im_depot_vergessen", 0)) + 1
 
 
-## Stadtverkehr (Linienpläne mit 3 Halten), Depot (Kauf mit Rabatt, Überholung, ein Verkauf), Personenzug.
+## Neuer Ablauf (Transport-Fever-Muster): Linie ohne Fahrzeug anlegen → im Depot kaufen (auch mehrere) → Sammelzuweisung.
+## Stadtlinien mit 3 Halten, Betriebshof, „ins Depot“ und Verkauf, Überholung.
 func _stadtverkehr() -> void:
 	if _min() >= float(z["stadt1_min"]) and not z.has("l_dorf"):
+		var r: Dictionary = ps.linie_neu("strasse_personen", [DORF, OST, KIRCHE], [], "Stadtlinie Erlenbach")
+		if _a("linie_neu", r):
+			z["l_dorf"] = int(r["linie"])
+	if z.has("l_dorf") and not z.has("dorf_fz"):
+		var di: int = ps.depot_erreicht(DORF, false)
 		var d: Dictionary = ps.vdef(ps.def_fuer("kutsche"))
-		if ps._preis(d) + reserve / 2 <= _cash():
-			var r: Dictionary = ps.linienplan_anlegen([DORF, OST, KIRCHE], ps.def_fuer("kutsche"), [], "Stadtlinie Erlenbach")
-			if _a("linienplan", r):
-				z["l_dorf"] = int(r["linie"])
-	if _min() >= float(z["depot_min"]) and ps.depots.is_empty():
-		var q: Dictionary = ps.depot_angebot(ps.naechster_strassenknoten(ps.hq_pos))
+		if di >= 0 and ps._preis(d) * 2 + reserve / 2 <= _cash():
+			var k: Dictionary = ps.depot_kaufen(di, ps.def_fuer("kutsche"), 2)          # zwei auf einmal, stehen im Depot
+			if _a("depot_kauf", k):
+				z["dorf_fz"] = k["keys"]
+				z["dorf_kauf_tick"] = ps.sim.tick_count
+	if z.has("dorf_fz") and not z.has("dorf_zu") and ps.sim.tick_count - int(z["dorf_kauf_tick"]) >= TAKT:
+		var zu: Dictionary = ps.zuweisen(z["dorf_fz"], int(z["l_dorf"]))                 # Sammelzuweisung
+		if _a("zuweisen", zu):
+			z["dorf_zu"] = zu["keys"]
+			z["dorf_zu_tick"] = ps.sim.tick_count
+			if int(zu["zugewiesen"]) >= 2:
+				z["sammel"] = true
+	if _min() >= float(z["depot_min"]) and ps.depots.size() == 1:
+		var q: Dictionary = ps.depot_angebot(ps.halt_pos(MUEHLE))
 		if q.get("ok", false) and int(q["kosten_cent"]) + reserve <= _cash():
-			_a("depot", ps.depot_bauen(ps.naechster_strassenknoten(ps.hq_pos)))
+			_a("depot", ps.depot_bauen(ps.halt_pos(MUEHLE)))
 	if _min() >= float(z["stadt1_min"]) + 5.0 and not z.has("l_stadt"):
 		var d2: Dictionary = ps.vdef(ps.def_fuer("kutsche"))
 		if ps._preis(d2) + reserve <= _cash():
 			var r2: Dictionary = ps.linienplan_anlegen([STADT, TOR, HINTERGASSE], ps.def_fuer("kutsche"), [], "Stadtlinie Lindenfurt")
 			if _a("linienplan", r2):
 				z["l_stadt"] = int(r2["linie"])
-	# Kauf im Depot: zweite Kutsche für die Erlenbacher Linie, sobald dort Fahrgäste stehen bleiben
-	if z.has("l_dorf") and not ps.depots.is_empty() and not z.has("depot_kauf") and ps.wartende(DORF) >= 16:
-		var d3: Dictionary = ps.vdef(ps.def_fuer("kutsche"))
-		if ps._preis(d3) + reserve <= _cash() and ps.depot_erreicht(DORF, false) >= 0:
-			var r3: Dictionary = ps.depot_kauf(ps.depot_erreicht(DORF, false), ps.def_fuer("kutsche"), int(z["l_dorf"]))
-			if _a("depot_kauf", r3):
-				z["depot_kauf"] = int(r3["vid"])
-				z["depot_kauf_tick"] = ps.sim.tick_count
-	# Verkauf: die Zweitkutsche geht nach 6 Minuten wieder weg, wenn der Omnibus die Linie allein schafft (oder spätestens Minute 26)
-	if z.has("depot_kauf") and not z.has("verkauft") and ps.sim.tick_count - int(z["depot_kauf_tick"]) >= 3600 and (ps.wartende(DORF) < 8 or _min() >= 26.0):
-		if _a("verkauf", ps.fahrzeug_verkaufen(int(z["depot_kauf"]))):
-			z["verkauft"] = true
-	# Überholung, wenn sie sich in 5 Minuten rechnet
-	for f in ps.fahrzeuge:
-		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0 or ps.neueres_modell(int(f["vid"])) != "":
+	# Abziehen und Verkauf: die Zweitkutsche geht nach 6 Minuten ins Depot und wird dort verkauft
+	if z.has("dorf_zu") and not z.has("verkauft") and z["dorf_zu"].size() >= 2 and ps.sim.tick_count - int(z["dorf_zu_tick"]) >= 3600:
+		var idp: Dictionary = ps.ins_depot([z["dorf_zu"][1]])
+		if _a("ins_depot", idp):
+			if _a("verkauf", ps.verkaufen_viele(idp["keys"])):
+				z["verkauft"] = true
+	for key in ps.alle_fahrzeuge():
+		if ps.neueres_modell_def(String(ps.fz(key)["def_id"])) != "":
 			continue
-		var uq: Dictionary = ps.ueberholen_angebot(int(f["vid"]))
-		if uq.get("ok", false) and int(uq["spart_cent_pro_periode"]) * 5 >= int(uq["kosten_cent"]) and int(uq["kosten_cent"]) + reserve <= _cash():
-			_a("ueberholen", ps.fahrzeug_ueberholen(int(f["vid"])))
+		var uq: Dictionary = ps.ueberholen_angebot_key(key)
+		if uq.get("ok", false) and int(uq.get("spart_cent_pro_periode", 0)) * 5 >= int(uq["kosten_cent"]) and int(uq["kosten_cent"]) + reserve <= _cash():
+			_a("ueberholen", ps.ueberholen_key(key))
 			break
+
+
+## Lokschuppen am Bahnhof (Züge gibt es nur dort). true = steht.
+func _lokschuppen(name: String) -> bool:
+	if ps.depot_erreicht(name, true) >= 0:
+		return true
+	if not ps.bahnhof.has(name):
+		return false
+	var kp: Vector3 = ps.knoten_pos[ps.bahnhof[name]]
+	var q: Dictionary = ps.depot_angebot(Vector2(kp.x, kp.z))
+	if q.get("ok", false) and int(q["kosten_cent"]) + reserve <= _cash():
+		_a("depot", ps.depot_bauen(Vector2(kp.x, kp.z)))
+	return ps.depot_erreicht(name, true) >= 0
 
 
 func _personenzug() -> void:
 	if not ps.gleis_frei() or _min() < float(z["pzug_min"]):
 		return
-	if not _bauen("gleis", GLEIS_PERSONEN, "gleis_personen"):
+	if not _bauen("gleis", GLEIS_PERSONEN, "gleis_personen") or not _lokschuppen(DORF):
 		return
 	if not z.has("l_pzug"):
 		var d: Dictionary = ps.vdef(ps.def_fuer("pzug"))
@@ -453,12 +475,6 @@ func _personenzug() -> void:
 			var r: Dictionary = ps.linienplan_anlegen([DORF, HALT_HW], ps.def_fuer("pzug"), [], "Bahn Erlenbach – Hasenwinkel")
 			if _a("personenzug", r):
 				z["l_pzug"] = int(r["linie"])
-	elif not z.has("lokschuppen"):
-		var kp: Vector3 = ps.knoten_pos[ps.bahnhof[DORF]]
-		var q: Dictionary = ps.depot_angebot(Vector2(kp.x, kp.z))
-		if q.get("ok", false) and int(q["kosten_cent"]) + reserve + 50000 <= _cash():
-			if _a("depot", ps.depot_bauen(Vector2(kp.x, kp.z))):
-				z["lokschuppen"] = true
 
 
 func _strecke() -> void:
@@ -583,7 +599,7 @@ func _zusammenfassung(res: Array, det_ok: bool, ms: int) -> bool:
 		fehler_summe += int(r["sim_fehler"])
 		for k in ["kasse", "aktionen", "luecke_max_s", "luecke_streng_s", "arten_x10", "luecke_akt_s", "meilensteine", "skillpunkte", "skills", "v_ok", "v_fehl", "v_an",
 				"strassen", "gleise", "zuege", "ersetzt", "firmen", "hq_stufe", "anbauten", "ertrag_min30", "fahrzeuge", "ablehnungen",
-				"fahrgaeste", "plan3", "depots", "pzug", "gzug", "stadt_fz", "depot_kauf", "verkauft", "strecke_gekauft"]:
+				"fahrgaeste", "plan3", "depots", "pzug", "gzug", "stadt_fz", "depot_kauf", "sammel", "verkauft", "strecke_gekauft"]:
 			if not cols.has(k):
 				cols[k] = []
 			cols[k].append(int(r[k]))
@@ -629,9 +645,9 @@ func _zusammenfassung(res: Array, det_ok: bool, ms: int) -> bool:
 	var gate_ok: bool = bank == 0 and fen_summe == 0 and fehler_summe == 0 and int(_p(cols.get("luecke_max_s", [0]), 1.0)) <= 120
 	var erw := 0
 	for r in res:
-		if int(r["plan3"]) >= 1 and int(r["depot_kauf"]) >= 1 and int(r["verkauft"]) >= 1 and int(r["pzug"]) >= 1 and int(r["gzug"]) >= 1 and int(r["stadt_fz"]) >= 1 and int(r["fahrgaeste"]) > 0:
+		if int(r["plan3"]) >= 1 and int(r["depot_kauf"]) >= 1 and int(r["sammel"]) >= 1 and int(r["linie_leer"]) >= 1 and int(r["verkauft"]) >= 1 and int(r["pzug"]) >= 1 and int(r["gzug"]) >= 1 and int(r["stadt_fz"]) >= 1 and int(r["fahrgaeste"]) > 0:
 			erw += 1
-	print("  Erweiterung (Mehrpunkt-Linie befahren, Depotkauf und Verkauf, Personenzug und Güterzug, Stadtverkehr mit Fahrgästen): %d/%d Läufe vollständig" % [erw, n])
+	print("  Erweiterung (Linie ohne Fahrzeug, Kauf im Depot, Sammelzuweisung, Mehrpunkt-Linie befahren, ins Depot und Verkauf, Personenzug und Güterzug, Stadtverkehr mit Fahrgästen): %d/%d Läufe vollständig" % [erw, n])
 	if strategie == "plan":
 		gate_erw = erw == n
 	print("  Gate A (kein Bankrott, kein 60-s-Fenster ohne Angebot, Lücke ≤ 120 s, 0 Sim-Fehler): %s" % ("ERFÜLLT" if gate_ok else "VERLETZT"))

@@ -363,6 +363,9 @@ func _takt(t: int) -> void:
 	_skills()
 	_vertraege()
 	_kredit()
+	# Firmensitz weit weg von den ersten Betrieben: zuerst ein Betriebshof an der Mühle, sonst fährt jeder Kauf minutenlang vom Fuhrhof an.
+	if ps.depots.size() == 1 and (ps.depots[0]["pos"] as Vector2).distance_to(ps.halt_pos(MUEHLE)) > 600.0:
+		_a("depot", ps.depot_bauen(ps.halt_pos(MUEHLE)))
 	# Kette 1: Getreide → Mehl
 	if not _linie(FARM1, MUEHLE, 1):
 		return

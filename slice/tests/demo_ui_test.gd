@@ -2,8 +2,10 @@ extends SceneTree
 ## Demo-Sprint: UI-Test der Demo (ui_demo.gd + ui_welt.gd im Demo-Modus) und Screenshots der Schlüsselmomente (Gate G).
 ##   godot --headless --path slice -s res://tests/demo_ui_test.gd                      (nur Prüfungen)
 ##   xvfb-run -a -s "-screen 0 1600x900x24" godot --rendering-driver opengl3 --path slice -s res://tests/demo_ui_test.gd -- --shots=<ordner>
-## Spielt einen Durchlauf über die UI-Funktionen (dieselben, die Knöpfe und Tasten rufen): Start, Firmensitz, Linie, Vertrag,
-## Skill, Straße, Gleis, Zug, Modellwechsel, HQ-Ausbau, Esc. Prüft: Anzeige = Spielwert, keine stumme Ablehnung, Fehlertexte.
+## Spielt einen Durchlauf: Start, Firmensitz, Linie anlegen (ohne Fahrzeug) → im Depot kaufen → zuweisen, Vertrag, Skill, Straße,
+## Gleis, Zug, Modellwechsel, HQ-Ausbau, Esc. Prüft: Anzeige = Spielwert, keine stumme Ablehnung, Fehlertexte, und (Teil 3, A1–A12)
+## über den ECHTEN Maus-/Tastenweg (Ereignisse durch den Viewport): Kauf im Depot ohne Linie, Mehrfachauswahl mit Umschalt+Klick,
+## Sammelzuweisung, Auswahlring sichtbar/weg, Banner in jedem Modus, Esc und Klick ins Leere, altes Muster nicht erreichbar.
 
 const SZENE := "res://proto/prototyp_welt.tscn"
 const FARM := "Gut Kuppenhof"
@@ -101,7 +103,13 @@ func _druecke(k: int) -> void:
 	root.push_input(ev2)
 
 
-func _klick(pos: Vector2) -> void:
+## Bildpunkt (Canvas) → Fensterkoordinaten: headless ist das Fenster 64×64 und der Canvas gestreckt, im echten Fenster 1:1.
+func _fenster(pos: Vector2) -> Vector2:
+	return root.get_final_transform() * pos
+
+
+func _klick(p_pos: Vector2) -> void:
+	var pos := _fenster(p_pos)
 	for druck in [true, false]:
 		var ev := InputEventMouseButton.new()
 		ev.button_index = MOUSE_BUTTON_LEFT
@@ -109,6 +117,128 @@ func _klick(pos: Vector2) -> void:
 		ev.position = pos
 		ev.global_position = pos
 		root.push_input(ev)
+
+
+
+## Echter Mausklick auf ein Control (Mitte), optional mit Umschalt: Ereignisse laufen durch den Viewport wie beim Spieler.
+func _klick_ctrl(c: Control, umschalt := false) -> bool:
+	if c == null or not is_instance_valid(c) or not c.is_visible_in_tree():
+		return false
+	var pos := _fenster(c.get_global_rect().get_center())
+	var mv := InputEventMouseMotion.new()
+	mv.position = pos
+	mv.global_position = pos
+	root.push_input(mv)
+	for druck in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = druck
+		ev.position = pos
+		ev.global_position = pos
+		ev.shift_pressed = umschalt
+		root.push_input(ev)
+	await _frames(3)
+	return true
+
+
+func _kn(id: String) -> Button:
+	var b = ud.knoepfe.get(id)
+	if b != null and is_instance_valid(b) and (b as Button).is_visible_in_tree():
+		return b
+	b = uw.knoepfe.get(id)
+	if b != null and is_instance_valid(b) and (b as Button).is_visible_in_tree():
+		return b
+	return null
+
+
+## Knopf über den echten Mausweg drücken. Wartet, bis der Knopf nach einem Neuaufbau der Karte seinen Platz hat.
+func _knopf_klick(id: String) -> bool:
+	for i in 6:
+		await _frames(2)
+		var b := _kn(id)
+		if b != null and b.get_global_rect().size.x > 4.0 and b.get_global_rect().position != Vector2.ZERO:
+			return await _klick_ctrl(b)
+	return false
+
+
+func _zeile_klick(id: String, umschalt := false) -> bool:
+	for i in 6:
+		await _frames(2)
+		var z := _zeile(id)
+		if z != null and z.is_visible_in_tree() and z.get_global_rect().size.x > 4.0 and z.get_global_rect().position != Vector2.ZERO:
+			return await _klick_ctrl(z, umschalt)
+	return false
+
+
+func _zeile(id: String) -> Control:
+	var z = ud.vk.zeilen.get(id)
+	return z if z != null and is_instance_valid(z) else null
+
+
+## Bildschirmpunkt einer Station (Schildfuß, dorthin klickt der Spieler).
+## Warten, bis die gezeichnete Kamera (Physik-Interpolation) am Ziel steht: erst dann stimmen Bildpunkte für Mausklicks.
+func _ruhig() -> void:
+	s.rig.reset_physics_interpolation()
+	s.cam.reset_physics_interpolation()
+	for i in 90:
+		if s.cam.get_camera_transform().origin.distance_to(s.cam.global_position) < 0.05:
+			break
+		await physics_frame
+	await process_frame
+
+
+func _px(nm: String) -> Vector2:
+	return uw.bildschirm_pos(nm)
+
+
+## Echter Mausklick in die Welt auf eine Station.
+func _klick_ort(nm: String) -> void:
+	_klick(_px(nm))
+	await _frames(3)
+
+
+## Kamera so stellen, dass alle Stationen im freien Bildbereich liegen (nicht unter Leiste, Karten oder Listen).
+func _sicht(namen: Array, abstand := 0.0, gier := 0.3) -> void:
+	var m := Vector2.ZERO
+	for nm in namen:
+		m += Vector2(uw.orte_pos[nm].x, uw.orte_pos[nm].z)
+	m /= float(namen.size())
+	var weit := 0.0
+	for nm in namen:
+		weit = maxf(weit, m.distance_to(Vector2(uw.orte_pos[nm].x, uw.orte_pos[nm].z)))
+	var ab := abstand if abstand > 0.0 else weit * 2.6 + 420.0
+	var gr: Vector2 = root.get_viewport().get_visible_rect().size
+	for versuch in 8:
+		_kamera(m.x, m.y, ab, gier)
+		await _ruhig()
+		var passt := true
+		for nm in namen:
+			var px := _px(nm)
+			if px.x < 470.0 or px.x > gr.x - 420.0 or px.y < 250.0 or px.y > gr.y - 330.0:
+				passt = false
+		if passt:
+			break
+		ab *= 1.25
+
+
+func _text_in(n: Node, teil: String) -> bool:
+	if n is Label and (n as Label).is_visible_in_tree() and String((n as Label).text).contains(teil):
+		return true
+	for c in n.get_children():
+		if _text_in(c, teil):
+			return true
+	return false
+
+
+func _dbg_unter(n: Node, pos: Vector2) -> void:
+	if n is Control and (n as Control).is_visible_in_tree() and (n as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE and (n as Control).get_global_rect().has_point(pos):
+		print("      unter Maus: ", n.get_path(), " filter=", (n as Control).mouse_filter, " rect=", (n as Control).get_global_rect())
+	for c in n.get_children():
+		_dbg_unter(c, pos)
+
+
+func _frei_px() -> Vector2:
+	return Vector2(root.get_viewport().get_visible_rect().size.x * 0.5, root.get_viewport().get_visible_rect().size.y * 0.62)
 
 
 func _run() -> void:
@@ -123,8 +253,9 @@ func _run() -> void:
 	if ud == null:
 		quit(1)
 		return
-	pruef(ud.start_panel.visible and s.sim_tempo == 0 and ud.leiste_kn.size() == 8 and String(ud.lbl_moeglich.text).contains("Firmensitz platzieren"),
-		"U2 Startbild sichtbar, Spiel pausiert, Werkzeugleiste mit 8 Knöpfen, Zeile: %s" % ud.lbl_moeglich.text)
+	var vk = ud.vk
+	pruef(ud.start_panel.visible and s.sim_tempo == 0 and ud.leiste_kn.size() == 7 and ud.leiste_kn.has("verkehr") and String(ud.lbl_moeglich.text).contains("Firmensitz platzieren"),
+		"U2 Startbild sichtbar, Spiel pausiert, Werkzeugleiste mit 7 Knöpfen (ein Knopf „Verkehr“), Zeile: %s" % ud.lbl_moeglich.text)
 	await _shot("01_startbild")
 	# Vor dem Firmensitz: jede Aktion erklärt sich
 	var n0: int = uw.meldungen_log.size()
@@ -132,7 +263,10 @@ func _run() -> void:
 	uw.lizenz_kaufen(FARM)
 	pruef(uw.meldungen_log.size() == n0 + 2 and _letzte().contains("Firmensitz") and ud.bau_art == "", "U3 ohne Firmensitz: Bauen und Lizenz melden „%s“" % _letzte())
 	_taste(KEY_SPACE)
-	pruef(not ud.start_panel.visible and ud.hq_modus and s.sim_tempo == 1 and ud.modus_panel.visible, "U4 Leertaste schließt das Startbild, Zeit läuft, Firmensitz-Modus ist an")
+	var banner := {}
+	banner["hq"] = String(ud.werte.get("banner", ""))
+	pruef(not ud.start_panel.visible and ud.hq_modus and s.sim_tempo == 1 and ud.modus_panel.visible and ud.banner.visible and banner["hq"].contains("Firmensitz platzieren"),
+		"U4 Leertaste schließt das Startbild, Zeit läuft, Firmensitz-Modus ist an, Banner: „%s“" % banner["hq"])
 	s.setze_tempo(0)
 	_kamera(1640, 760, 620, 0.5)
 	# Echter Eingabeweg: Geländepunkt unter der Maus, Taste und Mausklick durch den Viewport
@@ -142,12 +276,13 @@ func _run() -> void:
 		var zur = ud.boden(sp)
 		abw = maxf(abw, (zur as Vector2).distance_to(wp) if zur is Vector2 else 999.0)
 	pruef(abw < 2.0, "U4b Geländepunkt unter der Maus: Bildpunkt → Welt weicht höchstens %.2f m ab" % abw)
-	ud.hq_modus_ende()
+	_druecke(KEY_ESCAPE)
+	var esc_hq: bool = not ud.hq_modus and not ud.banner.visible and not ud.menue_panel.visible
 	_druecke(KEY_H)
-	var per_taste: bool = ud.hq_modus
+	var per_taste: bool = ud.hq_modus and ud.banner.visible
 	_klick(s.cam.unproject_position(Vector3(1000, s.hoehe_at(1000, 500), 500)))
 	await _frames(2)
-	pruef(per_taste and not ps.hq_platziert and _letzte().contains("Ort"), "U4c Taste H und Mausklick laufen durch die Szene: Klick außerhalb meldet „%s“" % _letzte())
+	pruef(esc_hq and per_taste and not ps.hq_platziert and _letzte().contains("Ort"), "U4c Esc beendet den Modus (Banner weg, kein Menü), Taste H startet ihn wieder; Klick außerhalb meldet „%s“" % _letzte())
 	ud.hq_zeigen(Vector2(1000, 500))
 	var t_fehl: String = ""
 	for c in ud.modus_vb.get_children():
@@ -163,21 +298,166 @@ func _run() -> void:
 	ud.hq_setzen(Vector2(1625, 730))
 	pruef(not ps.hq_platziert and uw.meldungen_log.size() == n0 + 1 and _letzte().contains("Straße"), "U7 Platz auf der Straße abgelehnt: „%s“" % _letzte())
 	var r: Dictionary = ud.hq_setzen(HQ)
-	pruef(r.get("ok", false) and ps.hq_platziert and ud.hq_haus.get_child_count() >= 3 and not ud.hq_modus and _letzte().contains("gegründet"),
-		"U8 Firmensitz gesetzt: Haus, Fahne, Schild in der Welt; Meldung „%s“" % _letzte())
+	pruef(r.get("ok", false) and ps.hq_platziert and ud.hq_haus.get_child_count() >= 3 and not ud.hq_modus and _letzte().contains("gegründet") and not ud.banner.visible
+		and ps.depots.size() == 1 and ps.depots[0].get("fuhrhof", false) and ud.raum.has_node("Depot_1"),
+		"U8 Firmensitz gesetzt: Haus, Fahne, Schild und der Fuhrhof (erstes Depot) in der Welt; Banner weg; „%s“" % _letzte())
 	await _shot("03_firmensitz_gesetzt")
-	# Kette 1 über die Welt-UI
-	uw.oeffnen(FARM)
+
+	# ------------------------------------------------------------ Teil 3: Auswahl, Modus, Linie → Depot → Zuweisen (echter Maus-/Tastenweg)
+	await _sicht([FARM, MUEHLE], 0.0, 0.3)
+	await _klick_ort(FARM)
+	ud._process(0.2)
+	var ring_an: bool = uw.auswahl == FARM and ud.sel_ring.visible and ud.sel_pfeil.visible and ud.werte["auswahl"]["art"] == "ort"
+	pruef(ring_an and _kn("linie_hier_beginnen") != null and _kn("linie_von_hier") == null and int(ud.werte.get("linien_hier", -1)) == 0 and _text_in(uw.panel_vb, "Hier hält noch keine Linie"),
+		"A1 Klick auf Gut Kuppenhof: Panel offen, pulsierender Ring + Pfeil am Betrieb; Panel zeigt „Linie hier beginnen“ und „Hier hält noch keine Linie“, kein „Linie von hier“")
+	await _shot("20_auswahl_ring")
+	_klick(_frei_px())
+	await _frames(3)
+	ud._process(0.2)
+	var leer_weg: bool = uw.auswahl == "" and not ud.sel_ring.visible and not uw.panel.visible
+	await _klick_ort(MUEHLE)
+	var sel2: bool = uw.auswahl == MUEHLE and ud.sel_ring.visible
+	_druecke(KEY_ESCAPE)
+	await _frames(2)
+	pruef(leer_weg and sel2 and uw.auswahl == "" and not ud.sel_ring.visible and not ud.menue_panel.visible,
+		"A2 Klick ins Leere hebt die Auswahl auf (Ring weg, Panel zu); Esc ebenso, ohne dass das Menü aufgeht")
+	ud.hover_setzen(_px(MUEHLE))
+	var h1: bool = ud.werte["hover"] == MUEHLE and ud.hover_ring.visible and int(ud.werte["cursor"]) == Input.CURSOR_POINTING_HAND
+	ud.hover_setzen(_frei_px())
+	pruef(h1 and ud.werte["hover"] == "" and not ud.hover_ring.visible and int(ud.werte["cursor"]) == Input.CURSOR_ARROW,
+		"A3 Hover: Ring und Zeigehand über der Erlenmühle, Pfeil und kein Ring über freiem Gelände")
+	# Altes Muster ist im Demo-Modus nicht erreichbar
 	uw.lizenz_kaufen(FARM)
+	var kasse: int = ps.eco.cash_cent
 	uw.linie_von_hier(FARM)
+	var alt1: bool = uw.modus_von == "" and not uw.modus_panel.visible and ud.modus() == "halte" and vk.halte_liste == [FARM]
 	uw.ziel_waehlen(MUEHLE)
-	pruef(uw.vorschau_panel.visible and uw.knoepfe.has("modell_fuhrwerk_d") and int(uw.vorschau_werte["preis_cent"]) == ps._preis(ps.vdef("fuhrwerk_d")),
-		"U9 Linienvorschau mit Modellwahl: Fuhrwerk %d ¢" % int(uw.vorschau_werte.get("preis_cent", 0)))
-	uw.anlegen()
-	uw.ziel_waehlen(DORF)
-	uw.anlegen()
-	uw.modus_ende()
-	pruef(ps.fahrzeuge.size() == 2 and ps.fehler.is_empty(), "U10 zwei Linien über die UI angelegt (Farm → Mühle → Erlenbach)")
+	var ra: Dictionary = uw.anlegen()
+	var rk: Dictionary = uw.fuhrwerk_kaufen(FARM, MUEHLE)
+	pruef(alt1 and uw.vorschau_ziel == "" and not uw.vorschau_panel.visible and not ra.get("ok", true) and not rk.get("ok", true) and ps.alle_fahrzeuge().is_empty() and ps.eco.cash_cent == kasse,
+		"A4 altes Muster nicht erreichbar: „Linie von hier“ öffnet den Linien-Editor (Halt 1 gesetzt), Ziel wählen/Anlegen/+Fuhrwerk kaufen nichts (Kasse unverändert)")
+	_druecke(KEY_ESCAPE)
+	# Linie anlegen: L → Neue Linie → Art → Halte in der Welt anklicken → Enter
+	_druecke(KEY_L)
+	await _frames(3)
+	var per_l: bool = vk.panel.visible and vk.tab == "linien"
+	await _knopf_klick("vk_neue_linie")
+	var art_offen: bool = vk.art_wahl and _kn("vk_art_strasse_gueter") != null and _kn("vk_art_gleis_gueter") != null
+	await _knopf_klick("vk_art_gleis_gueter")
+	var gleis_zu: bool = ud.modus() == "" and _letzte().contains("1824")
+	await _knopf_klick("vk_art_strasse_gueter")
+	ud._process(0.2)
+	banner["halte"] = String(ud.werte.get("banner", ""))
+	var g_n := int(ud.werte.get("marker_gueltig", 0))
+	var u_n := int(ud.werte.get("marker_ungueltig", 0))
+	pruef(per_l and art_offen and gleis_zu and ud.modus() == "halte" and not vk.panel.visible and vk.editor_panel.visible and ud.banner.visible
+		and banner["halte"].contains("Halte für Linie 1 anklicken") and banner["halte"].contains("0 gewählt") and g_n >= 3 and u_n >= 4 and g_n + u_n == ps.stationen.size(),
+		"A5 Taste L → Neue Linie → Straße · Güter (Gleis vor 1824 erklärt sich): Banner „%s“, %d Halte mit Ring, %d abgedunkelt" % [banner["halte"], g_n, u_n])
+	await _klick_ort(FARM)
+	await _shot("21_modus_banner_halte")
+	n0 = uw.meldungen_log.size()
+	_klick(_frei_px())
+	await _frames(2)
+	var leer_text := _letzte()
+	await _sicht([FARM, MUEHLE, FORST], 0.0, 0.3)
+	ud.hover_setzen(_px(FORST))
+	var verboten: bool = int(ud.werte["cursor"]) == Input.CURSOR_FORBIDDEN and not ud.werte["hover_gueltig"]
+	await _klick_ort(FORST)
+	var ung_text := _letzte()
+	await _klick_ort(MUEHLE)
+	ud._process(0.2)
+	pruef(vk.halte_liste == [FARM, MUEHLE] and leer_text.contains("markierten Halt") and verboten and ung_text.contains("Straßenanschluss") and String(ud.werte["banner"]).contains("2 gewählt")
+		and ud.werte["plan_pruefung"].get("ok", false) and _kn("halt_0_0_auftrag") != null,
+		"A6 Halte per Weltklick: Farm, Mühle (Banner „2 gewählt“); Klick ins Leere sagt „%s“; Forsthaus ohne Straße: Verbotszeiger und „%s“" % [leer_text, ung_text])
+	kasse = ps.eco.cash_cent
+	_druecke(KEY_ENTER)
+	await _frames(3)
+	ud._process(0.2)
+	var l1: Dictionary = ps.linie_plan(1)
+	pruef(ps.linien.size() == 1 and l1["halte"] == [FARM, MUEHLE] and ps.alle_fahrzeuge().is_empty() and ps.eco.cash_cent == kasse and ud.modus() == "" and not ud.banner.visible
+		and vk.panel.visible and vk.linie_sel == 1 and _text_in(vk.vb, "Noch kein Fahrzeug: im Depot kaufen und zuweisen") and _kn("vk_zum_depot") != null
+		and int(ud.werte.get("route_linie", 0)) == 1 and vk.linie_mi.visible,
+		"A7 Enter legt Linie 1 OHNE Fahrzeug an (Kasse unverändert): Fenster zeigt „Noch kein Fahrzeug: im Depot kaufen und zuweisen“ mit Sprung zum Depot, Route leuchtet in der Welt")
+	await _shot("22_verkehr_linie_ohne_fahrzeug")
+	# Depot: Kauf ohne Linie, Mehrfachauswahl, Sammelzuweisung
+	await _knopf_klick("vk_zum_depot")
+	ud._process(0.2)
+	var kat: Array = ud.werte.get("depot_katalog", [])
+	var depot_auf: bool = vk.depot_offen == 0 and vk.depot_panel.visible and not vk.panel.visible and ud.werte["auswahl"]["art"] == "depot" and ud.sel_ring.visible and kat.has("fuhrwerk_d") and kat.has("kutsche_d")
+	await _knopf_klick("kat_plus_fuhrwerk_d")
+	await _knopf_klick("kat_plus_fuhrwerk_d")
+	kasse = ps.eco.cash_cent
+	await _knopf_klick("kat_kaufen_fuhrwerk_d")
+	var stueck: int = ps._preis(ps.vdef("fuhrwerk_d"))
+	pruef(depot_auf and ps.abgestellt.size() == 3 and kasse - ps.eco.cash_cent == 3 * stueck and stueck == int(ps.vdef("fuhrwerk_d")["kauf_cent"]) and ps.linie_fahrzeuge(1).is_empty()
+		and int(ud.werte["depot_bestand"]) == 3 and int(ud.werte["auswahl_depot"]) == 3 and _letzte().contains("3 × Fuhrwerk"),
+		"A8 Kauf im Depot ohne Linie: Menge 3 per [+], −%d $ (Listenpreis, kein Depotrabatt), 3 Fuhrwerke stehen im Depot, keins fährt; „%s“" % [3 * stueck / 100, _letzte()])
+	var keys: Array = vk.fz_sicht["depot"].duplicate()
+	await _knopf_klick("depot_keine")
+	var keine: bool = int(ud.werte["auswahl_depot"]) == 0 and _kn("depot_zu_1") == null
+	await _zeile_klick("depot:" + String(keys[0]))
+	var eins: bool = int(ud.werte["auswahl_depot"]) == 1 and vk.fz_auswahl.has(keys[0])
+	await _zeile_klick("depot:" + String(keys[2]), true)
+	var bereich: bool = int(ud.werte["auswahl_depot"]) == 3
+	await _zeile_klick("depot:" + String(keys[1]))
+	var zwei: bool = int(ud.werte["auswahl_depot"]) == 2 and not vk.fz_auswahl.has(keys[1])
+	var zaehler_text := ""
+	for c in vk.depot_vb.find_children("Zaehler", "Label", true, false):
+		zaehler_text = (c as Label).text
+	pruef(keine and eins and bereich and zwei and zaehler_text == "2 ausgewählt" and _kn("depot_zu_1") != null,
+		"A9 Mehrfachauswahl per Maus: Keine → Klick (1) → Umschalt+Klick wählt den Bereich (3) → Klick entwählt (2); Zähler „%s“, Linie 1 als Ziel angeboten" % zaehler_text)
+	await _shot("23_depot_mehrfachauswahl")
+	await _knopf_klick("depot_zu_1")
+	var fz1: Array = ps.linie_fahrzeuge(1)
+	pruef(fz1.size() == 2 and ps.abgestellt.size() == 1 and fz1[0].get("ausfahrt", false) and _letzte().contains("2 Fahrzeuge fahren jetzt auf Linie 1") and int(ud.werte["depot_bestand"]) == 1
+		and s.fahrzeuge.mmis.has("fuhrwerk"),
+		"A10 Sammelzuweisung per Klick auf die Linie: 2 Fuhrwerke rücken aus, 1 bleibt im Depot; „%s“" % _letzte())
+	# Fenster Verkehr, Reiter Fahrzeuge: Filter, Alle, Ins Depot, wieder zuweisen
+	_druecke(KEY_U)
+	await _frames(3)
+	var u_ok: bool = vk.panel.visible and vk.tab == "fahrzeuge" and vk.depot_offen < 0 and vk.fz_sicht["fz"].size() == 3
+	await _knopf_klick("fz_f_depot")
+	var f_depot: bool = vk.fz_sicht["fz"].size() == 1
+	await _knopf_klick("fz_f_alle")
+	await _knopf_klick("fz_alle")
+	var alle3: bool = int(ud.werte["auswahl_fz"]) == 3
+	await _shot("24_verkehr_fahrzeuge")
+	await _knopf_klick("fz_ins_depot")
+	var im_depot: bool = ps.abgestellt.size() == 3 and ps.linie_fahrzeuge(1).is_empty() and int(ud.werte["auswahl_fz"]) == 3
+	await _knopf_klick("fz_zu_1")
+	pruef(u_ok and f_depot and alle3 and im_depot and ps.linie_fahrzeuge(1).size() == 3 and ps.abgestellt.is_empty(),
+		"A11 Taste U (Reiter Fahrzeuge): Filter „im Depot“ zeigt 1, „Alle wählen“ 3 ausgewählt, „Ins Depot“ holt alle zurück, Klick auf Linie 1 weist alle 3 wieder zu")
+	# gemischte Auswahl, Verkauf mit Rückfrage
+	ps.depot_kaufen(0, "kutsche_d", 1)
+	vk.neu()
+	await _frames(2)
+	await _knopf_klick("fz_alle")
+	var gemischt: bool = _text_in(vk.vb, "mischt Fahrzeugarten") and _kn("fz_zu_1") == null
+	await _knopf_klick("fz_keine")
+	await _zeile_klick("fz:" + String(ps.abgestellt[0]["key"]))
+	kasse = ps.eco.cash_cent
+	var rw: int = ps.restwert(ps.abgestellt[0])
+	await _knopf_klick("fz_verkaufen")
+	var frage: bool = _kn("fz_verkaufen_ja") != null and ps.abgestellt.size() == 1
+	await _knopf_klick("fz_verkaufen_ja")
+	pruef(gemischt and frage and ps.abgestellt.is_empty() and ps.eco.cash_cent - kasse == rw and rw > 0 and _letzte().contains("Restwert"),
+		"A12 gemischte Auswahl (Fuhrwerke + Kutsche) erklärt sich und bietet keine Linie an; Verkauf fragt nach, dann +%d $ Restwert" % (rw / 100))
+	_druecke(KEY_ESCAPE)
+	await _frames(2)
+	var zu: bool = not vk.panel.visible
+	# zweite Linie Mühle → Erlenbach (Sim-API), damit Mehl fließt
+	var l2: Dictionary = ps.linie_neu("strasse_gueter", [MUEHLE, DORF])
+	var k2: Dictionary = ps.depot_kaufen(0, "fuhrwerk_d", 1)
+	ps.zuweisen(k2["keys"], int(l2["linie"]))
+	uw._fahrzeuge_neu()
+	vk.linie_zeigen(2)
+	await _frames(3)
+	var liz_site: int = uw.site_of(MUEHLE)
+	var liz_warn: bool = vk.lizenz_fehlt(ps.linie_plan(2)) == [MUEHLE] and _text_in(vk.vb, "Lizenz fehlt") and _kn("vk_lizenz_%d" % liz_site) != null
+	await _knopf_klick("vk_lizenz_%d" % liz_site)
+	pruef(zu and ps.linien.size() == 2 and ps.alle_fahrzeuge().size() == 4 and ps.fehler.is_empty() and liz_warn and uw.lizenz_ok(liz_site) and not _text_in(vk.vb, "Lizenz fehlt"),
+		"U10 Esc schließt das Fenster; Linie 2 (Mühle → Erlenbach) warnt „Lizenz fehlt“ und kauft sie per Klick; 4 Fuhrwerke laufen")
+	vk.schliessen()
 	_ticks(900)
 	await _frames(2)
 	ud.vertraege_umschalten()
@@ -194,6 +474,23 @@ func _run() -> void:
 	ud.vertraege_neu()
 	await _shot("05_vertrag_laeuft")
 	ud.vertrag_panel.visible = false
+	# Linienfenster mit laufender Linie: Kennzahlen = Spielwert
+	vk.linie_zeigen(1)
+	await _frames(3)
+	var kz: Dictionary = ps.linie_kennzahlen(1)
+	var ld: Dictionary = ud.werte.get("linie_detail", {})
+	pruef(int(ld.get("ertrag_cent", -1)) == int(kz["ertrag_cent"]) and int(ld.get("fahrzeuge", 0)) == 3 and int(kz["ertrag_cent"]) > 0 and _kn("vk_fz_" + ps.fz_key(ps.linie_fahrzeuge(1)[0])) != null
+		and int(ud.werte["route_punkte"]) >= 2,
+		"A13 Linie 1 im Fenster: Ertrag letzte Minute %d $ = Spielwert, Auslastung %d %%, 3 Fahrzeuge, Halte mit Ladeauftrag" % [int(kz["ertrag_cent"]) / 100, int(ld.get("auslastung_pct", 0))])
+	await _shot("25_verkehr_linien")
+	await _knopf_klick("vk_linie_welt")
+	ud._process(0.2)
+	var welt_linie: bool = not vk.panel.visible and ud.werte["auswahl"]["art"] == "linie" and vk.linie_mi.visible
+	await _shot("26_linie_in_der_welt")
+	_klick(_frei_px())
+	await _frames(3)
+	vk._route_neu()
+	pruef(welt_linie and vk.linie_sel == 0 and not vk.linie_mi.visible, "A14 „In der Welt zeigen“: Fenster zu, Route in Linienfarbe; Klick ins Leere hebt die Linienauswahl auf (Route weg)")
 	# Skilltree
 	_ticks(2400)
 	ud.skills_umschalten()
@@ -206,8 +503,17 @@ func _run() -> void:
 	pruef(uw.meldungen_log.size() == n0 + 2 and t_sperre.contains("Stellmacher") and ps.skills == ["marktstand"], "U15 gesperrter Knoten: „%s“; freier Knoten gesetzt" % t_sperre)
 	await _shot("06_skilltree")
 	ud.skill_panel.visible = false
+	# Ein Modus beendet den anderen sichtbar; Auswahl hängt nicht
+	uw.oeffnen(FARM)
+	vk.halte_start("strasse_gueter")
+	var m1: bool = ud.modus() == "halte" and uw.auswahl == ""
+	_druecke(KEY_B)
+	await _frames(2)
+	ud._process(0.2)
+	banner["bau_strasse"] = String(ud.werte.get("banner", ""))
+	pruef(m1 and ud.modus() == "bau" and not vk.halte_an and not vk.editor_panel.visible and banner["bau_strasse"].contains("Straße bauen") and banner["bau_strasse"].contains("Startpunkt"),
+		"A15 ein Modus beendet den anderen: Linien-Editor startet (Auswahl weg), Taste B wechselt in den Straßenbau, Editor zu, Banner „%s“" % banner["bau_strasse"])
 	# Straße bauen
-	ud.bau_start("strasse")
 	pruef(ud.bau_art == "strasse" and ud.marker_root.get_child_count() == 4 and ud.modus_panel.visible, "U16 Baumodus Straße: %d Ringe an Betrieben ohne Anschluss" % ud.marker_root.get_child_count())
 	n0 = uw.meldungen_log.size()
 	ud.klick_boden(Vector2(900, 1300))
@@ -217,83 +523,112 @@ func _run() -> void:
 	ud._maus_boden = Vector2(1052, 1248)
 	ud.modus_neu()
 	var q: Dictionary = ps.bau_angebot("strasse", PackedVector2Array([Vector2(1284, 936), Vector2(1330, 1100), Vector2(1052, 1248)]))
-	pruef(ud.bau_punkte.size() == 2 and int(ud.werte["bau_kosten"]) == int(q["kosten_cent"]) and ud.vorschau_mi.visible, "U18 Vorschau = Spielwert: %d ¢ für %d m" % [int(q["kosten_cent"]), int(q["laenge_m"])])
+	pruef(ud.bau_punkte.size() == 2 and int(ud.werte["bau_kosten"]) == int(q["kosten_cent"]) and ud.vorschau_mi.visible and String(ud.werte["banner"]).contains("2 Punkte gesetzt"),
+		"U18 Vorschau = Spielwert: %d ¢ für %d m; Banner zählt mit („%s“)" % [int(q["kosten_cent"]), int(q["laenge_m"]), ud.werte["banner"]])
 	_kamera(1180, 1100, 760, -0.4)
 	await _shot("07_strassenbau")
-	var kasse: int = ps.eco.cash_cent
-	ud.klick_boden(Vector2(1052, 1248))
-	pruef(ps.angeschlossen(FORST) and kasse - ps.eco.cash_cent == int(q["kosten_cent"]) and ud.bau_art == "" and _letzte().contains("Forsthaus Rotwald ist angeschlossen"),
-		"U19 Klick auf das Ziel baut: „%s“" % _letzte())
-	# Linienplaner: Stadtlinie mit drei Halten
-	_druecke(KEY_L)
-	var per_l: bool = ud.plan_panel.visible
-	ud.plan_start("kutsche_d")
-	var ringe: int = ud.marker_root.get_child_count()
-	ud.plan_halt_klick(DORF)
-	ud.plan_halt_klick("Erlenmühle")
-	var pf: Dictionary = ud.werte.get("plan_pruefung", {})
-	ud.plan_halte.remove_at(1)
-	ud.plan_halt_klick("Erlenbach Ostend")
-	ud.plan_halt_klick("Erlenbach Kirchgasse")
-	pruef(per_l and ud.plan_neu_an and ringe == 7 and String(pf.get("fehler", "")) == "falsche_fracht" and ud.werte["plan_pruefung"].get("ok", false) and ud.knoepfe.has("plan_0_1_auftrag"),
-		"V1 Linienplaner (Taste L): Stadtkutsche, %d Ringe an Orten/Haltestellen; Mühle als Halt abgelehnt (falsche_fracht); 3 Halte gültig, Rundkurs %d m" % [ringe, int(ud.werte["plan_pruefung"].get("strecke_m", 0))])
-	_kamera(1700, 720, 620, 0.5)
-	await _shot("14_linienplaner")
 	kasse = ps.eco.cash_cent
-	var pr: Dictionary = ud.plan_anlegen()
-	pruef(pr.get("ok", false) and kasse - ps.eco.cash_cent == 30000 and ps.linien.size() == 1 and not ud.plan_neu_an and s.fahrzeuge.mmis.has("postkutsche") and _letzte().contains("Linie 1 läuft"),
-		"V2 Linie angelegt: „%s“" % _letzte())
-	(ud.knoepfe["plan_1_0_auftrag"] as Button).pressed.emit()
-	var auftrag_neu: String = ps.linien[0]["auftrag"][0]
-	(ud.knoepfe["plan_1_0_auftrag"] as Button).pressed.emit()
-	(ud.knoepfe["plan_1_0_auftrag"] as Button).pressed.emit()
-	pruef(auftrag_neu == "nichts" and ps.linien[0]["auftrag"][0] == "mitnehmen", "V3 Ladeauftrag je Halt per Knopf umschalten (mitnehmen → nur abladen → voll → mitnehmen)")
+	ud.klick_boden(Vector2(1052, 1248))
+	pruef(ps.angeschlossen(FORST) and kasse - ps.eco.cash_cent == int(q["kosten_cent"]) and ud.bau_art == "" and not ud.banner.visible and _letzte().contains("Forsthaus Rotwald ist angeschlossen"),
+		"U19 Klick auf das Ziel baut, Banner weg: „%s“" % _letzte())
+	# Stadtlinie mit drei Halten über das Ortspanel („Personenlinie hier beginnen“)
+	uw.oeffnen(DORF)
+	await _frames(2)
+	await _knopf_klick("linie_hier_beginnen")
+	ud._process(0.2)
+	var ringe := int(ud.werte.get("marker_gueltig", 0))
+	n0 = uw.meldungen_log.size()
+	vk.halte_klick(MUEHLE)
+	var t_betrieb := _letzte()
+	vk.halte_klick("Erlenbach Ostend")
+	vk.halte_klick("Erlenbach Kirchgasse")
+	pruef(ud.modus() == "halte" and vk.halte_art == "strasse_personen" and vk.halte_liste == [DORF, "Erlenbach Ostend", "Erlenbach Kirchgasse"] and ringe == 7 and t_betrieb.contains("Personenlinien halten nur in Orten")
+		and ud.werte["plan_pruefung"].get("ok", false),
+		"V1 „Personenlinie hier beginnen“ in Erlenbach: Halt 1 gesetzt, %d Orte/Haltestellen mit Ring; Mühle abgelehnt („%s“); 3 Halte gültig, Rundkurs %d m" % [ringe, t_betrieb, int(ud.werte["plan_pruefung"].get("strecke_m", 0))])
+	_kamera(1700, 720, 620, 0.5)
+	await _shot("14_linien_editor_stadtlinie")
+	var pr: Dictionary = vk.halte_fertig()
+	var lid: int = int(pr.get("linie", 0))
+	await _frames(2)
+	kasse = ps.eco.cash_cent
+	var kk: Dictionary = ps.depot_kaufen(0, "kutsche_d", 1)
+	vk.zuweisen(kk["keys"], lid)
+	pruef(pr.get("ok", false) and kasse - ps.eco.cash_cent == 30000 and ps.linien.size() == 3 and ps.linie_fahrzeuge(lid).size() == 1 and s.fahrzeuge.mmis.has("postkutsche"),
+		"V2 Stadtlinie angelegt, Stadtkutsche im Fuhrhof für 300 $ gekauft und zugewiesen: „%s“" % _letzte())
+	vk.linie_zeigen(lid)
+	await _frames(3)
+	await _knopf_klick("halt_%d_0_auftrag" % lid)
+	var auftrag_neu: String = ps.linie_plan(lid)["auftrag"][0]
+	await _knopf_klick("halt_%d_0_auftrag" % lid)
+	await _knopf_klick("halt_%d_0_auftrag" % lid)
+	pruef(auftrag_neu == "nichts" and ps.linie_plan(lid)["auftrag"][0] == "mitnehmen", "V3 Ladeauftrag je Halt per Mausklick umschalten (mitnehmen → nur abladen → voll → mitnehmen)")
+	vk.schliessen()
 	_ticks(ps.sim.tick_count + 900)
-	ud.plan_panel.visible = false
 	uw.oeffnen("Erlenbach Ostend")
-	pruef(int(ud.werte["wartende"]) == ps.wartende("Erlenbach Ostend") and int(ps.geliefert.get("fahrgaeste", 0)) > 0 and ud.raum.has_node("Halt_" + "Erlenbach Ostend".validate_node_name()),
-		"V4 Stadtverkehr: %d Fahrgäste befördert, Haltestelle zeigt %d Wartende = Spielwert" % [int(ps.geliefert.get("fahrgaeste", 0)), int(ud.werte["wartende"])])
-	var kf: Dictionary = ps.linie_fahrzeuge(1)[0]
+	pruef(int(ud.werte["wartende"]) == ps.wartende("Erlenbach Ostend") and int(ps.geliefert.get("fahrgaeste", 0)) > 0 and ud.raum.has_node("Halt_" + "Erlenbach Ostend".validate_node_name())
+		and int(ud.werte["linien_hier"]) == 1 and _kn("linie_hier_%d" % lid) != null,
+		"V4 Stadtverkehr: %d Fahrgäste befördert, Haltestelle zeigt %d Wartende = Spielwert und die Linie, die hier hält" % [int(ps.geliefert.get("fahrgaeste", 0)), int(ud.werte["wartende"])])
+	var kf: Dictionary = ps.linie_fahrzeuge(lid)[0]
 	var kp: Vector3 = kf["zustand"].pos
 	_kamera(kp.x, kp.z, 240, 0.7)
 	await _shot("15_stadtverkehr_kutsche")
 	uw.schliessen()
-	# Fuhrpark: Liste, Depot, Kauf im Depot, Verkauf
-	_druecke(KEY_U)
-	pruef(ud.fuhr_panel.visible and int(ud.werte["fuhrpark_fahrzeuge"]) == 3 and ud.knoepfe.has("fuhr_vk_3") and ud.knoepfe.has("fuhr_karte_1"), "V5 Fuhrpark (Taste U): Liste mit 3 Fahrzeugen, Karte und Verkaufen je Zeile")
-	await _shot("16_fahrzeugliste")
-	ud.fuhrpark_umschalten("depots")
-	ud.depot_modus_start()
+	# Depot bauen (Betriebshof), in der Welt anklicken, Überholung
+	vk.oeffnen("depots")
+	await _frames(3)
+	var d_tab: bool = _kn("vk_depot_0") != null and _kn("depot_bauen") != null
+	await _shot("27_verkehr_depots")
+	await _knopf_klick("depot_bauen")
+	ud._process(0.2)
+	banner["depot"] = String(ud.werte.get("banner", ""))
+	var d_modus: bool = ud.modus() == "depot" and not vk.panel.visible and banner["depot"].contains("Depot bauen")
 	ud.depot_zeigen(Vector2(1000, 500))
 	var d_fehl: String = ""
 	for c in ud.modus_vb.get_children():
 		if c is Label and String(c.text).begins_with("■"):
 			d_fehl = c.text
-	ud.depot_zeigen(Vector2(1640, 700))
+	var mp: Vector2 = ps.halt_pos(MUEHLE)
+	ud.depot_zeigen(mp)
 	kasse = ps.eco.cash_cent
-	var dr: Dictionary = ud.depot_setzen(Vector2(1640, 700))
-	pruef(d_fehl.contains("kein Weg") and dr.get("ok", false) and kasse - ps.eco.cash_cent == 60000 and ud.raum.has_node("Depot_1") and not ud.depot_modus, "V6 Depot: ohne Weg „%s“; an der Straße gebaut (−600 $), Haus in der Welt" % d_fehl)
-	ud.fuhr_tab = "depots"
-	ud.fuhr_panel.visible = true
-	ud.fuhrpark_neu()
+	var dr: Dictionary = ud.depot_setzen(mp)
+	pruef(d_tab and d_modus and d_fehl.contains("kein Weg") and dr.get("ok", false) and kasse - ps.eco.cash_cent == 60000 and ud.raum.has_node("Depot_2") and not ud.depot_modus and not ud.banner.visible
+		and vk.depot_offen == 1,
+		"V6 Reiter Depots → bauen: Banner „%s“; ohne Weg „%s“; an der Straße gebaut (−600 $), Haus in der Welt, Depotfenster öffnet sich" % [banner["depot"], d_fehl])
+	_druecke(KEY_ESCAPE)
+	await _frames(2)
+	var dpos: Vector2 = ps.depots[1]["pos"]
+	_kamera(dpos.x, dpos.y, 300, 0.4)
+	await _ruhig()
+	var d_px: Vector2 = s.cam.unproject_position(Vector3(dpos.x - 5.0, s.hoehe_at(dpos.x, dpos.y) + 4.0, dpos.y + 3.0))
+	ud.hover_setzen(d_px)
+	var d_hover: bool = String(ud.werte["hover"]) == String(ps.depots[1]["name"])
+	_klick(d_px)
+	await _frames(3)
+	ud._process(0.2)
+	pruef(d_hover and vk.depot_offen == 1 and vk.depot_panel.visible and ud.werte["auswahl"]["art"] == "depot" and ud.sel_ring.visible,
+		"V7 Depot in der Welt: Hover-Ring, Mausklick öffnet das Depotfenster, Ring am Depot")
+	await _knopf_klick("kat_kaufen_kutsche_d")
+	await _shot("17_depot_in_der_welt")
 	kasse = ps.eco.cash_cent
-	var dk: Dictionary = ud.depot_kauf(0, "kutsche_d", 1)
-	pruef(dk.get("ok", false) and kasse - ps.eco.cash_cent == 27600 and ud.knoepfe.has("depot_kauf_0_1") and _letzte().contains("Depotpreis"), "V7 Kauf im Depot: zweite Stadtkutsche für 276 $ statt 300 $; „%s“" % _letzte())
-	_kamera(1640, 700, 300, 0.4)
-	await _shot("17_depot")
-	kasse = ps.eco.cash_cent
-	var rwk: int = ps.restwert(ps.fahrzeug(int(dk["vid"])))
-	ud.verkaufen(int(dk["vid"]))
-	pruef(ps.eco.cash_cent - kasse == rwk and rwk > 0 and _letzte().contains("Restwert") and ps.linie_fahrzeuge(1).size() == 1, "V8 Verkauf aus der Fahrzeugliste: +%d ¢ Restwert; „%s“" % [rwk, _letzte()])
-	ud.fuhr_panel.visible = false
+	var rwk: int = ps.restwert(ps.abgestellt[0])
+	await _knopf_klick("depot_verkaufen")
+	await _knopf_klick("depot_verkaufen_ja")
+	pruef(ps.abgestellt.is_empty() and ps.eco.cash_cent - kasse == rwk and rwk > 0, "V8 Kutsche im Betriebshof gekauft (gleich ausgewählt) und aus dem Depot verkauft: +%d $ Restwert" % (rwk / 100))
+	_klick(_frei_px())
+	await _frames(3)
+	ud._process(0.2)
+	var depot_zu: bool = vk.depot_offen < 0 and not ud.sel_ring.visible
 	# Gleis (ab 1824)
 	n0 = uw.meldungen_log.size()
 	ud.bau_start("gleis")
-	pruef(ud.bau_art == "" and uw.meldungen_log.size() == n0 + 1 and _letzte().contains("1824"), "U20 Gleis vor 1824: „%s“" % _letzte())
+	pruef(depot_zu and ud.bau_art == "" and uw.meldungen_log.size() == n0 + 1 and _letzte().contains("1824"), "U20 Klick ins Leere schließt das Depotfenster; Gleis vor 1824: „%s“" % _letzte())
 	ps.eco.cash_cent += 1500000                  # Testwerkzeug: Geld für die späten Schritte
 	_ticks(7200)
 	await _frames(2)
-	ud.bau_start("gleis")
+	_druecke(KEY_G)
+	await _frames(2)
+	ud._process(0.2)
+	banner["bau_gleis"] = String(ud.werte.get("banner", ""))
 	ud.klick_boden(Vector2(370, 1235))
 	ud.klick_boden(Vector2(700, 1120))
 	ud._maus_boden = Vector2(985, 1020)
@@ -303,73 +638,95 @@ func _run() -> void:
 	ud.klick_boden(Vector2(985, 1020))
 	await _frames(2)
 	var wi: int = ps.bauwerke[-1]["weg"]
-	pruef(ps.bahnhof.has(KOHLE) and ps.bahnhof.has(HUETTE) and ud.raum.has_node("Schienen_%d" % wi) and ud.raum.has_node("Bahnhof_" + KOHLE.validate_node_name()),
-		"U21 Gleis gebaut: Schienen, Schwellen und zwei Bahnhöfe in der Welt; „%s“" % _letzte())
+	pruef(banner["bau_gleis"].contains("Gleis bauen") and ps.bahnhof.has(KOHLE) and ps.bahnhof.has(HUETTE) and ud.raum.has_node("Schienen_%d" % wi) and ud.raum.has_node("Bahnhof_" + KOHLE.validate_node_name()),
+		"U21 Taste G: Banner „%s“; Gleis gebaut: Schienen, Schwellen und zwei Bahnhöfe in der Welt; „%s“" % [banner["bau_gleis"], _letzte()])
 	uw.lizenz_kaufen(KOHLE)
-	uw.linie_von_hier(KOHLE)
-	uw.ziel_waehlen(HUETTE)
-	pruef(uw.kauf_def == "pferdebahn_d" and uw.vorschau_panel.visible, "U22 ohne Straße wählt die Vorschau den Zug: %s" % uw.kauf_def)
-	uw.anlegen()
-	uw.modus_ende()
-	var zug: Dictionary = ps.fahrzeuge[-1]
-	pruef(ps.ist_zug(zug) and s.fahrzeuge.mmis.has("pferdebahn"), "U23 Pferdebahn fährt auf dem Gleis (eigene Darstellung)")
+	vk.halte_start("gleis_gueter")
+	var gl_ringe := int(ud.werte.get("marker_gueltig", 0))
+	vk.halte_klick(KOHLE)
+	vk.halte_klick(HUETTE)
+	var zr: Dictionary = vk.halte_fertig()
+	var zl: int = int(zr.get("linie", 0))
+	await _frames(3)
+	var ohne_schuppen: bool = _text_in(vk.vb, "Kein Lokschuppen erreicht") and _kn("vk_depot_bauen_linie") != null and _kn("vk_zum_depot") == null
+	await _knopf_klick("vk_depot_bauen_linie")
+	var bk: Vector3 = ps.knoten_pos[ps.bahnhof[KOHLE]]
+	var lr: Dictionary = ud.depot_setzen(Vector2(bk.x, bk.z))
+	await _frames(2)
+	var lkat: Array = ud.werte.get("depot_katalog", [])
+	pruef(zr.get("ok", false) and gl_ringe == 2 and ohne_schuppen and lr.get("ok", false) and String(lr.get("art", "")) == "gleis" and vk.depot_offen == ps.depots.size() - 1 and lkat.has("pferdebahn_d") and not lkat.has("fuhrwerk_d"),
+		"U22 Zuglinie: nur die %d Bahnhöfe gelten; ohne Lokschuppen sagt das Fenster es und bietet den Bau an; Lokschuppen-Katalog: %s" % [gl_ringe, str(lkat)])
+	await _knopf_klick("kat_kaufen_pferdebahn_d")
+	await _knopf_klick("depot_zu_%d" % zl)
+	var zug: Dictionary = ps.linie_fahrzeuge(zl)[0] if not ps.linie_fahrzeuge(zl).is_empty() else {}
+	pruef(not zug.is_empty() and ps.ist_zug(zug) and s.fahrzeuge.mmis.has("pferdebahn"), "U23 Pferdebahn im Lokschuppen gekauft, per Klick zugewiesen, fährt auf dem Gleis (eigene Darstellung)")
+	_druecke(KEY_ESCAPE)
 	_ticks(7200 + 500)
 	var zp: Vector3 = zug["zustand"].pos
 	_kamera(zp.x, zp.z, 260, 0.6)
 	await _shot("09_pferdebahn")
 	# Strecken: Chaussee kaufen/verkaufen, eigene Strecke
-	ud.fuhrpark_umschalten("strecken")
+	vk.oeffnen("strecken")
+	await _frames(2)
 	var sl: Array = ud.werte["strecken"]
 	n0 = uw.meldungen_log.size()
-	ud.strecke_verkaufen("bau_0")
+	vk.strecke_verkaufen("bau_0")
 	var t_ben := _letzte()
 	kasse = ps.eco.cash_cent
-	ud.strecke_kaufen("chaussee")
+	vk.strecke_kaufen("chaussee")
 	var gekauft: bool = ps.maut_gekauft and kasse - ps.eco.cash_cent == 280000
-	ud.fuhrpark_neu()
-	await _shot("18_strecken")
-	ud.strecke_verkaufen("chaussee")
-	pruef(sl.size() == 3 and uw.meldungen_log.size() >= n0 + 3 and t_ben.contains("Strecke verkauft") and gekauft and not ps.maut_gekauft and ud.knoepfe.has("strecke_kauf_chaussee"),
-		"V9 Strecken: %d Einträge; ungenutzte Forststraße verkauft („%s“), Chaussee gekauft (−2.800 $) und wieder verkauft" % [sl.size(), t_ben])
-	ud.fuhr_panel.visible = false
-	# Personenzug: Gleis Erlenbach – Hasenwinkel, Pferdestraßenbahn per Linienplaner
+	vk.neu()
+	await _shot("18_verkehr_strecken")
+	vk.strecke_verkaufen("chaussee")
+	await _frames(2)
+	pruef(sl.size() == 3 and uw.meldungen_log.size() >= n0 + 3 and t_ben.contains("Strecke verkauft") and gekauft and not ps.maut_gekauft and _kn("strecke_kauf_chaussee") != null,
+		"V9 Reiter Strecken: %d Einträge; ungenutzte Forststraße verkauft („%s“), Chaussee gekauft (−2.800 $) und wieder verkauft" % [sl.size(), t_ben])
+	vk.schliessen()
+	# Personenzug: Gleis Erlenbach – Hasenwinkel, Pferdestraßenbahn
 	var gp: Dictionary = ps.bauen("gleis", PackedVector2Array([Vector2(1660, 640), Vector2(1400, 760), Vector2(1000, 830), Vector2(800, 870)]))
 	ud._bauwerke_pruefen()
-	ud.plan_start("pferdetram_d")
-	var ringe_gl: int = ud.marker_root.get_child_count()
-	ud.plan_halt_klick(DORF)
-	ud.plan_halt_klick("Hasenwinkel")
-	var pz: Dictionary = ud.plan_anlegen()
-	pruef(gp.get("ok", false) and ringe_gl == 2 and pz.get("ok", false) and ps.ist_zug(ps.fahrzeug(int(pz.get("vid", 0)))) and ps.linien.size() == 2,
-		"V10 Personenzug: Planer bietet für die Pferdestraßenbahn nur die %d Bahnhöfe an Orten an; Linie Erlenbach ↔ Hasenwinkel angelegt" % ringe_gl)
+	vk.halte_start("gleis_personen")
+	var ringe_gl := int(ud.werte.get("marker_gueltig", 0))
+	vk.halte_klick(DORF)
+	vk.halte_klick("Hasenwinkel")
+	var pz: Dictionary = vk.halte_fertig()
+	var pl: int = int(pz.get("linie", 0))
+	var bd: Vector3 = ps.knoten_pos[ps.bahnhof[DORF]]
+	ud.depot_modus_start()
+	ud.depot_setzen(Vector2(bd.x, bd.z))
+	var pk: Dictionary = ps.depot_kaufen(vk.depot_offen, "pferdetram_d", 1)
+	var pzu: Dictionary = vk.zuweisen(pk.get("keys", []), pl)
+	var pzf: Dictionary = ps.linie_fahrzeuge(pl)[0] if not ps.linie_fahrzeuge(pl).is_empty() else {}
+	pruef(gp.get("ok", false) and ringe_gl == 2 and pz.get("ok", false) and pzu.get("ok", false) and not pzf.is_empty() and ps.ist_zug(pzf),
+		"V10 Personenzug: nur die %d Bahnhöfe an Orten gelten; Linie Erlenbach ↔ Hasenwinkel, Pferdestraßenbahn aus dem Lokschuppen zugewiesen" % ringe_gl)
+	vk.depot_schliessen()
 	_ticks(ps.sim.tick_count + 1500)
-	var pzf: Dictionary = ps.fahrzeug(int(pz.get("vid", 0)))
 	var pp: Vector3 = pzf["zustand"].pos
-	ud.plan_edit = int(pz.get("linie", 0))
-	ud.plan_panel.visible = true
-	ud.plan_neu()
 	_kamera(pp.x, pp.z, 320, 0.5)
-	await _shot("19_personenzug_linienplan")
-	ud.plan_panel.visible = false
-	# Modellwechsel
+	vk.linie_sel = pl
+	await _shot("19_personenzug")
+	vk.linie_sel = 0
+	# Modellwechsel: Reiter Fahrzeuge → auswählen → Ersetzen
 	_ticks(14400 + 60)
 	await _frames(2)
-	uw.fahrzeug_oeffnen(int(zug["vid"]))
-	pruef(uw.knoepfe.has("ersetzen_dampfzug_d") and uw.panel_werte.has("ersetzen_dampfzug_d"), "U24 Fahrzeugkarte bietet 1828 den Dampfzug an (Restwert, Preis, Ladung)")
-	zp = zug["zustand"].pos
-	_kamera(zp.x, zp.z, 300, 0.6)
+	vk.fahrzeug_zeigen(ps.fz_key(zug))
+	await _frames(3)
+	var eq: Dictionary = ps.ersetzen_angebot_key(ps.fz_key(zug))
+	pruef(int(ud.werte["auswahl_fz"]) == 1 and eq.get("ok", false) and String(eq.get("def_id", "")) == "dampfzug_d" and _kn("fz_ersetzen") != null and not _kn("fz_ersetzen").disabled if _kn("fz_ersetzen") != null else false,
+		"U24 1828: Pferdebahn in der Fahrzeugliste ausgewählt, „Ersetzen“ bietet den Dampfzug an (%d $ netto)" % (int(eq.get("netto_cent", 0)) / 100))
 	await _shot("10_modellwechsel_angebot")
-	uw.ersetzen(int(zug["vid"]), "dampfzug_d")
+	await _knopf_klick("fz_ersetzen")
 	await _frames(2)
-	pruef(String(zug["def_id"]) == "dampfzug_d" and s.fahrzeuge.mmis.has("dampflok") and _letzte().contains("ersetzt"), "U25 ersetzt: Dampfzug auf derselben Linie, Meldung „%s“" % _letzte())
+	pruef(String(zug["def_id"]) == "dampfzug_d" and s.fahrzeuge.mmis.has("dampflok") and _letzte().contains("ersetzt"), "U25 ersetzt per Klick: Dampfzug auf derselben Linie, Meldung „%s“" % _letzte())
+	vk.schliessen()
 	_ticks(14400 + 400)
 	zp = zug["zustand"].pos
 	_kamera(zp.x, zp.z, 220, 0.9)
 	await _shot("11_dampfzug")
-	uw.schliessen()
 	# Firmensitz ausbauen
 	ud.hq_knopf()
-	pruef(ud.hq_panel.visible and ud.knoepfe.has("hq_ausbau") and int(ud.werte["hq_stufe"]) == 1, "U26 Firmensitz-Panel: Ausbau und Anbauten")
+	ud._process(0.2)
+	pruef(ud.hq_panel.visible and ud.knoepfe.has("hq_ausbau") and int(ud.werte["hq_stufe"]) == 1 and ud.werte["auswahl"]["art"] == "hq" and ud.sel_ring.visible, "U26 Firmensitz-Panel: Ausbau und Anbauten; der Firmensitz ist die Auswahl (Ring)")
 	ud.hq_anbauen("remise")
 	n0 = uw.meldungen_log.size()
 	ud.hq_anbauen("stall")
@@ -382,28 +739,43 @@ func _run() -> void:
 	var e1 := _taste(KEY_ESCAPE)
 	var zu1: bool = not ud.hq_panel.visible
 	var e2 := _taste(KEY_ESCAPE)
-	pruef(e1 and zu1 and e2 and ud.menue_panel.visible, "U28 Esc schließt erst das Panel, dann fragt es nach (kein stiller Verlust des Spielstands)")
+	pruef(e1 and zu1 and e2 and ud.menue_panel.visible, "U28 Esc hebt erst die Auswahl auf, dann fragt es nach (kein stiller Verlust des Spielstands)")
 	_taste(KEY_ESCAPE)
-	# Alle Stationspanels und Linienvorschauen öffnen (Demo-Betriebe im Bestandspanel), Linienliste aufklappen
+	# Alle Stationspanels öffnen; Linienliste links unten öffnet die Linie im Fenster; kein Knopf des alten Musters
 	var offen := 0
+	var alt_knopf := 0
 	for nm in ps.stationen:
 		uw.oeffnen(nm)
 		if uw.panel.visible and uw.panel_vb.get_child_count() >= 2:
 			offen += 1
-		if uw.ausgang(uw.site_of(nm)) != "":
-			uw.linie_von_hier(nm)
-			for k in ps.kanten():
-				if k["von"] == nm:
-					uw.ziel_waehlen(k["nach"])
-			uw.modus_ende()
+		for id in uw.knoepfe:
+			if is_instance_valid(uw.knoepfe[id]) and (String(id) == "linie_von_hier" or String(id).begins_with("plus_") or String(id).begins_with("lplus_") or String(id) == "anlegen"):
+				alt_knopf += 1
 	uw.schliessen()
 	uw.linien_neu()
-	var lk: String = uw.linien_werte.keys()[0]
-	(uw.knoepfe["linie_" + lk] as Button).pressed.emit()
-	n0 = uw.meldungen_log.size()
-	uw.kauf_klick("Hof Hasenwinkel")
-	pruef(offen == ps.stationen.size() and uw.linie_offen == lk and uw.linien_werte.size() >= 3 and uw.linien_scroll != null,
-		"U28b alle %d Stationspanels und Vorschauen öffnen, kompakte Linienliste mit %d Linien klappt auf" % [offen, uw.linien_werte.size()])
+	await _frames(2)
+	await _knopf_klick("linie_2")
+	pruef(offen == ps.stationen.size() and alt_knopf == 0 and uw.linien_werte.size() == ps.linien.size() and vk.panel.visible and vk.linie_sel == 2 and uw.modus_von == "",
+		"U28b alle %d Stationspanels öffnen ohne Knopf des alten Musters; Linienliste links unten (%d Linien) öffnet per Klick die Linie im Fenster" % [offen, uw.linien_werte.size()])
+	vk.schliessen()
+	vk.linie_sel = 0
+	# Kein stiller Modus: jeder Modus hat sein Banner, Esc beendet jeden
+	var still: Array = []
+	for m in [["hq", func(): ud.hq_modus_start()], ["bau", func(): ud.bau_start("strasse")], ["bau", func(): ud.bau_start("gleis")], ["depot", func(): ud.depot_modus_start()],
+			["halte", func(): vk.halte_start("strasse_gueter")], ["halte", func(): vk.halte_start("strasse_gueter", 1)]]:
+		(m[1] as Callable).call()
+		ud._process(0.2)
+		var form := int(ud.werte["cursor"])
+		if ud.modus() != m[0] or not ud.banner.visible or String(ud.werte["banner"]).length() < 20 or not String(ud.werte["banner"]).contains("Esc") or form == Input.CURSOR_ARROW:
+			still.append(m[0])
+		_druecke(KEY_ESCAPE)
+		await _frames(1)
+		if ud.modus() != "" or ud.banner.visible or ud.menue_panel.visible:
+			still.append("esc_" + String(m[0]))
+	var texte := {}
+	for k in banner:
+		texte[banner[k]] = true
+	pruef(still.is_empty() and texte.size() == 5 and not texte.has(""), "A16 kein stiller Modus: Firmensitz, Straße, Gleis, Depot, Halte (neu und anhängen) zeigen Banner mit „Esc“ und eigenen Mauszeiger; Esc beendet jeden. Abweichungen: %s" % str(still))
 	# Bilanz nach 30 Minuten
 	_ticks(18000)
 	ud._t = 1.0
@@ -423,10 +795,11 @@ func _run() -> void:
 		"zu_steil", "kurve_zu_eng", "guthaben_reicht_nicht", "kein_bahnhof", "keine_gleisverbindung", "kein_ort", "wasser", "auf_der_strasse", "hoechste_stufe",
 		"schon_gebaut", "kein_platz", "kein_punkt", "vorgaenger_fehlt", "schon_gesetzt", "angebot_weg", "zu_viele_vertraege",
 		"zu_wenig_halte", "zu_viele_halte", "gleicher_ort", "falsche_fracht", "unbekannte_linie", "unbekannter_halt", "passt_nicht_zur_linie", "linie_hat_fahrzeuge", "kein_depot",
-		"nichts_zu_ueberholen", "depot_erreicht_linie_nicht", "nicht_kaeuflich", "schon_gekauft", "nicht_im_besitz", "strecke_benutzt", "depot_an_strecke", "unbekannte_strecke", "unbekannter_ort"]
+		"nichts_zu_ueberholen", "depot_erreicht_linie_nicht", "nicht_kaeuflich", "schon_gekauft", "nicht_im_besitz", "strecke_benutzt", "depot_an_strecke", "unbekannte_strecke", "unbekannter_ort",
+		"unbekannte_linienart", "falsches_depot", "kein_neueres_modell", "keine_auswahl", "unbekanntes_fahrzeug"]
 	var ohne: Array = []
 	for c in codes:
-		if ud.fehlertext({"fehler": c, "ab_jahr": 1824, "fehlt_cent": 1234, "name": "X", "max": 2, "braucht": "Y", "n": 2, "art": "Betriebshof"}) == "" or ud.fehlertext({"fehler": c}).contains("Meldung an uns"):
+		if ud.fehlertext({"fehler": c, "ab_jahr": 1824, "fehlt_cent": 1234, "name": "X", "max": 2, "braucht": "Y", "n": 2, "art": "Betriebshof", "depot": "Z"}) == "" or ud.fehlertext({"fehler": c}).contains("Meldung an uns"):
 			ohne.append(c)
 	pruef(zu_lang.is_empty() and ohne.is_empty(), "U29 %d Fehlercodes der Demo haben einen Text mit Handlungsvorschlag (≤ 130 Zeichen); ohne Text: %s" % [codes.size(), str(ohne + zu_lang)])
 	pruef(ps.fehler.is_empty(), "U30 0 Sim-Fehler im UI-Durchlauf: %s" % str(ps.fehler))

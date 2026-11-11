@@ -2085,10 +2085,13 @@ func _fracht_ok(fr: String, name: String, als_quelle: bool) -> bool:
 	return not stadt if als_quelle else true
 
 
+## Standard-Ladeaufträge: laden, wo es etwas gibt, das ein anderer Halt der Linie annimmt; sonst nur abladen.
 func _auftrag_std(halte: Array, fr: String) -> Array:
 	var r: Array = []
-	for h in halte:
-		if not stationen.has(String(h)) or not _fracht_ok(fr, String(h), true):
+	var l := {"halte": halte, "fracht": fr}
+	for i in halte.size():
+		var h := String(halte[i])
+		if not stationen.has(h) or not _fracht_ok(fr, h, true) or (halte.size() >= 2 and not halt_ladbar(l, i)):
 			r.append("nichts")
 		else:
 			r.append("mitnehmen" if fr == "personen" else "voll")

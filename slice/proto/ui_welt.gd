@@ -611,6 +611,8 @@ func _panel_industrie(site: int) -> void:
 			panel_vb.add_child(_label("  %s  %d Felder (%d m)  %s%s" % [a["name"], a["felder"], a["m"], form, zus], 16))
 			liste.append(a["name"])
 		panel_werte["abnehmer"] = liste
+	if demo:
+		return                                            # Demo: „Linie hier beginnen“ und „Linien, die hier halten“ kommen aus ui_demo.panel_zusatz
 	panel_vb.add_child(_knopf("Linie von hier", "linie_von_hier", linie_von_hier.bind(auswahl), lizenz_ok(site)))
 	_linien_ab(auswahl)
 
@@ -776,6 +778,10 @@ func _leeren(c: Node) -> void:
 
 ## Modus „Linie von hier“ (S2a). Ohne Lizenz zeigt die Modusleiste den Grund und den Kauf (ein Klick, Modus bleibt).
 func linie_von_hier(nm: String) -> void:
+	if demo:                                              # Demo: kein Modus „Ziel wählen → kaufen“; der Linien-Editor übernimmt
+		if demo_ui != null:
+			demo_ui.linie_hier_beginnen(nm)
+		return
 	var site := site_of(nm)
 	if site < 0 or ausgang(site) == "":
 		meldung(text("liefert_nichts", {"name": nm}))
@@ -825,6 +831,8 @@ func linien_fahrzeuge(von: String, nach: String) -> Array:
 
 ## Ziel im Modus angeklickt (S2b). Prüfreihenfolge: gleich → Verbindung → Annahme → Lizenz → Vorschau.
 func ziel_waehlen(nm: String) -> void:
+	if demo:
+		return
 	var von := modus_von
 	if nm == von:
 		meldung(text("gleich"))
@@ -927,6 +935,8 @@ func vorschau_zeigen(von: String, nach: String, n_alt: int) -> void:
 
 ## [Anlegen] in der Vorschau (S2c, A1: kauft das erste Fuhrwerk mit). Danach geht der Modus am Ziel weiter, wenn es liefert.
 func anlegen() -> Dictionary:
+	if demo:
+		return {"ok": false, "fehler": "nur_im_depot"}
 	var von := String(vorschau_werte.get("von", ""))
 	var nach := String(vorschau_werte.get("nach", ""))
 	var sv := site_of(von)
@@ -954,6 +964,8 @@ func anlegen() -> Dictionary:
 ## Fuhrwerk auf der Linie von → nach kaufen (erste Linie oder + Fuhrwerk). Prüft Lizenz und Kasse vor der API,
 ## jede Ablehnung der API wird übersetzt (nie stumm).
 func fuhrwerk_kaufen(von: String, nach: String, mit_lizenz := false) -> Dictionary:
+	if demo:                                              # Demo: Fahrzeuge gibt es nur im Depot
+		return {"ok": false, "fehler": "nur_im_depot"}
 	if von == "" or nach == "":
 		meldung(text("ins_leere"))
 		return {"ok": false, "fehler": "keine_auswahl"}
@@ -1424,6 +1436,9 @@ func _fz_knoepfe(liste: Array) -> HBoxContainer:
 
 
 func fahrzeug_oeffnen(vid: int) -> void:
+	if demo and demo_ui != null:                          # Demo: Fahrzeuge zeigt das Fenster Verkehr (Reiter Fahrzeuge)
+		demo_ui.vk.fahrzeug_zeigen("v%d" % vid)
+		return
 	_verkauf_bestaetigen = -1
 	oeffnen("#%d" % vid)
 
@@ -1628,6 +1643,9 @@ func linien_neu() -> void:
 	_leeren(linien_vb)
 	_bereich_leeren("linien")
 	linien_werte = {}
+	if demo:
+		_linien_neu_demo({})
+		return
 	var gruppen := {}                                         # aktuelle Linien (auch ohne volle Minute)
 	for f in ps.fahrzeuge:
 		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0:
@@ -1638,9 +1656,6 @@ func linien_neu() -> void:
 		gruppen[k].append(f)
 	linien_panel.visible = not gruppen.is_empty()
 	if gruppen.is_empty():
-		return
-	if demo:
-		_linien_neu_demo(gruppen)
 		return
 	linien_vb.add_child(_label("Linien (Netto der letzten Minute)", 16, C_GRAU))
 	for k in gruppen:
@@ -1703,80 +1718,39 @@ func _kurz(nm: String) -> String:
 	return String(ps.daten.get("kurznamen", {}).get(nm, nm))
 
 
-func _linien_neu_demo(gruppen: Dictionary) -> void:
-	linien_vb.add_child(_label("Linien · Netto der letzten Minute · Klick klappt auf", 14, C_GRAU))
+func _linien_neu_demo(_gruppen: Dictionary) -> void:
+	linien_panel.visible = not ps.linien.is_empty()
+	if ps.linien.is_empty():
+		return
+	linien_vb.add_child(_label("Linien · Ertrag der letzten Minute · Klick öffnet die Linie (L)", 14, C_GRAU))
 	var zeilen := 1
-	for k in gruppen:
-		var fz: Array = gruppen[k]
-		var von := _stationsname(int(fz[0]["von"]))
-		var nach := _stationsname(int(fz[0]["nach"]))
-		var alter := 0
-		var fix := 0
-		for f in fz:
-			alter = maxi(alter, ps.alter_jahre(f))
-			fix += ps.fix_eff(f)
-		var w := {"alter": alter, "fix": fix, "n": fz.size()}
-		var netto := "—"
-		var farbe := C_TEXT
-		if statistik.linien.has(k):
-			var z: Dictionary = statistik.linien[k]
-			w["gewinn"] = int(z["gewinn"])
-			netto = "%s%s" % ["+" if int(z["gewinn"]) > 0 else "", geld(int(z["gewinn"]))]
-			farbe = C_BAD if int(z["gewinn"]) < 0 else C_OK
-		var marke := "●"
-		var mfarbe := C_GRAU
-		var sz := ""
-		if statistik.linien.has(k):
-			var sa := linie_saettigung(k)
-			if sa.get("ok", false):
-				w["ampel"] = int(sa["ampel"])
-				var pct: int = Economy.rdiv(int(sa["v_promille"]), 10)
-				marke = ["●", "▲", "■"][clampi(int(sa["ampel"]), 0, 2)]
-				mfarbe = [C_OK, C_WARN, C_BAD][clampi(int(sa["ampel"]), 0, 2)]
-				sz = "%s %s zu %d %% versorgt%s" % [marke, nach, pct, (": mehr bringt wenig, +%s/min mit neuem Abnehmer" % geld(int(sa["x_cent"]))) if int(sa["ampel"]) >= 1 else ""]
+	for l in ps.linien:
+		var id := int(l["id"])
+		var kz: Dictionary = ps.linie_kennzahlen(id)
+		var n := int(kz["fahrzeuge"])
+		var farbe := Color(String(l.get("farbe", "#C98BD0")))
 		var hb := HBoxContainer.new()
 		hb.add_theme_constant_override("separation", 6)
-		var plan_id := int(fz[0].get("plan", 0)) if fz[0].has("plan") else 0
-		var titel_text := "%s → %s" % [_kurz(von), _kurz(nach)]
-		if plan_id > 0:
-			titel_text = "%s (%d Halte)" % [String(ps.linie_plan(plan_id).get("name", "Linie")), ps.linie_plan(plan_id).get("halte", []).size()]
-		var titel := _knopf(titel_text, "linie_" + k, func():
-			linie_offen = "" if linie_offen == k else k
-			linien_neu(), false, false, "linien")
+		var chip := ColorRect.new()
+		chip.color = farbe
+		chip.custom_minimum_size = Vector2(8, 22)
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hb.add_child(chip)
+		var titel := _knopf(String(l["name"]), "linie_%d" % id, demo_ui.vk.linie_zeigen.bind(id), false, false, "linien")
 		titel.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		titel.clip_text = true
 		titel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		titel.add_theme_font_size_override("font_size", 15)
-		titel.tooltip_text = "%s → %s (%s)" % [von, nach, gut_text(ausgang(site_of(von)))]
+		titel.tooltip_text = " → ".join(PackedStringArray(l["halte"]))
 		hb.add_child(titel)
-		var anz := _label("%d×" % fz.size(), 14, C_GRAU)
-		hb.add_child(anz)
-		var nl := _label(netto, 15, farbe)
+		hb.add_child(_label("%d×" % n if n > 0 else "kein Fahrzeug", 14, C_GRAU if n > 0 else C_WARN))
+		var nl := _label(geld(int(kz["ertrag_cent"])), 15, C_OK if int(kz["ertrag_cent"]) > 0 else C_GRAU)
 		nl.custom_minimum_size = Vector2(72, 0)
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		hb.add_child(nl)
-		hb.add_child(_label(marke, 15, mfarbe))
-		var ld: Dictionary = demo_ui.linie_def(von, nach) if demo_ui != null else fuhrwerk_def()
-		if plan_id > 0:
-			ld = ps.vdef(ps.def_fuer(String(ps.linie_plan(plan_id).get("kategorie", "fuhrwerk"))))
-		var preis: int = ps._preis(ld)
-		var plus := _knopf("+", "lplus_" + k, (demo_ui.plan_plus.bind(plan_id) if plan_id > 0 else fuhrwerk_kaufen.bind(von, nach)), false, preis > ps.eco.cash_cent, "linien")
-		plus.tooltip_text = "+ %s %s" % [String(ld.get("name", "Fuhrwerk")), geld(preis)]
-		plus.custom_minimum_size = Vector2(30, 28)
-		hb.add_child(plus)
 		linien_vb.add_child(hb)
+		linien_werte["l%d" % id] = {"n": n, "ertrag": int(kz["ertrag_cent"])}
 		zeilen += 1
-		if linie_offen == k:
-			var hb2 := _fz_knoepfe_bereich(fz, "linien")
-			hb2.add_child(_label("Unterhalt %s/min · ältestes %d J · + %s %s" % [geld(fix), alter, String(ld.get("name", "")), geld(preis)], 13, C_GRAU))
-			linien_vb.add_child(hb2)
-			zeilen += 1
-			if sz != "":
-				var sl := _label(sz, 13, mfarbe)
-				sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-				linien_vb.add_child(sl)
-				zeilen += 1
-		linien_werte[k] = w
 	if linien_scroll != null:
 		linien_scroll.custom_minimum_size.y = minf(zeilen * 33.0 + 4.0, 300.0)
 

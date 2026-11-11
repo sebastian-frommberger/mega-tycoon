@@ -60,13 +60,17 @@ const FT := {
 	"zu_viele_halte": "Eine Linie hat höchstens {max} Halte. Teile sie in zwei Linien.",
 	"gleicher_ort": "{name} steht zweimal hintereinander im Plan. Nimm einen der beiden Halte heraus.",
 	"falsche_fracht": "Das passt nicht: Personenwagen halten nur an Orten und Haltestellen, Güterwagen laden nur an Betrieben.",
-	"unbekannte_linie": "Diese Linie gibt es nicht mehr. Wähle eine andere im Linienplaner (Taste L).",
+	"unbekannte_linie": "Diese Linie gibt es nicht mehr. Wähle eine andere im Fenster Verkehr (Taste L).",
+	"unbekannte_linienart": "Diese Linienart gibt es nicht. Wähle Straße oder Gleis, Güter oder Personen.",
+	"falsches_depot": "Dieses Modell gibt es nur im {art}. Öffne das passende Depot (Taste L, Reiter Depots).",
+	"kein_neueres_modell": "Für diese Fahrzeuge gibt es noch kein neueres Modell. Neue Modelle kommen 1822, 1824, 1826 und 1828.",
+	"keine_auswahl": "Es ist kein passendes Fahrzeug ausgewählt. Wähle zuerst Zeilen in der Liste aus.",
 	"unbekannter_halt": "Diesen Halt gibt es im Plan nicht. Öffne die Linie neu (Taste L).",
 	"passt_nicht_zur_linie": "Das Fahrzeug passt nicht zu dieser Linie (Straße oder Gleis, Güter oder Personen müssen gleich sein).",
-	"linie_hat_fahrzeuge": "Auf der Linie fahren noch {n} Fahrzeuge. Verkaufe sie oder weise sie einer anderen Linie zu.",
-	"kein_depot": "Dafür fehlt ein {art} am Netz dieser Linie. Baue eines im Fuhrpark (Taste U).",
+	"linie_hat_fahrzeuge": "Auf der Linie fahren noch {n} Fahrzeuge. Schicke sie ins Depot oder weise sie einer anderen Linie zu.",
+	"kein_depot": "Dafür fehlt ein {art} am Netz dieser Linie. Baue eines (Taste L, Reiter Depots).",
 	"nichts_zu_ueberholen": "Das Fahrzeug ist frisch überholt. Eine Überholung lohnt erst nach einem Jahr.",
-	"depot_erreicht_linie_nicht": "Das Depot erreicht {name} nicht über das Netz. Baue eine Straße oder ein Depot dort.",
+	"depot_erreicht_linie_nicht": "Das Depot {depot} erreicht {name} nicht über das Netz. Baue eine Verbindung oder ein Depot an der Linie.",
 	"nicht_kaeuflich": "Diese Strecke steht nicht zum Verkauf.",
 	"schon_gekauft": "Das gehört dir schon.",
 	"nicht_im_besitz": "Diese Strecke gehört dir nicht.",
@@ -117,21 +121,22 @@ var _sig_fz := ""
 var _n_bauwerke := 0
 var _n_bahnhof := 0
 var _n_depots := 0
-var _sig_plan := ""
-# Linienplaner
-var plan_panel: PanelContainer
-var plan_vb: VBoxContainer
-var plan_neu_an := false              # Modus „neue Linie“: Weltklicks nehmen Halte auf
-var plan_halte: Array = []
-var plan_auftrag: Array = []
-var plan_def := ""
-var plan_edit := 0                    # Linien-ID, deren Plan aufgeklappt ist (0 = keine)
-# Fuhrpark
-var fuhr_panel: PanelContainer
-var fuhr_vb: VBoxContainer
-var fuhr_tab := "fahrzeuge"           # "fahrzeuge" | "depots" | "strecken"
+var vk = null                         # ui_verkehr.gd: Fenster Verkehr, Depotfenster, Linien-Editor
 var depot_modus := false
 var depot_vorschau: Dictionary = {}
+var banner: PanelContainer            # Modus-Banner oben mittig: sichtbar, solange das Spiel auf einen Weltklick wartet
+var banner_punkt: ColorRect
+var banner_titel: Label
+var banner_hinweis: Label
+var sel_art := ""                     # die EINE Auswahl: "" | "ort" | "depot" | "hq" | "linie"
+var sel_name := ""
+var _sel_sig := ""
+var sel_ring: MeshInstance3D          # pulsierender Ring am ausgewählten Objekt
+var sel_pfeil: MeshInstance3D         # Kegel über der Auswahl (wippt)
+var hover_ring: MeshInstance3D        # dünner Ring unter der Maus (alles Anklickbare)
+var hover: Dictionary = {}            # {art, id, pos, r} des Objekts unter der Maus
+var _hover_sig := ""
+var _t_hover := 0.0
 const ENDE_TICK := 18000              # 30 Spielminuten: Bilanzkarte (das Spiel läuft danach weiter)
 var ende_gezeigt := false
 var ende_panel: PanelContainer
@@ -164,8 +169,9 @@ func einbauen(p_welt: Node, p_uw) -> void:
 	_baue_vertraege()
 	_baue_skills()
 	_baue_hq_panel()
-	_baue_plan()
-	_baue_fuhrpark()
+	vk = preload("res://proto/ui_verkehr.gd").new()
+	vk.einbauen(self)
+	_baue_banner()
 	_haltestellen_bauen()
 	_baue_menue()
 	_baue_start()
@@ -318,7 +324,7 @@ func _baue_leiste() -> void:
 	vb.add_child(hb)
 	for e in [["hq", "Firmensitz", "H", C_HQ, hq_knopf], ["strasse", "Straße", "B", C_BAU, func(): bau_start("strasse")],
 			["gleis", "Gleis", "G", C_BAU, func(): bau_start("gleis")], ["vertrag", "Verträge", "V", C_VERTRAG, vertraege_umschalten],
-			["plan", "Linien", "L", C_PLAN, plan_umschalten], ["fuhrpark", "Fuhrpark", "U", C_FUHR, fuhrpark_umschalten],
+			["verkehr", "Verkehr", "L", C_PLAN, func(): vk.umschalten("linien")],
 			["skill", "Skills", "K", C_SKILL, skills_umschalten], ["hilfe", "Hilfe", "F1", Color.TRANSPARENT, hilfe_umschalten]]:
 		var b := _knopf("%s  [%s]" % [e[1], e[2]], "leiste_" + String(e[0]), e[4], e[3])
 		leiste_kn[e[0]] = b
@@ -345,15 +351,19 @@ func _akt_text(a: String) -> String:
 		"gleis":
 			return "Gleis " + ziel.replace(">", " → ")
 		"fahrzeug":
-			return "Fahrzeug " + ziel.replace(">", " → ")
+			return "Linie " + ziel.replace(">", " → ") + " (Wagen im Depot kaufen)"
 		"zug":
-			return "Zug " + ziel.replace(">", " → ")
+			return "Zuglinie " + ziel.replace(">", " → ") + " (Lokschuppen)"
+		"zuweisen":
+			return "Fahrzeuge im Depot einer Linie zuweisen"
+		"linie":
+			return "Linie anlegen (Taste L)"
 		"firma":
 			return ziel + " kaufen"
 		"personen":
 			return "Stadtlinie ab " + ziel
 		"depot":
-			return "Depot bauen"
+			return "Betriebshof bauen"
 		"ueberholen":
 			return "Fahrzeug überholen"
 		"strecke":
@@ -379,6 +389,9 @@ func leiste_neu() -> void:
 	leiste_kn["skill"].text = "Skills%s  [K]" % ((" · %d Punkt%s frei" % [frei, "" if frei == 1 else "e"]) if frei > 0 else "")
 	leiste_kn["hq"].text = "%s  [H]" % ("Firmensitz platzieren" if not ps.hq_platziert else String(ps._hq_stufe_daten().get("name", "Firmensitz")))
 	leiste_kn["gleis"].text = "Gleis  [G]" if ps.gleis_frei() else "Gleis ab %d" % int(ps.bau_regel("gleis").get("ab_jahr", 0))
+	var im_depot: int = ps.abgestellt.size()
+	leiste_kn["verkehr"].text = "Verkehr%s  [L]" % ((" · %d im Depot" % im_depot) if im_depot > 0 else "")
+	_puls(leiste_kn["verkehr"], im_depot > 0 and not ps.linien.is_empty())
 	_puls(leiste_kn["hq"], not ps.hq_platziert)
 	_puls(leiste_kn["vertrag"], n_ang > 0)
 	_puls(leiste_kn["skill"], frei > 0)
@@ -408,6 +421,336 @@ func naechster_text() -> String:
 	return "%s (Meilenstein „%s“, +%d Skillpunkt)" % [String(m["tipp"]), String(m["name"]), int(m.get("skillpunkte", 0))]
 
 
+# ------------------------------------------------------------------ Modus (genau einer), Banner, Auswahl (genau eine), Hover
+#
+# Regeln (Bastis Befund 11.11.: „nicht gemerkt, dass das Spiel auf ein Ziel wartet“):
+#  · Wartet das Spiel auf einen Weltklick, steht oben mittig das Banner. Es gibt keinen Modus ohne Banner.
+#  · Ein neuer Modus beendet den alten sichtbar (modus_beenden), jede neue Auswahl hebt die alte auf.
+#  · Esc und ein Klick ins Leere heben die Auswahl auf. Der Ring am Objekt folgt jede Zehntelsekunde dem Zustand, er kann nicht hängen bleiben.
+
+const MODUS_FARBE := {"bau": Color("#7FA8D8"), "hq": Color("#D9B25A"), "depot": Color("#D98F5A"), "halte": Color("#C98BD0")}
+
+
+func modus() -> String:
+	if bau_art != "":
+		return "bau"
+	if hq_modus:
+		return "hq"
+	if depot_modus:
+		return "depot"
+	if vk != null and vk.halte_an:
+		return "halte"
+	return ""
+
+
+## Jeden laufenden Modus beenden (vor dem Start eines neuen, bei Esc).
+func modus_beenden() -> void:
+	if bau_art != "":
+		modus_ende()
+	if hq_modus:
+		hq_modus_ende()
+	if depot_modus:
+		depot_modus_ende()
+	if vk != null and vk.halte_an:
+		vk.halte_abbrechen()
+	if uw.modus_von != "" or uw.vorschau_ziel != "":
+		uw.modus_ende()
+	modus_geaendert()
+
+
+func modus_geaendert() -> void:
+	_marker_neu()
+	banner_neu()
+	_cursor_neu()
+	schilder_neu()
+
+
+## Schilder der Welt: ungültige Ziele abdunkeln, gültige Ziele, Auswahl und Hover einrahmen (auch Haltestellen- und Depotschilder).
+func schilder_neu() -> void:
+	var daempf := {}
+	var rahmen := {}
+	if vk != null and vk.halte_an:
+		var lf: Color = Color(ps.LINIENFARBEN[ps._linie_nr % ps.LINIENFARBEN.size()]) if vk.halte_linie == 0 else Color(String(ps.linie_plan(vk.halte_linie).get("farbe", "#C98BD0")))
+		for nm in ps.stationen:
+			if vk.halte_gueltig(nm) == "":
+				rahmen[nm] = lf
+			else:
+				daempf[nm] = 0.3
+	if sel_art == "ort":
+		rahmen[sel_name] = C_GOLD
+	if hover.get("art", "") == "ort":
+		rahmen[String(hover["id"])] = Color.WHITE if werte.get("hover_gueltig", true) else C_BAD
+	werte["schilder_gedaempft"] = daempf.size()
+	werte["schilder_betont"] = rahmen.keys()
+	if welt.get("schilder") != null and welt.schilder != null:
+		welt.schilder.daempfen = daempf
+		welt.schilder.betonen = rahmen
+	for nm in ps.stationen:                                    # Haltestellen sind eigene 3D-Schilder
+		var hn := "Halt_" + String(nm).validate_node_name()
+		if raum.has_node(hn):
+			for c in raum.get_node(hn).get_children():
+				if c is Label3D:
+					(c as Label3D).modulate = Color(C_PLAN.lightened(0.35), float(daempf.get(nm, 1.0))) if not rahmen.has(nm) else (rahmen[nm] as Color).lightened(0.2)
+	for dp in ps.depots:
+		var dn := "Depot_%d" % int(dp["id"])
+		if raum.has_node(dn):
+			var an: bool = (sel_art == "depot" and sel_name == String(dp["name"])) or (hover.get("art", "") == "depot" and String(hover.get("name", "")) == String(dp["name"]))
+			for c in raum.get_node(dn).get_children():
+				if c is Label3D:
+					(c as Label3D).modulate = C_GOLD.lightened(0.2) if an else C_FUHR.lightened(0.3)
+
+
+func _baue_banner() -> void:
+	var reihe := HBoxContainer.new()
+	reihe.name = "BannerReihe"
+	reihe.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	reihe.offset_top = 176.0
+	reihe.alignment = BoxContainer.ALIGNMENT_CENTER
+	reihe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(reihe)
+	banner = PanelContainer.new()
+	banner.name = "ModusBanner"
+	banner.mouse_filter = Control.MOUSE_FILTER_STOP
+	banner.visible = false
+	reihe.add_child(banner)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 12)
+	banner.add_child(hb)
+	banner_punkt = ColorRect.new()
+	banner_punkt.custom_minimum_size = Vector2(16, 16)
+	banner_punkt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(banner_punkt)
+	banner_titel = _lbl("", 20, Color.WHITE)
+	hb.add_child(banner_titel)
+	banner_hinweis = _lbl("", 17, C_CREME)
+	hb.add_child(banner_hinweis)
+	hb.add_child(_knopf("Abbrechen · Esc", "banner_abbrechen", modus_beenden))
+
+
+## Text des Banners für den laufenden Modus: [Titel, Hinweis].
+func banner_text() -> Array:
+	match modus():
+		"bau":
+			var name := String(ps.bau_regel(bau_art).get("name", bau_art))
+			if bau_punkte.is_empty():
+				return ["%s bauen" % name, "Startpunkt anklicken (Ringe) · Esc bricht ab"]
+			return ["%s bauen" % name, "%d Punkt%s gesetzt · nächsten Punkt oder Ziel anklicken · Enter baut · Entf nimmt zurück · Esc bricht ab" % [
+				bau_punkte.size(), "" if bau_punkte.size() == 1 else "e"]]
+		"hq":
+			return ["Firmensitz platzieren" if not ps.hq_platziert else "Firmensitz umziehen", "Platz in einem Ort anklicken (helle Kreise) · Esc bricht ab"]
+		"depot":
+			return ["Depot bauen", "Stelle an einer Straße (Betriebshof) oder an einem Gleis (Lokschuppen) anklicken · Esc bricht ab"]
+		"halte":
+			var n: int = vk.halte_anzahl()
+			return ["Halte für %s anklicken" % vk.halte_name(), "%d gewählt · Enter fertig · Esc bricht ab" % n]
+	return ["", ""]
+
+
+func banner_neu() -> void:
+	if banner == null:
+		return
+	var m := modus()
+	var t := banner_text()
+	banner.visible = m != ""
+	werte["modus"] = m
+	werte["banner"] = (String(t[0]) + " · " + String(t[1])) if m != "" else ""
+	vertrag_panel.offset_top = 236.0 if m != "" else 176.0
+	if m == "":
+		return
+	var farbe: Color = MODUS_FARBE.get(m, C_GOLD)
+	banner_titel.text = String(t[0])
+	banner_hinweis.text = String(t[1])
+	banner_punkt.color = farbe.lightened(0.3)
+	var sb := _stil(farbe.darkened(0.62), farbe.lightened(0.15), 3, 10, 12)
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 12
+	banner.add_theme_stylebox_override("panel", sb)
+
+
+## Fenster schließen, die sich mit einem neuen Fenster überdecken würden (ausser = das neue).
+func fenster_zu(ausser := "") -> void:
+	if ausser != "skill":
+		skill_panel.visible = false
+	if ausser != "hq":
+		hq_panel.visible = false
+	if ausser != "verkehr" and vk != null:
+		vk.schliessen()
+
+
+## Das ausgewählte Objekt aus dem Zustand ablesen (eine Quelle der Wahrheit: die offenen Karten).
+func auswahl() -> Dictionary:
+	if vk != null and vk.depot_offen >= 0 and vk.depot_offen < ps.depots.size():
+		var dp: Dictionary = ps.depots[vk.depot_offen]
+		return {"art": "depot", "name": String(dp["name"]), "pos": (dp["pos"] as Vector2) + Vector2(-5.0, 3.0), "r": 22.0, "h": 16.0}
+	if hq_panel.visible and ps.hq_platziert:
+		return {"art": "hq", "name": "Firmensitz", "pos": ps.hq_pos, "r": 26.0, "h": 30.0}
+	if uw.auswahl != "" and ps.stationen.has(uw.auswahl):
+		var p3: Vector3 = uw.orte_pos[uw.auswahl]
+		return {"art": "ort", "name": uw.auswahl, "pos": Vector2(p3.x, p3.z), "r": 30.0, "h": 34.0}
+	if vk != null and vk.linie_sel > 0:
+		return {"art": "linie", "name": String(ps.linie_plan(vk.linie_sel).get("name", ""))}
+	return {"art": "", "name": ""}
+
+
+## Auswahl aufheben (Esc, Klick ins Leere, vor einer neuen Auswahl). linie_auch = false lässt die gewählte Linie stehen.
+func auswahl_leeren(linie_auch := true) -> void:
+	if uw.auswahl != "":
+		uw.schliessen()
+	hq_panel.visible = false
+	if vk != null:
+		vk.depot_schliessen()
+		if linie_auch and not vk.panel.visible:
+			vk.linie_sel = 0
+	auswahl_geaendert()
+
+
+func auswahl_ort(nm: String) -> void:
+	fenster_zu()
+	vk.depot_schliessen()
+	vk.linie_sel = 0
+	uw.oeffnen(nm)
+	auswahl_geaendert()
+
+
+func auswahl_hq() -> void:
+	if uw.auswahl != "":
+		uw.schliessen()
+	fenster_zu("hq")
+	vk.depot_schliessen()
+	vk.linie_sel = 0
+	hq_panel.visible = true
+	hq_panel_neu()
+	auswahl_geaendert()
+
+
+## Ring und Pfeil an die Auswahl setzen (jede Zehntelsekunde aus _process und sofort nach jeder Änderung).
+func auswahl_geaendert() -> void:
+	if sel_ring == null:
+		return
+	var a := auswahl()
+	sel_art = String(a["art"])
+	sel_name = String(a["name"])
+	werte["auswahl"] = {"art": sel_art, "name": sel_name}
+	var sig := "%s|%s|%s" % [sel_art, sel_name, str(a.get("pos", ""))]
+	if sig == _sel_sig:
+		return
+	_sel_sig = sig
+	schilder_neu()
+	var zeigen: bool = a.has("pos")
+	sel_ring.visible = zeigen
+	sel_pfeil.visible = zeigen
+	werte["auswahl_ring"] = zeigen
+	if not zeigen:
+		return
+	var p: Vector2 = a["pos"]
+	var r := float(a["r"])
+	sel_ring.mesh = _ring_lokal(r, maxf(2.6, r * 0.11))
+	sel_ring.position = Vector3(p.x, _h(p) + 1.6, p.y)
+	sel_pfeil.position = Vector3(p.x, _h(p) + float(a["h"]), p.y)
+	sel_pfeil.set_meta("boden", _h(p))
+	sel_pfeil.set_meta("hoehe", float(a["h"]))
+
+
+## Flacher Ring um den Ursprung (für pulsierende Ringe: skalierbar).
+func _ring_lokal(radius: float, breite: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 48
+	for i in n:
+		var pts: Array = []
+		for a in [TAU * i / n, TAU * (i + 1) / n]:
+			for r in [radius - breite * 0.5, radius + breite * 0.5]:
+				pts.append(Vector3(cos(a) * float(r), 0.0, sin(a) * float(r)))
+		for v in [pts[0], pts[1], pts[2], pts[1], pts[3], pts[2]]:
+			st.add_vertex(v)
+	return st.commit()
+
+
+## Anklickbares Objekt unter einem Bildschirmpunkt: Depot, Firmensitz oder Station (das nächste gewinnt). {} = nichts.
+func objekt_unter(pos: Vector2) -> Dictionary:
+	var cam: Camera3D = welt.cam
+	var best := {}
+	var bd := 40.0
+	for i in ps.depots.size():
+		var dp: Vector2 = ps.depots[i]["pos"]
+		var p3 := Vector3(dp.x - 5.0, _h(dp) + 4.0, dp.y + 3.0)
+		if cam.is_position_behind(p3):
+			continue
+		var d := cam.unproject_position(p3).distance_to(pos)
+		if d < bd:
+			bd = d
+			best = {"art": "depot", "id": i, "name": String(ps.depots[i]["name"]), "pos": dp + Vector2(-5.0, 3.0), "r": 22.0}
+	if ps.hq_platziert:
+		var hp: Vector2 = ps.hq_pos
+		var h3 := Vector3(hp.x, _h(hp) + 6.0, hp.y)
+		if not cam.is_position_behind(h3):
+			var d2 := cam.unproject_position(h3).distance_to(pos)
+			if d2 < bd:
+				bd = d2
+				best = {"art": "hq", "id": 0, "name": "Firmensitz", "pos": hp, "r": 26.0}
+	var nm: String = uw.ort_unter(pos)
+	if nm != "":
+		var o3: Vector3 = uw.orte_pos[nm]
+		var d3 := cam.unproject_position(o3).distance_to(pos)
+		if best.is_empty() or d3 < bd:
+			best = {"art": "ort", "id": nm, "name": nm, "pos": Vector2(o3.x, o3.z), "r": 30.0}
+	return best
+
+
+## Hover-Ring und Mauszeiger für einen Bildschirmpunkt (ueber_gui: Maus liegt auf einer Karte).
+func hover_setzen(pos: Vector2, ueber_gui := false) -> void:
+	var m := modus()
+	var o := {} if ueber_gui or m in ["bau", "hq", "depot"] else objekt_unter(pos)
+	var gueltig := true
+	if m == "halte":
+		if o.get("art", "") != "ort":
+			o = {}
+		else:
+			gueltig = vk.halte_gueltig(String(o["id"])) == ""
+	hover = o
+	werte["hover"] = String(o.get("name", ""))
+	werte["hover_gueltig"] = gueltig
+	var sig := "%s|%s|%s" % [o.get("art", ""), str(o.get("id", "")), gueltig]
+	if sig != _hover_sig:
+		_hover_sig = sig
+		schilder_neu()
+		hover_ring.visible = not o.is_empty()
+		if not o.is_empty():
+			var p: Vector2 = o["pos"]
+			var r := float(o["r"]) + 5.0
+			hover_ring.mesh = _ring_lokal(r, 1.6)
+			hover_ring.position = Vector3(p.x, _h(p) + 1.9, p.y)
+			var hm := _mat(Color(Color.WHITE if gueltig else C_BAD, 0.9))
+			hm.no_depth_test = true
+			hover_ring.material_override = hm
+	_cursor_neu(ueber_gui)
+
+
+func _cursor_neu(ueber_gui := false) -> void:
+	var m := modus()
+	var form := Input.CURSOR_ARROW
+	if m in ["bau", "hq", "depot"]:
+		form = Input.CURSOR_CROSS
+	elif m == "halte":
+		form = Input.CURSOR_CROSS if hover.is_empty() else (Input.CURSOR_POINTING_HAND if werte.get("hover_gueltig", true) else Input.CURSOR_FORBIDDEN)
+	elif not hover.is_empty():
+		form = Input.CURSOR_POINTING_HAND
+	werte["cursor"] = form
+	if not ueber_gui:
+		Input.set_default_cursor_shape(form)
+
+
+## „Linie hier beginnen“ aus dem Betriebs-/Ortspanel: öffnet den Linien-Editor mit diesem Halt als erstem.
+func linie_hier_beginnen(nm: String, gleis := false) -> void:
+	if not ps.stationen.has(nm):
+		return
+	var stadt: bool = ps.eco.s_kind[int(ps.stationen[nm]["site"])] == 1
+	var art := ("gleis_" if gleis else "strasse_") + ("personen" if stadt else "gueter")
+	vk.halte_start(art, 0, nm)
+	if vk.halte_an and vk.halte_liste.is_empty():
+		uw.meldung(vk.halte_gueltig(nm), 4.0)                 # Modus läuft, der Halt selbst gilt (noch) nicht: Grund sagen
+
+
 # ------------------------------------------------------------------ Baumodus (Straße, Gleis)
 
 func _baue_modus() -> void:
@@ -435,15 +778,16 @@ func bau_start(art: String, start: Variant = null) -> void:
 	if ps.kalenderjahr() < int(rg.get("ab_jahr", 0)):
 		melde_fehler({"fehler": "noch_nicht_verfuegbar", "ab_jahr": int(rg["ab_jahr"])})
 		return
-	hq_modus_ende()
-	uw.modus_ende()
+	modus_beenden()
+	auswahl_leeren()
+	fenster_zu()
 	bau_art = art
 	bau_punkte = PackedVector2Array()
 	bau_angebot = {}
 	if start is Vector2:
 		bau_punkte.append(ps.fang(art, start)["pos"])
 	modus_panel.visible = true
-	_marker_neu()
+	modus_geaendert()
 	modus_neu()
 
 
@@ -453,7 +797,7 @@ func modus_ende() -> void:
 	bau_angebot = {}
 	modus_panel.visible = false
 	vorschau_mi.visible = false
-	_marker_neu()
+	modus_geaendert()
 
 
 func _fang_text(f: Dictionary) -> String:
@@ -473,6 +817,7 @@ func modus_neu() -> void:
 	if bau_art == "":
 		return
 	_leeren(modus_vb, 2)
+	banner_neu()
 	var rg: Dictionary = ps.bau_regel(bau_art)
 	(modus_vb.get_child(0).get_node("Titel") as Label).text = "%s bauen" % String(rg.get("name", bau_art))
 	var pkt := PackedVector2Array(bau_punkte)
@@ -574,21 +919,21 @@ func bau_fertig() -> Dictionary:
 func hq_knopf() -> void:
 	if not ps.hq_platziert:
 		hq_modus_start()
+	elif hq_panel.visible:
+		auswahl_leeren()
 	else:
-		hq_panel.visible = not hq_panel.visible
-		if hq_panel.visible:
-			skill_panel.visible = false
-			hq_panel_neu()
+		modus_beenden()
+		auswahl_hq()
 
 
 func hq_modus_start() -> void:
-	modus_ende()
-	uw.modus_ende()
-	hq_panel.visible = false
+	modus_beenden()
+	auswahl_leeren()
+	fenster_zu()
 	hq_modus = true
 	hq_vorschau = {}
 	modus_panel.visible = true
-	_marker_neu()
+	modus_geaendert()
 	hq_modus_neu()
 
 
@@ -600,7 +945,7 @@ func hq_modus_ende() -> void:
 	hq_geist.visible = false
 	if _ring_t > 3.0 or not ps.hq_platziert:
 		hq_ring.visible = false
-	_marker_neu()
+	modus_geaendert()
 
 
 func hq_modus_neu() -> void:
@@ -651,14 +996,15 @@ func hq_setzen(p: Vector2) -> Dictionary:
 	if not r.get("ok", false):
 		melde_fehler(r)
 		return r
-	uw.meldung("Firmensitz in %s gegründet. %d Betriebe im Umkreis, dort sind Lizenzen 30 %% billiger." % [r["ort"], int(r["im_radius_n"])])
+	uw.meldung("Firmensitz in %s gegründet, der Fuhrhof daneben ist dein erstes Depot. %d Betriebe im Umkreis, dort sind Lizenzen 30 %% billiger." % [r["ort"], int(r["im_radius_n"])])
 	hq_modus = false
 	hq_geist.visible = false
 	modus_panel.visible = false
 	_ring_t = 0.0
 	_ring_setzen(p, float(ps.eco.hq_radius_felder) * 25.0, C_GOLD)
 	_hq_haus_neu()
-	_marker_neu()
+	_bauwerke_pruefen()
+	modus_geaendert()
 	leiste_neu()
 	uw.kopf_neu()
 	return r
@@ -884,7 +1230,8 @@ func _baue_skills() -> void:
 func skills_umschalten() -> void:
 	skill_panel.visible = not skill_panel.visible
 	if skill_panel.visible:
-		hq_panel.visible = false
+		auswahl_leeren()
+		fenster_zu("skill")
 	_sig_skill = ""
 	skills_neu()
 
@@ -991,13 +1338,13 @@ func skill_reset() -> void:
 # ------------------------------------------------------------------ Start, Hilfe, Menü
 
 const HILFE := [
-	["1", "Firmensitz", "Taste H: frei in Erlenbach, Lindenfurt oder Hasenwinkel platzieren. Die Vorschau zeigt Radius, Lizenzpreise und Heimatbonus."],
-	["2", "Erste Kette", "Gut Kuppenhof anklicken → Lizenz → „Linie von hier“ → Erlenmühle → Erlenbach. Mehl bringt das erste Geld."],
-	["3", "Verträge", "Taste V: Orte und Betriebe bieten Menge, Frist und Prämie. Annehmen lohnt, wenn deine Linie die Menge schafft."],
-	["4", "Bauen", "Taste B Straße, ab 1824 Taste G Gleis: Start klicken, Zwischenpunkte, Ziel klicken. Forsthaus, Gruben und Hütte brauchen einen Anschluss."],
-	["5", "Skills", "Taste K: Jeder Meilenstein bringt einen Punkt. Drei Äste, du kannst nicht alles haben (Zurücksetzen ist frei)."],
-	["6", "Linien & Fuhrpark", "Taste L: Linien mit mehreren Halten und Stadtverkehr (Stadtkutsche, später Omnibus, Pferdestraßenbahn, Personenzug). Taste U: Fahrzeugliste, Depots, Strecken kaufen und verkaufen."],
-	["7", "Wachsen", "Neue Modelle (1822, 1824, 1826, 1828): Fahrzeug anklicken → Ersetzen. Betriebe kaufen ab 1823, Firmensitz ausbauen."],
+	["1", "Firmensitz", "Taste H: frei in Erlenbach, Lindenfurt oder Hasenwinkel platzieren. Er bringt den Fuhrhof mit, dein erstes Depot."],
+	["2", "Linie anlegen", "Taste L → Neue Linie → Art wählen → Halte in der Welt anklicken (Gut Kuppenhof, dann Erlenmühle) → Enter. Eine Linie kostet nichts."],
+	["3", "Im Depot kaufen", "Fuhrhof anklicken (oder im Linienfenster „Zum Depot“): Fuhrwerke aus dem Katalog kaufen. Sie stehen erst einmal im Depot."],
+	["4", "Zuweisen", "Fahrzeuge im Depot auswählen (Klick, Umschalt+Klick für mehrere) und auf die Linie klicken. Sie rücken aus. Vorher: Lizenz des Betriebs kaufen."],
+	["5", "Verträge & Skills", "Taste V: Menge, Frist, Prämie. Taste K: Jeder Meilenstein bringt einen Skillpunkt."],
+	["6", "Bauen", "Taste B Straße, ab 1824 Taste G Gleis: Start klicken, Zwischenpunkte, Ziel klicken. Züge brauchen einen Lokschuppen am Gleis."],
+	["7", "Wachsen", "Taste U: alle Fahrzeuge, Mehrfachauswahl, ersetzen (neue Modelle 1822, 1824, 1826, 1828), ins Depot, verkaufen. Betriebe kaufen ab 1823."],
 ]
 
 
@@ -1019,7 +1366,7 @@ func _baue_start() -> void:
 		tv.add_child(_umbruch(_lbl(String(h[2]), 15, C_CREME), 660))
 		hb.add_child(tv)
 		vb.add_child(hb)
-	vb.add_child(_umbruch(_lbl("Kamera: WASD schieben, Q/E drehen, Mausrad zoomen, 1–5 Ansichten. Leertaste Pause, Tempo oben rechts. Die Zeile „Jetzt möglich“ sagt dir immer, was gerade geht.", 14, C_MATT), 720))
+	vb.add_child(_umbruch(_lbl("Kamera: WASD schieben, Q/E drehen, Mausrad zoomen, 1–5 Ansichten. Leertaste Pause, Tempo oben rechts. Wartet das Spiel auf einen Klick in die Welt, steht das oben in einem farbigen Banner; Esc bricht immer ab.", 14, C_MATT), 720))
 	var hb2 := HBoxContainer.new()
 	hb2.alignment = BoxContainer.ALIGNMENT_CENTER
 	hb2.add_child(_knopf("Los geht's: Firmensitz platzieren", "start_los", start_schliessen, C_GOLD))
@@ -1118,7 +1465,7 @@ func _baue_menue() -> void:
 
 # ------------------------------------------------------------------ Eingabe
 
-## true = verbraucht. Reihenfolge Esc: Startbild → Baumodus/HQ-Modus → Panels → (ui_welt) → Menü-Abfrage.
+## true = verbraucht. Reihenfolge Esc: Menü/Startbild → laufender Modus → Depotfenster → Verkehr → Skills/Verträge → Auswahl → Menü-Abfrage.
 func eingabe(ev: InputEvent) -> bool:
 	if not (ev is InputEventKey) or not ev.pressed or ev.echo:
 		return false
@@ -1133,24 +1480,22 @@ func eingabe(ev: InputEvent) -> bool:
 		if ende_panel != null and ende_panel.visible:
 			ende_schliessen()
 			return true
-		if bau_art != "":
-			modus_ende()
+		if modus() != "":
+			modus_beenden()
 			return true
-		if hq_modus:
-			hq_modus_ende()
+		if vk.depot_offen >= 0:
+			vk.depot_schliessen()
 			return true
-		if depot_modus:
-			depot_modus_ende()
+		if vk.panel.visible:
+			vk.schliessen()
 			return true
-		if plan_neu_an:
-			plan_abbrechen()
-			return true
-		for p in [skill_panel, hq_panel, fuhr_panel, plan_panel, vertrag_panel]:
+		for p in [skill_panel, vertrag_panel]:
 			if p.visible:
 				p.visible = false
 				return true
-		if uw.modus_von != "" or uw.vorschau_ziel != "" or uw.auswahl != "":
-			return false                                    # ui_welt schließt sein Panel/seinen Modus
+		if auswahl()["art"] != "":
+			auswahl_leeren()
+			return true
 		menue_panel.visible = true
 		return true
 	if start_panel.visible and k in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:
@@ -1168,19 +1513,25 @@ func eingabe(ev: InputEvent) -> bool:
 		KEY_K:
 			skills_umschalten()
 		KEY_L:
-			plan_umschalten()
+			vk.umschalten("linien")
 		KEY_U:
-			fuhrpark_umschalten()
+			vk.umschalten("fahrzeuge")
 		KEY_F1:
 			hilfe_umschalten()
 		KEY_ENTER, KEY_KP_ENTER:
-			if bau_art == "":
+			if vk.halte_an:
+				vk.halte_fertig()
+			elif bau_art != "":
+				bau_fertig()
+			else:
 				return false
-			bau_fertig()
 		KEY_BACKSPACE, KEY_DELETE:
-			if bau_art == "":
+			if vk.halte_an:
+				vk.halte_zurueck()
+			elif bau_art != "":
+				bau_zurueck()
+			else:
 				return false
-			bau_zurueck()
 		_:
 			return false
 	return true
@@ -1215,35 +1566,43 @@ func boden(pos: Vector2) -> Variant:
 	return Vector2(r.x, r.z)
 
 
-## Weltklick. true = von der Demo-UI verbraucht (Baumodus, HQ-Modus, Klick auf den Firmensitz).
+## Weltklick. In der Demo verbraucht ui_demo jeden Weltklick (das alte Muster „Linie von hier → Ziel“ ist nicht erreichbar):
+## Modus → der Klick gehört dem Modus; sonst Auswahl des Objekts unter der Maus; Klick ins Leere hebt die Auswahl auf.
 func welt_klick(pos: Vector2) -> bool:
 	if start_panel.visible:
 		return true
 	var p = boden(pos)
-	if bau_art != "":
-		if p is Vector2:
-			klick_boden(p)
-		return true
-	if hq_modus:
-		if p is Vector2:
-			hq_setzen(p)
-		return true
-	if depot_modus:
-		if p is Vector2:
-			depot_setzen(p)
-		return true
-	if plan_neu_an:
-		var nm: String = uw.ort_unter(pos)
-		if nm != "":
-			plan_halt_klick(nm)
-		else:
-			uw.meldung("Klicke einen Betrieb, Ort oder eine Haltestelle an, um ihn als Halt aufzunehmen.", 3.0)
-		return true
-	if ps.hq_platziert and p is Vector2 and (p as Vector2).distance_to(ps.hq_pos) < 14.0 and uw.modus_von == "":
-		hq_panel.visible = true
-		hq_panel_neu()
-		return true
-	return false
+	match modus():
+		"bau":
+			if p is Vector2:
+				klick_boden(p)
+			return true
+		"hq":
+			if p is Vector2:
+				hq_setzen(p)
+			return true
+		"depot":
+			if p is Vector2:
+				depot_setzen(p)
+			return true
+		"halte":
+			uw.klicks += 1
+			vk.halte_klick(uw.ort_unter(pos))
+			return true
+	var o := objekt_unter(pos)
+	match String(o.get("art", "")):
+		"depot":
+			uw.klicks += 1
+			vk.depot_oeffnen(int(o["id"]))
+		"hq":
+			uw.klicks += 1
+			auswahl_hq()
+		"ort":
+			uw.klicks += 1
+			auswahl_ort(String(o["id"]))
+		_:
+			auswahl_leeren()
+	return true
 
 
 # ------------------------------------------------------------------ Hooks aus ui_welt
@@ -1266,15 +1625,31 @@ func panel_zusatz(nm: String, site: int) -> void:
 		var kq: Dictionary = ps.kauf_angebot(nm)
 		if kq.get("ok", false) and String(kq.get("grund", "")) == "noch_nicht_verfuegbar":
 			vb.add_child(_lbl("Betriebe stehen ab %d zum Verkauf." % int(kq.get("ab_jahr", 0)), 15, C_MATT))
+		if ps.angeschlossen(nm):
+			vb.add_child(uw._knopf("Linie hier beginnen", "linie_hier_beginnen", linie_hier_beginnen.bind(nm, false), uw.lizenz_ok(site)))
+		if ps.bahnhof.has(nm):
+			vb.add_child(uw._knopf("Zuglinie hier beginnen", "linie_hier_beginnen_gleis", linie_hier_beginnen.bind(nm, true)))
 	else:
 		if e.demo_site_bonus.has(site):
 			vb.add_child(_lbl("● Heimatort deines Firmensitzes: +%d %% Ertrag" % (int(e.demo_site_bonus[site]) / 10), 15, C_OK))
 		werte["wartende"] = ps.wartende(nm)
 		vb.add_child(_lbl("Fahrgäste: %d warten · %d je Minute · %s" % [ps.wartende(nm), maxi(1, e.city_demand(site)),
 			"Linie hält hier" if ps._halt_bedient(nm) else "keine Linie hält hier"], 15, C_OK if ps._halt_bedient(nm) else C_WARN))
-		vb.add_child(uw._knopf("Personenlinie ab hier planen · L", "demo_personenlinie", func():
-			plan_start(ps.def_fuer("kutsche"))
-			plan_halt_klick(nm)))
+		vb.add_child(uw._knopf("Personenlinie hier beginnen", "linie_hier_beginnen", linie_hier_beginnen.bind(nm, false), true))
+		if ps.bahnhof.has(nm):
+			vb.add_child(uw._knopf("Zuglinie für Personen hier beginnen", "linie_hier_beginnen_gleis", linie_hier_beginnen.bind(nm, true)))
+	vb.add_child(HSeparator.new())
+	var hier: Array = []
+	for l in ps.linien:
+		if nm in l["halte"]:
+			hier.append(l)
+	werte["linien_hier"] = hier.size()
+	vb.add_child(_lbl("Linien, die hier halten:" if not hier.is_empty() else "Hier hält noch keine Linie.", 15, C_MATT))
+	for l in hier:
+		var n: int = ps.linie_fahrzeuge(int(l["id"])).size()
+		var b: Button = uw._knopf("%s · %s" % [l["name"], ("%d Fahrzeug%s" % [n, "" if n == 1 else "e"]) if n > 0 else "noch kein Fahrzeug"], "linie_hier_%d" % int(l["id"]), vk.linie_zeigen.bind(int(l["id"])))
+		b.add_theme_color_override("font_color", Color(String(l["farbe"])).lightened(0.3))
+		vb.add_child(b)
 	for v in ps.vertraege_aktiv:
 		if v["ort"] == nm:
 			vb.add_child(_lbl("Vertrag: %d / %d %s, noch %s" % [int(v["geliefert"]), int(v["menge"]), ps.gutname(v["gut"]), _zeit(int(v["ende_tick"]) - ps.sim.tick_count)], 15, C_GOLD))
@@ -1283,6 +1658,11 @@ func panel_zusatz(nm: String, site: int) -> void:
 			vb.add_child(uw._knopf("Angebot: %d %s für %s · V" % [int(v["menge"]), ps.gutname(v["gut"]), geld(ps.vertrag_praemie(v))], "demo_angebot", func():
 				vertrag_panel.visible = true
 				vertraege_neu()))
+
+
+## Fahrzeugkarte des alten Panels: in der Demo zeigt das Fenster Verkehr die Fahrzeuge (Reiter Fahrzeuge).
+func fahrzeug_zusatz(_vid: int) -> void:
+	pass
 
 
 ## Modell für die Linienvorschau wählen: Straße, wenn es eine gibt, sonst Gleis; immer das neueste kaufbare Modell.
@@ -1352,6 +1732,29 @@ func _process(delta: float) -> void:
 	_ring_t += delta
 	_t += delta
 	_t_vorschau += delta
+	_t_hover += delta
+	vk.takt(delta)
+	# Puls: Banner, Auswahlring, Pfeil (Auswahl und Modus dürfen nie unbemerkt stehen bleiben)
+	var puls := 0.5 + 0.5 * sin(_ring_t * 5.0)
+	if banner.visible:
+		banner_punkt.modulate.a = 0.35 + 0.65 * puls
+		banner.modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.12, 1.1, 1.0), puls)
+	var fern := clampf(float(welt.abstand) / 420.0, 1.0, 5.0)   # Ring und Pfeil wachsen mit dem Kameraabstand: auch von weit oben sichtbar
+	if sel_ring.visible:
+		sel_ring.scale = Vector3.ONE * fern * (1.0 + 0.07 * puls)
+		(sel_ring.material_override as StandardMaterial3D).albedo_color = Color(C_GOLD, 0.6 + 0.4 * puls)
+		sel_pfeil.scale = Vector3.ONE * fern
+		sel_pfeil.rotation.y = _ring_t * 1.5
+		sel_pfeil.position.y = float(sel_pfeil.get_meta("boden", 0.0)) + float(sel_pfeil.get_meta("hoehe", 20.0)) * (0.5 + 0.5 * fern) + 3.0 * fern * puls
+	if hover_ring.visible:
+		hover_ring.scale = Vector3.ONE * fern
+	if _t_hover >= 0.1:
+		_t_hover = 0.0
+		auswahl_geaendert()
+		banner_neu()
+		if not maus_aus:
+			var hm := get_viewport().get_mouse_position()
+			hover_setzen(hm, get_viewport().gui_get_hovered_control() != null)
 	if _t_vorschau >= 0.06 and (bau_art != "" or hq_modus or depot_modus) and not maus_aus:
 		_t_vorschau = 0.0
 		var mp := get_viewport().get_mouse_position()
@@ -1389,12 +1792,6 @@ func _process(delta: float) -> void:
 		_sig_hq = sh
 		if not uw._taste_unten:
 			hq_panel_neu()
-	var sp := "%d|%d|%d" % [ps.linien.size(), ps.fahrzeuge.size(), ps.sim.tick_count / 20]
-	if sp != _sig_plan:
-		_sig_plan = sp
-		if not uw._taste_unten:
-			plan_neu()
-			fuhrpark_neu()
 	var sf := ""
 	for f in ps.fahrzeuge:
 		sf += String(f["kat"]) + ","
@@ -1439,6 +1836,35 @@ func _baue_3d() -> void:
 	hq_haus = Node3D.new()
 	hq_haus.name = "Firmensitz"
 	raum.add_child(hq_haus)
+	sel_ring = MeshInstance3D.new()
+	sel_ring.name = "AuswahlRing"
+	sel_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var sm := _mat(Color(C_GOLD, 0.9))
+	sm.no_depth_test = true
+	sm.render_priority = 5
+	sel_ring.material_override = sm
+	sel_ring.visible = false
+	raum.add_child(sel_ring)
+	sel_pfeil = MeshInstance3D.new()
+	sel_pfeil.name = "AuswahlPfeil"
+	var kegel := CylinderMesh.new()
+	kegel.top_radius = 4.2
+	kegel.bottom_radius = 0.0
+	kegel.height = 8.0
+	kegel.radial_segments = 4
+	sel_pfeil.mesh = kegel
+	var pm := _mat(C_GOLD)
+	pm.no_depth_test = true
+	pm.render_priority = 6
+	sel_pfeil.material_override = pm
+	sel_pfeil.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sel_pfeil.visible = false
+	raum.add_child(sel_pfeil)
+	hover_ring = MeshInstance3D.new()
+	hover_ring.name = "HoverRing"
+	hover_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	hover_ring.visible = false
+	raum.add_child(hover_ring)
 
 
 func _h(p: Vector2) -> float:
@@ -1579,6 +2005,7 @@ func _marker_neu() -> void:
 	if ps == null:
 		return
 	var ziele: Array = []
+	var dunkel: Array = []
 	if bau_art == "strasse":
 		for nm in ps.stationen:
 			if not ps.angeschlossen(nm):
@@ -1586,23 +2013,49 @@ func _marker_neu() -> void:
 	elif bau_art == "gleis":
 		for nm in ps.stationen:
 			ziele.append([ps.halt_pos(nm), 22.0, C_OK if ps.bahnhof.has(nm) else C_BAU])
-	elif plan_neu_an:
-		var pdm: Dictionary = ps.vdef(plan_def)
+	elif vk != null and vk.halte_an:
+		var lf: Color = Color(ps.LINIENFARBEN[ps._linie_nr % ps.LINIENFARBEN.size()]) if vk.halte_linie == 0 else Color(String(ps.linie_plan(vk.halte_linie).get("farbe", "#C98BD0")))
 		for nm in ps.stationen:
-			if ps.auf_gleis(pdm) and not ps.bahnhof.has(nm):
-				continue
-			if ps.fracht(pdm) == "personen" and not ps.fracht_passt(pdm, nm, true):
-				continue
-			ziele.append([ps.halt_pos(nm), 20.0, C_PLAN])
+			var o3: Vector3 = uw.orte_pos[nm] if uw.orte_pos.has(nm) else Vector3(ps.halt_pos(nm).x, 0.0, ps.halt_pos(nm).y)
+			if vk.halte_gueltig(nm) == "":
+				ziele.append([Vector2(o3.x, o3.z), 24.0, lf])
+			else:
+				dunkel.append(Vector2(o3.x, o3.z))
 	elif hq_modus:
 		for o in ps.orte_liste:
 			ziele.append([Vector2(float(o["x"]), float(o["z"])), float(o.get("r_max_m", o.get("r_m", 150.0))), C_CREME])
+	werte["marker_gueltig"] = ziele.size()
+	werte["marker_ungueltig"] = dunkel.size()
 	for zl in ziele:
 		var mi := MeshInstance3D.new()
-		mi.mesh = _ring_mesh(zl[0], zl[1], maxf(2.5, float(zl[1]) * 0.04))
-		mi.material_override = _mat(Color(zl[2], 0.75))
+		var halte_ring: bool = vk != null and vk.halte_an
+		mi.mesh = _ring_mesh(zl[0], zl[1], maxf(2.5, float(zl[1]) * (0.22 if halte_ring else 0.04)))
+		var zm := _mat(Color(zl[2], 0.9 if halte_ring else 0.75))
+		zm.no_depth_test = halte_ring
+		mi.material_override = zm
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		marker_root.add_child(mi)
+	for dp in dunkel:                                          # ungültige Halte: abgedunkelt (dunkle Scheibe über Betrieb und Schildfuß)
+		var md := MeshInstance3D.new()
+		md.mesh = _scheibe_mesh(dp, 34.0)
+		md.material_override = _mat(Color(0.03, 0.03, 0.05, 0.62))
+		md.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		marker_root.add_child(md)
+
+
+## Gefüllte Scheibe über dem Gelände (Abdunkeln ungültiger Ziele).
+func _scheibe_mesh(mitte: Vector2, radius: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 28
+	var y := _h(mitte) + 14.0
+	for i in n:
+		var a := mitte + Vector2(cos(TAU * i / n), sin(TAU * i / n)) * radius
+		var b := mitte + Vector2(cos(TAU * (i + 1) / n), sin(TAU * (i + 1) / n)) * radius
+		st.add_vertex(Vector3(mitte.x, y, mitte.y))
+		st.add_vertex(Vector3(a.x, y, a.y))
+		st.add_vertex(Vector3(b.x, y, b.y))
+	return st.commit()
 
 
 ## Neue Bauwerke und Bahnhöfe der Sim sichtbar machen (Schienen/Schwellen auf dem Gleisband, Bahnsteig, Schild).
@@ -1632,9 +2085,13 @@ func _bauwerke_pruefen() -> void:
 						c.name = "weg_" + String(c.name)
 						c.queue_free()
 			_n_bahnhof = -1
-	while _n_depots < ps.depots.size():
-		_depot_haus(ps.depots[_n_depots])
-		_n_depots += 1
+	for dp in ps.depots:                                       # Depothäuser (der Fuhrhof zieht mit dem Firmensitz um)
+		var dn := "Depot_%d" % int(dp["id"])
+		if not raum.has_node(dn):
+			_depot_haus(dp)
+		else:
+			var dq: Vector2 = dp["pos"]
+			(raum.get_node(dn) as Node3D).position = Vector3(dq.x, _h(dq), dq.y)
 	if _n_bahnhof != ps.bahnhof.size():
 		_n_bahnhof = ps.bahnhof.size()
 		for nm in ps.bahnhof:
@@ -1727,283 +2184,10 @@ func _bahnhof_bauen(nm: String) -> void:
 	raum.add_child(wurzel)
 
 
-# ====================================================================== Teil 2: Linienplaner, Fuhrpark, Depots, Strecken, Haltestellen
+# ====================================================================== Teil 2/3: Depot bauen, Depothaus, Haltestellen (Fenster Verkehr und Depotfenster: ui_verkehr.gd)
 
 const AUFTRAG_TEXT := {"voll": "voll laden", "mitnehmen": "mitnehmen, was da ist", "nichts": "nur abladen"}
 const AUFTRAG_FOLGE := ["voll", "mitnehmen", "nichts"]
-
-
-func _baue_plan() -> void:
-	var k := _karte("Linienplaner", C_PLAN, 480.0, func(): plan_panel.visible = false, "plan")
-	plan_panel = k[0]
-	plan_vb = k[1]
-	plan_panel.name = "PlanPanel"
-	plan_panel.offset_left = 8.0
-	plan_panel.offset_top = 176.0
-	plan_panel.visible = false
-	add_child(plan_panel)
-
-
-func plan_umschalten() -> void:
-	plan_panel.visible = not plan_panel.visible
-	if plan_panel.visible:
-		vertrag_panel.visible = false
-	elif plan_neu_an:
-		plan_abbrechen()
-	plan_neu()
-
-
-func _modell_knoepfe(gewaehlt: String, f: Callable, prefix: String) -> HFlowContainer:
-	var fl := HFlowContainer.new()
-	fl.add_theme_constant_override("h_separation", 6)
-	fl.add_theme_constant_override("v_separation", 4)
-	for kat in ["fuhrwerk", "kutsche", "zug", "pzug"]:
-		var m: Array = ps.modelle(kat)
-		if m.is_empty():
-			continue
-		var id := String(m[-1])
-		var d: Dictionary = ps.vdef(id)
-		var b := _knopf("%s · %d %s · %s" % [d["name"], ps._kap(d), "Plätze" if ps.fracht(d) == "personen" else "E", geld(ps._preis(d))], prefix + id, f.bind(id),
-			C_PLAN if id == gewaehlt else Color.TRANSPARENT)
-		b.tooltip_text = "%s, %s. Unterhalt %s/min." % ["Gleis" if ps.auf_gleis(d) else "Straße", "Personen" if ps.fracht(d) == "personen" else "Güter", geld(int(d["fix_cent_pro_periode"]))]
-		fl.add_child(b)
-	return fl
-
-
-func plan_start(def_id := "") -> void:
-	if not ps.hq_platziert:
-		melde_fehler({"fehler": "kein_hq"})
-		return
-	modus_ende()
-	hq_modus_ende()
-	uw.modus_ende()
-	plan_neu_an = true
-	plan_halte = []
-	plan_auftrag = []
-	plan_def = def_id if def_id != "" else ps.def_fuer("fuhrwerk")
-	plan_panel.visible = true
-	vertrag_panel.visible = false
-	_marker_neu()
-	plan_neu()
-
-
-func plan_abbrechen() -> void:
-	plan_neu_an = false
-	plan_halte = []
-	plan_auftrag = []
-	_marker_neu()
-	plan_neu()
-
-
-func plan_modell(id: String) -> void:
-	plan_def = id
-	plan_auftrag = ps._auftrag_standard(plan_halte, ps.vdef(id))
-	_marker_neu()
-	plan_neu()
-
-
-## Halt in den neuen Plan aufnehmen (Weltklick im Planmodus oder Test).
-func plan_halt_klick(nm: String) -> void:
-	if not plan_neu_an or not ps.stationen.has(nm):
-		return
-	if not plan_halte.is_empty() and String(plan_halte[-1]) == nm:
-		melde_fehler({"fehler": "gleicher_ort", "name": nm})
-		return
-	plan_halte.append(nm)
-	plan_auftrag = ps._auftrag_standard(plan_halte, ps.vdef(plan_def))
-	plan_neu()
-
-
-func plan_anlegen() -> Dictionary:
-	var r: Dictionary = ps.linienplan_anlegen(plan_halte, plan_def, plan_auftrag)
-	if not r.get("ok", false):
-		melde_fehler(r)
-		return r
-	var l: Dictionary = ps.linie_plan(int(r["linie"]))
-	uw.meldung("%s läuft: %s. %s ist unterwegs." % [l["name"], " → ".join(PackedStringArray(l["halte"])), ps.fahrzeug(int(r["vid"]))["name"]])
-	plan_neu_an = false
-	plan_halte = []
-	plan_edit = int(r["linie"])
-	_marker_neu()
-	uw._fahrzeuge_neu()
-	uw.kopf_neu()
-	plan_neu()
-	return r
-
-
-func _melde(r: Dictionary, ok_text: String) -> Dictionary:
-	if r.get("ok", false):
-		uw.meldung(ok_text)
-	else:
-		melde_fehler(r)
-	_sig_plan = ""
-	plan_neu()
-	fuhrpark_neu()
-	uw.kopf_neu()
-	return r
-
-
-func plan_plus(id: int) -> Dictionary:
-	var r: Dictionary = ps.linie_fahrzeug_dazu(id)
-	if r.get("ok", false):
-		uw._fahrzeuge_neu()
-	return _melde(r, "%s für %s gekauft: −%s." % [ps.fahrzeug(int(r.get("vid", 0))).get("name", "Fahrzeug"), ps.linie_plan(id).get("name", "die Linie"), geld(int(r.get("preis_cent", 0)))])
-
-
-func _halt_zeile(vb: VBoxContainer, i: int, nm: String, modus: String, id: int) -> void:
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 6)
-	var l := _lbl("%d  %s" % [i + 1, nm], 15)
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	l.clip_text = true
-	hb.add_child(l)
-	var pre := "plan_%d_%d_" % [id, i]
-	hb.add_child(_knopf(AUFTRAG_TEXT.get(modus, modus), pre + "auftrag", func():
-		var n: String = AUFTRAG_FOLGE[(AUFTRAG_FOLGE.find(modus) + 1) % 3]
-		if id > 0:
-			_melde(ps.linie_auftrag(id, i, n), "Halt %d (%s): %s." % [i + 1, nm, AUFTRAG_TEXT[n]])
-		else:
-			plan_auftrag[i] = n
-			plan_neu()))
-	hb.add_child(_knopf("▲", pre + "hoch", func():
-		if id > 0:
-			_melde(ps.linie_halt_schieben(id, i, -1), "Halt %s eine Stelle früher. Die Fahrzeuge beginnen wieder am ersten Halt." % nm)
-		elif i > 0:
-			var t = plan_halte[i]
-			plan_halte[i] = plan_halte[i - 1]
-			plan_halte[i - 1] = t
-			plan_neu(), Color.TRANSPARENT, i == 0))
-	hb.add_child(_knopf("✕", pre + "weg", func():
-		if id > 0:
-			_melde(ps.linie_halt_weg(id, i), "Halt %s aus dem Plan genommen. Die Fahrzeuge beginnen wieder am ersten Halt." % nm)
-		else:
-			plan_halte.remove_at(i)
-			plan_auftrag = ps._auftrag_standard(plan_halte, ps.vdef(plan_def))
-			plan_neu()))
-	vb.add_child(hb)
-
-
-func plan_neu() -> void:
-	if plan_panel == null or not plan_panel.visible:
-		return
-	_leeren(plan_vb, 2)
-	werte["plan_linien"] = ps.linien.size()
-	if plan_neu_an:
-		var d: Dictionary = ps.vdef(plan_def)
-		plan_vb.add_child(_lbl("NEUE LINIE", 15, C_PLAN.lightened(0.3), true))
-		plan_vb.add_child(_lbl("1  Fahrzeug wählen", 15, C_MATT))
-		plan_vb.add_child(_modell_knoepfe(plan_def, plan_modell, "planmodell_"))
-		plan_vb.add_child(_umbruch(_lbl("2  Halte in der Welt anklicken (Ringe). Die Fahrzeuge fahren sie reihum ab und kehren vom letzten zum ersten zurück.", 15, C_MATT), 450))
-		for i in plan_halte.size():
-			_halt_zeile(plan_vb, i, String(plan_halte[i]), String(plan_auftrag[i]) if i < plan_auftrag.size() else "mitnehmen", 0)
-		var ok := false
-		if plan_halte.size() >= 2:
-			var q: Dictionary = ps.plan_pruefen(plan_halte, plan_def)
-			ok = q.get("ok", false)
-			werte["plan_pruefung"] = q
-			if ok:
-				plan_vb.add_child(_lbl("● Rundkurs %s m über %d Halte" % [uw._tsd(int(q["strecke_m"])), plan_halte.size()], 15, C_OK))
-			else:
-				var ft := fehlertext(q)
-				if String(q.get("fehler", "")) in ["keine_verbindung", "keine_gleisverbindung"]:
-					ft = "Zwischen %s und %s fehlt %s. Baue sie (Taste %s) oder nimm den Halt heraus." % [q.get("von", "?"), q.get("nach", "?"),
-						"das Gleis" if ps.auf_gleis(d) else "die Straße", "G" if ps.auf_gleis(d) else "B"]
-				plan_vb.add_child(_umbruch(_lbl("■ " + (ft if ft != "" else String(q.get("fehler", "?"))), 15, C_BAD), 450))
-		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", 10)
-		var kauf: bool = ok and ps._preis(d) <= ps.eco.cash_cent
-		hb.add_child(_knopf("Linie anlegen · %s" % geld(ps._preis(d)), "plan_anlegen", plan_anlegen, C_OK if kauf else Color.TRANSPARENT, not kauf))
-		hb.add_child(_knopf("Abbrechen · Esc", "plan_abbrechen", plan_abbrechen))
-		plan_vb.add_child(hb)
-		return
-	plan_vb.add_child(_knopf("+ Neue Linie mit mehreren Halten", "plan_start", plan_start, C_PLAN))
-	if ps.linien.is_empty():
-		plan_vb.add_child(_umbruch(_lbl("Noch keine Linie mit Fahrplan. Eine Linie hat zwei bis acht Halte; je Halt legst du fest, ob das Fahrzeug voll lädt, mitnimmt, was da ist, oder nur ablädt. Stadtlinien verbinden Haltestellen in Erlenbach und Lindenfurt.", 15), 450))
-	var sc := ScrollContainer.new()
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var lv := VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 6)
-	lv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(lv)
-	var hoehe := 0.0
-	for l in ps.linien:
-		var id := int(l["id"])
-		var fz: Array = ps.linie_fahrzeuge(id)
-		var box := PanelContainer.new()
-		box.add_theme_stylebox_override("panel", _stil(C_BG2, Color(C_PLAN, 0.5), 1, 6, 8))
-		var bv := VBoxContainer.new()
-		bv.add_theme_constant_override("separation", 4)
-		box.add_child(bv)
-		var kopf := HBoxContainer.new()
-		kopf.add_theme_constant_override("separation", 6)
-		var t := _knopf("%s · %d Halte · %d Fz" % [l["name"], l["halte"].size(), fz.size()], "plan_auf_%d" % id, func():
-			plan_edit = 0 if plan_edit == id else id
-			plan_neu())
-		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		t.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		t.clip_text = true
-		kopf.add_child(t)
-		var dm: Dictionary = ps.vdef(ps.def_fuer(String(l["kategorie"])))
-		var plus := _knopf("+ %s" % geld(ps._preis(dm)), "plan_plus_%d" % id, plan_plus.bind(id), Color.TRANSPARENT, ps._preis(dm) > ps.eco.cash_cent)
-		plus.tooltip_text = "+ %s für diese Linie" % dm["name"]
-		kopf.add_child(plus)
-		bv.add_child(kopf)
-		hoehe += 54.0
-		if plan_edit == id:
-			var kette := _umbruch(_lbl(" → ".join(PackedStringArray(l["halte"].map(func(x): return uw._kurz(String(x))))) + " → …", 13, C_MATT), 420)
-			bv.add_child(kette)
-			for i in l["halte"].size():
-				_halt_zeile(bv, i, String(l["halte"][i]), String(l["auftrag"][i]), id)
-			var zu := HFlowContainer.new()
-			zu.add_theme_constant_override("h_separation", 6)
-			zu.add_child(_lbl("Halt dazu:", 14, C_MATT))
-			for nm in ps.stationen:
-				if nm in l["halte"]:
-					continue
-				var gl: bool = l["gleis"]
-				if gl and not ps.bahnhof.has(nm):
-					continue
-				if String(l["fracht"]) == "personen" and ps.eco.s_kind[int(ps.stationen[nm]["site"])] != 1:
-					continue
-				zu.add_child(_knopf(uw._kurz(String(nm)), "plan_dazu_%d_%s" % [id, String(nm).validate_node_name()], func():
-					_melde(ps.linie_halt_dazu(id, String(nm)), "%s ist jetzt letzter Halt der Linie." % nm)))
-			bv.add_child(zu)
-			var fzb := HFlowContainer.new()
-			fzb.add_theme_constant_override("h_separation", 6)
-			for f in fz:
-				fzb.add_child(_knopf(String(f["name"]), "plan_fz_%d" % int(f["vid"]), uw.fahrzeug_oeffnen.bind(int(f["vid"]))))
-			if fz.is_empty():
-				fzb.add_child(_knopf("Linie auflösen", "plan_aufloesen_%d" % id, func():
-					_melde(ps.linie_aufloesen(id), "Linie aufgelöst.")))
-			bv.add_child(fzb)
-			hoehe += 40.0 + l["halte"].size() * 36.0 + 80.0
-		lv.add_child(box)
-	sc.custom_minimum_size = Vector2(452, minf(hoehe + 8.0, 440.0))
-	plan_vb.add_child(sc)
-
-
-# ------------------------------------------------------------------ Fuhrpark: Fahrzeugliste, Depots, Strecken
-
-func _baue_fuhrpark() -> void:
-	var k := _karte("Fuhrpark", C_FUHR, 940.0, func(): fuhr_panel.visible = false, "fuhr")
-	fuhr_panel = k[0]
-	fuhr_vb = k[1]
-	fuhr_panel.name = "FuhrparkPanel"
-	_mitte(fuhr_panel)
-	fuhr_panel.visible = false
-
-
-func fuhrpark_umschalten(tab := "") -> void:
-	if tab != "" and fuhr_panel.visible and tab != fuhr_tab:
-		fuhr_tab = tab
-	else:
-		fuhr_panel.visible = not fuhr_panel.visible
-		if tab != "":
-			fuhr_tab = tab
-	if fuhr_panel.visible:
-		skill_panel.visible = false
-		hq_panel.visible = false
-	fuhrpark_neu()
 
 
 func _zelle(t: String, breite: float, farbe := C_CREME, gr := 14) -> Label:
@@ -2013,160 +2197,27 @@ func _zelle(t: String, breite: float, farbe := C_CREME, gr := 14) -> Label:
 	return l
 
 
-func fuhrpark_neu() -> void:
-	if fuhr_panel == null or not fuhr_panel.visible:
-		return
-	_leeren(fuhr_vb, 2)
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 8)
-	var aktiv := 0
-	for f in ps.fahrzeuge:
-		if not f["verkauft"] and int(f.get("kauf_cent", 0)) > 0:
-			aktiv += 1
-	for e in [["fahrzeuge", "Fahrzeuge (%d)" % aktiv], ["depots", "Depots (%d)" % ps.depots.size()], ["strecken", "Strecken (%d)" % ps.strecken().size()]]:
-		tabs.add_child(_knopf(String(e[1]), "fuhr_tab_" + String(e[0]), func():
-			fuhr_tab = String(e[0])
-			fuhrpark_neu(), C_FUHR if fuhr_tab == e[0] else Color.TRANSPARENT))
-	fuhr_vb.add_child(tabs)
-	werte["fuhrpark_fahrzeuge"] = aktiv
-	match fuhr_tab:
-		"depots":
-			_fuhr_depots()
-		"strecken":
-			_fuhr_strecken()
-		_:
-			_fuhr_fahrzeuge()
-
-
-func _fuhr_fahrzeuge() -> void:
-	var kopf := HBoxContainer.new()
-	for e in [["Fahrzeug", 190.0], ["Linie", 230.0], ["Zustand", 150.0], ["Alter", 60.0], ["Unterhalt", 90.0], ["Restwert", 80.0]]:
-		kopf.add_child(_zelle(String(e[0]), float(e[1]), C_MATT, 13))
-	fuhr_vb.add_child(kopf)
-	var sc := ScrollContainer.new()
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var lv := VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 2)
-	sc.add_child(lv)
-	var n := 0
-	var fix_summe := 0
-	var wert_summe := 0
-	for f in ps.fahrzeuge:
-		if f["verkauft"] or int(f.get("kauf_cent", 0)) <= 0:
-			continue
-		n += 1
-		var vid := int(f["vid"])
-		var d: Dictionary = ps.vdef(String(f["def_id"]))
-		var ld := int(d.get("lebensdauer_jahre", 0))
-		var alter: int = ps.alter_jahre(f)
-		var fe: int = ps.fix_eff(f)
-		var fix := int(f.get("fix_cent", 0))
-		fix_summe += fe
-		wert_summe += ps.restwert(f)
-		var hb := HBoxContainer.new()
-		hb.add_child(_zelle(String(f["name"]), 190.0))
-		hb.add_child(_zelle(ps.linie_text(f), 230.0, C_MATT))
-		var zt: String = ps.zustand_text(f)
-		hb.add_child(_zelle(zt.substr(zt.find(": ") + 2), 150.0, C_BAD if f.get("gestrandet", false) else C_CREME))
-		hb.add_child(_zelle("%d/%d J" % [alter, ld], 60.0, C_WARN if ld > 0 and alter * 10 >= ld * 8 else C_CREME))
-		hb.add_child(_zelle("%s%s" % [geld(fe), (" +%d %%" % ((fe - fix) * 100 / maxi(1, fix))) if fe > fix else ""], 90.0, C_WARN if fe * 10 >= fix * 12 else C_CREME))
-		hb.add_child(_zelle(geld(ps.restwert(f)), 80.0))
-		hb.add_child(_knopf("Karte", "fuhr_karte_%d" % vid, func():
-			fuhr_panel.visible = false
-			uw.fahrzeug_oeffnen(vid)))
-		var uq: Dictionary = ps.ueberholen_angebot(vid)
-		if uq.get("ok", false):
-			hb.add_child(_knopf("Überholen %s" % geld(int(uq["kosten_cent"])), "fuhr_ueb_%d" % vid, ueberholen.bind(vid), Color.TRANSPARENT, not uq["kaufbar"]))
-		hb.add_child(_knopf("Verkaufen", "fuhr_vk_%d" % vid, verkaufen.bind(vid)))
-		lv.add_child(hb)
-	sc.custom_minimum_size = Vector2(910, clampf(n * 42.0 + 6.0, 60.0, 430.0))
-	fuhr_vb.add_child(sc)
-	if n == 0:
-		lv.add_child(_lbl("Noch kein Fahrzeug. Lege eine Linie an (Betrieb anklicken → Linie von hier, oder Taste L).", 15, C_MATT))
-	werte["fuhrpark_fix"] = fix_summe
-	fuhr_vb.add_child(_lbl("%d Fahrzeuge · Unterhalt zusammen %s/min · Restwert zusammen %s · Verkaufen bringt den Restwert (50 %% des Kaufpreises, sinkt mit dem Alter)" % [
-		n, geld(fix_summe), geld(wert_summe)], 13, C_MATT))
-
-
-func ueberholen(vid: int) -> Dictionary:
-	var f: Dictionary = ps.fahrzeug(vid)
-	var r: Dictionary = ps.fahrzeug_ueberholen(vid)
-	return _melde(r, "%s überholt: −%s, Unterhalt jetzt %s/min statt %s/min." % [f.get("name", ""), geld(int(r.get("kosten_cent", 0))),
-		geld(int(r.get("fix_neu_cent", 0))), geld(int(r.get("fix_alt_cent", 0)))])
-
-
-func verkaufen(vid: int) -> Dictionary:
-	var f: Dictionary = ps.fahrzeug(vid)
-	var r: Dictionary = ps.fahrzeug_verkaufen(vid)
-	return _melde(r, "%s verkauft: +%s Restwert." % [f.get("name", ""), geld(int(r.get("restwert_cent", 0)))])
-
-
-func _fuhr_depots() -> void:
-	var dd: Dictionary = ps.daten["depot"]
-	fuhr_vb.add_child(_umbruch(_lbl("Ein Depot (Betriebshof an der Straße, Lokschuppen am Gleis) versorgt alle Linien, deren erster Halt es über das Netz erreicht: Fahrzeuge dort kosten %d %% weniger, und du kannst sie überholen (Alterszuschlag auf den Unterhalt zurück auf 0)." % (int(dd["rabatt_promille"]) / 10), 15), 900))
-	for i in ps.depots.size():
-		var dp: Dictionary = ps.depots[i]
-		var n := 0
-		for f in ps.fahrzeuge:
-			if not f["verkauft"] and int(f.get("kauf_cent", 0)) > 0 and ps.depot_erreicht(ps._start_name(f), ps.ist_zug(f)) == i:
-				n += 1
-		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", 10)
-		hb.add_child(_zelle("● " + String(dp["name"]), 220.0, C_OK, 15))
-		hb.add_child(_zelle("%s · versorgt %d Fahrzeuge · Unterhalt %s/min" % ["Gleis" if dp["art"] == "gleis" else "Straße", n, geld(int(dd["unterhalt_cent_pro_periode"]))], 420.0, C_CREME, 15))
-		hb.add_child(_knopf("Zeigen", "depot_zeigen_%d" % i, func():
-			welt.ziel = Vector3(dp["pos"].x, _h(dp["pos"]), dp["pos"].y)
-			welt.abstand = 320.0
-			welt._kamera_anwenden()))
-		fuhr_vb.add_child(hb)
-		# Kauf im Depot: Linien, die das Depot erreicht
-		var kauf := HFlowContainer.new()
-		kauf.add_theme_constant_override("h_separation", 6)
-		kauf.add_child(_lbl("   Kaufen für:", 14, C_MATT))
-		var kn := 0
-		for l in ps.linien:
-			if bool(l["gleis"]) != (dp["art"] == "gleis") or ps.depot_erreicht(String(l["halte"][0]), bool(l["gleis"])) != i:
-				continue
-			var dm: Dictionary = ps.vdef(ps.def_fuer(String(l["kategorie"])))
-			var pr: int = ps._preis(dm) * (1000 - int(dd["rabatt_promille"])) / 1000
-			kauf.add_child(_knopf("%s · %s %s" % [l["name"], dm["name"], geld(pr)], "depot_kauf_%d_%d" % [i, int(l["id"])], depot_kauf.bind(i, String(dm["id"]), int(l["id"])),
-				Color.TRANSPARENT, ps._preis(dm) > ps.eco.cash_cent))
-			kn += 1
-		if kn == 0:
-			kauf.add_child(_lbl("noch keine Linie mit Fahrplan im Einzugsbereich (Taste L)", 14, C_MATT))
-		fuhr_vb.add_child(kauf)
-	var q := HBoxContainer.new()
-	q.add_theme_constant_override("separation", 10)
-	var teuer: bool = int(dd["kosten_cent"]) > ps.eco.cash_cent
-	q.add_child(_knopf("Depot bauen · %s" % geld(int(dd["kosten_cent"])), "depot_bauen", depot_modus_start, C_FUHR if not teuer else Color.TRANSPARENT, teuer))
-	q.add_child(_lbl("Danach in der Welt eine Stelle an Straße, Gleis oder Bahnhof anklicken.", 14, C_MATT))
-	fuhr_vb.add_child(q)
-
-
-func depot_kauf(i: int, def_id: String, plan_id: int) -> Dictionary:
-	var r: Dictionary = ps.depot_kauf(i, def_id, plan_id)
-	if r.get("ok", false):
-		uw._fahrzeuge_neu()
-	return _melde(r, "%s im %s gekauft: −%s (Depotpreis)." % [ps.fahrzeug(int(r.get("vid", 0))).get("name", "Fahrzeug"), ps.depots[i]["name"], geld(int(r.get("preis_cent", 0)))])
-
-
 func depot_modus_start() -> void:
 	if not ps.hq_platziert:
 		melde_fehler({"fehler": "kein_hq"})
 		return
-	modus_ende()
-	hq_modus_ende()
-	fuhr_panel.visible = false
+	modus_beenden()
+	auswahl_leeren()
+	fenster_zu()
 	depot_modus = true
 	depot_vorschau = {}
 	modus_panel.visible = true
+	modus_geaendert()
 	depot_modus_neu()
 
 
 func depot_modus_ende() -> void:
+	if not depot_modus:
+		return
 	depot_modus = false
 	modus_panel.visible = bau_art != "" or hq_modus
 	hq_geist.visible = false
+	modus_geaendert()
 
 
 func depot_zeigen(p: Vector2) -> void:
@@ -2186,7 +2237,7 @@ func depot_modus_neu() -> void:
 	(modus_vb.get_child(0).get_node("Titel") as Label).text = "Depot bauen"
 	var v := depot_vorschau
 	if v.is_empty():
-		modus_vb.add_child(_umbruch(_lbl("Bewege die Maus an eine Straße (Betriebshof) oder an ein Gleis (Lokschuppen). Klick baut.", 16), 590))
+		modus_vb.add_child(_umbruch(_lbl("Bewege die Maus an eine Straße (Betriebshof) oder an ein Gleis (Lokschuppen). Klick baut. Im Depot kaufst du Fahrzeuge und weist sie Linien zu.", 16), 590))
 	elif not v.get("ok", false):
 		var ft := fehlertext(v)
 		if String(v.get("fehler", "")) == "kein_anschluss":
@@ -2210,10 +2261,11 @@ func depot_setzen(p: Vector2) -> Dictionary:
 		else:
 			melde_fehler(r)
 		return r
-	uw.meldung("%s gebaut. Fahrzeuge im Einzugsbereich kosten 8 %% weniger und können überholt werden." % r["name"])
+	uw.meldung("%s gebaut. Hier kaufst du Fahrzeuge und weist sie Linien zu." % r["name"])
 	depot_modus_ende()
 	_bauwerke_pruefen()
 	uw.kopf_neu()
+	vk.depot_oeffnen(ps.depots.size() - 1)                     # gleich öffnen: Der nächste Schritt ist der Kauf
 	return r
 
 
@@ -2227,7 +2279,7 @@ func _depot_haus(dp: Dictionary) -> void:
 	haus.position = Vector3(-9.0, 0.0, 6.0)
 	w.add_child(haus)
 	var schild := Label3D.new()
-	schild.text = String(dp["name"])
+	schild.text = "Fuhrhof" if dp.get("fuhrhof", false) else String(dp["name"])
 	schild.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	schild.fixed_size = true
 	schild.pixel_size = 0.001
@@ -2238,78 +2290,6 @@ func _depot_haus(dp: Dictionary) -> void:
 	schild.position = Vector3(-9.0, 9.0, 6.0)
 	w.add_child(schild)
 	raum.add_child(w)
-
-
-func _fuhr_strecken() -> void:
-	fuhr_vb.add_child(_umbruch(_lbl("Strecken sind Besitz: Eigene Trassen kosten Unterhalt und bringen beim Verkauf die Hälfte der Baukosten zurück (sie werden dann abgebaut). Auf der Staatschaussee zahlt jedes deiner Fahrzeuge Chausseegeld; wer sie kauft, fährt dort frei.", 15), 900))
-	var kopf := HBoxContainer.new()
-	for e in [["Strecke", 330.0], ["Länge", 80.0], ["Besitz", 90.0], ["Unterhalt", 100.0], ["Fahrzeuge", 90.0]]:
-		kopf.add_child(_zelle(String(e[0]), float(e[1]), C_MATT, 13))
-	fuhr_vb.add_child(kopf)
-	werte["strecken"] = ps.strecken()
-	for st in ps.strecken():
-		var id := String(st["id"])
-		var eigen: bool = st["besitz"] == "eigen"
-		var hb := HBoxContainer.new()
-		hb.add_child(_zelle(("● " if eigen else "○ ") + String(st["name"]), 330.0, C_OK if eigen else C_CREME, 15))
-		hb.add_child(_zelle("%s m" % uw._tsd(int(st["laenge_m"])), 80.0, C_CREME, 15))
-		hb.add_child(_zelle("deine" if eigen else "Staat", 90.0, C_CREME, 15))
-		hb.add_child(_zelle(geld(int(st["unterhalt_cent"])) + "/min" if eigen else "Maut %d ¢/Feld" % int(st.get("maut_cent_pro_feld", 0)), 100.0, C_CREME, 14))
-		hb.add_child(_zelle("%d" % int(st["benutzt"]), 90.0, C_CREME, 15))
-		if eigen:
-			hb.add_child(_knopf("Verkaufen · +%s" % geld(int(st["wert_cent"])), "strecke_vk_" + id, strecke_verkaufen.bind(id), Color.TRANSPARENT, int(st["benutzt"]) > 0 and id.begins_with("bau_")))
-		else:
-			var q: Dictionary = ps.strecke_kauf_angebot(id)
-			var kauf: bool = q.get("ok", false) and q.get("kaufbar", false)
-			var b := _knopf("Kaufen · %s" % geld(int(st["wert_cent"])), "strecke_kauf_" + id, strecke_kaufen.bind(id), C_FUHR if kauf else Color.TRANSPARENT, not kauf)
-			if q.get("ok", false):
-				b.tooltip_text = "Deine Fahrzeuge zahlen dort etwa %s/min Maut. Nach dem Kauf: Unterhalt %s/min. Nur aus der Kasse, nicht mit Kredit." % [geld(int(q["maut_cent_pro_periode"])), geld(int(q["unterhalt_cent"]))]
-				hb.add_child(_zelle("Maut ca. %s/min" % geld(int(q["maut_cent_pro_periode"])), 130.0, C_WARN, 13))
-			hb.add_child(b)
-		fuhr_vb.add_child(hb)
-	fuhr_vb.add_child(_lbl("Neue Strecken baust du mit B (Straße) und G (Gleis).", 13, C_MATT))
-
-
-func strecke_kaufen(id: String) -> Dictionary:
-	var r: Dictionary = ps.strecke_kaufen(id)
-	return _melde(r, "Strecke gekauft: −%s. Keine Maut mehr, Unterhalt %s/min." % [geld(int(r.get("preis_cent", 0))), geld(int(r.get("unterhalt_cent", 0)))])
-
-
-func strecke_verkaufen(id: String) -> Dictionary:
-	var r: Dictionary = ps.strecke_verkaufen(id)
-	if r.get("ok", false):
-		_bauwerke_pruefen()
-	return _melde(r, "Strecke verkauft: +%s." % geld(int(r.get("erloes_cent", 0))))
-
-
-## Zusatz in der Fahrzeugkarte (ui_welt): Linie, Überholung, Linie zuweisen.
-func fahrzeug_zusatz(vid: int) -> void:
-	var f: Dictionary = ps.fahrzeug(vid)
-	if f.is_empty() or f["verkauft"]:
-		return
-	var vb: VBoxContainer = uw.panel_vb
-	var d: Dictionary = ps.vdef(String(f["def_id"]))
-	vb.add_child(_lbl("Fährt: %s · %s" % [ps.linie_text(f), "Personen" if ps.fracht(d) == "personen" else "Güter"], 15, C_MATT))
-	if int(f.get("maut_cent_pro_feld", 0)) > 0:
-		vb.add_child(_lbl("Chausseegeld: +%d ¢ je Feld auf dieser Route" % int(f["maut_cent_pro_feld"]), 14, C_WARN))
-	var uq: Dictionary = ps.ueberholen_angebot(vid)
-	if uq.get("ok", false):
-		vb.add_child(uw._knopf("Überholen im %s · %s (spart %s/min)" % [uq["depot"], geld(int(uq["kosten_cent"])), geld(int(uq["spart_cent_pro_periode"]))], "karte_ueberholen",
-			func():
-				ueberholen(vid)
-				uw.panel_neu(), false, not uq["kaufbar"]))
-	elif String(uq.get("fehler", "")) == "kein_depot":
-		vb.add_child(_lbl("Überholung: kein %s am Netz dieser Linie (Taste U)." % uq.get("art", "Depot"), 14, C_MATT))
-	var passend: Array = []
-	for l in ps.linien:
-		if bool(l["gleis"]) == ps.auf_gleis(d) and String(l["fracht"]) == ps.fracht(d) and int(l["id"]) != int(f.get("plan", -1)):
-			passend.append(l)
-	if not passend.is_empty():
-		vb.add_child(_lbl("Linie zuweisen:", 14, C_MATT))
-		for l in passend:
-			vb.add_child(uw._knopf("→ %s" % l["name"], "karte_zuweisen_%d" % int(l["id"]), func():
-				_melde(ps.fahrzeug_zuweisen(vid, int(l["id"])), "%s fährt jetzt auf %s und beginnt am ersten Halt." % [f["name"], l["name"]])
-				uw.panel_neu()))
 
 
 ## Haltestellen in der Welt: Pfosten mit Schild (die Orte selbst haben ihre Ortsschilder).

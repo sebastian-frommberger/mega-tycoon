@@ -83,6 +83,8 @@ var orte: Array = []
 var meiden: Array[Rect2] = []                   # zusätzliche Sperrflächen (Bildschirm)
 var sichtbar := true
 var eintraege: Array[Dictionary] = []
+var daempfen: Dictionary = {}                   # Demo: Name -> Faktor (Schilder ungültiger Ziele abdunkeln); leer = unverändert
+var betonen: Dictionary = {}                    # Demo: Name -> Color (Rahmen um das Schild: Auswahl, Hover, gültige Ziele)
 var guete := {}
 var ind_cfg := {}
 var ort_extra := {}
@@ -723,10 +725,13 @@ func _grundlinie(mitte_y: float, px: int) -> float:
 
 
 func _zeichne_eintrag(e: Dictionary) -> void:
-	var a: float = e["alpha"]
+	var a: float = e["alpha"] * float(daempfen.get(e["name"], 1.0))
 	var r: Rect2 = e["rect"]
 	var tc := Color(TEXT.r, TEXT.g, TEXT.b, a)
 	_platte(r, a, _px(6.0))
+	if betonen.has(e["name"]):
+		var bf: Color = betonen[e["name"]]
+		_flaeche.draw_rect(r.grow(_px(3.0)), Color(bf.r, bf.g, bf.b, e["alpha"]), false, _px(3.0))
 	_zeiger(e, r, a)
 	if e["art"] == "industrie":
 		_zeichne_industrie(e, r, a)

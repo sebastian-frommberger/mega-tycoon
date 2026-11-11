@@ -32,7 +32,7 @@ Neu seit dem 11.11.: Linien und Fahrzeuge laufen wie in Transport Fever 2. **Lin
 6. **Lizenz:** Ohne Lizenz lädt am Betrieb niemand. Das Linienfenster warnt („Lizenz fehlt“) und hat den Kaufknopf gleich daneben. Die erste Lizenz im Radius des Firmensitzes ist gratis.
 7. Dasselbe für **Erlenmühle → Erlenbach**: zweite Linie, ein Fuhrwerk im Fuhrhof kaufen, zuweisen. Jetzt kommt Mehl in Erlenbach an, das erste Geld.
 8. Nach etwa 90 Sekunden kommt das erste Vertragsangebot: Taste **V**, annehmen. Jeder Meilenstein gibt einen Skillpunkt: Taste **K**.
-9. Taste **B**: Straße zum Forsthaus Rotwald. Startpunkt am Ende des Fischerpfads (am See), ein Zwischenpunkt östlich um den See herum, Klick auf den Ring am Forsthaus baut.
+9. Taste **B**: Straße zum Forsthaus Rotwald. Startpunkt am Ende des Fischerpfads (am See), ein Zwischenpunkt östlich um den See herum, Klick auf den Ring am Forsthaus, dann **Enter**. Wie das Bauen seit dem 12.11. geht, steht unten in „Bauen“.
 10. Stadtverkehr: **Erlenbach** anklicken → „Personenlinie hier beginnen“ → Erlenbach Ostend und Erlenbach Kirchgasse anklicken → Enter. Im Fuhrhof eine Stadtkutsche kaufen und zuweisen.
 
 **„Nächster Schritt“** oben sagt dir, was im Ablauf gerade offen ist (Linie fehlt, Fahrzeuge stehen im Depot, Lizenz fehlt), danach den nächsten Meilenstein. Die Zeile **„Jetzt möglich“** zeigt, was bezahlbar ist.
@@ -42,6 +42,17 @@ Neu seit dem 11.11.: Linien und Fahrzeuge laufen wie in Transport Fever 2. **Lin
 - **Klick ins Leere** und **Esc** heben die Auswahl auf.
 - Fährst du mit der Maus über etwas Anklickbares, bekommt es einen hellen Ring und der Mauszeiger wird zur Hand.
 - Ein neuer Modus beendet den alten. Beispiel: Taste B während du Halte anklickst, wechselt sichtbar in den Straßenbau.
+
+### Bauen (neu seit dem 12.11.)
+- **Vor dem ersten Klick** zeigt eine Marke unter der Maus, woran der Start einrastet: voller weißer Punkt an Straße oder Gleis, goldener am Betrieb, hohler grauer Ring im freien Gelände (dort geht kein Start). Das Schild an der Maus sagt es in Worten.
+- **Nach dem ersten Klick** liegt die Trasse bis zur Maus als Band da. Am Schild stehen Länge und Preis, bei einer Brücke ihre Länge.
+- **Eine Regel:** Klick setzt einen Punkt, mehr nie. Gebaut wird mit **Enter** oder mit einem zweiten Klick auf den letzten Punkt (Doppelklick). **Rechtsklick** nimmt den letzten Punkt zurück, ohne Punkt beendet er das Werkzeug. **Esc** beendet.
+- **Nach dem Bau bleibt das Werkzeug an.** Das Ende ist der neue Start, die Richtung läuft weiter.
+- **C: Kurve oder gerade.** Kurve: Jedes Stück schließt im Bogen an das vorige an. Gerade: gerade Stücke, die Ecken werden ausgerundet. Was du siehst, wird gebaut.
+- **Fehler** sind nur an der Stelle rot, mit dem Grund daneben („See“, „Bogen zu eng“, „zu steil“). Die rote Linie um Seen ist die Sperrzone.
+- **Brücken** sind in der Vorschau orange und haben Pfeiler. Sie kosten das Fünffache.
+- **Kreuzt** die neue Straße eine bestehende, werden beide dort verbunden (weiße Ringe in der Vorschau).
+- **P: Planen.** Abschnitte werden als blaue Blaupause abgelegt, es fließt kein Geld. Links steht die Liste mit der Summe; ✕ verwirft einen Abschnitt, der Haken wählt ihn für „Auswahl bauen“. „Plan bauen“ baut alles, wenn das Geld reicht. Der Plan bleibt liegen, auch wenn du das Werkzeug beendest.
 
 ### Später
 - **Züge** kaufst du im **Lokschuppen**. Jedes Gleisnetz braucht einen eigenen (Taste L → Reiter Depots → bauen → Stelle am Gleis oder Bahnhof anklicken). Ein Depot kostet 250 $ und 5 $/min.
@@ -53,7 +64,8 @@ Neu seit dem 11.11.: Linien und Fahrzeuge laufen wie in Transport Fever 2. **Lin
 | Taste | Wirkung |
 |---|---|
 | H | Firmensitz platzieren, danach Panel Firmensitz (Ausbau, Anbauten, Umzug) |
-| B / G | Straße / Gleis bauen (Gleis ab 1824). Enter baut bis zum letzten Punkt, Entf nimmt einen Punkt zurück, Esc bricht ab |
+| B / G | Straße / Gleis bauen (Gleis ab 1824). Klick setzt Punkt, Enter oder Doppelklick baut, Rechtsklick oder Entf nimmt einen Punkt zurück, Esc beendet |
+| C / P | im Bauwerkzeug: Kurve oder gerade / Planen an oder aus |
 | V / K | Verträge / Skilltree |
 | L | Fenster Verkehr, Reiter Linien (anlegen, Halte, Ladeauftrag, Fahrzeuge der Linie) |
 | U | Fenster Verkehr, Reiter Fahrzeuge (Mehrfachauswahl, Sammelaktionen). Weitere Reiter: Depots, Strecken |
@@ -82,7 +94,7 @@ Die Jahre sind für die Demo vorgezogen (Zeitraffer), historisch stimmen sie nic
 - **Banner und Ring:** Wusstest du jederzeit, ob das Spiel auf einen Klick wartet und was ausgewählt ist? Gab es einen Moment, in dem doch etwas „hing“?
 - **Mehrfachauswahl:** Klick und Umschalt+Klick wie erwartet? Fehlt Strg+Klick oder ein Rahmen mit der Maus?
 - **Depots:** Ist klar, warum ein Zug einen Lokschuppen braucht und wo er stehen muss?
-- **Straßenbau:** Der Befund mit 13 Punkten liegt in `DEMO_STRASSENBAU_BEFUND.md`. Welche davon stören dich wirklich, welche nicht?
+- **Bauen:** Fühlt sich das Ziehen jetzt richtig an (Marke, Band, Schild an der Maus)? Sind die Kurven so, wie du sie erwartest, oder fehlt freies Ziehen mit gehaltener Maustaste? Hast du den Planungsmodus benutzt, und wofür?
 - Ab welcher Minute wusstest du nicht mehr, was du tun sollst (falls überhaupt)?
 - Firmensitz, Skills, Verträge: echte Entscheidung oder Klickarbeit?
 - Tempo k = 8: wirkt das Fahrtempo richtig, zu langsam, zu schnell?

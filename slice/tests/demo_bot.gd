@@ -334,14 +334,17 @@ func _bauen(art: String, weg: Array, schluessel: String) -> bool:
 	if z.get(schluessel, false):
 		return true
 	var pkt := PackedVector2Array(weg)
-	var q: Dictionary = ps.bau_angebot(art, pkt)
+	# Teil 4: der Bot baut über das neue Trassenwerkzeug (gerade Stücke mit ausgerundeten Ecken, exakte Mittellinie, Kreuzungen)
+	var q: Dictionary = ps.trasse_angebot(art, pkt, {"kurve": false})
 	if not q.get("ok", false):
 		_a(art, q)
 		return false
 	if int(q["kosten_cent"]) + reserve > _cash():
 		return false
-	if _a(art, ps.bauen(art, pkt)):
+	var r: Dictionary = ps.trasse_bauen(art, pkt, {"kurve": false})
+	if _a(art, r):
 		z[schluessel] = true
+		z["kreuzungen"] = int(z.get("kreuzungen", 0)) + int(r.get("kreuzungen", 0))
 	return z.get(schluessel, false)
 
 

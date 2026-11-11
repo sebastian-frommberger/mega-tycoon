@@ -14,7 +14,7 @@ extends RefCounted
 const C_GUT := Color("#48E08A")
 const C_TEUER := Color("#FFA640")
 const C_ROT := Color("#FF5A4A")
-const C_BRUECKE := Color("#E8D9B0")
+const C_BRUECKE := Color("#FF9A3D")
 const C_PLAN := Color("#6FB8FF")
 const KURZ := {
 	"see": "See", "zu_steil": "zu steil ({pct} %, erlaubt {max_pct} %)", "radius_zu_klein": "Bogen zu eng ({radius_m} m, mind. {min_m} m)",
@@ -367,7 +367,7 @@ func neu() -> void:
 		if not fang.is_empty():
 			if String(fang["typ"]) == "frei":
 				z1 = "Hier kein Anschluss"
-				z2 = "Beginne an %s, einem Betrieb%s." % ["einem Gleis" if art == "gleis" else "einer Straße", " oder einem geplanten Ende" if not plan.is_empty() else ""]
+				z2 = "Beginne an %s%s einem Betrieb%s." % ["einem Gleis" if art == "gleis" else "einer Straße", "," if not plan.is_empty() else " oder", " oder einem geplanten Ende" if not plan.is_empty() else ""]
 				f1 = C_TEUER
 			else:
 				z1 = "Start: " + _typ_text(fang, art)
@@ -525,7 +525,7 @@ func _trasse_3d(eltern: Node3D, q: Dictionary, breite: float, farbe_gut: Color, 
 		mi.name = ["Gut", "Bruecke", "Fehler"][k]
 		mi.mesh = b[k]
 		var m: StandardMaterial3D = ud._mat(Color(farben[k], alpha if k != 2 else 0.9))
-		m.no_depth_test = k == 2
+		m.no_depth_test = k >= 1
 		mi.material_override = m
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		eltern.add_child(mi)
@@ -542,7 +542,7 @@ func _trasse_3d(eltern: Node3D, q: Dictionary, breite: float, farbe_gut: Color, 
 			continue
 		seit = 0
 		var pf := MeshInstance3D.new()
-		pf.name = "Pfeiler"
+		pf.name = "Pfeiler_%d" % i
 		var bm := BoxMesh.new()
 		var oben := _hoehe(pkt[i], true)
 		var unten: float = ud._h(pkt[i]) - 1.0
@@ -663,8 +663,10 @@ func _karte_neu(art: String, rg: Dictionary) -> void:
 	var vb: VBoxContainer = ud.modus_vb
 	ud._leeren(vb, 2)
 	(vb.get_child(0).get_node("Titel") as Label).text = "%s %s" % [String(rg.get("name", art)), "planen" if planen else "bauen"]
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 8)
+	var hb := HFlowContainer.new()
+	hb.custom_minimum_size = Vector2(430, 0)
+	hb.add_theme_constant_override("h_separation", 8)
+	hb.add_theme_constant_override("v_separation", 6)
 	var bk: Button = ud._knopf("Kurve · C" if kurve else "Gerade · C", "bau_kurve", kurve_umschalten, ud.C_BAU)
 	bk.tooltip_text = "Kurve: Jedes Stück schließt im Bogen an. Gerade: gerade Stücke mit ausgerundeten Ecken. Taste C wechselt."
 	hb.add_child(bk)
@@ -695,7 +697,7 @@ func _karte_neu(art: String, rg: Dictionary) -> void:
 		hk.custom_minimum_size = Vector2(32, 28)
 		hk.tooltip_text = "Abschnitt für „Auswahl bauen“ an- oder abwählen"
 		z.add_child(hk)
-		var l: Label = ud._lbl("Abschnitt %d · %s · %s m · %s%s" % [i + 1, String(ps.bau_regel(String(e["art"])).get("name", e["art"])), uw._tsd(int(e["q"]["laenge_m"])),
+		var l: Label = ud._lbl("%d · %s · %s m · %s%s" % [i + 1, String(ps.bau_regel(String(e["art"])).get("name", e["art"])), uw._tsd(int(e["q"]["laenge_m"])),
 			ud.geld(int(e["q"]["kosten_cent"])), (" · Brücke %d m" % int(e["q"]["bruecke_m"])) if int(e["q"]["bruecke_m"]) > 0 else ""], 14)
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		z.add_child(l)
@@ -705,8 +707,9 @@ func _karte_neu(art: String, rg: Dictionary) -> void:
 	var summe := plan_kosten()
 	var auswahl := plan_kosten(true)
 	var fehlt: int = summe - ps.eco.cash_cent
-	var hp := HBoxContainer.new()
-	hp.add_theme_constant_override("separation", 8)
+	var hp := HFlowContainer.new()
+	hp.add_theme_constant_override("h_separation", 8)
+	hp.add_theme_constant_override("v_separation", 6)
 	var ba: Button = ud._knopf("Plan bauen · %s" % ud.geld(summe), "plan_bauen", plan_bauen.bind(false), ud.C_OK if fehlt <= 0 else Color.TRANSPARENT, fehlt > 0)
 	if fehlt > 0:
 		ba.tooltip_text = "Es fehlen %s." % uw.fehlbetrag(fehlt)

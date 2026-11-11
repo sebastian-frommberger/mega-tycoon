@@ -560,7 +560,7 @@ func banner_text() -> Array:
 			var name := "%s %s · %s" % [String(ps.bau_regel(bau_art).get("name", bau_art)), "planen" if bau.planen else "bauen", "Kurve" if bau.kurve else "gerade"]
 			if bau_punkte.is_empty():
 				return [name, "Startpunkt anklicken · Esc beendet"]
-			return [name, "%d Punkt%s · Klick setzt Punkt · Enter oder Doppelklick %s · Rechtsklick zurück · Esc beendet" % [
+			return [name, "%d Punkt%s · Enter oder Doppelklick %s · Rechtsklick zurück · Esc beendet" % [
 				bau_punkte.size(), "" if bau_punkte.size() == 1 else "e", "plant" if bau.planen else "baut"]]
 		"hq":
 			return ["Firmensitz platzieren" if not ps.hq_platziert else "Firmensitz umziehen", "Platz in einem Ort anklicken (helle Kreise) · Esc bricht ab"]
@@ -785,7 +785,7 @@ func linie_hier_beginnen(nm: String, gleis := false) -> void:
 # ------------------------------------------------------------------ Baumodus (Straße, Gleis)
 
 func _baue_modus() -> void:
-	var k := _karte("Bauen", C_BAU, 620.0, modus_ende, "modus")
+	var k := _karte("Bauen", C_BAU, 440.0, modus_ende, "modus")
 	modus_panel = k[0]
 	modus_vb = k[1]
 	modus_panel.name = "BauModus"
@@ -1289,7 +1289,7 @@ const HILFE := [
 	["3", "Im Depot kaufen", "Fuhrhof anklicken (oder im Linienfenster „Zum Depot“): Fuhrwerke aus dem Katalog kaufen. Sie stehen erst einmal im Depot."],
 	["4", "Zuweisen", "Fahrzeuge im Depot auswählen (Klick, Umschalt+Klick für mehrere) und auf die Linie klicken. Sie rücken aus. Vorher: Lizenz des Betriebs kaufen."],
 	["5", "Verträge & Skills", "Taste V: Menge, Frist, Prämie. Taste K: Jeder Meilenstein bringt einen Skillpunkt."],
-	["6", "Bauen", "Taste B Straße, ab 1824 Taste G Gleis: Start klicken, Zwischenpunkte, Ziel klicken. Züge brauchen einen Lokschuppen am Gleis."],
+	["6", "Bauen", "Taste B Straße, ab 1824 Taste G Gleis: Klick setzt Punkte, Enter oder Doppelklick baut, Rechtsklick nimmt zurück. C: Kurve/gerade. P: erst planen, dann bauen."],
 	["7", "Wachsen", "Taste U: alle Fahrzeuge, Mehrfachauswahl, ersetzen (neue Modelle 1822, 1824, 1826, 1828), ins Depot, verkaufen. Betriebe kaufen ab 1823."],
 ]
 

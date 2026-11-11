@@ -1,8 +1,48 @@
-# Straßen- und Gleisbau in der Demo: Befund
+# Straßen- und Gleisbau in der Demo: Befund und Umbau
 
-Stand 11.11., Branch `s8-demo`. Kein Umbau, nur Befund mit je einem Vorschlag.
+## Stand 12.11. nach dem Umbau (Teil 4)
 
-**Wie gemessen:** `slice/tests/demo_bau_befund.gd` spielt den Bau über den echten Eingabeweg durch: Mausbewegung, Mausklicks und Tasten laufen als Ereignisse durch den Viewport (1600 × 900, xvfb, opengl3), keine Bau-Funktion wird direkt gerufen. Jede Zahl unten stammt aus einer Zeile `BEFUND …` dieses Laufs. Bilder: `demo_shots/bau/`.
+Das Bauwerkzeug ist neu (`slice/proto/ui_bau.gd`, Sim: `demo_sim.gd` Teil 4). `slice/tests/demo_bau_befund.gd` spielt jetzt das neue Werkzeug an denselben Punkten durch, wieder über echte Mausbewegung, Mausklicks und Tasten unter xvfb. Jede Zahl stammt aus einer Zeile `NACHHER …` dieses Laufs. Bilder: `demo_shots/bau/n*.jpg` (nachher), `b*.jpg` (vorher).
+
+| Nr. | Befund vom 11.11. | Stand | Gemessen (NACHHER) |
+|---|---|---|---|
+| 1 | Zwei Klickregeln | **erledigt** | Klick auf das einrastende Forsthaus setzt nur den Punkt: 3 Punkte, 0 gebaut, Kasse unverändert. Enter oder Doppelklick baut (N3, N4, N5) |
+| 2 | Kreuzungen nicht verbunden | **erledigt** | Vom neuen Ende zum gekreuzten Knoten 86 m über das Netz statt 366 m; Meldung „3 Kreuzungen mit dem Netz verbunden“ (N8) |
+| 3 | Nichts vor dem ersten Klick | **erledigt** | Marke unter der Maus hohl im freien Gelände, voll an der Straße; Schild „Hier kein Anschluss“ / „Start: an der Straße“ / „Start: Forsthaus Rotwald“ (N1) |
+| 4 | Fehler färbt die ganze Trasse | **erledigt** | See: 22 von 41 Punkten rot, Rest grün, Marke „See“ an der Stelle. Gleisbogen zu eng: 17 von 24 Punkten rot, „Bogen zu eng (20 m, mind. 55 m)“ (N6, N11) |
+| 5 | See sperrt mehr, als man sieht | **teilweise** | Die Sperrzone der 3 Seen ist im Baumodus als rote Linie gezeichnet. Der Rand von 12 % ist geblieben |
+| 6 | Rechtsklick tut nichts | **erledigt** | Rechtsklick nimmt den letzten Punkt zurück (3 → 2), ohne Punkt beendet er das Werkzeug (N4, N4b) |
+| 7 | Werkzeug geht nach dem Bau aus | **erledigt** | Nach dem Bau: Modus „bau“, 1 Punkt am Ende, Banner da; das nächste Stück setzt mit 2,2° Abweichung in der Richtung des gebauten an (N4, N5b) |
+| 8 | Karte verdeckt Bauland | **erledigt** | Karte links unter der Werkzeugleiste (458 × 195 px), überdeckt die Bildmitte nicht. Karte und Banner zusammen 10,2 % des Bildes statt 12,1 % (N10) |
+| 9 | Kosten weit weg von der Maus | **erledigt** | Schild mit Länge und Preis 29 px neben der Maus statt 444 px (N2) |
+| 10 | Freies Ende ohne Warnung | **erledigt** | Schild „Endet frei: verbindet noch nichts“, orange Marke am Ende (N2, N5) |
+| 11 | „Enter baut bis hierher“ ohne Wirkung | **erledigt** | Der Satz ist weg; der Knopf „Bauen · Enter“ ist an, sobald zwei Punkte gesetzt sind |
+| 12 | Vorschau eckig, Bau geglättet | **erledigt** | Gebaute Mittellinie weicht höchstens 0,97 m von der Vorschau ab (gerade) bzw. 0,96 m (Kurve). Kurve: Kreisbogen mit 73 m Radius, größter Knick zwischen zwei Punkten 5,8° (N4, N5) |
+| 13 | Brücke wie Straße | **erledigt** | Eigenes Brückenband über dem Wasser, 4 Pfeiler, Aufschrift „Brücke 79 m“, Schild „260 m · 675 $ · Brücke 79 m“ (N7) |
+
+Neu dazu: **Kurve/gerade** (Taste C), **Planungsmodus** (Taste P; N9: drei Abschnitte geplant, Kasse und Netz unverändert, einer verworfen, zwei per „Plan bauen“ für 250 $ gebaut), **Gleis mit Bogen** (N11: kleinster Radius 80 m bei Minimum 55 m, 707 m für 1.450 $, zwei Bahnhöfe).
+
+**Offen, nicht gemacht**
+- Ziehen mit gehaltener Maustaste (drücken, ziehen, loslassen). Das Werkzeug arbeitet mit Klick, Bewegen, Klick, wie Transport Fever 2. Falls Basti mit „ziehen“ die gehaltene Taste meint, fehlt das.
+- Die Seesperre ist sichtbar, aber nicht kleiner geworden (Befund 5).
+- Kreuzungen entstehen am nächsten vorhandenen Knoten (bis 7 m neben dem Schnittpunkt); die neue Linie wird dorthin gezogen. Läuft eine Trasse dicht neben einer Straße her, wird sie mehrfach verbunden. In N8 meldet eine einzige Querung 3 Kreuzungen.
+- Straße und Gleis kreuzen sich ohne Verbindung und ohne Bahnübergang.
+- Kein Abreißen in der Welt (nur Verkauf über Verkehr → Strecken), kein Parallelversatz, keine Tunnel oder Höhenstufen.
+- Trassen laufen weiter durch Häuser, Felder und Bäume.
+
+**Nicht gemessen**
+- Wie sich das Bauen für einen Menschen anfühlt. Das Skript zeigt, was das Werkzeug tut.
+- Steigung: Die Sim markiert zu steile Stücke rot (Code wie beim See), durchgespielt habe ich das nicht.
+- Vorschau, während die linke Taste gehalten wird (stand vorher still; nicht neu geprüft).
+- Bildrate: Die Vorschau wird bei jeder Mausbewegung neu gerechnet (etwa 16-mal je Sekunde); auf einer echten GPU nicht gemessen.
+
+---
+
+## Befund vom 11.11. (altes Werkzeug, zum Vergleich)
+
+Kein Umbau, nur Befund mit je einem Vorschlag. Die Zahlen unten stammen aus dem Lauf des Skripts vom 11.11. (Stand `ca292b7`, Zeilen `BEFUND …`); das Skript von heute prüft das neue Werkzeug.
+
+**Wie gemessen:** `slice/tests/demo_bau_befund.gd` (Stand `ca292b7`) spielte den Bau über den echten Eingabeweg durch: Mausbewegung, Mausklicks und Tasten laufen als Ereignisse durch den Viewport (1600 × 900, xvfb, opengl3), keine Bau-Funktion wird direkt gerufen. Jede Zahl unten stammt aus einer Zeile `BEFUND …` dieses Laufs. Bilder: `demo_shots/bau/`.
 
 ```
 xvfb-run -a -s "-screen 0 1600x900x24" godot --rendering-driver opengl3 --path slice \

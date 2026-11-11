@@ -2,6 +2,38 @@
 
 Branch `s8-demo` (gemergt nach `s8`). Start: `play_demo.bat` (Windows), `tools/play_demo.sh`, oder Startmenü „Demo spielen“ (Taste D). Anleitung: `DEMO_ANLEITUNG.md`. Plan: `DEMO_PLAN.md`.
 
+## 00 Teil 4 (12.11.): Straßen- und Gleisbau neu
+
+Nach Bastis Feedback („Feedback beim Ziehen seltsam, keine richtigen Kurven, Planungsmodus wäre gut“). Vorbild Transport Fever 2 / Cities: Skylines. Nur Demo-Modus. Einzelheiten und Vorher/Nachher je Befund: `DEMO_STRASSENBAU_BEFUND.md`.
+
+**So baut man jetzt**
+1. **B** (Straße) oder **G** (Gleis). Unter der Maus zeigt eine Marke, woran der Start einrastet; das Schild an der Maus sagt es in Worten.
+2. **Klick** setzt den Start. Ab da liegt die Trasse bis zur Maus als Band da, mit Länge und Preis am Schild.
+3. Weitere **Klicks** setzen Punkte. **C** wechselt Kurve (tangentiale Kreisbögen) und gerade (ausgerundete Ecken). Fehler sind nur an der Stelle rot.
+4. **Enter** oder Doppelklick baut genau das Gezeigte. **Rechtsklick** nimmt einen Punkt zurück. Das Werkzeug bleibt an.
+5. **P** schaltet auf Planen: Abschnitte werden als Blaupause abgelegt, „Plan bauen“ baut alles oder die Auswahl, wenn das Geld reicht.
+
+| Größe | Wert |
+|---|---|
+| gebaute Mittellinie gegen Vorschau | höchstens 0,97 m Abweichung (gerade), 0,96 m (Kurve) |
+| Kurve | Kreisbogen 73 m Radius im Beispiel, größter Knick zwischen zwei Punkten 5,8°; Mindestradius Straße 12 m, Gleis 55 m |
+| Kreuzung | vom neuen Ende zum gekreuzten Knoten 86 m über das Netz, vorher 366 m |
+| Fehler lokal | See: 22 von 41 Punkten rot; Gleisbogen zu eng: 17 von 24 |
+| Schild an der Maus | 29 px neben der Maus, vorher 444 px bis zur Karte |
+| Plan | 3 Abschnitte geplant ohne Geld, 1 verworfen, 2 für 250 $ gebaut |
+| `demo_sim_test` | 94/94 (T1–T7 neu: Bogen, Fehler mit Ort, exakter Bau, Kreuzung, Planende, Fahrzeug fährt über die Kurve) |
+| `demo_ui_test` | 65/65 (B1–B9 neu) |
+| Bot n = 40, 30 min (baut jetzt über das neue Werkzeug) | Bankrott 0/40, 0 Fenster ohne Aktion, voller Bogen 40/40, Meilensteine P50 13, Ertrag letzte Minute P50 3.667 $, 0 Sim-Fehler, Determinismus gleich |
+| `regress_fast` | GRÜN, 216 s (Ziel < 300 s) |
+| d07 voll | GRÜN, 811 s |
+| d08 `--n=20` CSV md5 | `5cce648a53c1c2f3246147abcaca0988`, unverändert (Slice-Parität) |
+
+**Was die Tests über welchen Weg prüfen:** `demo_bau_befund.gd` (xvfb) fährt die Maus wirklich (Bewegung, Klick links und rechts, Tasten). `demo_ui_test.gd` (headless, läuft in der Regression) schickt Klicks und Tasten als Ereignisse; die Mausposition über der Welt setzt es direkt, weil es headless keinen Mauszeiger gibt.
+
+**Nicht gemacht:** Ziehen mit gehaltener Maustaste, kleinere Seesperre, Bahnübergänge, Abreißen in der Welt, Parallelversatz, Tunnel. **Nicht geprüft:** Spielgefühl, Steigungsfehler im Durchspiel, Bildrate der Vorschau auf echter GPU, Windows.
+
+Bilder: `demo_shots/28` Plan · `29` Kurve · `30` Fehler lokal · `07` Straße mit Schild · `bau/n1` bis `n11` (nachher), `bau/b*` (vorher).
+
 ## 0 Teil 3 (11.11.): Linien- und Fahrzeugverwaltung neu
 
 Nach Bastis Spieltest umgebaut, Vorbild Transport Fever 2. Dieser Abschnitt ist der aktuelle Stand; wo er den Abschnitten 1b bis 5 widerspricht, gilt er.

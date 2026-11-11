@@ -2,6 +2,51 @@
 
 Branch `s8-demo` (gemergt nach `s8`). Start: `play_demo.bat` (Windows), `tools/play_demo.sh`, oder Startmenü „Demo spielen“ (Taste D). Anleitung: `DEMO_ANLEITUNG.md`. Plan: `DEMO_PLAN.md`.
 
+## 000 Teil 5 (13.11.): Ziehen mit gehaltener Maustaste, eine Kreuzung je Querung
+
+Nach Bastis Satz zum Bauen („das Feedback beim Straßenbau ist recht seltsam, z.B. wenn ich anfange eine Straße zu ‚ziehen‘“) und
+den zwei offenen Punkten aus `DEMO_STRASSENBAU_BEFUND.md`. Nur Demo-Modus.
+
+**Es gibt jetzt zwei Wege zum selben Abschnitt**
+1. **Ziehen:** linke Taste auf dem Startpunkt drücken, mit gehaltener Taste ziehen, **loslassen baut**. Während des Zuges läuft die
+   Vorschau mit (Länge, Preis, Brücke, lokale Fehler wie bisher). Im Planungsmodus legt das Loslassen die Blaupause ab.
+2. **Klicken:** wie seit Teil 4 — Klicks setzen Punkte, **Enter** oder Doppelklick baut. Nur so baut man mehrere Bögen in einem Stück.
+
+Ein Mausweg unter **6 px** bleibt ein Punkt-Klick; das ist dieselbe Schwelle, mit der das Spiel seit AT-07 Klick von Ziehen trennt.
+Beide Wege lassen sich mischen. **Die Kamera** schiebt im Baumodus die **mittlere** Taste (WASD, Pfeiltasten und Mausrad wie immer);
+die gehaltene linke Taste gehört dort der Trasse, die rechte dreht weiter und nimmt ohne Ziehen einen Punkt zurück. Ohne `--demo`
+und außerhalb des Baumodus ist die Belegung unverändert.
+
+**Kreuzungen:** Eine Querung ergibt genau **eine** Kreuzung. Vorher wurde an jedem nahen Knoten verbunden — das Netz ist mit
+≤ 22 m Knotenabstand dicht besetzt, deshalb meldete eine einzige Querung „3 Kreuzungen“.
+
+| Größe | Wert |
+|---|---|
+| Ziehen (echte Maus, xvfb): Loslassen baut | 170 m für 175 $ = Angebot; gebaute Mittellinie höchstens 1,00 m neben der Vorschau; Werkzeug bleibt an (N13) |
+| Vorschau mitten im Zug | 81 m von 170 m, Schild „81 m · 100 $“, Banner „Ziehen · Loslassen baut“ (N13) |
+| Schwelle | Zug über 4 px bleibt Punkt-Klick: 1 Punkt, 0 gebaut, Kasse unverändert (N13b) |
+| Ziehen im Kurvenmodus | ein tangentialer Bogen bis zum Loslasspunkt: Radius 131 m (Minimum 12 m), größter Knick 3,5°, Anschlusswinkel 1,7°, Abweichung 0,26 m (N13c) |
+| Kamera im Baumodus | linke Taste schiebt 0,0 m (vorher 73 m) und baut aus dem freien Gelände nichts; mittlere Taste schiebt 121 m; rechte dreht 1,20 rad (N12) |
+| Kreuzung | dieselbe Querung wie in Teil 4: **1** Kreuzung statt 3; 136 m über das Netz zum gekreuzten Knoten (Luftlinie 80 m; vor Teil 4: 366 m, mit 3 Verbindungen: 86 m) (N8) |
+| Knoten im Fangkreis einer Querung | 26 liegen näher als 7 m an der neuen Mittellinie, verbunden wird 1 (N14) |
+| `demo_sim_test` | 96/96 (T5 jetzt „genau 1“, T5b eine Querung = eine Kreuzung, T5c zwei Querungen bleiben zwei) |
+| `demo_ui_test` | 70/70 (B10–B14 neu: Ziehen baut, Vorschau im Zug, kurzer Zug bleibt Klick, Ziehen im Plan, Kamera im Baumodus) |
+| Bot n = 40, 30 min | Bankrott 0/40, 0 Fenster ohne bezahlbare Aktion, längste Angebotslücke P50 5 s (max 10 s), voller Bogen 40/40, Meilensteine P50 13, Ertrag letzte Minute P50 3.667 $ (1.653–8.301), Kasse Minute 30 P50 1.822 $, 0 Sim-Fehler, 0 API-Ablehnungen, Determinismus OK |
+| Bot-CSV gegen Teil 4 | **bitgleich** (md5 `20bd6dbc53bcf3baff6a9f4e2540b1e5`): Die Kreuzungsänderung ändert keinen der 40 Läufe — die Trassen des Bots hatten schon vorher je Querung nur eine Verbindung |
+| `regress_fast` | GRÜN, 210 s (Ziel < 300 s) |
+| d07 voll | GRÜN, 776 s |
+| d08 `--n=20` CSV md5 | `5cce648a53c1c2f3246147abcaca0988`, unverändert (Slice-Parität) |
+
+**Wie geprüft:** `demo_bau_befund.gd` (xvfb) drückt die Taste, bewegt die Maus mehrfach und lässt los — kein Aufruf einer
+Bau-Funktion. `demo_ui_test.gd` schickt dieselbe Folge headless als Ereignisse durch den Viewport; den Geländepunkt rechnet dabei
+das Spiel selbst aus der Ereignisposition (nicht der Test).
+
+**Nicht gemacht:** Bahnübergang, wo Straße und Gleis sich kreuzen (Punkt 3 des Auftrags); kleinere Seesperre, Abreißen in der Welt,
+Parallelversatz, Tunnel und Höhenstufen. **Nicht geprüft:** Spielgefühl, Mäuse ohne Mittelklick, Windows, echte GPU, Bildrate
+während des Zuges, Kantenscrollen beim Ziehen über den Bildrand.
+
+Bilder: `demo_shots/31_bau_ziehen` (mitten im Zug) · `demo_shots/bau/n13_ziehen_vorschau`, `n13_ziehen_gebaut`, `n13_ziehen_kurve`.
+
 ## 0a Teil 4 (12.11.): Straßen- und Gleisbau neu
 
 Nach Bastis Feedback („Feedback beim Ziehen seltsam, keine richtigen Kurven, Planungsmodus wäre gut“). Vorbild Transport Fever 2 / Cities: Skylines. Nur Demo-Modus. Einzelheiten und Vorher/Nachher je Befund: `DEMO_STRASSENBAU_BEFUND.md`.

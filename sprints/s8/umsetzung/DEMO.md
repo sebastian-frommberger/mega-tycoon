@@ -2,6 +2,68 @@
 
 Branch `s8-demo` (gemergt nach `s8`). Start: `play_demo.bat` (Windows), `tools/play_demo.sh`, oder Startmenü „Demo spielen“ (Taste D). Anleitung: `DEMO_ANLEITUNG.md`. Plan: `DEMO_PLAN.md`.
 
+## 0 Teil 3 (11.11.): Linien- und Fahrzeugverwaltung neu
+
+Nach Bastis Spieltest umgebaut, Vorbild Transport Fever 2. Dieser Abschnitt ist der aktuelle Stand; wo er den Abschnitten 1b bis 5 widerspricht, gilt er.
+
+**Der neue Ablauf in fünf Schritten**
+1. **Firmensitz setzen** (Taste H). Er bringt den Fuhrhof mit, das erste Depot.
+2. **Linie anlegen** (Taste L → Neue Linie → Art): Halte in der Welt anklicken, Enter. Die Linie hat kein Fahrzeug und kostet nichts.
+3. **Im Depot kaufen:** Depot anklicken oder „Zum Depot“. Katalog mit Preis, Ladung, Unterhalt und Stückzahl. Gekaufte Fahrzeuge stehen im Depot.
+4. **Zuweisen:** Fahrzeuge auswählen (Klick, Umschalt+Klick für einen Bereich, Alle/Keine), Klick auf die Linie. Sie rücken vom Depot zum ersten Halt aus.
+5. **Verwalten** (Taste U): alle Fahrzeuge mit Filter nach Linie, Art, „im Depot“; Sammelaktionen Zuweisen, Ins Depot, Ersetzen, Überholen, Verkaufen.
+
+**Was sich geändert hat**
+| Punkt | Stand |
+|---|---|
+| Altes Muster | Im Demo-Modus nicht mehr erreichbar: kein „Linie von hier → Ziel → kaufen“, kein „+ Fuhrwerk“. Das Betriebspanel zeigt Infos, „Linie hier beginnen“ und die Linien, die dort halten. Ohne `--demo` unverändert |
+| Fenster „Verkehr“ | ein Fenster, vier Reiter: Linien (Liste links, Detail rechts: Halte mit Ladeauftrag, Fahrzeuge, Ertrag/min, Auslastung, Linienfarbe), Fahrzeuge, Depots, Strecken. `slice/proto/ui_verkehr.gd` |
+| Depot | einziger Kaufort. Fuhrhof am Firmensitz gratis; Betriebshof (Straße) und Lokschuppen (Gleis) für 250 $ und 5 $/min. Depot in der Welt anklickbar. Kein Depotrabatt mehr. Fahrzeuge im Depot: ein Viertel Unterhalt, kein Ertrag |
+| Auswahl | genau eine: Betrieb/Ort, Depot, Firmensitz oder Linie. Pulsierender Ring, goldener Rahmen am Schild, gewählte Linie als farbige Route. Hover-Ring und Zeigehand über allem Anklickbaren. Esc und Klick ins Leere heben auf |
+| Modus | Banner oben mittig in jedem Modus (Firmensitz, Straße, Gleis, Depot, Halte anklicken) mit Text, Zähler und „Esc bricht ab“. Gültige Halte mit Ring und Rahmen, ungültige abgedunkelt, Verbotszeiger. Ein Modus beendet den anderen |
+| Hilfen | Startbild, „Nächster Schritt“ (nennt, was im Ablauf offen ist: Linie fehlt, Fahrzeuge im Depot, Lizenz fehlt), Meilenstein-Tipps, Fehlertexte, `DEMO_ANLEITUNG.md` |
+| Straßenbau | nicht umgebaut. Befund mit 13 Punkten und Bildern: `DEMO_STRASSENBAU_BEFUND.md` |
+
+**Gemessen (11.11., Sandbox, 2 vCPU, headless)**
+| Größe | Wert | vor dem Umbau |
+|---|---|---|
+| Bot n = 40, 30 min: Bankrott | 0/40 | 0/40 |
+| 60-s-Fenster ohne bezahlbare Aktion | 0 | 0 |
+| längste Zeit ohne Angebot | P50 5 s, Max 10 s | P50 5 s, Max 10 s |
+| voller Bogen (Linie ohne Fahrzeug, Kauf im Depot, Sammelzuweisung, Linie mit 3 Halten, ins Depot und Verkauf, Personenzug, Güterzug, Stadtverkehr) | 40/40 | 40/40 (ohne die drei neuen Kriterien) |
+| Meilensteine | P50 12 von 14 (min 10) | P50 13 (min 11) |
+| Ertrag letzte Minute | P50 3.507 $ (1.488–6.688) | P50 5.293 $ (1.762–10.338) |
+| Kasse Minute 30 | P50 1.439 $ (404–4.180) | P50 2.510 $ (923–9.142) |
+| Fahrzeuge / ersetzt / Verträge erfüllt (P50) | 27 / 3 / 6 | 28 / 6 / 7 |
+| gebaute Depots je Lauf | 3 (Betriebshof, 2 Lokschuppen), dazu der geschenkte Fuhrhof | 2 |
+| Sim-Fehler, API-Ablehnungen, Determinismus | 0, 0, gleich | 0, 0, gleich |
+| `demo_sim_test` | 86/86 | 81/81 |
+| `demo_ui_test` | 58/58 | 44/44 |
+| regress_fast | GRÜN, 240 s (Ziel < 300 s) | GRÜN, 196 s |
+| d07 voll | GRÜN, 842 s, 43 Zeilen | GRÜN, 802 s |
+| d08 `--n=20` CSV md5 | 5cce648a53c1c2f3246147abcaca0988, unverändert | derselbe |
+
+**Die Wirtschaft ist mit dem neuen Ablauf enger geworden.** Der Bot verdient in Minute 30 im Median rund ein Drittel weniger. Was ich dazu gemessen habe:
+- Die Linienmechanik selbst ist gleich schnell: derselbe Aufbau (5 bzw. 6 Fuhrwerke, 12 bis 15 Minuten) bringt alt 4.282 $ und neu 4.457 $, mit Lindenfurt-Linie alt 7.725 $ und neu 8.426 $.
+- Depots sind jetzt Pflicht je Gleisnetz: Der Bot baut 3 statt 2 je Lauf. Mit 600 $ je Depot schafften nur 32/40 Läufe den vollen Bogen, mit 250 $ 39/40, mit Vorrang für den Personenzug im Bot 40/40.
+- Neue Fahrzeuge fahren erst vom Depot zum ersten Halt. Bei fernem Firmensitz kommt das erste Geld später (0 $ statt 629 $ nach drei Minuten, nach zwölf Minuten ausgeglichen).
+- Der Bot ersetzt halb so oft (P50 3 statt 6), weil seine Kassenschwelle öfter verfehlt wird; das zieht Ertrag nach.
+Welcher dieser Punkte wie viel ausmacht, habe ich nicht getrennt gemessen. Nachkalibriert ist nur der Depotpreis.
+
+**Tests über den echten Maus-/Tastenweg** (`demo_ui_test`, Ereignisse durch den Viewport): Kauf im Depot ohne Linie (A8), Mehrfachauswahl mit Umschalt+Klick (A9), Sammelzuweisung per Klick auf die Linie (A10, A11), Ring sichtbar und weg (A1, A2), Hover und Mauszeiger (A3), altes Muster nicht erreichbar (A4, U28b), Banner in jedem Modus und Esc beendet jeden (A16), ein Modus beendet den anderen (A15).
+
+**Nicht geprüft in Teil 3**
+- Ob Basti mit dem neuen Ablauf zurechtkommt. Die Tests zeigen, dass der Weg funktioniert und nichts hängen bleibt, nicht, dass er sich gut anfühlt.
+- Windows, echte GPU, echte Maus: alles lief auf llvmpipe unter xvfb und headless.
+- Rahmenauswahl mit der Maus und Strg+Klick gibt es nicht (nur Klick, Umschalt+Klick, Alle/Keine).
+- Der Kegel über der Auswahl ist in den Bildern nicht zu sehen (vermutlich hinter dem Schild); Ring und Rahmen sind es.
+- Fuhrhof-Umzug mit dem Firmensitz ist nur in der Sim getestet, nicht in der Oberfläche.
+- Schwierigkeit: siehe oben, nur der Depotpreis ist nachgezogen.
+
+**Abweichungen vom Vorbild** (Begründung im Entscheidungslog): Keine simulierte Rückfahrt ins Depot („Ins Depot“ wirkt sofort, die Ladung verfällt), weil der Sim-Kern ein Linienfahrzeug nicht mitten auf der Route umleiten kann. Der Fuhrhof ist geschenkt, damit Minute 1 keine Hürde hat.
+
+Bilder: `demo_shots/20` Auswahl mit Ring · `21` Banner „Halte anklicken“ · `22` Linie ohne Fahrzeug · `23` Depot mit Mehrfachauswahl · `24` Reiter Fahrzeuge · `25` Reiter Linien · `26` Linie in der Welt · `27` Reiter Depots · `18` Reiter Strecken · `17` Depot in der Welt · `10` Ersetzen in der Fahrzeugliste · `bau/` Straßenbau-Befund.
+
 ## 1 Was die Demo kann
 | Wunsch | Stand | Wo |
 |---|---|---|
@@ -13,9 +75,10 @@ Branch `s8-demo` (gemergt nach `s8`). Start: `play_demo.bat` (Windows), `tools/p
 | 6 Skilltree | 3 Äste × 5 Knoten, Punkte nur aus 14 Meilensteinen, Respec frei; jede Wirkung gegen den Spielwert getestet | Taste K |
 | Dazu | Startbild mit 6 Schritten, Zeile „Jetzt möglich“, Esc-Abfrage, Bilanzkarte bei Minute 30, kompakte Linienliste | |
 
-Bilder: `demo_shots/01` bis `19` (headless, llvmpipe, 1600 × 900).
+Bilder: `demo_shots/01` bis `27` (xvfb, llvmpipe, 1600 × 900), alle am 11.11. neu aufgenommen.
 
-## 1b Erweiterung (Punkte 7–11)
+## 1b Erweiterung (Punkte 7–11), Stand 10.11.
+Zeilen 7 und 9 sind durch Abschnitt 0 ersetzt (Fuhrpark und Linienplaner gibt es nicht mehr, Depotrabatt entfällt).
 | Wunsch | Stand | Wo |
 |---|---|---|
 | 7 Fahrzeugmanagement, Depots | Fuhrpark (Taste U): Liste aller Fahrzeuge mit Linie, Zustand, Alter, Unterhalt (+ % durch Alter), Restwert; Karte, Überholen, Verkaufen (Restwert W20) je Zeile. Depots (Betriebshof an der Straße, Lokschuppen am Gleis): Kauf im Depot 8 % billiger, Überholung, Liste der versorgten Fahrzeuge | `demo_sim.gd` Teil 2, `ui_demo.gd` |
@@ -24,7 +87,7 @@ Bilder: `demo_shots/01` bis `19` (headless, llvmpipe, 1600 × 900).
 | 10 Stadtverkehr | 5 Haltestellen (Erlenbach Ostend, Kirchgasse; Lindenfurt Tor, Hintergasse; Hasenwinkel) plus die beiden Orte; Fahrgäste entstehen aus Einwohnern. Stadtkutsche 1820, Pferdeomnibus 1825, Pferdestraßenbahn 1824 (auf Gleis) | `demo_welt.json` personen |
 | 11 Güter- und Personenzüge | Güter: Pferdebahn 1824, Güterzug (Dampf) 1828. Personen: Pferdestraßenbahn 1824, Personenzug (Dampf, 80 Plätze) 1828. Fracht wird geprüft (Personenwagen nur an Orten/Haltestellen, Güterwagen nur ab Betrieben) | |
 
-## 2 Gemessen (Sandbox, 2 vCPU, headless)
+## 2 Gemessen am 10.11., vor Teil 3 (aktuelle Zahlen: Abschnitt 0)
 **Demo-Bot `tests/demo_bot.gd`, Strategie plan, 30 Spielminuten, k = 8, Satz k8d, n = 40 (Seeds 1–40), Endstand mit allen elf Punkten:**
 | Größe | Wert |
 |---|---|
@@ -84,7 +147,7 @@ Rohdaten: `demo_messung/demo_bot_plan_n40.csv`, `demo_bot_faul_n20.csv`.
 8. „Nächster Schritt“ nennt den ersten offenen Meilenstein in Listenreihenfolge, nicht den naheliegendsten.
 9. **Linienpläne:** Eine Planänderung setzt alle Fahrzeuge der Linie an den ersten Halt (Ladung verfällt). Fahrgäste steigen am nächsten Halt aus, der sie annimmt; es gibt keine Wunschziele.
 10. **Stadtverkehr trägt sich innerorts nur knapp** (kurze Wege, 6-Felder-Mindestdistanz). Lohnend wird Personenverkehr zwischen den Orten und per Zug.
-11. **Depot** ist ein Punkt im Netz mit Rabatt und Überholung; Fahrzeuge fahren nicht physisch ins Depot.
+11. **Depot:** Fahrzeuge rücken physisch aus, fahren aber nicht physisch zurück („Ins Depot“ wirkt sofort).
 12. **Streckenkauf** gibt es nur für die Staatschaussee (kein anderer Besitzer in der Welt). Verkaufte Trassen verschwinden, das Gelände bleibt unverändert.
 13. Haltestellen und Depots sind Platzhalter (Pfosten, Schuppen); Stadtkutsche und Omnibus nutzen das Postkutschen-Modell, die Pferdestraßenbahn das Fuhrwerk-Modell.
 14. Offene S8-Punkte unverändert: Wagenrad-Rotation bei k > 1, GPU-Frametime, Naiv-Band.

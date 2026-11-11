@@ -879,6 +879,7 @@ func _t_trasse() -> void:
 	var ok5 := false
 	var weg_m := -1
 	var n_kr := 0
+	var n_nah := 0
 	for nid in nachbarn:
 		if nachbarn[nid].size() != 2 or ps.gleis_knoten.has(nid) or ok5:
 			continue
@@ -905,6 +906,16 @@ func _t_trasse() -> void:
 		var q5: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([ap, p1, p2]), {"kurve": false})
 		if not q5["ok"] or int(q5["bruecke_m"]) > 0 or q5["kreuzungen"].is_empty():
 			continue
+		# Teil 5: Wie viele vorhandene Knoten liegen im Fangkreis der neuen Mittellinie? (Netz dicht besetzt: mehrere je Querung)
+		var geo5: PackedVector2Array = q5["punkte"]
+		for nid5 in ps.knoten_grad:
+			if ps.knoten_grad[nid5] == 0 or ps.gleis_knoten.has(nid5):
+				continue
+			var kp5 := Vector2(ps.knoten_pos[nid5].x, ps.knoten_pos[nid5].z)
+			for i5 in range(1, geo5.size() - 1):
+				if geo5[i5].distance_to(kp5) < ps.KREUZ_FANG_M:
+					n_nah += 1
+					break
 		var r5: Dictionary = ps.trasse_bauen("strasse", PackedVector2Array([ap, p1, p2]), {"kurve": false})
 		if not r5.get("ok", false):
 			continue
@@ -913,7 +924,34 @@ func _t_trasse() -> void:
 		var route: Array = ps.sim.graph.find_path(ek, nid)
 		weg_m = int(ps.sim.graph.route_length(route) / ps.mm_pro_m) if not route.is_empty() else -1
 		ok5 = true
-	pruef(ok5 and n_kr >= 1 and weg_m > 0 and weg_m < 160, "T5 Kreuzung: Trasse quer über eine Straße wird dort verbunden (%d Kreuzung); vom neuen Ende zum gekreuzten Knoten %d m über das Netz (Luftlinie 80 m)" % [n_kr, weg_m])
+	pruef(ok5 and n_kr == 1 and weg_m > 0 and weg_m < 160, "T5 Kreuzung: Trasse quer über eine Straße wird dort verbunden (%d Kreuzung); vom neuen Ende zum gekreuzten Knoten %d m über das Netz (Luftlinie 80 m)" % [n_kr, weg_m])
+	# T5b (Befund Teil 5): Eine einzige Querung ergibt genau EINE Kreuzung, obwohl mehrere Knoten im Fangkreis liegen
+	pruef(ok5 and n_nah >= 2 and n_kr == 1, "T5b eine Querung = eine Kreuzung: %d vorhandene Knoten liegen im Fangkreis (≤ %.0f m) der neuen Linie, verbunden wird %d (vorher: jeder davon)" % [n_nah, ps.KREUZ_FANG_M, n_kr])
+	# T5c zwei getrennte Querungen bleiben zwei Kreuzungen (Lücke entlang der Linie groß genug)
+	var kr_weit := -1
+	var kr_eng := -1
+	for nid5b in ps.knoten_grad:
+		if ps.knoten_grad[nid5b] != 2 or ps.gleis_knoten.has(nid5b) or kr_weit >= 0:
+			continue
+		var np5 := Vector2(ps.knoten_pos[nid5b].x, ps.knoten_pos[nid5b].z)
+		for wi5 in 24:
+			var d5 := Vector2(cos(TAU * wi5 / 24.0), sin(TAU * wi5 / 24.0))
+			var qa5: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([np5 - d5 * 420.0, np5 + d5 * 420.0]), {"kurve": false})
+			if not qa5.get("ok", false):
+				continue
+			var n5: int = (qa5["kreuzungen"] as Dictionary).size()
+			var idx5: Array = (qa5["kreuzungen"] as Dictionary).keys()
+			if n5 >= 2:
+				var geo5b: PackedVector2Array = qa5["punkte"]
+				var weit := 0.0
+				for a5 in idx5:
+					for b5 in idx5:
+						weit = maxf(weit, geo5b[int(a5)].distance_to(geo5b[int(b5)]))
+				if weit >= ps.KREUZ_LUECKE_M:
+					kr_weit = n5
+					kr_eng = int(weit)
+					break
+	pruef(kr_weit >= 2, "T5c mehrere Querungen bleiben mehrere Kreuzungen: lange Trasse quer durchs Netz verbindet %d Stellen, die weitesten %d m auseinander (Bündelung erst unter %.0f m)" % [kr_weit, kr_eng, ps.KREUZ_LUECKE_M])
 	# T6 Plan: Abschnitt, der an einem geplanten Ende beginnt, gilt im Angebot; allein gebaut wird er nicht
 	var pe := Vector2(1330, 1100) + Vector2(140, 60)
 	var p6 := PackedVector2Array([pe, pe + Vector2(60, 60)])

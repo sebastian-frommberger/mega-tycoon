@@ -558,9 +558,11 @@ func banner_text() -> Array:
 	match modus():
 		"bau":
 			var name := "%s %s · %s" % [String(ps.bau_regel(bau_art).get("name", bau_art)), "planen" if bau.planen else "bauen", "Kurve" if bau.kurve else "gerade"]
+			if bau.zieht:
+				return [name, "Ziehen · Loslassen %s · Esc beendet" % ("plant den Abschnitt" if bau.planen else "baut")]
 			if bau_punkte.is_empty():
-				return [name, "Startpunkt anklicken · Esc beendet"]
-			return [name, "%d Punkt%s · Enter oder Doppelklick %s · Rechtsklick zurück · Esc beendet" % [
+				return [name, "Startpunkt anklicken oder ziehen · Esc beendet"]
+			return [name, "%d Punkt%s · Enter, Doppelklick oder Ziehen %s · Rechtsklick zurück · Esc beendet" % [
 				bau_punkte.size(), "" if bau_punkte.size() == 1 else "e", "plant" if bau.planen else "baut"]]
 		"hq":
 			return ["Firmensitz platzieren" if not ps.hq_platziert else "Firmensitz umziehen", "Platz in einem Ort anklicken (helle Kreise) · Esc bricht ab"]
@@ -827,6 +829,24 @@ func _cent(c: int) -> String:
 ## Klick im Baumodus (Weltpunkt in m): setzt genau einen Punkt (ui_bau.gd). Gebaut wird mit Enter oder Doppelklick.
 func klick_boden(p: Vector2) -> void:
 	bau.klick(p)
+
+
+func bau_modus() -> bool:
+	return bau_art != ""
+
+
+## Teil 5: linke Maustaste im Baumodus (aus prototyp_welt). Drücken/Ziehen/Loslassen = der zweite Weg zum Abschnitt.
+## true heißt: Das Bauwerkzeug hat die Geste verbraucht (die Kamera schiebt sie nicht, der Weltklick kommt nicht).
+func maus_druck(pos: Vector2) -> bool:
+	return bau_art != "" and bau.maus_druck(pos, boden(pos))
+
+
+func maus_zug(pos: Vector2) -> bool:
+	return bau_art != "" and bau.maus_zug(pos, boden(pos))
+
+
+func maus_los(pos: Vector2) -> bool:
+	return bau_art != "" and bau.maus_los(pos, boden(pos))
 
 
 func bau_zurueck() -> void:
@@ -1715,8 +1735,9 @@ func _process(delta: float) -> void:
 		_t_vorschau = 0.0
 		var mp := get_viewport().get_mouse_position()
 		var p = boden(mp)
-		if uw._taste_unten or (modus_panel.visible and modus_panel.get_global_rect().has_point(mp)) or leiste.get_global_rect().has_point(mp):
+		if (uw._taste_unten and not bau.zieht) or (modus_panel.visible and modus_panel.get_global_rect().has_point(mp)) or leiste.get_global_rect().has_point(mp):
 			p = null                                        # Maus über dem Panel oder Taste gehalten: Vorschau bleibt stehen (Knöpfe bleiben klickbar)
+			                                                # Ausnahme Teil 5: Während eines Zuges (gehaltene linke Taste) läuft die Vorschau mit
 		if p is Vector2 and (not (_maus_boden is Vector2) or (_maus_boden as Vector2).distance_to(p) > 1.5):
 			_maus_boden = p
 			if bau_art != "":

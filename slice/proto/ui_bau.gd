@@ -5,6 +5,10 @@ extends RefCounted
 ##  · Schon vor dem ersten Klick zeigt eine Marke unter der Maus, wo und woran der Start einrastet.
 ##  · Nach dem ersten Klick liegt die Trasse bis zur Maus als Vorschau in Straßenbreite da; Länge und Preis stehen an der Maus.
 ##  · EINE Klickregel: Klick setzt einen Punkt, nie mehr. Gebaut wird mit Enter, Doppelklick auf den letzten Punkt oder dem Knopf.
+##  · Teil 5: ZWEITER Weg zum selben Ziel — Ziehen mit gehaltener linker Taste. Drücken setzt den Start, Ziehen zeigt die Trasse
+##    mit Länge, Preis und lokalen Fehlern, Loslassen baut (im Planungsmodus: legt den Abschnitt in den Plan). Unter ZIEH_PX
+##    bleibt die Geste ein Punkt-Klick, beide Wege kommen sich also nicht in die Quere. Die Kamera schiebt im Baumodus die
+##    mittlere Taste (statt der linken), WASD und Mausrad bleiben wie immer.
 ##  · Rechtsklick nimmt den letzten Punkt zurück (ohne Punkt: Werkzeug aus), Esc beendet. Nach dem Bau bleibt das Werkzeug an.
 ##  · Kurve (C): jedes Stück schließt tangential an und wird als Kreisbogen gezogen; gerade: Geraden mit ausgerundeten Ecken.
 ##    Die Vorschau ist die Mittellinie, die gebaut wird (ps.trasse_angebot → ps.trasse_bauen, Straßenband „exakt“).
@@ -27,10 +31,16 @@ var uw = null
 var ps = null
 var welt: Node = null
 
+const ZIEH_PX := 6.0                   # darunter bleibt Drücken+Loslassen ein Punkt-Klick (gleiche Schwelle wie der Weltklick)
+
 var kurve := true                      # true: tangentiale Bögen, false: Geraden mit ausgerundeten Ecken
 var planen := false                    # true: Abschnitte werden als Plan abgelegt (kein Geld)
 var plan: Array = []                   # [{art, stuetz, kurve, t0, q, an, knoten (Node3D)}]
 var start_t0: Variant = null           # Richtung, in der das nächste Stück beginnt (nach Bau/Plan am selben Punkt)
+var zieht := false                     # linke Taste gehalten und über ZIEH_PX bewegt: der Zug läuft
+var _druck_px := Vector2(-1, -1)       # Bildpunkt beim Drücken (-1: keine Taste unten)
+var _druck_welt: Variant = null        # Geländepunkt beim Drücken
+var _zug_n0 := 0                       # Punktzahl vor dem Zug (für das Zurücknehmen bei einem Fehlschlag)
 var fang: Dictionary = {}              # Einrasten unter der Maus
 var angebot: Dictionary = {}           # Angebot für Punkte + Maus
 var wurzel: Node3D
@@ -141,6 +151,7 @@ func start(art: String, start_punkt: Variant = null) -> void:
 
 func ende() -> void:
 	ud.bau_art = ""
+	_zug_aus()
 	ud.bau_punkte = PackedVector2Array()
 	ud.bau_angebot = {}
 	angebot = {}
@@ -185,6 +196,98 @@ func klick(p: Vector2) -> void:
 ## Abstand in m, unter dem ein Klick als „noch einmal derselbe Punkt“ gilt (wächst mit dem Kameraabstand, etwa 12 px).
 func _doppel_m() -> float:
 	return clampf(float(welt.abstand) * 0.012, 4.0, 14.0)
+
+
+# ------------------------------------------------------------------ Ziehen mit gehaltener linker Taste (Teil 5)
+#
+# Bastis Feedback 12.11.: „das Feedback beim Straßenbau ist recht seltsam, z.B. wenn ich anfange eine Straße zu ‚ziehen‘“.
+# Das Werkzeug kannte nur Klick – bewegen – Klick. Jetzt gilt beides:
+#   drücken  → Startpunkt (oder: der Zug hängt am letzten gesetzten Punkt weiter)
+#   ziehen   → Vorschau läuft mit (Länge, Preis, lokale Fehler wie beim Klickweg)
+#   loslassen→ baut den Abschnitt (Planungsmodus: legt ihn in den Plan); das Ende rastet für das nächste Stück ein
+# Unter ZIEH_PX bleibt es ein Punkt-Klick: prototyp_welt gibt die Geste dann an welt_klick weiter.
+# Im Kurvenmodus zieht ein Zug GENAU EIN Stück: den tangentialen Bogen bis zum Loslasspunkt (ein Freiheitsgrad). Ein Bogen mit
+# frei gewählter Krümmung braucht weiter zwei Punkte, also Klick–Klick; ein Zug am Ende einer Klickfolge schließt sie ab.
+
+
+func _zug_aus() -> void:
+	zieht = false
+	_druck_px = Vector2(-1, -1)
+	_druck_welt = null
+
+
+## Linke Taste gedrückt. true: das Bauwerkzeug nimmt die Geste (die Kamera schiebt sie dann nicht).
+func maus_druck(px: Vector2, p: Variant) -> bool:
+	if not an() or not (p is Vector2):
+		return false
+	_druck_px = px
+	_druck_welt = p
+	zieht = false
+	_zug_n0 = ud.bau_punkte.size()
+	return true
+
+
+## Maus bewegt, linke Taste unten. Ab ZIEH_PX beginnt der Zug; danach läuft die Vorschau mit.
+func maus_zug(px: Vector2, p: Variant) -> bool:
+	if not an() or _druck_px.x < 0.0:
+		return false
+	if not zieht:
+		if px.distance_to(_druck_px) < ZIEH_PX:
+			return true
+		if not _zug_start():
+			_zug_aus()
+			return false
+		zieht = true
+		ud.banner_neu()
+	if p is Vector2 and (not (ud._maus_boden is Vector2) or (ud._maus_boden as Vector2).distance_to(p) > 1.5):
+		ud._maus_boden = p
+		neu()
+	return true
+
+
+## Startpunkt des Zuges setzen (wie der erste Klick, aber ohne die Doppelklick-Regel: Drücken baut nie).
+func _zug_start() -> bool:
+	var art := String(ud.bau_art)
+	var dp: Vector2 = _druck_welt
+	var f: Dictionary = ps._fang_plan(art, dp, plan_enden(art))
+	if ud.bau_punkte.is_empty():
+		if String(f["typ"]) == "frei":
+			ud.melde_fehler({"fehler": "kein_anschluss"})
+			return false
+		ud.bau_punkte.append(f["pos"])
+		start_t0 = null
+		return true
+	var pos: Vector2 = f["pos"] if String(f["typ"]) != "frei" else dp
+	if pos.distance_to(ud.bau_punkte[-1]) > _doppel_m():
+		ud.bau_punkte.append(pos)
+	return true
+
+
+## Linke Taste losgelassen. true: der Zug hat den Abschnitt gebaut bzw. geplant; false: es war ein Punkt-Klick.
+func maus_los(px: Vector2, p: Variant) -> bool:
+	if not an() or not zieht:
+		_zug_aus()
+		return false
+	var art := String(ud.bau_art)
+	var n0 := _zug_n0
+	_zug_aus()
+	if p is Vector2:
+		var f: Dictionary = ps._fang_plan(art, p, plan_enden(art))
+		var pos: Vector2 = f["pos"] if String(f["typ"]) != "frei" else (p as Vector2)
+		if ud.bau_punkte.is_empty() or pos.distance_to(ud.bau_punkte[-1]) > _doppel_m():
+			ud.bau_punkte.append(pos)
+			ud._maus_boden = pos
+	if ud.bau_punkte.size() < 2:
+		neu()
+		return true
+	var r := fertig()
+	if not r.get("ok", false):
+		while ud.bau_punkte.size() > n0:                       # Fehlschlag: der Zug wird verworfen, der Stand von vorher bleibt
+			ud.bau_punkte.remove_at(ud.bau_punkte.size() - 1)
+		if ud.bau_punkte.is_empty():
+			start_t0 = null
+		neu()
+	return true
 
 
 func zurueck() -> void:
@@ -356,6 +459,7 @@ func neu() -> void:
 	ud.werte["bau_punkte"] = ud.bau_punkte.size()
 	ud.werte["bau_fang"] = String(fang.get("typ", ""))
 	ud.werte["bau_kurve"] = kurve
+	ud.werte["bau_zieht"] = zieht
 	ud.werte["bau_planen"] = planen
 	ud.werte["bau_plan_n"] = plan.size()
 	ud.werte["bau_plan_kosten"] = plan_kosten()
@@ -371,7 +475,7 @@ func neu() -> void:
 				f1 = C_TEUER
 			else:
 				z1 = "Start: " + _typ_text(fang, art)
-				z2 = "Klick setzt den Startpunkt"
+				z2 = "Klicken setzt den Startpunkt · ziehen baut gleich"
 				f1 = C_GUT
 	else:
 		var pkt := PackedVector2Array(ud.bau_punkte)
@@ -403,7 +507,7 @@ func neu() -> void:
 				z1 = String(ud.fehlertext(angebot))
 				f1 = C_ROT
 		else:
-			z1 = "Maus zum nächsten Punkt bewegen"
+			z1 = "Ziehen oder nächsten Punkt anklicken"
 			z2 = "Enter oder Doppelklick %s" % ("legt den Abschnitt in den Plan" if planen else "baut") if ud.bau_punkte.size() >= 2 else ""
 	ud.bau_angebot = angebot
 	schild_1.text = z1

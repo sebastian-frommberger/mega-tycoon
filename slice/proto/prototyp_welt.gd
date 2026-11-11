@@ -124,6 +124,7 @@ var ui_demo = null
 var demo_daten: Dictionary = {}
 var _rklick_start := Vector2(-1000, -1000)
 var _klick_start := Vector2(-1, -1)  # AT-07: Linksklick ohne Ziehen = Weltklick
+var _bau_zug := false                # Demo Teil 5: linke Taste unten im Baumodus (Trasse ziehen statt Kamera schieben)
 
 
 static func datei(name: String) -> String:
@@ -547,27 +548,45 @@ func _unhandled_input(ev: InputEvent) -> void:
 			abstand /= 0.88
 			_kamera_anwenden()
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
-			_drag = 1 if mb.pressed else 0
+			# Demo Teil 5: Im Baumodus gehört die gehaltene linke Taste dem Bauwerkzeug (Ziehen), nicht der Kamera.
+			# Die Kamera schiebt dort die mittlere Taste, WASD und das Mausrad; die rechte Taste dreht weiter.
 			if mb.pressed:
 				_klick_start = mb.position
-			elif ui_welt != null and _klick_start.x >= 0.0 and mb.position.distance_to(_klick_start) < 6.0:
-				if ui_demo == null or not ui_demo.welt_klick(mb.position):
-					ui_welt.welt_klick(mb.position)          # AT-07: Loslassen ohne Ziehen = Klick
+				_bau_zug = ui_demo != null and ui_demo.bau_modus() and ui_demo.maus_druck(mb.position)
+				_drag = 0 if _bau_zug else 1
+			else:
+				_drag = 0
+				var war_zug := _bau_zug
+				_bau_zug = false
+				if war_zug and ui_demo.maus_los(mb.position):
+					pass                                     # Ziehen: der Abschnitt ist gebaut bzw. geplant
+				elif ui_welt != null and _klick_start.x >= 0.0 and mb.position.distance_to(_klick_start) < 6.0:
+					if ui_demo == null or not ui_demo.welt_klick(mb.position):
+						ui_welt.welt_klick(mb.position)      # AT-07: Loslassen ohne Ziehen = Klick
 		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
-			_drag = 2 if mb.pressed else 0
+			var bau_an: bool = ui_demo != null and ui_demo.bau_modus()
+			if not mb.pressed:
+				_drag = 0
+			elif mb.button_index == MOUSE_BUTTON_MIDDLE and bau_an:
+				_drag = 1                                    # Baumodus: mittlere Taste schiebt (die linke zieht die Trasse)
+			else:
+				_drag = 2
 			if ui_demo != null and mb.button_index == MOUSE_BUTTON_RIGHT:   # Demo: Rechtsklick ohne Ziehen = Punkt zurück (Bauwerkzeug)
 				if mb.pressed:
 					_rklick_start = mb.position
 				elif mb.position.distance_to(_rklick_start) < 6.0:
 					ui_demo.rechts_klick(mb.position)
-	elif ev is InputEventMouseMotion and _drag != 0:
-		var r: Vector2 = (ev as InputEventMouseMotion).relative
-		if _drag == 2:
-			gier -= r.x * 0.005
-		else:
-			var d := Vector3(-r.x, 0, -r.y) * abstand * 0.0012
-			ziel += Basis(Vector3.UP, gier) * d
-		_kamera_anwenden()
+	elif ev is InputEventMouseMotion:
+		if _bau_zug:
+			ui_demo.maus_zug((ev as InputEventMouseMotion).position)
+		elif _drag != 0:
+			var r: Vector2 = (ev as InputEventMouseMotion).relative
+			if _drag == 2:
+				gier -= r.x * 0.005
+			else:
+				var d := Vector3(-r.x, 0, -r.y) * abstand * 0.0012
+				ziel += Basis(Vector3.UP, gier) * d
+			_kamera_anwenden()
 
 
 func _process(delta: float) -> void:

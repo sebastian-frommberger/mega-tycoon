@@ -2846,6 +2846,14 @@ func trasse_geometrie(art: String, pkt: PackedVector2Array, kurve: bool, t0: Var
 
 ## Stellen, an denen die neue Mittellinie einen vorhandenen Knoten derselben Art kreuzt: Punkt-Index -> Knoten.
 ## Start- und Endbereich (25 m) bleiben frei, dort hängt die Trasse ohnehin am Netz.
+## Teil 5 (Befund): Eine Querung ergibt GENAU EINE Kreuzung. Das Netz ist dicht besetzt (Knotenabstand ≤ 22 m), deshalb liegen
+## bei einer einzigen Querung mehrere Knoten im Fangkreis. Treffer, die entlang der neuen Linie weniger als KREUZ_LUECKE_M
+## auseinanderliegen, gehören darum zur selben Querung; aus jeder Querung wird nur der nächstgelegene Knoten verbunden.
+## Das deckt auch den Fall „Trasse läuft dicht neben einer Straße her“ ab: ein zusammenhängender Lauf = eine Verbindung.
+const KREUZ_FANG_M := 7.0
+const KREUZ_LUECKE_M := 50.0
+
+
 func trasse_kreuzungen(art: String, geo: PackedVector2Array) -> Dictionary:
 	var r := {}
 	if geo.size() < 3:
@@ -2868,28 +2876,40 @@ func trasse_kreuzungen(art: String, geo: PackedVector2Array) -> Dictionary:
 		if q.x < lo.x - 8.0 or q.x > hi.x + 8.0 or q.z < lo.y - 8.0 or q.z > hi.y + 8.0:
 			continue
 		nah.append([nid, Vector2(q.x, q.z)])
-	var belegt := {}
-	var letzter := -100
+	# 1. Treffer sammeln: je Punkt der neuen Linie der nächste vorhandene Knoten im Fangkreis
+	var treffer: Array = []                                    # [punkt_index, knoten, abstand]
 	for i in range(1, geo.size() - 1):
-		if s[i] < 25.0 or s[-1] - s[i] < 25.0 or i - letzter < 4:
+		if s[i] < 25.0 or s[-1] - s[i] < 25.0:
 			continue
 		var best := -1
-		var bd := 7.0
+		var bd := KREUZ_FANG_M
 		for e in nah:
-			var d := geo[i].distance_to(e[1])
-			if d < bd and not belegt.has(e[0]):
+			var d: float = geo[i].distance_to(e[1])
+			if d < bd:
 				bd = d
 				best = int(e[0])
 		if best >= 0:
-			# nur der nächste Punkt der Linie zu diesem Knoten zählt
-			var bi := i
-			var q2 := Vector2(knoten_pos[best].x, knoten_pos[best].z)
-			for j in range(i + 1, mini(geo.size() - 1, i + 3)):
-				if geo[j].distance_to(q2) < geo[bi].distance_to(q2) and s[-1] - s[j] >= 25.0:
-					bi = j
-			r[bi] = best
-			belegt[best] = true
-			letzter = bi
+			treffer.append([i, best, bd])
+	# 2. Treffer zu Querungen bündeln (Lücke entlang der Linie < KREUZ_LUECKE_M = dieselbe Querung)
+	var gruppen: Array = []
+	for t in treffer:
+		if gruppen.is_empty() or s[int(t[0])] - s[int((gruppen[-1] as Array)[-1][0])] >= KREUZ_LUECKE_M:
+			gruppen.append([t])
+		else:
+			(gruppen[-1] as Array).append(t)
+	# 3. Je Querung genau ein Knoten: der mit dem kleinsten Abstand (bei Gleichstand der frühere Punkt)
+	var belegt := {}
+	for g in gruppen:
+		var beste: Array = []
+		for t in g:
+			if belegt.has(int(t[1])):
+				continue
+			if beste.is_empty() or float(t[2]) < float(beste[2]):
+				beste = t
+		if beste.is_empty():
+			continue
+		r[int(beste[0])] = int(beste[1])
+		belegt[int(beste[1])] = true
 	return r
 
 

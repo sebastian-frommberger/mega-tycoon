@@ -258,6 +258,57 @@ func _klick_welt(wp: Vector2) -> void:
 	await _frames(3)
 
 
+## Teil 5: Echtes Ziehen mit gehaltener linker Taste über den Viewport (drücken, mehrere Bewegungen, loslassen).
+## Der Geländepunkt wird NICHT von Hand gesetzt: prototyp_welt → ui_demo.maus_druck/maus_zug/maus_los rechnen ihn selbst
+## aus der Ereignisposition (headless gibt es keinen Mauszeiger, die Ereignisse laufen aber durch den echten Eingabeweg).
+func _zieh_welt(von: Vector2, bis: Vector2, n := 5) -> void:
+	var a := _wpx(von)
+	var b := _wpx(bis)
+	await _zieh_px(a, b, n, MOUSE_BUTTON_LEFT)
+
+
+func _zieh_px(a: Vector2, b: Vector2, n: int, knopf: int) -> void:
+	var mv0 := InputEventMouseMotion.new()
+	mv0.position = _fenster(a)
+	mv0.global_position = mv0.position
+	root.push_input(mv0)
+	await _frames(1)
+	var dn := InputEventMouseButton.new()
+	dn.button_index = knopf
+	dn.pressed = true
+	dn.position = _fenster(a)
+	dn.global_position = dn.position
+	root.push_input(dn)
+	await _frames(1)
+	for i in n:
+		var p0 := a.lerp(b, float(i) / n)
+		var p1 := a.lerp(b, float(i + 1) / n)
+		var mv := InputEventMouseMotion.new()
+		mv.position = _fenster(p1)
+		mv.global_position = mv.position
+		mv.relative = _fenster(p1) - _fenster(p0)
+		mv.button_mask = MOUSE_BUTTON_MASK_LEFT if knopf == MOUSE_BUTTON_LEFT else MOUSE_BUTTON_MASK_MIDDLE
+		root.push_input(mv)
+		await _frames(2)
+	var up := InputEventMouseButton.new()
+	up.button_index = knopf
+	up.pressed = false
+	up.position = _fenster(b)
+	up.global_position = up.position
+	root.push_input(up)
+	await _frames(3)
+
+
+## Richtung von s aus, in der ein Abschnitt der Länge l baubar ist (ok, keine Brücke, freies Ende, keine Kreuzung).
+func _freie_richtung(s0: Vector2, l: float, kurve: bool) -> Vector2:
+	for wi in 24:
+		var d := Vector2(cos(TAU * wi / 24.0), sin(TAU * wi / 24.0))
+		var q: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([s0, s0 + d * l]), {"kurve": kurve})
+		if q.get("ok", false) and int(q["bruecke_m"]) == 0 and String(q["ende"]["typ"]) == "frei" and q["kreuzungen"].is_empty():
+			return d
+	return Vector2.ZERO
+
+
 func _klick_rechts(p_pos: Vector2) -> void:
 	var pos := _fenster(p_pos)
 	for druck in [true, false]:
@@ -726,6 +777,123 @@ func _run() -> void:
 	await _frames(2)
 	pruef(ud.bau_art == "" and not ud.banner.visible and not ud.bau.schild.visible and not ud.bau.marke.visible and ud.bau.vorschau.get_child_count() == 0 and not ud.bau.planen,
 		"B9 Esc beendet das Werkzeug: Banner, Schild, Marke und Vorschau sind weg")
+	# ------------------------------------------------------------ Teil 5: Ziehen mit gehaltener linker Taste (B10–B14)
+	_druecke(KEY_B)
+	await _frames(2)
+	var zs: Vector2 = ps.fang("strasse", Vector2(1284, 936))["pos"]
+	var zd := _freie_richtung(zs, 150.0, false)
+	var zziel: Vector2 = zs + zd * 150.0
+	await _sicht_punkte([zs, zziel], -0.4)
+	if not ud.bau.kurve:
+		pass
+	else:
+		_druecke(KEY_C)                                           # gerade: ein Zug = eine Gerade
+	await _frames(2)
+	kasse = ps.eco.cash_cent
+	wege0_t4 = ps.bauwerke.size()
+	var q_zug: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([zs, zziel]), {"kurve": false})
+	await _zieh_welt(zs, zziel, 6)
+	var zug_gebaut: bool = ps.bauwerke.size() == wege0_t4 + 1
+	var zug_kosten: int = kasse - ps.eco.cash_cent
+	pruef(zd != Vector2.ZERO and zug_gebaut and zug_kosten == int(q_zug["kosten_cent"]) and ud.bau_art == "strasse" and ud.bau_punkte.size() == 1
+		and not ud.bau.zieht and ud.banner.visible and _letzte().contains("gebaut"),
+		"B10 Ziehen mit gehaltener linker Taste (Drücken, 6 Bewegungen, Loslassen) baut den Abschnitt: −%d $ = Angebot, Werkzeug bleibt an (1 Punkt am Ende): „%s“" % [zug_kosten / 100, _letzte()])
+	# B11 Vorschau läuft WÄHREND des Zuges mit (Länge und Preis am Schild, Fehler lokal)
+	var zs2: Vector2 = ps.fang("strasse", zziel)["pos"]
+	var zd2 := _freie_richtung(zs2, 160.0, false)
+	var zziel2: Vector2 = zs2 + zd2 * 160.0
+	await _sicht_punkte([zs2, zziel2], -0.4)
+	var a_px := _wpx(zs2)
+	var b_px := _wpx(zziel2)
+	var mv_a := InputEventMouseMotion.new()
+	mv_a.position = _fenster(a_px)
+	mv_a.global_position = mv_a.position
+	root.push_input(mv_a)
+	await _frames(1)
+	var dn2 := InputEventMouseButton.new()
+	dn2.button_index = MOUSE_BUTTON_LEFT
+	dn2.pressed = true
+	dn2.position = _fenster(a_px)
+	dn2.global_position = dn2.position
+	root.push_input(dn2)
+	await _frames(1)
+	var mitte_px := a_px.lerp(b_px, 0.55)
+	var mv_b := InputEventMouseMotion.new()
+	mv_b.position = _fenster(mitte_px)
+	mv_b.global_position = mv_b.position
+	mv_b.relative = _fenster(mitte_px) - _fenster(a_px)
+	mv_b.button_mask = MOUSE_BUTTON_MASK_LEFT
+	root.push_input(mv_b)
+	await _frames(3)
+	var zieht_an: bool = ud.bau.zieht
+	var schild_zug: String = String(ud.werte["bau_schild"])
+	var vorschau_zug: bool = bool(ud.werte["bau_vorschau"]) and ud.bau.vorschau.has_node("Gut")
+	var banner_zug: String = String(ud.werte["banner"])
+	var q_halb: Dictionary = ud.bau_angebot
+	var up2 := InputEventMouseButton.new()
+	up2.button_index = MOUSE_BUTTON_LEFT
+	up2.pressed = false
+	up2.position = _fenster(b_px)
+	up2.global_position = up2.position
+	root.push_input(up2)
+	await _frames(3)
+	var q_voll: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([zs2, zziel2]), {"kurve": false})
+	pruef(zieht_an and vorschau_zug and schild_zug.contains(" m · ") and banner_zug.contains("Loslassen baut") and int(q_halb.get("laenge_m", 0)) > 0
+		and int(q_halb["laenge_m"]) < int(q_voll["laenge_m"]) and ps.bauwerke.size() == wege0_t4 + 2 and not ud.bau.zieht,
+		"B11 während des Zuges läuft die Vorschau mit: Schild „%s“ (%d m von %d m), Banner „%s“; Loslassen baut" % [schild_zug, int(q_halb.get("laenge_m", 0)), int(q_voll["laenge_m"]), banner_zug])
+	await _shot("31_bau_ziehen")
+	# B12 kurzer Zug unter der Schwelle (6 px) bleibt ein Punkt-Klick
+	var zs3: Vector2 = ps.fang("strasse", zziel2)["pos"]
+	var p_kurz := _wpx(zs3)
+	wege0_t4 = ps.bauwerke.size()
+	kasse = ps.eco.cash_cent
+	_klick_rechts(_wpx(zs3))
+	await _frames(2)
+	await _zieh_px(p_kurz, p_kurz + Vector2(4, 2), 2, MOUSE_BUTTON_LEFT)
+	pruef(ud.bau_punkte.size() == 1 and ps.bauwerke.size() == wege0_t4 and ps.eco.cash_cent == kasse and not ud.bau.zieht,
+		"B12 kurzer Zug (4 px, unter der Schwelle von %d px) bleibt ein Punkt-Klick: 1 Punkt gesetzt, nichts gebaut" % int(ud.bau.ZIEH_PX))
+	# B13 Ziehen im Planungsmodus legt den Abschnitt in den Plan (kein Geld)
+	_druecke(KEY_P)
+	await _frames(2)
+	var zd3 := _freie_richtung(zs3, 140.0, false)
+	var zziel3: Vector2 = zs3 + zd3 * 140.0
+	await _sicht_punkte([zs3, zziel3], -0.4)
+	kasse = ps.eco.cash_cent
+	wege0_t4 = ps.bauwerke.size()
+	var plan0: int = ud.bau.plan.size()
+	await _zieh_welt(zs3, zziel3, 5)
+	pruef(zd3 != Vector2.ZERO and ud.bau.plan.size() == plan0 + 1 and ps.eco.cash_cent == kasse and ps.bauwerke.size() == wege0_t4
+		and ud.bau.plan_wurzel.get_child_count() == plan0 + 1 and _letzte().contains("geplant"),
+		"B13 Ziehen im Planungsmodus legt die Blaupause ab, ohne zu bauen: %d im Plan, Kasse unverändert: „%s“" % [ud.bau.plan.size(), _letzte()])
+	ud.bau.plan_leeren()
+	_druecke(KEY_P)
+	await _frames(2)
+	# B14 Kamera im Baumodus: die linke Taste schiebt nicht mehr, die mittlere schon
+	var frei_zug := Vector2.ZERO
+	for wi3 in 24:
+		var kand: Vector2 = zs3 + Vector2(cos(TAU * wi3 / 24.0), sin(TAU * wi3 / 24.0)) * 220.0
+		if String(ps.fang("strasse", kand)["typ"]) == "frei":
+			frei_zug = kand
+			break
+	await _sicht_punkte([frei_zug, frei_zug + Vector2(60, 0)], -0.4)
+	_klick_rechts(_wpx(zs3))
+	await _frames(2)
+	_klick_rechts(_wpx(zs3))
+	await _frames(2)
+	_druecke(KEY_B)
+	await _frames(2)
+	var ziel0_zug: Vector3 = s.ziel
+	wege0_t4 = ps.bauwerke.size()
+	var fa := _wpx(frei_zug)
+	await _zieh_px(fa, fa + Vector2(140, 0), 7, MOUSE_BUTTON_LEFT)
+	var kam_links: float = Vector2(s.ziel.x - ziel0_zug.x, s.ziel.z - ziel0_zug.z).length()
+	var gebaut_links: int = ps.bauwerke.size() - wege0_t4
+	await _zieh_px(fa, fa + Vector2(140, 0), 7, MOUSE_BUTTON_MIDDLE)
+	var kam_mitte: float = Vector2(s.ziel.x - ziel0_zug.x, s.ziel.z - ziel0_zug.z).length()
+	pruef(frei_zug != Vector2.ZERO and kam_links < 1.0 and gebaut_links == 0 and kam_mitte > 20.0 and ud.bau_art == "strasse",
+		"B14 Kamera im Baumodus: Ziehen mit links schiebt sie nicht mehr (%.1f m) und baut aus dem freien Gelände nichts; die mittlere Taste schiebt %.0f m" % [kam_links, kam_mitte])
+	_druecke(KEY_ESCAPE)
+	await _frames(2)
 	# Stadtlinie mit drei Halten über das Ortspanel („Personenlinie hier beginnen“)
 	uw.oeffnen(DORF)
 	await _frames(2)

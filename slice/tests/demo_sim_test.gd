@@ -91,6 +91,7 @@ func _run() -> void:
 	_m_depot()
 	_m_strecken()
 	_m_zuege()
+	_t_trasse()
 	_parity()
 	print("demo_sim_test: %d/%d Prüfungen OK" % [n_ok, n_ok + n_fail])
 	quit(0 if n_fail == 0 else 1)
@@ -802,3 +803,133 @@ func _parity() -> void:
 	p.spiel_starten(orte)
 	pruef(p.stationen.size() == 5 and p.eco.g_ids.size() == 6 and p.eco.demo_rate.is_empty() and p.tempo_k == 1 and p.eco.oe_set == "",
 		"P2 ohne Demo: ProtoSim unverändert (5 Stationen, 6 Güter, k = 1, kein Satz)")
+
+
+# ------------------------------------------------------------------ T Trassenwerkzeug (Teil 4): Kurven, lokale Fehler, Kreuzungen, exakter Bau
+
+func _t_trasse() -> void:
+	var ps = _neu()
+	ps.eco.cash_cent += 3000000
+	var start := Vector2(1284, 936)
+	# T1 Kurve: tangentialer Kreisbogen, Punkte ≤ 8 m, Endtangente gedreht
+	var g: Dictionary = ps.trasse_geometrie("strasse", PackedVector2Array([Vector2(0, 0), Vector2(100, 0), Vector2(200, 100)]), true)
+	var pk: PackedVector2Array = g["punkte"]
+	var max_schritt := 0.0
+	var max_knick := 0.0
+	for i in range(1, pk.size()):
+		max_schritt = maxf(max_schritt, pk[i - 1].distance_to(pk[i]))
+		if i >= 2:
+			max_knick = maxf(max_knick, absf(rad_to_deg((pk[i - 1] - pk[i - 2]).angle_to(pk[i] - pk[i - 1]))))
+	var te: Vector2 = g["tangente"]
+	pruef(pk[-1].distance_to(Vector2(200, 100)) < 0.01 and max_schritt <= 8.01 and max_knick < 7.0 and absf(float(g["r_min"]) - 100.0) < 0.5 and te.distance_to(Vector2(0, 1)) < 0.01 and g["eng"].is_empty(),
+		"T1 Kurvenmodus: Gerade 100 m, dann Viertelkreis mit Radius %.0f m tangential angeschlossen; Schritte ≤ %.1f m, größter Knick %.1f°, Endrichtung gedreht" % [float(g["r_min"]), max_schritt, max_knick])
+	# T2 zu enger Bogen: Fehler mit Ort, nur das Segment ist markiert
+	var qe: Dictionary = ps.trasse_angebot("gleis", PackedVector2Array([Vector2(370, 1235), Vector2(470, 1235), Vector2(500, 1265)]), {"kurve": true})
+	var n_schlecht := 0
+	for b in qe.get("schlecht", PackedByteArray()):
+		n_schlecht += int(b)
+	pruef(not qe["ok"] and (qe["fehler"] == "radius_zu_klein" or qe["fehler"] == "noch_nicht_verfuegbar"), "T2a Gleis vor 1824 oder zu enger Bogen wird abgelehnt (%s)" % qe["fehler"])
+	var qs: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([start, start + Vector2(90, 30), start + Vector2(96, 40)]), {"kurve": true})
+	n_schlecht = 0
+	for b in qs.get("schlecht", PackedByteArray()):
+		n_schlecht += int(b)
+	var st0: Dictionary = qs["stellen"][0] if not qs.get("stellen", []).is_empty() else {}
+	pruef(not qs["ok"] and String(st0.get("fehler", "")) in ["radius_zu_klein", "wende_zu_eng"] and st0.has("bei") and n_schlecht > 0 and n_schlecht < qs["punkte"].size(),
+		"T2 zu enger Bogen (Straße): Fehler %s mit Ort, %d von %d Punkten rot (nicht die ganze Trasse)" % [st0.get("fehler", "?"), n_schlecht, qs["punkte"].size()])
+	# T3 See: nur die Punkte in der Sperrzone sind rot, Ort wird gemeldet
+	var sk: Array = ps.see_kreise[0]
+	for k in ps.see_kreise:
+		if Vector2(k[0], k[1]).distance_to(start) < Vector2(sk[0], sk[1]).distance_to(start):
+			sk = k
+	var sm := Vector2(sk[0], sk[1])
+	var qz: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([start, sm + (sm - start).normalized() * (float(sk[2]) + 120.0)]), {"kurve": false})
+	n_schlecht = 0
+	for b in qz.get("schlecht", PackedByteArray()):
+		n_schlecht += int(b)
+	pruef(not qz["ok"] and qz["fehler"] == "see" and qz.has("bei") and n_schlecht > 0 and n_schlecht < qz["punkte"].size(), "T3 See: Fehler mit Ort, %d von %d Punkten rot" % [n_schlecht, qz["punkte"].size()])
+	# T4 exakter Bau: gebaute Fahrlinie = Vorschau; freies Ende; Werkzeug kann am Ende tangential weiterbauen
+	var stz := PackedVector2Array([start, Vector2(1330, 1100), Vector2(1250, 1190)])
+	var q4: Dictionary = ps.trasse_angebot("strasse", stz, {"kurve": false})
+	var kasse: int = ps.eco.cash_cent
+	var r4: Dictionary = ps.trasse_bauen("strasse", stz, {"kurve": false})
+	var abw := 0.0
+	if r4.get("ok", false):
+		var fl = ps.strassen.fahrlinien[int(r4["weg"])]
+		for p in q4["punkte"]:
+			var best := INF
+			for k in range(0, fl.punkte.size(), 2):
+				best = minf(best, Vector2(fl.punkte[k].x, fl.punkte[k].z).distance_to(p))
+			abw = maxf(abw, best)
+	var ende: Vector2 = q4["punkte"][-1]
+	var f_ende: Dictionary = ps.fang("strasse", ende)
+	var tr = ps.knoten_richtung(int(f_ende["knoten"]))
+	if not q4["ok"]:
+		print("    T4 Angebot: ", q4.get("fehler"), " ", q4.get("stellen"))
+	pruef(q4["ok"] and q4["frei_ende"] and r4.get("ok", false) and kasse - ps.eco.cash_cent == int(q4["kosten_cent"]) and abw < 1.1 and f_ende["typ"] == "knoten" and tr is Vector2
+		and (tr as Vector2).distance_to(q4["tangente"]) < 0.2,
+		"T4 gebaut wird genau die Vorschau (größte Abweichung %.2f m), −%d $; das freie Ende ist Knoten und gibt die Richtung fürs Weiterbauen" % [abw, int(q4["kosten_cent"]) / 100])
+	# T5 Kreuzung: quer über eine bestehende Straße → verbunden
+	var nachbarn := {}
+	for e in ps.sim.graph.edges.values():
+		for paar in [[int(e["a"]), int(e["b"])], [int(e["b"]), int(e["a"])]]:
+			if not nachbarn.has(paar[0]):
+				nachbarn[paar[0]] = []
+			if not nachbarn[paar[0]].has(paar[1]):
+				nachbarn[paar[0]].append(paar[1])
+	var ok5 := false
+	var weg_m := -1
+	var n_kr := 0
+	for nid in nachbarn:
+		if nachbarn[nid].size() != 2 or ps.gleis_knoten.has(nid) or ok5:
+			continue
+		var np := Vector2(ps.knoten_pos[nid].x, ps.knoten_pos[nid].z)
+		var n1 := Vector2(ps.knoten_pos[nachbarn[nid][0]].x, ps.knoten_pos[nachbarn[nid][0]].z)
+		var n2 := Vector2(ps.knoten_pos[nachbarn[nid][1]].x, ps.knoten_pos[nachbarn[nid][1]].z)
+		var quer := (n2 - n1).normalized().orthogonal()
+		var a_id: int = nid
+		var vor: int = nachbarn[nid][0]
+		for schritt in 22:
+			var weiter := -1
+			for nb in nachbarn.get(a_id, []):
+				if nb != vor:
+					weiter = nb
+			if weiter < 0 or nachbarn.get(weiter, []).size() != 2:
+				break
+			vor = a_id
+			a_id = weiter
+		var ap := Vector2(ps.knoten_pos[a_id].x, ps.knoten_pos[a_id].z)
+		if ap.distance_to(np) < 80.0:
+			continue
+		var p1 := np + quer * 80.0
+		var p2 := np - quer * 80.0
+		var q5: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([ap, p1, p2]), {"kurve": false})
+		if not q5["ok"] or int(q5["bruecke_m"]) > 0 or q5["kreuzungen"].is_empty():
+			continue
+		var r5: Dictionary = ps.trasse_bauen("strasse", PackedVector2Array([ap, p1, p2]), {"kurve": false})
+		if not r5.get("ok", false):
+			continue
+		n_kr = int(r5.get("kreuzungen", 0))
+		var ek: int = int(ps.fang("strasse", r5["ende_pos"])["knoten"])
+		var route: Array = ps.sim.graph.find_path(ek, nid)
+		weg_m = int(ps.sim.graph.route_length(route) / ps.mm_pro_m) if not route.is_empty() else -1
+		ok5 = true
+	pruef(ok5 and n_kr >= 1 and weg_m > 0 and weg_m < 160, "T5 Kreuzung: Trasse quer über eine Straße wird dort verbunden (%d Kreuzung); vom neuen Ende zum gekreuzten Knoten %d m über das Netz (Luftlinie 80 m)" % [n_kr, weg_m])
+	# T6 Plan: Abschnitt, der an einem geplanten Ende beginnt, gilt im Angebot; allein gebaut wird er nicht
+	var pe := Vector2(1330, 1100) + Vector2(140, 60)
+	var p6 := PackedVector2Array([pe, pe + Vector2(60, 60)])
+	var q6: Dictionary = ps.trasse_angebot("strasse", p6, {"kurve": false, "plan_enden": [pe]})
+	var q6b: Dictionary = ps.trasse_angebot("strasse", p6, {"kurve": false})
+	var r6: Dictionary = ps.trasse_bauen("strasse", p6, {"kurve": false, "plan_enden": [pe]})
+	if not q6["ok"]:
+		print("    T6 Angebot: ", q6.get("fehler"), " ", q6["start"]["typ"], " ", q6["ende"]["typ"])
+	pruef(q6["ok"] and q6["start"]["typ"] == "plan" and not q6b["ok"] and q6b["fehler"] == "kein_anschluss" and not r6.get("ok", true) and r6["fehler"] == "kein_anschluss" and ps.fehler.is_empty(),
+		"T6 Plan: Anschluss an ein geplantes Ende gilt im Angebot; ohne Plan „kein_anschluss“; frei schwebend wird nichts gebaut; 0 Sim-Fehler")
+	# T7 Fahrzeug fährt über eine Kurventrasse (Anschluss Forsthaus per Bogen)
+	var fp: Vector2 = ps.halt_pos(FORST)
+	var r7: Dictionary = ps.trasse_bauen("strasse", PackedVector2Array([Vector2(1250, 1190), fp]), {"kurve": true})
+	ps.lizenz_kaufen(FORST)
+	var l7: Dictionary = ps.linie_anlegen(FORST, SAEGE, "fuhrwerk")
+	for i in 3000:
+		ps.tick()
+	pruef(r7.get("ok", false) and ps.angeschlossen(FORST) and l7.get("ok", false) and int(ps.geliefert.get("holz", 0)) > 0 and ps.fehler.is_empty(),
+		"T7 Forsthaus per Bogen am freien Ende angeschlossen (%s), Fuhrwerk liefert %d Holz in 5 min, 0 Sim-Fehler" % [str(r7.get("fehler", "ok")), int(ps.geliefert.get("holz", 0))])

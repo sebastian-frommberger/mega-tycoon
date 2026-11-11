@@ -301,7 +301,9 @@ func weg_hinzufuegen(w: Dictionary) -> int:
 	fest.resize(p.size())
 	fest[0] = 1
 	fest[p.size() - 1] = 1
-	var geo := _glaetten(p, fest, float(pr["radius"]), fl)
+	# Demo Teil 4: "exakt" = die Punkte SIND die fertige Mittellinie (Bögen kommen vom Bauwerkzeug): keine zweite Glättung,
+	# damit die Vorschau genau das zeigt, was gebaut wird. Ohne das Feld wie bisher.
+	var geo := p if bool(w.get("exakt", false)) else _glaetten(p, fest, float(pr["radius"]), fl)
 	_bauen_weg(_parent, i, typ, geo, p, fl, hoehe_funktion, _fluss, false)
 	return i
 

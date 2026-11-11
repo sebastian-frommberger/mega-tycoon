@@ -693,13 +693,22 @@ func bauen(art: String, punkte: PackedVector2Array) -> Dictionary:
 		return _nein("guthaben_reicht_nicht", {"fehlt_cent": int(q["fehlt_cent"]), "kosten_cent": int(q["kosten_cent"])})
 	if strassen == null:
 		return _nein("kein_netz")
-	var rg := bau_regel(art)
 	var pkt: PackedVector2Array = q["punkte"]
 	var dicht := _verdichten(pkt, 12.0)
+	return _bau_ausfuehren(art, q, dicht, false, {})
+
+
+## Gemeinsamer Bauschritt für bauen() (Klickpunkte, Glättung im Straßenband) und trasse_bauen() (fertige Mittellinie, exakt).
+## vorgabe: Anker-Index -> vorhandener Knoten (Kreuzung mit dem Netz), nur bei exakt.
+func _bau_ausfuehren(art: String, q: Dictionary, dicht: PackedVector2Array, exakt: bool, vorgabe: Dictionary) -> Dictionary:
+	var rg := bau_regel(art)
 	var liste: Array = []
 	for p in dicht:
 		liste.append([p.x, p.y])
-	var wi: int = strassen.weg_hinzufuegen({"typ": String(rg.get("weg_typ", "feldweg")), "punkte": liste, "breite_m": float(rg.get("breite_m", 3.5))})
+	var wd := {"typ": String(rg.get("weg_typ", "feldweg")), "punkte": liste, "breite_m": float(rg.get("breite_m", 3.5))}
+	if exakt:
+		wd["exakt"] = true
+	var wi: int = strassen.weg_hinzufuegen(wd)
 	var fl = strassen.fahrlinien[wi]
 	if fl.anker.size() < 2:
 		return _nein("bau_fehlgeschlagen")
@@ -718,6 +727,8 @@ func bauen(art: String, punkte: PackedVector2Array) -> Dictionary:
 			id = int(a["knoten"])
 		elif k == n_anker - 1 and int(b["knoten"]) >= 0:
 			id = int(b["knoten"])
+		elif vorgabe.has(k):
+			id = int(vorgabe[k])
 		else:
 			var ap: Vector2 = fl.anker[k]
 			id = _knoten_neu(ap, fl.strecke_punkt(s).y)
@@ -753,9 +764,14 @@ func bauen(art: String, punkte: PackedVector2Array) -> Dictionary:
 	var bw := {"art": art, "weg": wi, "felder": int(q["felder"]), "kosten_cent": int(q["kosten_cent"]), "laenge_m": int(q["laenge_m"]),
 		"von": String(a["name"]), "nach": String(b["name"]), "bruecke_m": int(q["bruecke_m"]), "tick": sim.tick_count,
 		"unterhalt_cent": int(q["unterhalt_cent"])}
+	if exakt:
+		bw["kreuzungen"] = vorgabe.size()
+		bw["ende_pos"] = dicht[-1]
 	bauwerke.append(bw)
 	_fix_dirty = true
 	var txt := "%s gebaut: %d m für %d $." % [String(rg.get("name", art)), int(q["laenge_m"]), int(q["kosten_cent"]) / 100]
+	if vorgabe.size() > 0:
+		txt += " %d Kreuzung%s mit dem Netz verbunden." % [vorgabe.size(), "" if vorgabe.size() == 1 else "en"]
 	for e in [a, b]:
 		if e["typ"] == "betrieb":
 			txt += " %s ist angeschlossen." % e["name"]
@@ -2698,3 +2714,335 @@ func linie_fahrzeug_dazu(id: int, def_id := "") -> Dictionary:
 
 func fahrzeug_zuweisen(vid: int, id: int) -> Dictionary:
 	return zuweisen(["v%d" % vid], id)
+
+
+# ====================================================================== Teil 4: Trassenwerkzeug (Kurven, lokale Fehler, Kreuzungen, Plan)
+# (Umbau 12.11. nach Bastis Feedback: „Feedback beim Ziehen seltsam, keine richtigen Kurven, Planungsmodus“. Vorbild TF2/Cities: Skylines)
+#
+# Die Oberfläche gibt Stützpunkte (Klicks) und den Modus (Kurve/gerade). Die Sim macht daraus die fertige Mittellinie
+# (trasse_geometrie), prüft sie Punkt für Punkt (trasse_angebot: Fehler mit Ort) und baut genau diese Linie (trasse_bauen,
+# Straßenband „exakt“). bauen()/bau_angebot() von Teil 1 bleiben für Bot und Tests unverändert.
+
+const TRASSE_SCHRITT := 8.0
+
+
+func bau_radius(art: String, soll := false) -> float:
+	var rg := bau_regel(art)
+	if soll:
+		return float(rg.get("soll_radius_m", 80.0 if art == "gleis" else 30.0))
+	return float(rg.get("min_radius_m", 55.0 if art == "gleis" else 12.0))
+
+
+## Richtung, in der ein Weg an einem Knoten endet (für tangentiales Weiterbauen): nur bei genau einem Nachbarn derselben Art.
+func knoten_richtung(nid: int) -> Variant:
+	if nid < 0 or not knoten_pos.has(nid):
+		return null
+	var nb := -1
+	var n := 0
+	for e in sim.graph.edges.values():
+		var o := -1
+		if int(e["a"]) == nid:
+			o = int(e["b"])
+		elif int(e["b"]) == nid:
+			o = int(e["a"])
+		if o >= 0 and o != nb:
+			nb = o
+			n += 1
+	if n != 1:
+		return null
+	var d := Vector2(knoten_pos[nid].x - knoten_pos[nb].x, knoten_pos[nid].z - knoten_pos[nb].z)
+	return d.normalized() if d.length() > 0.01 else null
+
+
+func _linie_dazu(out: PackedVector2Array, seg: PackedInt32Array, p: Vector2, si: int) -> void:
+	var a := out[-1]
+	var l := a.distance_to(p)
+	if l < 0.05:
+		return
+	var n := ceili(l / TRASSE_SCHRITT)
+	for k in range(1, n + 1):
+		out.append(a.lerp(p, float(k) / n))
+		seg.append(si)
+
+
+func _bogen_dazu(out: PackedVector2Array, seg: PackedInt32Array, ctr: Vector2, r: float, a0: float, sweep: float, si: int) -> void:
+	var steps := maxi(2, maxi(ceili(absf(sweep) * r / TRASSE_SCHRITT), ceili(absf(sweep) / deg_to_rad(6.0))))
+	for k in range(1, steps + 1):
+		out.append(ctr + Vector2.from_angle(a0 + sweep * k / steps) * r)
+		seg.append(si)
+
+
+## Mittellinie aus Stützpunkten. kurve = true: jedes Segment ist ein Kreisbogen, der tangential an das vorige anschließt
+## (erstes Segment: an t0, sonst gerade). kurve = false: Geraden, Ecken mit dem Sollradius ausgerundet.
+## {punkte (≤ 8 m Abstand), seg (Segment je Punkt), eng [{bei, radius_m, seg, grund}], r_min, tangente (am Ende)}
+func trasse_geometrie(art: String, pkt: PackedVector2Array, kurve: bool, t0: Variant = null) -> Dictionary:
+	var out := PackedVector2Array()
+	var seg := PackedInt32Array()
+	var eng: Array = []
+	var r_min_erlaubt := bau_radius(art)
+	var r_min := INF
+	if pkt.size() < 2:
+		return {"punkte": pkt, "seg": seg, "eng": eng, "r_min": r_min, "tangente": null}
+	out.append(pkt[0])
+	seg.append(0)
+	var t: Variant = t0
+	if kurve:
+		for i in pkt.size() - 1:
+			var a := pkt[i]
+			var b := pkt[i + 1]
+			var d := b - a
+			var l := d.length()
+			if l < 0.5:
+				continue
+			if not (t is Vector2):
+				_linie_dazu(out, seg, b, i)
+				t = d / l
+				continue
+			var tv: Vector2 = t
+			var phi := atan2(tv.x * d.y - tv.y * d.x, tv.dot(d))
+			if absf(phi) < 0.02:
+				_linie_dazu(out, seg, b, i)
+				t = d / l
+				continue
+			var r := l / (2.0 * absf(sin(phi)))
+			var sweep := 2.0 * phi
+			r_min = minf(r_min, r)
+			var ctr := a + Vector2(-tv.y, tv.x) * r * signf(phi)
+			var vor := out.size()
+			_bogen_dazu(out, seg, ctr, r, (a - ctr).angle(), sweep, i)
+			if absf(phi) > deg_to_rad(100.0):
+				eng.append({"bei": out[(vor + out.size()) / 2], "radius_m": int(r), "seg": i, "grund": "wende"})
+			elif r < r_min_erlaubt:
+				eng.append({"bei": out[(vor + out.size()) / 2], "radius_m": int(r), "seg": i, "grund": "radius"})
+			t = tv.rotated(sweep)
+	else:
+		var r_soll := bau_radius(art, true)
+		for i in range(1, pkt.size() - 1):
+			var a := pkt[i - 1]
+			var b := pkt[i]
+			var c := pkt[i + 1]
+			var d0 := (b - a).normalized()
+			var d1 := (c - b).normalized()
+			var th := acos(clampf(d0.dot(d1), -1.0, 1.0))
+			if th < 0.01:
+				_linie_dazu(out, seg, b, i - 1)
+				continue
+			var tn := tan(th * 0.5)
+			var tl := minf(r_soll * tn, minf(0.45 * a.distance_to(b), 0.45 * b.distance_to(c)))
+			var r := tl / tn
+			r_min = minf(r_min, r)
+			var p0 := b - d0 * tl
+			var sgn := signf(d0.x * d1.y - d0.y * d1.x)
+			var ctr := p0 + Vector2(-d0.y, d0.x) * sgn * r
+			_linie_dazu(out, seg, p0, i - 1)
+			var vor := out.size()
+			_bogen_dazu(out, seg, ctr, r, (p0 - ctr).angle(), sgn * th, i)
+			if r < r_min_erlaubt:
+				eng.append({"bei": out[(vor + out.size()) / 2], "radius_m": int(r), "seg": i, "grund": "radius"})
+		_linie_dazu(out, seg, pkt[-1], pkt.size() - 2)
+		t = (out[-1] - out[-2]).normalized() if out.size() >= 2 else null
+	return {"punkte": out, "seg": seg, "eng": eng, "r_min": r_min, "tangente": t}
+
+
+## Stellen, an denen die neue Mittellinie einen vorhandenen Knoten derselben Art kreuzt: Punkt-Index -> Knoten.
+## Start- und Endbereich (25 m) bleiben frei, dort hängt die Trasse ohnehin am Netz.
+func trasse_kreuzungen(art: String, geo: PackedVector2Array) -> Dictionary:
+	var r := {}
+	if geo.size() < 3:
+		return r
+	var s := PackedFloat32Array()
+	s.resize(geo.size())
+	for i in range(1, geo.size()):
+		s[i] = s[i - 1] + geo[i - 1].distance_to(geo[i])
+	var gl := art == "gleis"
+	var lo := geo[0]
+	var hi := geo[0]
+	for p in geo:
+		lo = Vector2(minf(lo.x, p.x), minf(lo.y, p.y))
+		hi = Vector2(maxf(hi.x, p.x), maxf(hi.y, p.y))
+	var nah: Array = []
+	for nid in knoten_grad:
+		if knoten_grad[nid] == 0 or gleis_knoten.has(nid) != gl:
+			continue
+		var q: Vector3 = knoten_pos[nid]
+		if q.x < lo.x - 8.0 or q.x > hi.x + 8.0 or q.z < lo.y - 8.0 or q.z > hi.y + 8.0:
+			continue
+		nah.append([nid, Vector2(q.x, q.z)])
+	var belegt := {}
+	var letzter := -100
+	for i in range(1, geo.size() - 1):
+		if s[i] < 25.0 or s[-1] - s[i] < 25.0 or i - letzter < 4:
+			continue
+		var best := -1
+		var bd := 7.0
+		for e in nah:
+			var d := geo[i].distance_to(e[1])
+			if d < bd and not belegt.has(e[0]):
+				bd = d
+				best = int(e[0])
+		if best >= 0:
+			# nur der nächste Punkt der Linie zu diesem Knoten zählt
+			var bi := i
+			var q2 := Vector2(knoten_pos[best].x, knoten_pos[best].z)
+			for j in range(i + 1, mini(geo.size() - 1, i + 3)):
+				if geo[j].distance_to(q2) < geo[bi].distance_to(q2) and s[-1] - s[j] >= 25.0:
+					bi = j
+			r[bi] = best
+			belegt[best] = true
+			letzter = bi
+	return r
+
+
+func _fang_plan(art: String, p: Vector2, plan_enden: Array) -> Dictionary:
+	var f := fang(art, p)
+	if String(f["typ"]) != "frei":
+		return f
+	for e in plan_enden:
+		if p.distance_to(e) <= 18.0:
+			return {"typ": "plan", "knoten": -1, "name": "", "pos": e}
+	return f
+
+
+## Angebot für eine Trasse. stuetz: Klickpunkte. opt: {kurve: bool, plan_enden: [Vector2]}.
+## Immer mit Geometrie: {ok, punkte, seg, schlecht (0/1 je Punkt), nass (0/1 je Punkt), stellen [{bei, fehler, …}], fehler (erster),
+## kosten_cent, laenge_m, bruecke_m, start, ende, frei_ende, kreuzungen {idx: knoten}, kaufbar, fehlt_cent, tangente, r_min}
+func trasse_angebot(art: String, stuetz: PackedVector2Array, opt: Dictionary = {}) -> Dictionary:
+	var g := _spielbar()
+	if g != "":
+		return _nein(g)
+	if not hq_platziert:
+		return _nein("kein_hq")
+	var rg := bau_regel(art)
+	if rg.is_empty():
+		return _nein("unbekannte_bauart")
+	if kalenderjahr() < int(rg.get("ab_jahr", 0)):
+		return _nein("noch_nicht_verfuegbar", {"ab_jahr": int(rg["ab_jahr"])})
+	if stuetz.size() < 2:
+		return _nein("zu_wenig_punkte")
+	var plan_enden: Array = opt.get("plan_enden", [])
+	var a := _fang_plan(art, stuetz[0], plan_enden)
+	var b := _fang_plan(art, stuetz[-1], plan_enden)
+	var pkt := PackedVector2Array(stuetz)
+	pkt[0] = a["pos"]
+	pkt[-1] = b["pos"]
+	var kurve: bool = opt.get("kurve", true)
+	var t0: Variant = opt.get("t0", null)
+	if t0 == null and kurve and int(a["knoten"]) >= 0 and String(a["typ"]) == "knoten":
+		t0 = knoten_richtung(int(a["knoten"]))
+	if t0 is Vector2 and (t0 as Vector2).angle_to(pkt[1] - pkt[0]) != 0.0 and absf((t0 as Vector2).angle_to(pkt[1] - pkt[0])) > deg_to_rad(75.0):
+		t0 = null                                              # Abzweig quer zum Straßenende: kein erzwungener Bogen, die Trasse beginnt gerade
+	var geo := trasse_geometrie(art, pkt, kurve, t0)
+	var dicht: PackedVector2Array = geo["punkte"]
+	var n := dicht.size()
+	var schlecht := PackedByteArray()
+	schlecht.resize(n)
+	var nass := PackedByteArray()
+	nass.resize(n)
+	var stellen: Array = []
+	var bd: Dictionary = daten.get("bau", {})
+	if a["typ"] == "frei" and b["typ"] == "frei":
+		stellen.append({"bei": pkt[0], "fehler": "kein_anschluss"})
+	if a["typ"] != "frei" and b["typ"] != "frei" and ((int(a["knoten"]) >= 0 and a["knoten"] == b["knoten"]) or (a["name"] != "" and a["name"] == b["name"])):
+		stellen.append({"bei": pkt[-1], "fehler": "gleicher_punkt"})
+	var seg: PackedInt32Array = geo["seg"]
+	for e in geo["eng"]:
+		stellen.append({"bei": e["bei"], "fehler": "radius_zu_klein" if e["grund"] == "radius" else "wende_zu_eng", "radius_m": int(e["radius_m"]), "min_m": int(bau_radius(art))})
+		for i in n:
+			if seg[i] == int(e["seg"]):
+				schlecht[i] = 1
+	var laenge := 0.0
+	var nass_m := 0.0
+	var lauf := 0.0
+	var see_gemeldet := false
+	var lang_gemeldet := false
+	for i in n:
+		var schritt := dicht[i - 1].distance_to(dicht[i]) if i > 0 else 0.0
+		laenge += schritt
+		if i > 0 and i < n - 1 and im_see(dicht[i]):
+			schlecht[i] = 1
+			if not see_gemeldet:
+				see_gemeldet = true
+				stellen.append({"bei": dicht[i], "fehler": "see"})
+		if ist_nass(dicht[i]):
+			nass[i] = 1
+			nass_m += maxf(schritt, 1.0)
+			lauf += schritt
+			if lauf > float(bd.get("max_bruecke_m", 160.0)):
+				schlecht[i] = 1
+				if not lang_gemeldet:
+					lang_gemeldet = true
+					stellen.append({"bei": dicht[i], "fehler": "bruecke_zu_lang", "max_m": int(bd.get("max_bruecke_m", 160))})
+		else:
+			lauf = 0.0
+	if ist_nass(pkt[0]):
+		stellen.append({"bei": pkt[0], "fehler": "ende_im_wasser"})
+	if ist_nass(pkt[-1]):
+		stellen.append({"bei": pkt[-1], "fehler": "ende_im_wasser"})
+	if laenge < float(bd.get("min_laenge_m", 40.0)):
+		stellen.append({"bei": pkt[-1], "fehler": "zu_kurz", "min_m": int(bd.get("min_laenge_m", 40))})
+	if laenge > float(bd.get("max_laenge_m", 3500.0)):
+		stellen.append({"bei": pkt[-1], "fehler": "zu_lang", "max_m": int(bd.get("max_laenge_m", 3500))})
+	# Steigung über 3 Punkte (≈ 24 m); Ufer neben Wasser zählen nicht (Rampe und Brücke, ±6 Punkte)
+	var max_pct := float(rg.get("max_steigung_pct", 12.0))
+	var ufer := PackedByteArray()
+	ufer.resize(n)
+	for i in n:
+		if nass[i] == 1:
+			for j in range(maxi(0, i - 6), mini(n, i + 7)):
+				ufer[j] = 1
+	var steil_max := 0.0
+	var steil_bei := Vector2.ZERO
+	for i in range(3, n):
+		if ufer[i] == 1 or ufer[i - 3] == 1:
+			continue
+		var dl := maxf(1.0, dicht[i].distance_to(dicht[i - 3]))
+		var pct := absf(_hoehe(dicht[i]) - _hoehe(dicht[i - 3])) / dl * 100.0
+		if pct > max_pct:
+			for j in range(i - 3, i + 1):
+				schlecht[j] = 1
+			if pct > steil_max:
+				steil_max = pct
+				steil_bei = dicht[i - 1]
+	if steil_max > 0.0:
+		stellen.append({"bei": steil_bei, "fehler": "zu_steil", "pct": int(round(steil_max)), "max_pct": int(max_pct)})
+	var mpf := float(regelwerk.get("skalen", {}).get("m_pro_feld", 25.0))
+	var felder := maxi(1, int(ceil(laenge / mpf)))
+	var nass_felder := mini(felder, int(ceil(nass_m / mpf)))
+	var je := int(rg.get("kosten_cent_pro_feld", 0))
+	var kosten := (felder - nass_felder) * je + nass_felder * je * int(rg.get("bruecke_faktor_promille", 1000)) / 1000
+	kosten = kosten * (1000 - mini(800, bonus("bau_%s_pm" % art))) / 1000
+	var r := {"ok": stellen.is_empty(), "punkte": dicht, "seg": seg, "schlecht": schlecht, "nass": nass, "stellen": stellen,
+		"kosten_cent": kosten, "laenge_m": int(round(laenge)), "felder": felder, "bruecke_m": int(round(nass_m)), "start": a, "ende": b,
+		"frei_ende": String(b["typ"]) == "frei" or String(a["typ"]) == "frei", "kreuzungen": trasse_kreuzungen(art, dicht),
+		"unterhalt_cent": felder * int(rg.get("unterhalt_cent_pro_feld_pro_periode", 0)), "kaufbar": kosten <= eco.cash_cent,
+		"fehlt_cent": maxi(0, kosten - eco.cash_cent), "tangente": geo["tangente"], "r_min": geo["r_min"], "stuetz": pkt}
+	if not stellen.is_empty():
+		r["fehler"] = String(stellen[0]["fehler"])
+		for k in stellen[0]:
+			if k != "fehler":
+				r[k] = stellen[0][k]
+	return r
+
+
+## Trasse bauen: genau die Mittellinie aus trasse_angebot; Kreuzungen mit dem Netz werden verbunden.
+func trasse_bauen(art: String, stuetz: PackedVector2Array, opt: Dictionary = {}) -> Dictionary:
+	var q := trasse_angebot(art, stuetz, opt)
+	if not q.get("ok", false):
+		return q
+	if String(q["start"]["typ"]) == "plan" or String(q["ende"]["typ"]) == "plan":
+		if String(q["start"]["typ"]) in ["plan", "frei"] and String(q["ende"]["typ"]) in ["plan", "frei"]:
+			return _nein("kein_anschluss")
+	if not q["kaufbar"]:
+		return _nein("guthaben_reicht_nicht", {"fehlt_cent": int(q["fehlt_cent"]), "kosten_cent": int(q["kosten_cent"])})
+	if strassen == null:
+		return _nein("kein_netz")
+	var geo := PackedVector2Array(q["punkte"])
+	var kr: Dictionary = q["kreuzungen"]
+	for k in kr:                                               # Linie weich auf den Kreuzungsknoten ziehen (±3 Punkte)
+		var ziel := Vector2(knoten_pos[kr[k]].x, knoten_pos[kr[k]].z)
+		var dv: Vector2 = ziel - geo[k]
+		for o in [[-3, 0.15], [-2, 0.4], [-1, 0.75], [0, 1.0], [1, 0.75], [2, 0.4], [3, 0.15]]:
+			var j: int = int(k) + int(o[0])
+			if j > 0 and j < geo.size() - 1 and (j == int(k) or not kr.has(j)):
+				geo[j] += dv * float(o[1])
+	return _bau_ausfuehren(art, q, geo, true, kr)

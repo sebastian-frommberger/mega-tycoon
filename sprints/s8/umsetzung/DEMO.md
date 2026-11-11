@@ -2,7 +2,7 @@
 
 Branch `s8-demo` (gemergt nach `s8`). Start: `play_demo.bat` (Windows), `tools/play_demo.sh`, oder Startmenü „Demo spielen“ (Taste D). Anleitung: `DEMO_ANLEITUNG.md`. Plan: `DEMO_PLAN.md`.
 
-## 00 Teil 4 (12.11.): Straßen- und Gleisbau neu
+## 0a Teil 4 (12.11.): Straßen- und Gleisbau neu
 
 Nach Bastis Feedback („Feedback beim Ziehen seltsam, keine richtigen Kurven, Planungsmodus wäre gut“). Vorbild Transport Fever 2 / Cities: Skylines. Nur Demo-Modus. Einzelheiten und Vorher/Nachher je Befund: `DEMO_STRASSENBAU_BEFUND.md`.
 
@@ -30,7 +30,7 @@ Nach Bastis Feedback („Feedback beim Ziehen seltsam, keine richtigen Kurven, P
 
 **Was die Tests über welchen Weg prüfen:** `demo_bau_befund.gd` (xvfb) fährt die Maus wirklich (Bewegung, Klick links und rechts, Tasten). `demo_ui_test.gd` (headless, läuft in der Regression) schickt Klicks und Tasten als Ereignisse; die Mausposition über der Welt setzt es direkt, weil es headless keinen Mauszeiger gibt.
 
-**Nicht gemacht:** Ziehen mit gehaltener Maustaste, kleinere Seesperre, Bahnübergänge, Abreißen in der Welt, Parallelversatz, Tunnel. **Nicht geprüft:** Spielgefühl, Steigungsfehler im Durchspiel, Bildrate der Vorschau auf echter GPU, Windows.
+**Nicht gemacht (Stand 12.11.):** Ziehen mit gehaltener Maustaste (mit Teil 5 erledigt), kleinere Seesperre, Bahnübergänge, Abreißen in der Welt, Parallelversatz, Tunnel. **Nicht geprüft:** Spielgefühl, Steigungsfehler im Durchspiel, Bildrate der Vorschau auf echter GPU, Windows.
 
 Bilder: `demo_shots/28` Plan · `29` Kurve · `30` Fehler lokal · `07` Straße mit Schild · `bau/n1` bis `n11` (nachher), `bau/b*` (vorher).
 

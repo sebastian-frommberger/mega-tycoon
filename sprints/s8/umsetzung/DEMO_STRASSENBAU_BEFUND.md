@@ -1,5 +1,31 @@
 # Straßen- und Gleisbau in der Demo: Befund und Umbau
 
+## Stand 13.11. nach Teil 5 (Ziehen, eine Kreuzung je Querung)
+
+Zwei der offenen Punkte von unten sind erledigt. Gemessen wie zuvor über den echten Eingabeweg: `slice/tests/demo_bau_befund.gd`
+unter xvfb bewegt die Maus wirklich, hält die Taste gedrückt und lässt sie los; jede Zahl steht in einer Zeile `NACHHER N12`–`N14`
+dieses Laufs. Dazu headless in der Regression: `demo_ui_test` B10–B14, `demo_sim_test` T5, T5b, T5c.
+
+| Punkt | Stand | Gemessen (NACHHER) |
+|---|---|---|
+| **Ziehen mit gehaltener Maustaste** | **erledigt** | Drücken, 6 Bewegungen, Loslassen mit der echten Maus: Drücken allein ändert nichts (0 Punkte); mitten im Zug läuft die Vorschau mit („81 m · 100 $“ von 170 m), Banner „Ziehen · Loslassen baut“; Loslassen baut 170 m für 175 $ = Angebot, Abweichung zur Vorschau 1,00 m; das Werkzeug bleibt an (1 Punkt am Ende) (N13) |
+| Zug und Klick kommen sich nicht in die Quere | erledigt | Kurzer Zug über 4 px (Schwelle 6 px) bleibt ein Punkt-Klick: 1 Punkt gesetzt, 0 gebaut, Kasse unverändert (N13b) |
+| Ziehen im Kurvenmodus | **Entscheidung** | Ein Zug zieht genau ein Stück: den tangential anschließenden Bogen bis zum Loslasspunkt. Gemessen: Radius 131 m (Minimum 12 m), größter Knick zwischen zwei Punkten 3,5°, Anschlusswinkel am Startknoten 1,7°, gebaut 160 m für 175 $, Abweichung zur Vorschau 0,26 m. Mehrere Bögen in einem Stück brauchen weiter Klick–Klick (N13c) |
+| **Kreuzungen: eine Querung = eine Kreuzung** | **erledigt** | Dieselbe Querung wie in N8 meldet jetzt „1 Kreuzung mit dem Netz verbunden“ statt 3. Vom neuen Ende zum gekreuzten Knoten 136 m über das Netz (Luftlinie 80 m; vor Teil 4: 366 m, mit den drei Verbindungen aus Teil 4: 86 m) (N8). In einer 180-m-Querung liegen 26 vorhandene Knoten im Fangkreis von 7 m; verbunden wird genau einer (N14) |
+| Kamera im Baumodus | **geändert** | Ziehen mit links schiebt die Kamera nicht mehr (0,0 m) und baut aus dem freien Gelände nichts; die mittlere Taste schiebt (121 m), die rechte dreht (1,20 rad) und nimmt ohne Ziehen weiter einen Punkt zurück; WASD und Mausrad unverändert (N12) |
+| Bahnübergang Straße × Gleis | **offen** | nicht gebaut (Begründung im Entscheidungslog) |
+
+**Was das Ziehen kostet:** Die gehaltene linke Taste schob bis Teil 4 die Kamera. Diese Geste ist weg; im Baumodus schiebt die
+mittlere Taste, sonst ist alles wie vorher. Außerhalb des Baumodus und ohne `--demo` ist die Belegung unverändert.
+
+**Nicht gemessen (Teil 5)**
+- Ob Basti mit „ziehen“ das meinte. Das Skript zeigt, dass beide Wege funktionieren, nicht, welcher sich besser anfühlt.
+- Mäuse ohne Mittelklick: WASD und Mausrad bleiben, ausprobiert hat es niemand.
+- Bildrate während des Zuges (llvmpipe unter xvfb, keine echte GPU).
+- Ziehen über die Kartenränder hinaus (Kantenscrollen gibt es nicht).
+
+---
+
 ## Stand 12.11. nach dem Umbau (Teil 4)
 
 Das Bauwerkzeug ist neu (`slice/proto/ui_bau.gd`, Sim: `demo_sim.gd` Teil 4). `slice/tests/demo_bau_befund.gd` spielt jetzt das neue Werkzeug an denselben Punkten durch, wieder über echte Mausbewegung, Mausklicks und Tasten unter xvfb. Jede Zahl stammt aus einer Zeile `NACHHER …` dieses Laufs. Bilder: `demo_shots/bau/n*.jpg` (nachher), `b*.jpg` (vorher).
@@ -20,20 +46,22 @@ Das Bauwerkzeug ist neu (`slice/proto/ui_bau.gd`, Sim: `demo_sim.gd` Teil 4). `s
 | 12 | Vorschau eckig, Bau geglättet | **erledigt** | Gebaute Mittellinie weicht höchstens 0,97 m von der Vorschau ab (gerade) bzw. 0,96 m (Kurve). Kurve: Kreisbogen mit 73 m Radius, größter Knick zwischen zwei Punkten 5,8° (N4, N5) |
 | 13 | Brücke wie Straße | **erledigt** | Eigenes Brückenband über dem Wasser, 4 Pfeiler, Aufschrift „Brücke 79 m“, Schild „260 m · 675 $ · Brücke 79 m“ (N7) |
 
+Bilder zu Teil 5: `demo_shots/bau/n13_ziehen_vorschau.jpg` (mitten im Zug), `n13_ziehen_gebaut.jpg`, `n13_ziehen_kurve.jpg`; `demo_shots/31_bau_ziehen.jpg` aus dem UI-Test.
+
 Neu dazu: **Kurve/gerade** (Taste C), **Planungsmodus** (Taste P; N9: drei Abschnitte geplant, Kasse und Netz unverändert, einer verworfen, zwei per „Plan bauen“ für 250 $ gebaut), **Gleis mit Bogen** (N11: kleinster Radius 80 m bei Minimum 55 m, 707 m für 1.450 $, zwei Bahnhöfe).
 
-**Offen, nicht gemacht**
-- Ziehen mit gehaltener Maustaste (drücken, ziehen, loslassen). Das Werkzeug arbeitet mit Klick, Bewegen, Klick, wie Transport Fever 2. Falls Basti mit „ziehen“ die gehaltene Taste meint, fehlt das.
+**Offen, nicht gemacht** (Stand 12.11.; die ersten zwei Punkte sind mit Teil 5 erledigt, siehe oben)
+- ~~Ziehen mit gehaltener Maustaste (drücken, ziehen, loslassen). Das Werkzeug arbeitet mit Klick, Bewegen, Klick, wie Transport Fever 2.~~ → Teil 5
 - Die Seesperre ist sichtbar, aber nicht kleiner geworden (Befund 5).
-- Kreuzungen entstehen am nächsten vorhandenen Knoten (bis 7 m neben dem Schnittpunkt); die neue Linie wird dorthin gezogen. Läuft eine Trasse dicht neben einer Straße her, wird sie mehrfach verbunden. In N8 meldet eine einzige Querung 3 Kreuzungen.
+- ~~Kreuzungen entstehen am nächsten vorhandenen Knoten (bis 7 m neben dem Schnittpunkt); die neue Linie wird dorthin gezogen. Läuft eine Trasse dicht neben einer Straße her, wird sie mehrfach verbunden. In N8 meldet eine einzige Querung 3 Kreuzungen.~~ → Teil 5
 - Straße und Gleis kreuzen sich ohne Verbindung und ohne Bahnübergang.
 - Kein Abreißen in der Welt (nur Verkauf über Verkehr → Strecken), kein Parallelversatz, keine Tunnel oder Höhenstufen.
 - Trassen laufen weiter durch Häuser, Felder und Bäume.
 
-**Nicht gemessen**
+**Nicht gemessen** (Stand 12.11.)
 - Wie sich das Bauen für einen Menschen anfühlt. Das Skript zeigt, was das Werkzeug tut.
 - Steigung: Die Sim markiert zu steile Stücke rot (Code wie beim See), durchgespielt habe ich das nicht.
-- Vorschau, während die linke Taste gehalten wird (stand vorher still; nicht neu geprüft).
+- ~~Vorschau, während die linke Taste gehalten wird (stand vorher still; nicht neu geprüft).~~ → Teil 5 (läuft jetzt mit, N13)
 - Bildrate: Die Vorschau wird bei jeder Mausbewegung neu gerechnet (etwa 16-mal je Sekunde); auf einer echten GPU nicht gemessen.
 
 ---
@@ -194,7 +222,7 @@ Bilder: `b5_bruecke_vorschau.jpg`, `b5_bruecke_gebaut.jpg`
 
 ## Was funktioniert
 
-- **Kamera beim Bauen (B7):** Ziehen mit der linken Taste (140 px) schiebt die Kamera um 73 m und setzt keinen Punkt (2 → 2). Mausrad zoomt (432 → 491 m). Die Taste D schiebt. Der Baumodus bleibt an, die Vorschau folgt der Maus danach wieder. Einschränkung: Solange die linke Taste gehalten wird, steht die Vorschau still.
+- **Kamera beim Bauen (B7):** Ziehen mit der linken Taste (140 px) schiebt die Kamera um 73 m und setzt keinen Punkt (2 → 2). Mausrad zoomt (432 → 491 m). Die Taste D schiebt. Der Baumodus bleibt an, die Vorschau folgt der Maus danach wieder. Einschränkung: Solange die linke Taste gehalten wird, steht die Vorschau still. *(Mit Teil 5 gilt das nicht mehr: Im Baumodus zieht die linke Taste die Trasse, geschoben wird mit der mittleren Taste, WASD und dem Mausrad.)*
 - **Start auf der Straße (B1):** praktisch überall möglich, siehe Befund 3.
 - **Gleis (B8):** Taste G, 16 Ringe an Betrieben und Orten. Der Klick auf die Kohlegrube rastet 12 m neben dem Klick ein und legt einen Bahnhof an. Gerade zur Hütte: 696 m für 1.400 $, zwei Bahnhöfe.
 - **Fehlertexte:** nennen Ursache und nächsten Schritt.

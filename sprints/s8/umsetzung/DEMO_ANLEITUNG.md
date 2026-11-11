@@ -32,7 +32,7 @@ Neu seit dem 11.11.: Linien und Fahrzeuge laufen wie in Transport Fever 2. **Lin
 6. **Lizenz:** Ohne Lizenz lädt am Betrieb niemand. Das Linienfenster warnt („Lizenz fehlt“) und hat den Kaufknopf gleich daneben. Die erste Lizenz im Radius des Firmensitzes ist gratis.
 7. Dasselbe für **Erlenmühle → Erlenbach**: zweite Linie, ein Fuhrwerk im Fuhrhof kaufen, zuweisen. Jetzt kommt Mehl in Erlenbach an, das erste Geld.
 8. Nach etwa 90 Sekunden kommt das erste Vertragsangebot: Taste **V**, annehmen. Jeder Meilenstein gibt einen Skillpunkt: Taste **K**.
-9. Taste **B**: Straße zum Forsthaus Rotwald. Startpunkt am Ende des Fischerpfads (am See), ein Zwischenpunkt östlich um den See herum, Klick auf den Ring am Forsthaus, dann **Enter**. Wie das Bauen seit dem 12.11. geht, steht unten in „Bauen“.
+9. Taste **B**: Straße zum Forsthaus Rotwald. Entweder vom Ende des Fischerpfads (am See) mit gehaltener linker Taste bis zum Forsthaus **ziehen** und loslassen, oder Startpunkt klicken, einen Zwischenpunkt östlich um den See herum, Klick auf den Ring am Forsthaus, dann **Enter**. Beides steht unten in „Bauen“.
 10. Stadtverkehr: **Erlenbach** anklicken → „Personenlinie hier beginnen“ → Erlenbach Ostend und Erlenbach Kirchgasse anklicken → Enter. Im Fuhrhof eine Stadtkutsche kaufen und zuweisen.
 
 **„Nächster Schritt“** oben sagt dir, was im Ablauf gerade offen ist (Linie fehlt, Fahrzeuge stehen im Depot, Lizenz fehlt), danach den nächsten Meilenstein. Die Zeile **„Jetzt möglich“** zeigt, was bezahlbar ist.
@@ -43,15 +43,24 @@ Neu seit dem 11.11.: Linien und Fahrzeuge laufen wie in Transport Fever 2. **Lin
 - Fährst du mit der Maus über etwas Anklickbares, bekommt es einen hellen Ring und der Mauszeiger wird zur Hand.
 - Ein neuer Modus beendet den alten. Beispiel: Taste B während du Halte anklickst, wechselt sichtbar in den Straßenbau.
 
-### Bauen (neu seit dem 12.11.)
+### Bauen (neu seit dem 12.11., Ziehen seit dem 13.11.)
+Es gibt **zwei Wege** zum selben Abschnitt. Beide sind gleichwertig, du kannst sie mischen.
+
+**Weg 1 – ziehen (wie in Cities: Skylines):** linke Taste auf dem Startpunkt **drücken**, mit gehaltener Taste **ziehen**, **loslassen** baut. Während des Zuges läuft die Vorschau mit; am Schild stehen Länge, Preis und Fehler. Ein Zug zieht genau ein Stück: im Kurvenmodus den Bogen, der tangential am Netz anschließt, sonst die Gerade. Im Planungsmodus legt das Loslassen den Abschnitt als Blaupause ab.
+
+**Weg 2 – klicken (wie in Transport Fever 2):** Klicks setzen Punkte, **Enter** oder ein zweiter Klick auf den letzten Punkt (Doppelklick) baut. So baust du mehrere Bögen in einem Stück. Ein Zug am Ende einer Klickfolge schließt sie ab.
+
+Ein kurzer Klick (unter 6 px Mausweg) ist immer ein Punkt-Klick, nie ein Zug.
+
 - **Vor dem ersten Klick** zeigt eine Marke unter der Maus, woran der Start einrastet: voller weißer Punkt an Straße oder Gleis, goldener am Betrieb, hohler grauer Ring im freien Gelände (dort geht kein Start). Das Schild an der Maus sagt es in Worten.
 - **Nach dem ersten Klick** liegt die Trasse bis zur Maus als Band da. Am Schild stehen Länge und Preis, bei einer Brücke ihre Länge.
-- **Eine Regel:** Klick setzt einen Punkt, mehr nie. Gebaut wird mit **Enter** oder mit einem zweiten Klick auf den letzten Punkt (Doppelklick). **Rechtsklick** nimmt den letzten Punkt zurück, ohne Punkt beendet er das Werkzeug. **Esc** beendet.
+- **Rechtsklick** nimmt den letzten Punkt zurück, ohne Punkt beendet er das Werkzeug. **Esc** beendet.
+- **Kamera im Baumodus:** Die gehaltene linke Taste gehört jetzt der Trasse. Geschoben wird mit **WASD**, den Pfeiltasten oder der **mittleren Maustaste**, gezoomt mit dem **Mausrad**, gedreht mit **Q/E** oder gehaltener rechter Taste.
 - **Nach dem Bau bleibt das Werkzeug an.** Das Ende ist der neue Start, die Richtung läuft weiter.
 - **C: Kurve oder gerade.** Kurve: Jedes Stück schließt im Bogen an das vorige an. Gerade: gerade Stücke, die Ecken werden ausgerundet. Was du siehst, wird gebaut.
 - **Fehler** sind nur an der Stelle rot, mit dem Grund daneben („See“, „Bogen zu eng“, „zu steil“). Die rote Linie um Seen ist die Sperrzone.
 - **Brücken** sind in der Vorschau orange und haben Pfeiler. Sie kosten das Fünffache.
-- **Kreuzt** die neue Straße eine bestehende, werden beide dort verbunden (weiße Ringe in der Vorschau).
+- **Kreuzt** die neue Straße eine bestehende, werden beide dort verbunden (weiße Ringe in der Vorschau). Je Querung entsteht genau **eine** Kreuzung.
 - **P: Planen.** Abschnitte werden als blaue Blaupause abgelegt, es fließt kein Geld. Links steht die Liste mit der Summe; ✕ verwirft einen Abschnitt, der Haken wählt ihn für „Auswahl bauen“. „Plan bauen“ baut alles, wenn das Geld reicht. Der Plan bleibt liegen, auch wenn du das Werkzeug beendest.
 
 ### Später
@@ -64,7 +73,7 @@ Neu seit dem 11.11.: Linien und Fahrzeuge laufen wie in Transport Fever 2. **Lin
 | Taste | Wirkung |
 |---|---|
 | H | Firmensitz platzieren, danach Panel Firmensitz (Ausbau, Anbauten, Umzug) |
-| B / G | Straße / Gleis bauen (Gleis ab 1824). Klick setzt Punkt, Enter oder Doppelklick baut, Rechtsklick oder Entf nimmt einen Punkt zurück, Esc beendet |
+| B / G | Straße / Gleis bauen (Gleis ab 1824). Ziehen mit gehaltener linker Taste baut beim Loslassen; oder Klick setzt Punkt, Enter bzw. Doppelklick baut. Rechtsklick oder Entf nimmt einen Punkt zurück, Esc beendet. Kamera: WASD, Mausrad, mittlere Taste |
 | C / P | im Bauwerkzeug: Kurve oder gerade / Planen an oder aus |
 | V / K | Verträge / Skilltree |
 | L | Fenster Verkehr, Reiter Linien (anlegen, Halte, Ladeauftrag, Fahrzeuge der Linie) |
@@ -94,7 +103,7 @@ Die Jahre sind für die Demo vorgezogen (Zeitraffer), historisch stimmen sie nic
 - **Banner und Ring:** Wusstest du jederzeit, ob das Spiel auf einen Klick wartet und was ausgewählt ist? Gab es einen Moment, in dem doch etwas „hing“?
 - **Mehrfachauswahl:** Klick und Umschalt+Klick wie erwartet? Fehlt Strg+Klick oder ein Rahmen mit der Maus?
 - **Depots:** Ist klar, warum ein Zug einen Lokschuppen braucht und wo er stehen muss?
-- **Bauen:** Fühlt sich das Ziehen jetzt richtig an (Marke, Band, Schild an der Maus)? Sind die Kurven so, wie du sie erwartest, oder fehlt freies Ziehen mit gehaltener Maustaste? Hast du den Planungsmodus benutzt, und wofür?
+- **Bauen:** Fühlt sich das Ziehen mit gehaltener Maustaste jetzt richtig an (Schwelle, Vorschau während des Zuges, Loslassen)? Benutzt du eher Ziehen oder Klicken? Stört es, dass die Kamera im Baumodus nur noch mit WASD und mittlerer Taste schiebt? Sind die Kurven so, wie du sie erwartest? Hast du den Planungsmodus benutzt, und wofür?
 - Ab welcher Minute wusstest du nicht mehr, was du tun sollst (falls überhaupt)?
 - Firmensitz, Skills, Verträge: echte Entscheidung oder Klickarbeit?
 - Tempo k = 8: wirkt das Fahrtempo richtig, zu langsam, zu schnell?

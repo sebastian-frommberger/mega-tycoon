@@ -830,6 +830,7 @@ func _run() -> void:
 	var vorschau_zug: bool = bool(ud.werte["bau_vorschau"]) and ud.bau.vorschau.has_node("Gut")
 	var banner_zug: String = String(ud.werte["banner"])
 	var q_halb: Dictionary = ud.bau_angebot
+	await _shot("31_bau_ziehen")                                  # Bild MITTEN im Zug (Taste noch unten)
 	var up2 := InputEventMouseButton.new()
 	up2.button_index = MOUSE_BUTTON_LEFT
 	up2.pressed = false
@@ -841,7 +842,6 @@ func _run() -> void:
 	pruef(zieht_an and vorschau_zug and schild_zug.contains(" m · ") and banner_zug.contains("Loslassen baut") and int(q_halb.get("laenge_m", 0)) > 0
 		and int(q_halb["laenge_m"]) < int(q_voll["laenge_m"]) and ps.bauwerke.size() == wege0_t4 + 2 and not ud.bau.zieht,
 		"B11 während des Zuges läuft die Vorschau mit: Schild „%s“ (%d m von %d m), Banner „%s“; Loslassen baut" % [schild_zug, int(q_halb.get("laenge_m", 0)), int(q_voll["laenge_m"]), banner_zug])
-	await _shot("31_bau_ziehen")
 	# B12 kurzer Zug unter der Schwelle (6 px) bleibt ein Punkt-Klick
 	var zs3: Vector2 = ps.fang("strasse", zziel2)["pos"]
 	var p_kurz := _wpx(zs3)

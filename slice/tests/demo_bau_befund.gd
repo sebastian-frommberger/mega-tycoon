@@ -124,6 +124,50 @@ func _klick_welt(wp: Vector2) -> void:
 	await _klick(_px(wp))
 
 
+## Teil 5: Ziehen mit gehaltener Taste über die ECHTE Maus (warp_mouse + Druck, mehrere Bewegungen, Loslassen).
+func _zieh(a: Vector2, b: Vector2, n := 6, knopf := MOUSE_BUTTON_LEFT) -> void:
+	await _maus(a)
+	var dn := InputEventMouseButton.new()
+	dn.button_index = knopf
+	dn.pressed = true
+	dn.position = _fenster(a)
+	dn.global_position = dn.position
+	root.push_input(dn)
+	await _frames(2)
+	for i in n:
+		var p0 := a.lerp(b, float(i) / n)
+		var p1 := a.lerp(b, float(i + 1) / n)
+		Input.warp_mouse(_fenster(p1))
+		var mv := InputEventMouseMotion.new()
+		mv.position = _fenster(p1)
+		mv.global_position = mv.position
+		mv.relative = _fenster(p1) - _fenster(p0)
+		mv.button_mask = MOUSE_BUTTON_MASK_LEFT if knopf == MOUSE_BUTTON_LEFT else MOUSE_BUTTON_MASK_MIDDLE
+		root.push_input(mv)
+		await _frames(3)
+	var up := InputEventMouseButton.new()
+	up.button_index = knopf
+	up.pressed = false
+	up.position = _fenster(b)
+	up.global_position = up.position
+	root.push_input(up)
+	await _frames(4)
+
+
+func _zieh_welt(von: Vector2, bis: Vector2, n := 6, knopf := MOUSE_BUTTON_LEFT) -> void:
+	await _zieh(_px(von), _px(bis), n, knopf)
+
+
+## Richtung von s0 aus, in der ein Abschnitt der Länge l baubar ist (ok, keine Brücke, freies Ende, keine Kreuzung).
+func _freie_richtung(art: String, s0: Vector2, l: float, kurve: bool) -> Vector2:
+	for wi in 24:
+		var d := Vector2(cos(TAU * wi / 24.0), sin(TAU * wi / 24.0))
+		var q: Dictionary = ps.trasse_angebot(art, PackedVector2Array([s0, s0 + d * l]), {"kurve": kurve})
+		if q.get("ok", false) and int(q["bruecke_m"]) == 0 and String(q["ende"]["typ"]) == "frei" and (q["kreuzungen"] as Dictionary).is_empty():
+			return d
+	return Vector2.ZERO
+
+
 func _taste(k: int) -> void:
 	for druck in [true, false]:
 		var ev := InputEventKey.new()
@@ -527,37 +571,152 @@ func _run() -> void:
 	await _shot("n11_gleis_gebaut")
 	await _taste(KEY_ESCAPE)
 
-	# ---------------------------------------------------------------- N12 Kamera beim Bauen (unverändert gut)
+	# ---------------------------------------------------------------- N13 Ziehen mit gehaltener linker Taste (Teil 5)
+	var zs: Vector2 = ps.fang("strasse", start)["pos"]
+	var zd := _freie_richtung("strasse", zs, 170.0, false)
+	if zd == Vector2.ZERO:
+		befund("N13", "Ziehen: keine freie Richtung gefunden (nicht gemessen).")
+	else:
+		var zziel: Vector2 = zs + zd * 170.0
+		await _kamera_fuer([zs, zziel], -0.3)
+		await _taste(KEY_B)
+		if ud.bau.kurve:
+			await _taste(KEY_C)                                # gerade: ein Zug = eine Gerade
+		var q13: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([zs, zziel]), {"kurve": false})
+		kasse = ps.eco.cash_cent
+		wege0 = ps.bauwerke.size()
+		# Zug von Hand, damit die Vorschau MITTEN im Zug gemessen werden kann
+		var a13 := _px(zs)
+		var b13 := _px(zziel)
+		await _maus(a13)
+		var dn13 := InputEventMouseButton.new()
+		dn13.button_index = MOUSE_BUTTON_LEFT
+		dn13.pressed = true
+		dn13.position = _fenster(a13)
+		dn13.global_position = dn13.position
+		root.push_input(dn13)
+		await _frames(3)
+		var punkte_druck: int = ud.bau_punkte.size()
+		var zieht_druck: bool = ud.bau.zieht
+		var schild_halb := ""
+		var laenge_halb := 0
+		var vorschau_halb := false
+		for i13 in 6:
+			var p13 := a13.lerp(b13, float(i13 + 1) / 6.0)
+			Input.warp_mouse(_fenster(p13))
+			var mv13 := InputEventMouseMotion.new()
+			mv13.position = _fenster(p13)
+			mv13.global_position = mv13.position
+			mv13.relative = _fenster(p13) - _fenster(a13.lerp(b13, float(i13) / 6.0))
+			mv13.button_mask = MOUSE_BUTTON_MASK_LEFT
+			root.push_input(mv13)
+			await _frames(3)
+			if i13 == 2:
+				schild_halb = String(ud.werte["bau_schild"])
+				laenge_halb = int(ud.bau_angebot.get("laenge_m", 0))
+				vorschau_halb = bool(ud.werte["bau_vorschau"]) and ud.bau.zieht
+				await _shot("n13_ziehen_vorschau")
+		var up13 := InputEventMouseButton.new()
+		up13.button_index = MOUSE_BUTTON_LEFT
+		up13.pressed = false
+		up13.position = _fenster(b13)
+		up13.global_position = up13.position
+		root.push_input(up13)
+		await _frames(6)
+		var gebaut13: bool = ps.bauwerke.size() == wege0 + 1
+		befund("N13", "Ziehen mit gehaltener linker Taste (echte Maus: Drücken, 6 Bewegungen, Loslassen): Drücken allein ändert nichts (%d Punkte, zieht: %s) — der Startpunkt entsteht erst mit der Schwelle. Mitten im Zug läuft die Vorschau mit (%s): Schild „%s“, %d m von %d m. Loslassen baut: %s, −%d $ (Angebot %d $), Abweichung zur Vorschau höchstens %.2f m, „%s“. Danach bleibt das Werkzeug an (Modus „%s“, %d Punkt am Ende)." % [
+			punkte_druck, str(zieht_druck), "ja" if vorschau_halb else "NEIN", schild_halb, laenge_halb, int(q13["laenge_m"]), str(gebaut13),
+			(kasse - ps.eco.cash_cent) / 100, int(q13["kosten_cent"]) / 100, _abweichung(q13, int(ps.bauwerke[-1]["weg"])) if gebaut13 else -1.0, _letzte(),
+			ud.modus(), ud.bau_punkte.size()])
+		await _shot("n13_ziehen_gebaut")
+		# Kurzer Zug unter der Schwelle bleibt ein Punkt-Klick
+		var zs2: Vector2 = ps.fang("strasse", zziel)["pos"]
+		await _klick(_px(Vector2(1200, 1150)), MOUSE_BUTTON_RIGHT)
+		wege0 = ps.bauwerke.size()
+		kasse = ps.eco.cash_cent
+		var pk13 := _px(zs2)
+		await _zieh(pk13, pk13 + Vector2(4, 2), 2)
+		befund("N13b", "Kurzer Zug (4 px, Schwelle %d px) bleibt ein Punkt-Klick: %d Punkt gesetzt, gebaut %d, Kasse %s." % [
+			int(ud.bau.ZIEH_PX), ud.bau_punkte.size(), ps.bauwerke.size() - wege0, "unverändert" if ps.eco.cash_cent == kasse else "VERÄNDERT"])
+		# Ziehen im Kurvenmodus: ein Zug = ein tangentialer Bogen (Start an einem freien Ende, dort kennt die Sim die Richtung)
+		await _taste(KEY_C)
+		var ek13: int = int(ps.fang("strasse", zziel)["knoten"])
+		var t13: Variant = ps.knoten_richtung(ek13)
+		var zziel2 := Vector2.ZERO
+		var q13v: Dictionary = {}
+		if t13 is Vector2:
+			for g13 in [35.0, 50.0, -35.0, -50.0, 20.0, -20.0]:
+				var kand13: Vector2 = zs2 + (t13 as Vector2).rotated(deg_to_rad(g13)) * 150.0
+				var qt13: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([zs2, kand13]), {"kurve": true})
+				if qt13.get("ok", false) and int(qt13["bruecke_m"]) == 0 and float(qt13.get("r_min", INF)) < 1000.0:
+					zziel2 = kand13
+					q13v = qt13                                # Angebot VOR dem Bau: danach hat der Startknoten zwei Nachbarn und kennt keine Richtung mehr
+					break
+		if zziel2 != Vector2.ZERO:
+			await _kamera_fuer([zs2, zziel2], -0.3)
+			await _zieh_welt(zs2, zziel2, 6)
+			var bw13: Dictionary = ps.bauwerke[-1]
+			befund("N13c", "Ziehen im Kurvenmodus (Taste C): ein Zug zieht GENAU EIN Stück, den tangentialen Bogen bis zum Loslasspunkt (Angebot vor dem Bau: kleinster Radius %.0f m, Minimum %d m, größter Knick zwischen zwei Punkten %.1f°, Anschlusswinkel am Startknoten %.1f°); gebaut %d m für %d $, Abweichung zur Vorschau höchstens %.2f m. Ein Bogen mit frei gewählter Krümmung braucht weiter zwei Punkte, also Klick–Klick." % [
+				float(q13v.get("r_min", 0.0)), int(ps.bau_radius("strasse")), _knick(q13v.get("punkte", PackedVector2Array())),
+				absf(rad_to_deg((t13 as Vector2).angle_to((q13v["punkte"] as PackedVector2Array)[1] - (q13v["punkte"] as PackedVector2Array)[0]))) if q13v.has("punkte") else -1.0,
+				int(bw13["laenge_m"]), int(bw13["kosten_cent"]) / 100, _abweichung(q13v, int(bw13["weg"]))])
+			await _shot("n13_ziehen_kurve")
+		else:
+			befund("N13c", "Ziehen im Kurvenmodus: keine Richtung gefunden, in der ein Bogen baubar ist (nicht gemessen).")
+		await _taste(KEY_ESCAPE)
+
+	# ---------------------------------------------------------------- N14 Kreuzung: eine Querung = eine Kreuzung (Befund Teil 5)
+	var kr_nah := 0
+	var kr_n := -1
+	for nid14 in ps.knoten_grad:
+		if ps.knoten_grad[nid14] != 2 or ps.gleis_knoten.has(nid14) or kr_n >= 0:
+			continue
+		var np14 := Vector2(ps.knoten_pos[nid14].x, ps.knoten_pos[nid14].z)
+		for wi14 in 24:
+			var d14 := Vector2(cos(TAU * wi14 / 24.0), sin(TAU * wi14 / 24.0))
+			var q14: Dictionary = ps.trasse_angebot("strasse", PackedVector2Array([np14 - d14 * 90.0, np14 + d14 * 90.0]), {"kurve": false})
+			if not q14.get("ok", false) or int(q14["bruecke_m"]) > 0 or (q14["kreuzungen"] as Dictionary).is_empty():
+				continue
+			var geo14: PackedVector2Array = q14["punkte"]
+			kr_nah = 0
+			for nid in ps.knoten_grad:
+				if ps.knoten_grad[nid] == 0 or ps.gleis_knoten.has(nid):
+					continue
+				var kp14 := Vector2(ps.knoten_pos[nid].x, ps.knoten_pos[nid].z)
+				for i14 in range(1, geo14.size() - 1):
+					if geo14[i14].distance_to(kp14) < ps.KREUZ_FANG_M:
+						kr_nah += 1
+						break
+			kr_n = (q14["kreuzungen"] as Dictionary).size()
+			break
+	if kr_n < 0:
+		befund("N14", "Kreuzung: keine passende Querung gefunden (nicht gemessen).")
+	else:
+		befund("N14", "Eine Querung = eine Kreuzung: %d vorhandene Knoten liegen im Fangkreis (≤ %.0f m) der neuen Mittellinie, verbunden wird %d (vorher jeder davon, in N8 drei)." % [kr_nah, ps.KREUZ_FANG_M, kr_n])
+
+	# ---------------------------------------------------------------- N12 Kamera beim Bauen (Teil 5: linke Taste zieht die Trasse)
 	await _kamera_fuer([start, Vector2(1220, 1000)], -0.3)
+	var frei12 := Vector2.ZERO
+	for wi12 in 24:
+		var kand: Vector2 = Vector2(1220, 1000) + Vector2(cos(TAU * wi12 / 24.0), sin(TAU * wi12 / 24.0)) * 200.0
+		if String(ps.fang("strasse", kand)["typ"]) == "frei":
+			frei12 = kand
+			break
 	await _taste(KEY_B)
-	await _klick_welt(start)
 	var ziel0: Vector3 = s.ziel
-	var von := _px(Vector2(1150, 1080))
-	await _maus(von)
-	var dn := InputEventMouseButton.new()
-	dn.button_index = MOUSE_BUTTON_LEFT
-	dn.pressed = true
-	dn.position = _fenster(von)
-	dn.global_position = dn.position
-	root.push_input(dn)
-	for i in 7:
-		var mv := InputEventMouseMotion.new()
-		mv.position = _fenster(von + Vector2(20.0 * (i + 1), 0))
-		mv.global_position = mv.position
-		mv.relative = Vector2(20, 0)
-		mv.button_mask = MOUSE_BUTTON_MASK_LEFT
-		root.push_input(mv)
-		await _frames(1)
-	var up := InputEventMouseButton.new()
-	up.button_index = MOUSE_BUTTON_LEFT
-	up.pressed = false
-	up.position = _fenster(von + Vector2(140, 0))
-	up.global_position = up.position
-	root.push_input(up)
-	await _frames(4)
+	wege0 = ps.bauwerke.size()
+	var von := _px(frei12 if frei12 != Vector2.ZERO else Vector2(1150, 1080))
+	await _zieh(von, von + Vector2(140, 0), 7, MOUSE_BUTTON_LEFT)
+	var kam_links: float = Vector2(s.ziel.x - ziel0.x, s.ziel.z - ziel0.z).length()
+	var p_links: int = ud.bau_punkte.size()
+	var gebaut_links: int = ps.bauwerke.size() - wege0
+	await _zieh(von, von + Vector2(140, 0), 7, MOUSE_BUTTON_MIDDLE)
 	await _ruhig()
-	befund("N12", "Kamera beim Bauen: Ziehen mit der linken Taste (140 px) schiebt die Kamera um %.0f m und setzt keinen Punkt (Punkte %d). Ziehen mit der rechten Taste dreht weiter die Kamera und nimmt keinen Punkt zurück (nur der Klick ohne Ziehen)." % [
-		Vector2(s.ziel.x - ziel0.x, s.ziel.z - ziel0.z).length(), ud.bau_punkte.size()])
+	var kam_mitte: float = Vector2(s.ziel.x - ziel0.x, s.ziel.z - ziel0.z).length()
+	var gier0: float = s.gier
+	await _zieh(von, von + Vector2(120, 0), 6, MOUSE_BUTTON_RIGHT)
+	befund("N12", "Kamera im Baumodus (Teil 5): Ziehen mit der linken Taste (140 px) schiebt die Kamera NICHT mehr (%.1f m) — sie gehört dem Bauwerkzeug; aus dem freien Gelände entsteht dabei nichts (Punkte %d, gebaut %d). Die mittlere Taste schiebt (%.0f m), die rechte dreht (%.2f rad) und nimmt ohne Ziehen weiter einen Punkt zurück; WASD und Mausrad unverändert." % [
+		kam_links, p_links, gebaut_links, kam_mitte, absf(s.gier - gier0)])
 	await _taste(KEY_ESCAPE)
 	print("demo_bau_befund fertig, Sim-Fehler: %s" % str(ps.fehler))
 	quit(0)
